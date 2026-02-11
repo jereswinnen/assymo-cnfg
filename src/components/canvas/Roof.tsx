@@ -44,7 +44,7 @@ export default function Roof() {
 
   const materialProps = {
     color: roofTexture ? '#ffffff' : color,
-    ...(roofTexture ? { map: roofTexture } : {}),
+    map: roofTexture ?? undefined,
     metalness: 0.3,
     roughness: 0.5,
     emissive: isSelected ? '#3b82f6' : hovered ? '#60a5fa' : '#000000',
@@ -93,7 +93,7 @@ function FlatRoof({ width, depth, height, materialProps, isSelected, meshRef, on
       onClick={onClick}
     >
       <boxGeometry args={[width + 0.3, ROOF_THICKNESS, depth + 0.3]} />
-      <meshStandardMaterial {...materialProps} />
+      <meshStandardMaterial key={materialProps.map ? 'textured' : 'flat'} {...materialProps} />
       <Edges color={isSelected ? '#2563eb' : '#333333'} threshold={15} />
     </mesh>
   );
@@ -137,7 +137,7 @@ function PitchedRoof({ width, depth, height, roofPitch, materialProps, isSelecte
           onClick={onClick}
         >
           <boxGeometry args={[roofSlantLength, ROOF_THICKNESS, depth]} />
-          <meshStandardMaterial {...materialProps} />
+          <meshStandardMaterial key={materialProps.map ? 'textured' : 'flat'} {...materialProps} />
           <Edges color={isSelected ? '#2563eb' : '#333333'} threshold={15} />
         </mesh>
       ))}

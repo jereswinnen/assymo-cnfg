@@ -117,7 +117,7 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
       >
         <boxGeometry args={size} />
         <meshStandardMaterial
-          color={texture ? '#FFE8D0' : color}
+          color={texture ? '#ffffff' : color}
           map={texture ?? undefined}
           metalness={0.1}
           roughness={0.7}
@@ -258,9 +258,9 @@ function WindowMesh({ x }: { x: number }) {
 
   return (
     <group position={[x, winY, 0]}>
-      {/* Dark backing to simulate interior void */}
-      <mesh position={[0, 0, -WIN_DEPTH]} material={voidMat}>
-        <boxGeometry args={[WIN_W, WIN_H, 0.01]} />
+      {/* Dark backing to simulate interior void — covers wall surface behind glass */}
+      <mesh position={[0, 0, -0.015]} material={voidMat} renderOrder={-1}>
+        <boxGeometry args={[WIN_W + 0.02, WIN_H + 0.02, 0.03]} />
       </mesh>
       {/* Glass pane */}
       <mesh material={glassMat}>

@@ -35,7 +35,7 @@ export default function TimberFrame() {
     tex.wrapT = RepeatWrapping;
     tex.colorSpace = SRGBColorSpace;
     tex.repeat.set(2, 2);
-    return new MeshStandardMaterial({ map: tex, color: '#FFD8A0', metalness: 0.05, roughness: 0.8 });
+    return new MeshStandardMaterial({ map: tex, color: '#ffffff', metalness: 0.05, roughness: 0.8 });
   }, []);
 
   const elements = useMemo(() => {
