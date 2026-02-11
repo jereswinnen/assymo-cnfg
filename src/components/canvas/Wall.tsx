@@ -20,7 +20,8 @@ const FRAME_D = 0.04; // frame bar depth
 
 const doorMat = new MeshStandardMaterial({ color: '#3E2B1C', metalness: 0.1, roughness: 0.6 });
 const frameMat = new MeshStandardMaterial({ color: '#2A2A2A', metalness: 0.4, roughness: 0.3 });
-const glassMat = new MeshStandardMaterial({ color: '#B8D4E3', metalness: 0.1, roughness: 0.1, transparent: true, opacity: 0.35 });
+const glassMat = new MeshStandardMaterial({ color: '#B8D4E3', metalness: 0.1, roughness: 0.05, transparent: true, opacity: 0.3 });
+const voidMat = new MeshStandardMaterial({ color: '#1a1a2e', metalness: 0, roughness: 1 });
 const handleMat = new MeshStandardMaterial({ color: '#888888', metalness: 0.6, roughness: 0.3 });
 
 interface WallProps {
@@ -116,8 +117,8 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
       >
         <boxGeometry args={size} />
         <meshStandardMaterial
-          color={texture ? '#ffffff' : color}
-          map={texture}
+          color={texture ? '#FFE8D0' : color}
+          map={texture ?? undefined}
           metalness={0.1}
           roughness={0.7}
           emissive={isSelected ? '#3b82f6' : hovered ? '#60a5fa' : '#000000'}
@@ -257,6 +258,10 @@ function WindowMesh({ x }: { x: number }) {
 
   return (
     <group position={[x, winY, 0]}>
+      {/* Dark backing to simulate interior void */}
+      <mesh position={[0, 0, -WIN_DEPTH]} material={voidMat}>
+        <boxGeometry args={[WIN_W, WIN_H, 0.01]} />
+      </mesh>
       {/* Glass pane */}
       <mesh material={glassMat}>
         <boxGeometry args={[WIN_W, WIN_H, WIN_DEPTH]} />

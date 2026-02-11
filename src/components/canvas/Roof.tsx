@@ -44,7 +44,7 @@ export default function Roof() {
 
   const materialProps = {
     color: roofTexture ? '#ffffff' : color,
-    map: roofTexture,
+    ...(roofTexture ? { map: roofTexture } : {}),
     metalness: 0.3,
     roughness: 0.5,
     emissive: isSelected ? '#3b82f6' : hovered ? '#60a5fa' : '#000000',

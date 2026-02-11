@@ -18,8 +18,8 @@ const ROOF_TEXTURE_MAP: Record<string, string> = {
 
 // How many meters each texture tile covers (controls repeat density)
 const WALL_TILE_SIZE: Record<string, [number, number]> = {
-  wood: [2, 2],
-  brick: [2, 1.5],
+  wood: [3, 3],
+  brick: [5, 3.5],
   render: [3, 3],
   metal: [1.5, 2],
 };

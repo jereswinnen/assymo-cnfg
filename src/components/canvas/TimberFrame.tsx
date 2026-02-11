@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { MeshStandardMaterial } from 'three';
+import { MeshStandardMaterial, TextureLoader, RepeatWrapping, SRGBColorSpace } from 'three';
 import { useConfigStore } from '@/store/useConfigStore';
 
 const TIMBER_COLOR = '#C4A060';
@@ -29,10 +29,14 @@ export default function TimberFrame() {
   const roofPitch = config.dimensions.roofPitch;
   const hasBraces = config.hasCornerBraces;
 
-  const timberMat = useMemo(
-    () => new MeshStandardMaterial({ color: TIMBER_COLOR, metalness: 0.05, roughness: 0.8 }),
-    [],
-  );
+  const timberMat = useMemo(() => {
+    const tex = new TextureLoader().load('/textures/wood.jpg');
+    tex.wrapS = RepeatWrapping;
+    tex.wrapT = RepeatWrapping;
+    tex.colorSpace = SRGBColorSpace;
+    tex.repeat.set(2, 2);
+    return new MeshStandardMaterial({ map: tex, color: '#FFD8A0', metalness: 0.05, roughness: 0.8 });
+  }, []);
 
   const elements = useMemo(() => {
     const hw = width / 2;
