@@ -52,34 +52,36 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
 
   const { size, position, rotation } = useMemo(() => {
     const t = WALL_THICKNESS;
+    // Small inset so walls sit just inside the timber frame (prevents z-fighting with posts)
+    const inset = 0.01;
     switch (wallId) {
       case 'front':
         return {
-          size: [w, height, t] as [number, number, number],
-          position: [offsetX, height / 2, d / 2] as [number, number, number],
+          size: [w - inset * 2, height, t] as [number, number, number],
+          position: [offsetX, height / 2, d / 2 - inset] as [number, number, number],
           rotation: [0, 0, 0] as [number, number, number],
         };
       case 'back':
         return {
-          size: [w, height, t] as [number, number, number],
-          position: [offsetX, height / 2, -d / 2] as [number, number, number],
+          size: [w - inset * 2, height, t] as [number, number, number],
+          position: [offsetX, height / 2, -d / 2 + inset] as [number, number, number],
           rotation: [0, 0, 0] as [number, number, number],
         };
       case 'left':
         return {
-          size: [t, height, d] as [number, number, number],
-          position: [offsetX - w / 2, height / 2, 0] as [number, number, number],
+          size: [t, height, d - inset * 2] as [number, number, number],
+          position: [offsetX - w / 2 + inset, height / 2, 0] as [number, number, number],
           rotation: [0, 0, 0] as [number, number, number],
         };
       case 'right':
         return {
-          size: [t, height, d] as [number, number, number],
-          position: [offsetX + w / 2, height / 2, 0] as [number, number, number],
+          size: [t, height, d - inset * 2] as [number, number, number],
+          position: [offsetX + w / 2 - inset, height / 2, 0] as [number, number, number],
           rotation: [0, 0, 0] as [number, number, number],
         };
       case 'divider':
         return {
-          size: [t, height, d] as [number, number, number],
+          size: [t, height, d - inset * 2] as [number, number, number],
           position: [offsetX + w / 2, height / 2, 0] as [number, number, number],
           rotation: [0, 0, 0] as [number, number, number],
         };
@@ -113,6 +115,9 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
           roughness={0.7}
           emissive={isSelected ? '#3b82f6' : hovered ? '#60a5fa' : '#000000'}
           emissiveIntensity={isSelected ? 0.35 : hovered ? 0.15 : 0}
+          polygonOffset
+          polygonOffsetFactor={1}
+          polygonOffsetUnits={1}
         />
         <Edges color={isSelected ? '#2563eb' : '#333333'} threshold={15} />
       </mesh>

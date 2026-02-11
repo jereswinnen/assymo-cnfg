@@ -68,9 +68,9 @@ export default function TimberFrame() {
 
     // --- Corner braces (diagonal 45° brackets) ---
     if (hasBraces) {
-      const braceSpan = 0.5; // horizontal & vertical reach
-      const braceDiag = Math.sqrt(2) * braceSpan; // actual length of diagonal
-      const braceSize = BEAM_W; // same thickness as beams
+      const braceSpan = 0.45; // horizontal & vertical reach
+      const braceDiag = Math.sqrt(2) * braceSpan;
+      const braceThick = 0.10; // thinner than beams for visual clarity
       // [cx, cz, dx, dz] — dx/dz point inward toward building center
       const corners: [number, number, number, number][] = [
         [-hw, hd, 1, -1],
@@ -79,18 +79,18 @@ export default function TimberFrame() {
         [hw, -hd, -1, 1],
       ];
       for (const [cx, cz, dx, dz] of corners) {
-        // Center of brace: halfway between post top and braceSpan below
+        // Brace top meets beam bottom, brace bottom is braceSpan below
         const midY = height - braceSpan / 2;
         // Brace in X-beam plane (rotated around Z)
         boxes.push({
           pos: [cx + dx * braceSpan / 2, midY, cz],
-          size: [braceDiag, braceSize, braceSize],
+          size: [braceDiag, braceThick, braceThick],
           rot: [0, 0, dx * Math.PI / 4],
         });
         // Brace in Z-beam plane (rotated around X)
         boxes.push({
           pos: [cx, midY, cz + dz * braceSpan / 2],
-          size: [braceSize, braceSize, braceDiag],
+          size: [braceThick, braceThick, braceDiag],
           rot: [-dz * Math.PI / 4, 0, 0],
         });
       }
