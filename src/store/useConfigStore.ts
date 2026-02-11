@@ -20,10 +20,12 @@ interface ConfigState {
   config: BuildingConfig;
   selectedElement: SelectedElement;
   activeAccordionSection: number;
+  cameraTargetWallId: WallId | null;
 
   // Actions
   selectElement: (element: SelectedElement) => void;
   clearSelection: () => void;
+  clearCameraTarget: () => void;
   updateDimensions: (dims: Partial<BuildingDimensions>) => void;
   setBuildingType: (type: BuildingType) => void;
   setRoofType: (type: RoofType) => void;
@@ -50,10 +52,20 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   config: makeDefaultConfig(),
   selectedElement: null,
   activeAccordionSection: 1,
+  cameraTargetWallId: null,
 
-  selectElement: (element) => set({ selectedElement: element }),
+  selectElement: (element) =>
+    set((state) => ({
+      selectedElement: element,
+      activeAccordionSection:
+        element?.type === 'wall' ? 4 : element?.type === 'roof' ? 3 : state.activeAccordionSection,
+      cameraTargetWallId:
+        element?.type === 'wall' ? element.id : state.cameraTargetWallId,
+    })),
 
   clearSelection: () => set({ selectedElement: null }),
+
+  clearCameraTarget: () => set({ cameraTargetWallId: null }),
 
   updateDimensions: (dims) =>
     set((state) => ({
