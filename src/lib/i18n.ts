@@ -83,10 +83,15 @@ const nl: Record<string, string> = {
   'roof.thickness': 'Dikte',
   'roof.skylight': 'Dakraam',
 
+  // Structure
+  'structure.cornerBraces': 'Schoren',
+  'structure.cornerBraces.desc': 'Hoekschoren voor extra stabiliteit',
+
   // Quote
   'quote.title': 'Offerte overzicht',
   'quote.total': 'Totaal',
   'quote.posts': 'Staanders',
+  'quote.braces': 'Schoren',
   'quote.roof': 'Dak',
 
   // Walls section

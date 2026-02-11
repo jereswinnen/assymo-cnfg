@@ -26,6 +26,7 @@ export default function TimberFrame() {
   const { width, depth, height } = config.dimensions;
   const isFlat = config.roof.type === 'flat';
   const roofPitch = config.dimensions.roofPitch;
+  const hasBraces = config.hasCornerBraces;
 
   const timberMat = useMemo(
     () => new MeshStandardMaterial({ color: TIMBER_COLOR, metalness: 0.05, roughness: 0.8 }),
@@ -64,6 +65,31 @@ export default function TimberFrame() {
     boxes.push({ pos: [-hw, beamY, 0], size: [BEAM_W, BEAM_H, depth + BEAM_W] });
     boxes.push({ pos: [hw, beamY, 0], size: [BEAM_W, BEAM_H, depth + BEAM_W] });
 
+    // --- Corner braces ---
+    if (hasBraces) {
+      const braceLen = 0.6;
+      const braceSize = 0.10;
+      const corners: [number, number, number, number][] = [
+        [-hw, hd, 1, 1],
+        [hw, hd, -1, 1],
+        [-hw, -hd, 1, -1],
+        [hw, -hd, -1, -1],
+      ];
+      for (const [cx, cz, dx, dz] of corners) {
+        const by = height - braceLen / 2;
+        // Brace along X axis
+        boxes.push({
+          pos: [cx + dx * braceLen / 2, by, cz],
+          size: [braceLen, braceSize, braceSize],
+        });
+        // Brace along Z axis
+        boxes.push({
+          pos: [cx, by, cz + dz * braceLen / 2],
+          size: [braceSize, braceSize, braceLen],
+        });
+      }
+    }
+
     if (isFlat) {
       // --- Solid roof deck ---
       const deckY = height + BEAM_H + DECK_T / 2;
@@ -84,7 +110,7 @@ export default function TimberFrame() {
     }
 
     return boxes;
-  }, [width, depth, height, isFlat, roofPitch]);
+  }, [width, depth, height, isFlat, roofPitch, hasBraces]);
 
   return (
     <group>

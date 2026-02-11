@@ -31,6 +31,7 @@ interface ConfigState {
   setRoofType: (type: RoofType) => void;
   updateRoof: (patch: Partial<RoofConfig>) => void;
   updateWall: (id: WallId, patch: Partial<WallConfig>) => void;
+  toggleCornerBraces: () => void;
   setAccordionSection: (n: number) => void;
   resetConfig: () => void;
 
@@ -45,6 +46,7 @@ function makeDefaultConfig(type: BuildingType = 'overkapping'): BuildingConfig {
     dimensions: { ...DEFAULT_DIMENSIONS },
     roof: { ...DEFAULT_ROOF },
     walls: getDefaultWalls(type),
+    hasCornerBraces: type !== 'berging',
   };
 }
 
@@ -116,6 +118,14 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
           ...state.config.walls,
           [id]: { ...state.config.walls[id], ...patch },
         },
+      },
+    })),
+
+  toggleCornerBraces: () =>
+    set((state) => ({
+      config: {
+        ...state.config,
+        hasCornerBraces: !state.config.hasCornerBraces,
       },
     })),
 

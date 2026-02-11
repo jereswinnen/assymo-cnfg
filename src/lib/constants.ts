@@ -117,4 +117,5 @@ export const WINDOW_AREA_CUTOUT = 1.2 * 1.0; // m²
 export const POST_PRICE = 120; // per post
 export const POST_SPACING = 3; // meters between posts
 
+export const BRACE_PRICE = 45; // per brace
 export const WALL_THICKNESS = 0.15;

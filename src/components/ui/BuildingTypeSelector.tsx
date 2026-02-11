@@ -70,8 +70,10 @@ const ROOF_TYPES: { id: RoofType; labelKey: string; icon: React.ReactNode }[] = 
 export default function BuildingTypeSelector() {
   const buildingType = useConfigStore((s) => s.config.buildingType);
   const roofType = useConfigStore((s) => s.config.roof.type);
+  const hasCornerBraces = useConfigStore((s) => s.config.hasCornerBraces);
   const setBuildingType = useConfigStore((s) => s.setBuildingType);
   const setRoofType = useConfigStore((s) => s.setRoofType);
+  const toggleCornerBraces = useConfigStore((s) => s.toggleCornerBraces);
 
   return (
     <div className="space-y-4">
@@ -120,6 +122,28 @@ export default function BuildingTypeSelector() {
             </button>
           ))}
         </div>
+      </div>
+      {/* Corner braces toggle */}
+      <div>
+        <label className="flex items-center justify-between rounded-lg border-2 px-3 py-2.5 cursor-pointer transition-all border-gray-200 hover:border-gray-300">
+          <div className="flex items-center gap-2">
+            <svg viewBox="0 0 24 24" className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2}>
+              <line x1="4" y1="4" x2="4" y2="20" />
+              <line x1="4" y1="4" x2="20" y2="4" />
+              <line x1="4" y1="12" x2="12" y2="4" strokeWidth={2.5} />
+            </svg>
+            <div>
+              <span className="text-sm font-medium text-gray-700">{t('structure.cornerBraces')}</span>
+              <p className="text-xs text-gray-400">{t('structure.cornerBraces.desc')}</p>
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={hasCornerBraces}
+            onChange={toggleCornerBraces}
+            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+        </label>
       </div>
     </div>
   );

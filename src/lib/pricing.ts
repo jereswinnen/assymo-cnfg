@@ -15,6 +15,7 @@ import {
   WINDOW_AREA_CUTOUT,
   POST_PRICE,
   POST_SPACING,
+  BRACE_PRICE,
 } from './constants';
 import { t } from './i18n';
 
@@ -184,6 +185,24 @@ export function postLineItem(
   };
 }
 
+export function braceLineItem(
+  config: BuildingConfig,
+): LineItem | null {
+  if (!config.hasCornerBraces) return null;
+  // One brace per corner post (4 corners), 2 braces per corner (one per axis)
+  const count = 8;
+  const total = count * BRACE_PRICE;
+
+  return {
+    label: `${t('quote.braces')} (${count}×)`,
+    area: 0,
+    materialCost: total,
+    insulationCost: 0,
+    extrasCost: 0,
+    total,
+  };
+}
+
 export function calculateQuote(config: BuildingConfig): {
   lineItems: LineItem[];
   total: number;
@@ -193,6 +212,10 @@ export function calculateQuote(config: BuildingConfig): {
   // Post line item for overkapping sections
   const posts = postLineItem(config);
   if (posts) lineItems.push(posts);
+
+  // Brace line item
+  const braces = braceLineItem(config);
+  if (braces) lineItems.push(braces);
 
   // Wall line items
   const wallIds = Object.keys(config.walls) as WallId[];

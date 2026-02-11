@@ -57,6 +57,7 @@ export interface BuildingConfig {
   dimensions: BuildingDimensions;
   roof: RoofConfig;
   walls: Record<string, WallConfig>;
+  hasCornerBraces: boolean;
 }
 
 export type SelectedElement =
