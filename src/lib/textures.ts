@@ -14,6 +14,7 @@ const WALL_TEXTURE_MAP: Record<string, string> = {
 
 const ROOF_TEXTURE_MAP: Record<string, string> = {
   dakpannen: '/textures/tiles.jpg',
+  riet: '/textures/thatch.jpg',
 };
 
 // How many meters each texture tile covers (controls repeat density)
@@ -26,6 +27,7 @@ const WALL_TILE_SIZE: Record<string, [number, number]> = {
 
 const ROOF_TILE_SIZE: Record<string, [number, number]> = {
   dakpannen: [2, 2],
+  riet: [3, 3],
 };
 
 const loader = new TextureLoader();

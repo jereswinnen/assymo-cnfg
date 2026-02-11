@@ -33,6 +33,7 @@ interface WallProps {
 
 export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }: WallProps) {
   const meshRef = useRef<Mesh>(null);
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
   const [hovered, setHovered] = useState(false);
 
   const config = useConfigStore((s) => s.config);
@@ -102,6 +103,7 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
         position={position}
         rotation={rotation}
         onPointerOver={(e) => {
+          if (e.nativeEvent.buttons > 0) return; // skip hover during drag/orbit
           e.stopPropagation();
           setHovered(true);
           document.body.style.cursor = 'pointer';
@@ -110,7 +112,17 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
           setHovered(false);
           document.body.style.cursor = 'auto';
         }}
+        onPointerDown={(e) => {
+          pointerDownPos.current = { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY };
+        }}
         onClick={(e) => {
+          // Ignore click if pointer moved (was a drag/orbit)
+          const down = pointerDownPos.current;
+          if (down) {
+            const dx = e.nativeEvent.clientX - down.x;
+            const dy = e.nativeEvent.clientY - down.y;
+            if (dx * dx + dy * dy > 16) return; // moved more than 4px
+          }
           e.stopPropagation();
           selectElement({ type: 'wall', id: wallId });
         }}

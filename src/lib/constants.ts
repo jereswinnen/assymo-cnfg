@@ -49,7 +49,7 @@ export const DEFAULT_DIMENSIONS: BuildingDimensions = {
 
 // Default wall config
 const DEFAULT_WALL: WallConfig = {
-  materialId: 'brick',
+  materialId: 'wood',
   insulation: true,
   insulationThickness: 100,
   finish: 'Mat',

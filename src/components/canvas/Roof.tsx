@@ -1,11 +1,14 @@
 'use client';
 
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, useCallback } from 'react';
 import { Mesh } from 'three';
 import { Edges } from '@react-three/drei';
 import { useConfigStore } from '@/store/useConfigStore';
 import { ROOF_COVERINGS } from '@/lib/constants';
 import { useRoofTexture } from '@/lib/textures';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ThreePointerEvent = any;
 
 const ROOF_THICKNESS = 0.08;
 // Must match TimberFrame constants for correct stacking
@@ -28,19 +31,31 @@ export default function Roof() {
   const isSelected = selectedElement?.type === 'roof';
   const roofTexture = useRoofTexture(roofCfg.coveringId, width, depth);
 
-  const handlePointerOver = (e: { stopPropagation: () => void }) => {
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+
+  const handlePointerOver = useCallback((e: ThreePointerEvent) => {
+    if (e.nativeEvent.buttons > 0) return;
     e.stopPropagation();
     setHovered(true);
     document.body.style.cursor = 'pointer';
-  };
-  const handlePointerOut = () => {
+  }, []);
+  const handlePointerOut = useCallback(() => {
     setHovered(false);
     document.body.style.cursor = 'auto';
-  };
-  const handleClick = (e: { stopPropagation: () => void }) => {
+  }, []);
+  const handlePointerDown = useCallback((e: ThreePointerEvent) => {
+    pointerDownPos.current = { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY };
+  }, []);
+  const handleClick = useCallback((e: ThreePointerEvent) => {
+    const down = pointerDownPos.current;
+    if (down) {
+      const dx = e.nativeEvent.clientX - down.x;
+      const dy = e.nativeEvent.clientY - down.y;
+      if (dx * dx + dy * dy > 16) return;
+    }
     e.stopPropagation();
     selectElement({ type: 'roof' });
-  };
+  }, [selectElement]);
 
   const materialProps = {
     color: roofTexture ? '#ffffff' : color,
@@ -59,6 +74,7 @@ export default function Roof() {
       meshRef={meshRef}
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
+      onPointerDown={handlePointerDown}
       onClick={handleClick}
     />;
   }
@@ -69,6 +85,7 @@ export default function Roof() {
     isSelected={isSelected}
     onPointerOver={handlePointerOver}
     onPointerOut={handlePointerOut}
+    onPointerDown={handlePointerDown}
     onClick={handleClick}
   />;
 }
@@ -78,18 +95,20 @@ interface FlatRoofProps {
   materialProps: Record<string, unknown>;
   isSelected: boolean;
   meshRef: React.RefObject<Mesh | null>;
-  onPointerOver: (e: { stopPropagation: () => void }) => void;
+  onPointerOver: (e: ThreePointerEvent) => void;
   onPointerOut: () => void;
-  onClick: (e: { stopPropagation: () => void }) => void;
+  onPointerDown: (e: ThreePointerEvent) => void;
+  onClick: (e: ThreePointerEvent) => void;
 }
 
-function FlatRoof({ width, depth, height, materialProps, isSelected, meshRef, onPointerOver, onPointerOut, onClick }: FlatRoofProps) {
+function FlatRoof({ width, depth, height, materialProps, isSelected, meshRef, onPointerOver, onPointerOut, onPointerDown, onClick }: FlatRoofProps) {
   return (
     <mesh
       ref={meshRef}
       position={[0, height + BEAM_H + DECK_T + ROOF_THICKNESS / 2, 0]}
       onPointerOver={onPointerOver}
       onPointerOut={onPointerOut}
+      onPointerDown={onPointerDown}
       onClick={onClick}
     >
       <boxGeometry args={[width + 0.3, ROOF_THICKNESS, depth + 0.3]} />
@@ -103,12 +122,13 @@ interface PitchedRoofProps {
   width: number; depth: number; height: number; roofPitch: number;
   materialProps: Record<string, unknown>;
   isSelected: boolean;
-  onPointerOver: (e: { stopPropagation: () => void }) => void;
+  onPointerOver: (e: ThreePointerEvent) => void;
   onPointerOut: () => void;
-  onClick: (e: { stopPropagation: () => void }) => void;
+  onPointerDown: (e: ThreePointerEvent) => void;
+  onClick: (e: ThreePointerEvent) => void;
 }
 
-function PitchedRoof({ width, depth, height, roofPitch, materialProps, isSelected, onPointerOver, onPointerOut, onClick }: PitchedRoofProps) {
+function PitchedRoof({ width, depth, height, roofPitch, materialProps, isSelected, onPointerOver, onPointerOut, onPointerDown, onClick }: PitchedRoofProps) {
   const pitchRad = (roofPitch * Math.PI) / 180;
   const halfWidth = width / 2;
   const roofRise = Math.tan(pitchRad) * halfWidth;
@@ -134,6 +154,7 @@ function PitchedRoof({ width, depth, height, roofPitch, materialProps, isSelecte
           rotation={panel.rotation}
           onPointerOver={onPointerOver}
           onPointerOut={onPointerOut}
+          onPointerDown={onPointerDown}
           onClick={onClick}
         >
           <boxGeometry args={[roofSlantLength, ROOF_THICKNESS, depth]} />
