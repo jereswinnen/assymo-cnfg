@@ -14,6 +14,7 @@ const BRACE_LEN = BRACE_REACH * Math.SQRT2;
 const RAFTER_W = 0.07;
 const RAFTER_H = 0.15;
 const RAFTER_SPACING = 0.6;
+const DECK_T = 0.04; // roof deck/sheathing thickness
 const FASCIA_T = 0.025;
 const FASCIA_H = 0.20;
 const POST_SPACING = 3;
@@ -105,8 +106,12 @@ export default function TimberFrame() {
         rafters.push({ pos: [0, rafterY, z], size: [width + 0.1, RAFTER_H, RAFTER_W] });
       }
 
+      // --- Solid roof deck (sheathing) ---
+      const deckY = height + BEAM_H + RAFTER_H + DECK_T / 2;
+      rafters.push({ pos: [0, deckY, 0], size: [width + 0.1, DECK_T, depth + 0.1] });
+
       // --- Flat roof fascia ---
-      const fasciaY = height + BEAM_H + RAFTER_H + FASCIA_H / 2;
+      const fasciaY = height + BEAM_H + RAFTER_H + DECK_T + FASCIA_H / 2;
       const overhang = 0.15;
       fascia.push({ pos: [0, fasciaY, hd + overhang], size: [width + 2 * overhang + FASCIA_T, FASCIA_H, FASCIA_T] });
       fascia.push({ pos: [0, fasciaY, -hd - overhang], size: [width + 2 * overhang + FASCIA_T, FASCIA_H, FASCIA_T] });
