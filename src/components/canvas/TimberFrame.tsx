@@ -19,6 +19,7 @@ export const TIMBER_ROOF_OFFSET = BEAM_H + DECK_T;
 interface BoxData {
   pos: [number, number, number];
   size: [number, number, number];
+  rot?: [number, number, number];
 }
 
 export default function TimberFrame() {
@@ -65,27 +66,31 @@ export default function TimberFrame() {
     boxes.push({ pos: [-hw, beamY, 0], size: [BEAM_W, BEAM_H, depth + BEAM_W] });
     boxes.push({ pos: [hw, beamY, 0], size: [BEAM_W, BEAM_H, depth + BEAM_W] });
 
-    // --- Corner braces ---
+    // --- Corner braces (diagonal 45° brackets) ---
     if (hasBraces) {
-      const braceLen = 0.6;
-      const braceSize = 0.10;
+      const braceSpan = 0.5; // horizontal & vertical reach
+      const braceDiag = Math.sqrt(2) * braceSpan; // actual length of diagonal
+      const braceSize = 0.08;
       const corners: [number, number, number, number][] = [
-        [-hw, hd, 1, 1],
-        [hw, hd, -1, 1],
-        [-hw, -hd, 1, -1],
-        [hw, -hd, -1, -1],
+        [-hw, hd, 1, 1],    // back-left
+        [hw, hd, -1, 1],    // back-right
+        [-hw, -hd, 1, -1],  // front-left
+        [hw, -hd, -1, -1],  // front-right
       ];
       for (const [cx, cz, dx, dz] of corners) {
-        const by = height - braceLen / 2;
-        // Brace along X axis
+        // Center of brace: halfway between post top and braceSpan below
+        const midY = height - braceSpan / 2;
+        // Brace in X-beam plane (rotated around Z)
         boxes.push({
-          pos: [cx + dx * braceLen / 2, by, cz],
-          size: [braceLen, braceSize, braceSize],
+          pos: [cx + dx * braceSpan / 2, midY, cz],
+          size: [braceDiag, braceSize, braceSize],
+          rot: [0, 0, dx * Math.PI / 4],
         });
-        // Brace along Z axis
+        // Brace in Z-beam plane (rotated around X)
         boxes.push({
-          pos: [cx, by, cz + dz * braceLen / 2],
-          size: [braceSize, braceSize, braceLen],
+          pos: [cx, midY, cz + dz * braceSpan / 2],
+          size: [braceSize, braceSize, braceDiag],
+          rot: [-dz * Math.PI / 4, 0, 0],
         });
       }
     }
@@ -115,7 +120,7 @@ export default function TimberFrame() {
   return (
     <group>
       {elements.map((b, i) => (
-        <mesh key={i} position={b.pos} material={timberMat}>
+        <mesh key={i} position={b.pos} rotation={b.rot} material={timberMat}>
           <boxGeometry args={b.size} />
         </mesh>
       ))}
