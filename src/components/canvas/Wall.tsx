@@ -5,6 +5,7 @@ import { Mesh, MeshStandardMaterial } from 'three';
 import { Edges } from '@react-three/drei';
 import { useConfigStore } from '@/store/useConfigStore';
 import { WALL_MATERIALS, WALL_THICKNESS } from '@/lib/constants';
+import { useWallTexture } from '@/lib/textures';
 import type { WallId, WallConfig } from '@/types/building';
 
 const DOOR_W = 0.9;
@@ -42,10 +43,15 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
   const d = sectionDepth ?? fullDepth;
 
   const wallCfg = config.walls[wallId];
-  if (!wallCfg) return null;
-
-  const material = WALL_MATERIALS.find((m) => m.id === wallCfg.materialId);
+  const materialId = wallCfg?.materialId ?? 'brick';
+  const material = WALL_MATERIALS.find((m) => m.id === materialId);
   const color = material?.color ?? '#cccccc';
+
+  // Wall face dimensions for texture tiling
+  const wallLength = wallId === 'front' || wallId === 'back' ? w : d;
+  const texture = useWallTexture(materialId, wallLength, height);
+
+  if (!wallCfg) return null;
 
   const isSelected =
     selectedElement?.type === 'wall' && selectedElement.id === wallId;
@@ -110,7 +116,8 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
       >
         <boxGeometry args={size} />
         <meshStandardMaterial
-          color={color}
+          color={texture ? '#ffffff' : color}
+          map={texture}
           metalness={0.1}
           roughness={0.7}
           emissive={isSelected ? '#3b82f6' : hovered ? '#60a5fa' : '#000000'}

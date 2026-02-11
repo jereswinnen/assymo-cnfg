@@ -5,6 +5,7 @@ import { Mesh } from 'three';
 import { Edges } from '@react-three/drei';
 import { useConfigStore } from '@/store/useConfigStore';
 import { ROOF_COVERINGS } from '@/lib/constants';
+import { useRoofTexture } from '@/lib/textures';
 
 const ROOF_THICKNESS = 0.08;
 // Must match TimberFrame constants for correct stacking
@@ -25,6 +26,7 @@ export default function Roof() {
   const color = covering?.color ?? '#cccccc';
 
   const isSelected = selectedElement?.type === 'roof';
+  const roofTexture = useRoofTexture(roofCfg.coveringId, width, depth);
 
   const handlePointerOver = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
@@ -41,7 +43,8 @@ export default function Roof() {
   };
 
   const materialProps = {
-    color,
+    color: roofTexture ? '#ffffff' : color,
+    map: roofTexture,
     metalness: 0.3,
     roughness: 0.5,
     emissive: isSelected ? '#3b82f6' : hovered ? '#60a5fa' : '#000000',

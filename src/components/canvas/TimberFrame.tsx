@@ -121,7 +121,7 @@ export default function TimberFrame() {
   return (
     <group>
       {elements.map((b, i) => (
-        <mesh key={i} position={b.pos} rotation={b.rot} material={timberMat}>
+        <mesh key={i} position={b.pos} rotation={b.rot ?? [0, 0, 0]} material={timberMat}>
           <boxGeometry args={b.size} />
         </mesh>
       ))}
