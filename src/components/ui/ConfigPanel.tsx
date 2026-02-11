@@ -1,37 +1,56 @@
 'use client';
 
+import AccordionSection from './Accordion';
+import BuildingTypeSelector from './BuildingTypeSelector';
 import DimensionsControl from './DimensionsControl';
+import RoofConfigSection from './RoofConfigSection';
+import WallSelector from './WallSelector';
 import SurfaceProperties from './SurfaceProperties';
 import QuoteSummary from './QuoteSummary';
 import { useConfigStore } from '@/store/useConfigStore';
+import { t } from '@/lib/i18n';
 
 export default function ConfigPanel() {
   const resetConfig = useConfigStore((s) => s.resetConfig);
+  const buildingType = useConfigStore((s) => s.config.buildingType);
 
   return (
     <aside className="flex h-full flex-col overflow-y-auto bg-white">
       <div className="border-b border-gray-200 px-5 py-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">Configurator</h2>
+          <h2 className="text-lg font-bold text-gray-900">{t('app.title')}</h2>
           <button
             onClick={resetConfig}
             className="text-xs font-medium text-gray-500 hover:text-red-600 transition-colors"
           >
-            Reset
+            {t('app.reset')}
           </button>
         </div>
       </div>
 
-      <div className="flex-1 space-y-6 p-5">
-        <DimensionsControl />
+      <div className="flex-1">
+        <AccordionSection number={1} title={t('section.1')}>
+          <BuildingTypeSelector />
+        </AccordionSection>
 
-        <div className="border-t border-gray-200 pt-4">
-          <SurfaceProperties />
-        </div>
+        <AccordionSection number={2} title={t('section.2')}>
+          <DimensionsControl />
+        </AccordionSection>
 
-        <div className="border-t border-gray-200 pt-4">
+        <AccordionSection number={3} title={t('section.3')}>
+          <RoofConfigSection />
+        </AccordionSection>
+
+        <AccordionSection number={4} title={t('section.4')}>
+          <div className="space-y-4">
+            <WallSelector />
+            {buildingType !== 'overkapping' && <SurfaceProperties />}
+          </div>
+        </AccordionSection>
+
+        <AccordionSection number={5} title={t('section.5')}>
           <QuoteSummary />
-        </div>
+        </AccordionSection>
       </div>
     </aside>
   );

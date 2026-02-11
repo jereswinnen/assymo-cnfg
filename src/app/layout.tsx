@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "3D Building Configurator",
-  description: "Interactive 3D building configurator with live pricing",
+  title: "Assymo Configurator",
+  description: "Interactieve 3D configurator met prijsberekening",
 };
 
 export default function RootLayout({
@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="nl">
       <body className="antialiased">
         {children}
       </body>

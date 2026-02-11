@@ -1,6 +1,7 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
+import { t } from '@/lib/i18n';
 
 interface SliderRowProps {
   label: string;
@@ -36,15 +37,14 @@ function SliderRow({ label, value, min, max, step, unit, onChange }: SliderRowPr
 
 export default function DimensionsControl() {
   const dimensions = useConfigStore((s) => s.config.dimensions);
+  const buildingType = useConfigStore((s) => s.config.buildingType);
+  const roofType = useConfigStore((s) => s.config.roof.type);
   const updateDimensions = useConfigStore((s) => s.updateDimensions);
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
-        Building Dimensions
-      </h3>
       <SliderRow
-        label="Width"
+        label={t('dim.width')}
         value={dimensions.width}
         min={3}
         max={15}
@@ -53,7 +53,7 @@ export default function DimensionsControl() {
         onChange={(v) => updateDimensions({ width: v })}
       />
       <SliderRow
-        label="Depth"
+        label={t('dim.depth')}
         value={dimensions.depth}
         min={3}
         max={20}
@@ -62,7 +62,7 @@ export default function DimensionsControl() {
         onChange={(v) => updateDimensions({ depth: v })}
       />
       <SliderRow
-        label="Height"
+        label={t('dim.height')}
         value={dimensions.height}
         min={2}
         max={6}
@@ -70,15 +70,28 @@ export default function DimensionsControl() {
         unit="m"
         onChange={(v) => updateDimensions({ height: v })}
       />
-      <SliderRow
-        label="Roof Pitch"
-        value={dimensions.roofPitch}
-        min={5}
-        max={55}
-        step={1}
-        unit="°"
-        onChange={(v) => updateDimensions({ roofPitch: v })}
-      />
+      {buildingType === 'combined' && (
+        <SliderRow
+          label={t('dim.bergingWidth')}
+          value={dimensions.bergingWidth}
+          min={2}
+          max={dimensions.width - 2}
+          step={0.5}
+          unit="m"
+          onChange={(v) => updateDimensions({ bergingWidth: v })}
+        />
+      )}
+      {roofType === 'pitched' && (
+        <SliderRow
+          label={t('dim.roofPitch')}
+          value={dimensions.roofPitch}
+          min={5}
+          max={55}
+          step={1}
+          unit="°"
+          onChange={(v) => updateDimensions({ roofPitch: v })}
+        />
+      )}
     </div>
   );
 }

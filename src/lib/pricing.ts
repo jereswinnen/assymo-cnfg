@@ -1,59 +1,99 @@
 import type {
   BuildingConfig,
   WallId,
-  RoofId,
   WallConfig,
+  RoofConfig,
 } from '@/types/building';
 import {
-  MATERIALS,
+  WALL_MATERIALS,
+  ROOF_COVERINGS,
   INSULATION_PRICE_PER_SQM_PER_MM,
   DOOR_FLAT_FEE,
   WINDOW_FLAT_FEE,
   SKYLIGHT_FLAT_FEE,
   DOOR_AREA_CUTOUT,
   WINDOW_AREA_CUTOUT,
+  POST_PRICE,
+  POST_SPACING,
 } from './constants';
+import { t } from './i18n';
 
-function getMaterialPrice(materialId: string): number {
-  return MATERIALS.find((m) => m.id === materialId)?.pricePerSqm ?? 0;
+function getWallMaterialPrice(materialId: string): number {
+  return WALL_MATERIALS.find((m) => m.id === materialId)?.pricePerSqm ?? 0;
+}
+
+function getRoofCoveringPrice(coveringId: string): number {
+  return ROOF_COVERINGS.find((c) => c.id === coveringId)?.pricePerSqm ?? 0;
 }
 
 function degToRad(deg: number): number {
   return (deg * Math.PI) / 180;
 }
 
-export function wallGrossArea(
-  wallId: WallId,
+// Calculate the total roof area based on type
+export function roofTotalArea(
   width: number,
   depth: number,
-  height: number,
+  roofPitch: number,
+  roofType: 'flat' | 'pitched',
 ): number {
-  if (wallId === 'front' || wallId === 'back') return width * height;
-  return depth * height;
+  if (roofType === 'flat') {
+    return width * depth;
+  }
+  // Pitched: two panels
+  const halfWidth = width / 2;
+  const cosP = Math.cos(degToRad(roofPitch));
+  if (cosP === 0) return 0;
+  const panelArea = depth * (halfWidth / cosP);
+  return 2 * panelArea;
+}
+
+// Wall gross area — accounts for bergingWidth in combined mode
+export function wallGrossArea(
+  wallId: WallId,
+  config: BuildingConfig,
+): number {
+  const { width, depth, height, bergingWidth } = config.dimensions;
+  const bt = config.buildingType;
+
+  switch (wallId) {
+    case 'front':
+    case 'back':
+      if (bt === 'combined') {
+        // Only covers the berging section width
+        return bergingWidth * height;
+      }
+      return width * height;
+    case 'left':
+    case 'right':
+      return depth * height;
+    case 'divider':
+      return depth * height;
+  }
 }
 
 export function wallNetArea(
   wallId: WallId,
-  width: number,
-  depth: number,
-  height: number,
+  config: BuildingConfig,
   wallCfg: WallConfig,
 ): number {
-  let area = wallGrossArea(wallId, width, depth, height);
+  let area = wallGrossArea(wallId, config);
   if (wallCfg.hasDoor) area -= DOOR_AREA_CUTOUT;
   if (wallCfg.hasWindow) area -= WINDOW_AREA_CUTOUT * wallCfg.windowCount;
   return Math.max(0, area);
 }
 
-export function roofPanelArea(
+// Count posts for overkapping section
+export function postCount(
+  overkappingWidth: number,
   depth: number,
-  halfWidth: number,
-  pitchDeg: number,
 ): number {
-  const pitchRad = degToRad(pitchDeg);
-  const cosP = Math.cos(pitchRad);
-  if (cosP === 0) return 0;
-  return depth * (halfWidth / cosP);
+  // Posts along both long sides (depth), spaced POST_SPACING apart, plus corners
+  const postsPerSide = Math.max(2, Math.floor(depth / POST_SPACING) + 1);
+  // Posts along width at front and back
+  const postsPerEnd = Math.max(2, Math.floor(overkappingWidth / POST_SPACING) + 1);
+  // 4 corners counted once; two long sides + two short sides minus 4 corner overlaps
+  return 2 * postsPerSide + 2 * postsPerEnd - 4;
 }
 
 export interface LineItem {
@@ -65,14 +105,24 @@ export interface LineItem {
   total: number;
 }
 
+const WALL_LABELS: Record<string, string> = {
+  front: 'wall.front',
+  back: 'wall.back',
+  left: 'wall.left',
+  right: 'wall.right',
+  divider: 'wall.divider',
+};
+
 export function wallLineItem(
   wallId: WallId,
   config: BuildingConfig,
 ): LineItem {
-  const { width, depth, height } = config.dimensions;
   const wallCfg = config.walls[wallId];
-  const area = wallNetArea(wallId, width, depth, height, wallCfg);
-  const materialCost = area * getMaterialPrice(wallCfg.materialId);
+  if (!wallCfg) {
+    return { label: t(WALL_LABELS[wallId] ?? wallId), area: 0, materialCost: 0, insulationCost: 0, extrasCost: 0, total: 0 };
+  }
+  const area = wallNetArea(wallId, config, wallCfg);
+  const materialCost = area * getWallMaterialPrice(wallCfg.materialId);
   const insulationCost = wallCfg.insulation
     ? area * wallCfg.insulationThickness * INSULATION_PRICE_PER_SQM_PER_MM
     : 0;
@@ -80,10 +130,8 @@ export function wallLineItem(
   if (wallCfg.hasDoor) extrasCost += DOOR_FLAT_FEE;
   if (wallCfg.hasWindow) extrasCost += WINDOW_FLAT_FEE * wallCfg.windowCount;
 
-  const label = `${wallId.charAt(0).toUpperCase() + wallId.slice(1)} wall`;
-
   return {
-    label,
+    label: t(WALL_LABELS[wallId] ?? wallId),
     area,
     materialCost,
     insulationCost,
@@ -93,23 +141,20 @@ export function wallLineItem(
 }
 
 export function roofLineItem(
-  roofId: RoofId,
   config: BuildingConfig,
 ): LineItem {
   const { width, depth, roofPitch } = config.dimensions;
-  const roofCfg = config.roofs[roofId];
-  const area = roofPanelArea(depth, width / 2, roofPitch);
-  const materialCost = area * getMaterialPrice(roofCfg.materialId);
+  const roofCfg: RoofConfig = config.roof;
+  const area = roofTotalArea(width, depth, roofPitch, roofCfg.type);
+  const materialCost = area * getRoofCoveringPrice(roofCfg.coveringId);
   const insulationCost = roofCfg.insulation
     ? area * roofCfg.insulationThickness * INSULATION_PRICE_PER_SQM_PER_MM
     : 0;
   let extrasCost = 0;
   if (roofCfg.hasSkylight) extrasCost += SKYLIGHT_FLAT_FEE;
 
-  const label = roofId === 'left-panel' ? 'Left roof panel' : 'Right roof panel';
-
   return {
-    label,
+    label: t('quote.roof'),
     area,
     materialCost,
     insulationCost,
@@ -118,17 +163,46 @@ export function roofLineItem(
   };
 }
 
+export function postLineItem(
+  config: BuildingConfig,
+): LineItem | null {
+  const bt = config.buildingType;
+  if (bt === 'berging') return null;
+
+  const { width, depth, bergingWidth } = config.dimensions;
+  const overkappingWidth = bt === 'combined' ? width - bergingWidth : width;
+  const count = postCount(overkappingWidth, depth);
+  const total = count * POST_PRICE;
+
+  return {
+    label: `${t('quote.posts')} (${count}×)`,
+    area: 0,
+    materialCost: total,
+    insulationCost: 0,
+    extrasCost: 0,
+    total,
+  };
+}
+
 export function calculateQuote(config: BuildingConfig): {
   lineItems: LineItem[];
   total: number;
 } {
-  const wallIds: WallId[] = ['front', 'back', 'left', 'right'];
-  const roofIds: RoofId[] = ['left-panel', 'right-panel'];
+  const lineItems: LineItem[] = [];
 
-  const lineItems = [
-    ...wallIds.map((id) => wallLineItem(id, config)),
-    ...roofIds.map((id) => roofLineItem(id, config)),
-  ];
+  // Post line item for overkapping sections
+  const posts = postLineItem(config);
+  if (posts) lineItems.push(posts);
+
+  // Wall line items
+  const wallIds = Object.keys(config.walls) as WallId[];
+  for (const id of wallIds) {
+    const item = wallLineItem(id, config);
+    if (item.total > 0) lineItems.push(item);
+  }
+
+  // Single roof line item
+  lineItems.push(roofLineItem(config));
 
   const total = lineItems.reduce((sum, item) => sum + item.total, 0);
   return { lineItems, total };

@@ -2,53 +2,54 @@ import { create } from 'zustand';
 import type {
   BuildingConfig,
   BuildingDimensions,
+  BuildingType,
+  RoofType,
+  RoofConfig,
   SelectedElement,
   WallId,
-  RoofId,
   WallConfig,
-  RoofConfig,
 } from '@/types/building';
 import {
   DEFAULT_DIMENSIONS,
-  DEFAULT_WALLS,
-  DEFAULT_ROOFS,
+  DEFAULT_ROOF,
+  getDefaultWalls,
 } from '@/lib/constants';
 import { calculateQuote } from '@/lib/pricing';
 
 interface ConfigState {
   config: BuildingConfig;
   selectedElement: SelectedElement;
+  activeAccordionSection: number;
 
   // Actions
   selectElement: (element: SelectedElement) => void;
   clearSelection: () => void;
   updateDimensions: (dims: Partial<BuildingDimensions>) => void;
+  setBuildingType: (type: BuildingType) => void;
+  setRoofType: (type: RoofType) => void;
+  updateRoof: (patch: Partial<RoofConfig>) => void;
   updateWall: (id: WallId, patch: Partial<WallConfig>) => void;
-  updateRoof: (id: RoofId, patch: Partial<RoofConfig>) => void;
+  setAccordionSection: (n: number) => void;
   resetConfig: () => void;
 
   // Computed selectors
-  getSelectedSurfaceConfig: () => (WallConfig | RoofConfig | null);
+  getSelectedWallConfig: () => WallConfig | null;
   getTotalQuote: () => ReturnType<typeof calculateQuote>;
 }
 
-const defaultConfig: BuildingConfig = {
-  dimensions: { ...DEFAULT_DIMENSIONS },
-  walls: {
-    front: { ...DEFAULT_WALLS.front },
-    back: { ...DEFAULT_WALLS.back },
-    left: { ...DEFAULT_WALLS.left },
-    right: { ...DEFAULT_WALLS.right },
-  },
-  roofs: {
-    'left-panel': { ...DEFAULT_ROOFS['left-panel'] },
-    'right-panel': { ...DEFAULT_ROOFS['right-panel'] },
-  },
-};
+function makeDefaultConfig(type: BuildingType = 'overkapping'): BuildingConfig {
+  return {
+    buildingType: type,
+    dimensions: { ...DEFAULT_DIMENSIONS },
+    roof: { ...DEFAULT_ROOF },
+    walls: getDefaultWalls(type),
+  };
+}
 
 export const useConfigStore = create<ConfigState>((set, get) => ({
-  config: defaultConfig,
+  config: makeDefaultConfig(),
   selectedElement: null,
+  activeAccordionSection: 1,
 
   selectElement: (element) => set({ selectedElement: element }),
 
@@ -59,6 +60,39 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       config: {
         ...state.config,
         dimensions: { ...state.config.dimensions, ...dims },
+      },
+    })),
+
+  setBuildingType: (type) =>
+    set(() => ({
+      config: makeDefaultConfig(type),
+      selectedElement: null,
+    })),
+
+  setRoofType: (type) =>
+    set((state) => {
+      const sensibleCovering = type === 'flat' ? 'epdm' as const : 'dakpannen' as const;
+      return {
+        config: {
+          ...state.config,
+          roof: {
+            ...state.config.roof,
+            type,
+            coveringId: sensibleCovering,
+          },
+          dimensions: {
+            ...state.config.dimensions,
+            roofPitch: type === 'flat' ? 0 : 25,
+          },
+        },
+      };
+    }),
+
+  updateRoof: (patch) =>
+    set((state) => ({
+      config: {
+        ...state.config,
+        roof: { ...state.config.roof, ...patch },
       },
     })),
 
@@ -73,30 +107,19 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       },
     })),
 
-  updateRoof: (id, patch) =>
-    set((state) => ({
-      config: {
-        ...state.config,
-        roofs: {
-          ...state.config.roofs,
-          [id]: { ...state.config.roofs[id], ...patch },
-        },
-      },
-    })),
+  setAccordionSection: (n) => set({ activeAccordionSection: n }),
 
   resetConfig: () =>
     set({
-      config: JSON.parse(JSON.stringify(defaultConfig)),
+      config: makeDefaultConfig(),
       selectedElement: null,
+      activeAccordionSection: 1,
     }),
 
-  getSelectedSurfaceConfig: (): WallConfig | RoofConfig | null => {
+  getSelectedWallConfig: (): WallConfig | null => {
     const { config, selectedElement } = get();
-    if (!selectedElement) return null;
-    if (selectedElement.type === 'wall') {
-      return config.walls[selectedElement.id as WallId];
-    }
-    return config.roofs[selectedElement.id as RoofId];
+    if (!selectedElement || selectedElement.type !== 'wall') return null;
+    return config.walls[selectedElement.id] ?? null;
   },
 
   getTotalQuote: () => calculateQuote(get().config),
