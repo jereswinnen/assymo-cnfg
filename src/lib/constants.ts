@@ -43,7 +43,7 @@ export const DEFAULT_DIMENSIONS: BuildingDimensions = {
   width: 6,
   depth: 8,
   height: 3,
-  roofPitch: 25,
+  roofPitch: 0,
   bergingWidth: 3,
 };
 
@@ -60,8 +60,8 @@ const DEFAULT_WALL: WallConfig = {
 
 // Default roof config (unified)
 export const DEFAULT_ROOF: RoofConfig = {
-  type: 'pitched',
-  coveringId: 'dakpannen',
+  type: 'flat',
+  coveringId: 'epdm',
   trimColorId: 'antraciet',
   insulation: true,
   insulationThickness: 150,

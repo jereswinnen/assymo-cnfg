@@ -9,7 +9,6 @@ const BUILDING_TYPES: { id: BuildingType; icon: React.ReactNode }[] = [
     id: 'overkapping',
     icon: (
       <svg viewBox="0 0 48 48" className="h-10 w-10" fill="none" stroke="currentColor" strokeWidth={2}>
-        {/* Simple carport: roof + 4 posts */}
         <line x1="6" y1="14" x2="42" y2="14" />
         <line x1="6" y1="14" x2="6" y2="38" />
         <line x1="42" y1="14" x2="42" y2="38" />
@@ -22,7 +21,6 @@ const BUILDING_TYPES: { id: BuildingType; icon: React.ReactNode }[] = [
     id: 'berging',
     icon: (
       <svg viewBox="0 0 48 48" className="h-10 w-10" fill="none" stroke="currentColor" strokeWidth={2}>
-        {/* Closed shed box */}
         <rect x="6" y="14" width="36" height="24" />
         <line x1="6" y1="14" x2="24" y2="6" />
         <line x1="42" y1="14" x2="24" y2="6" />
@@ -34,7 +32,6 @@ const BUILDING_TYPES: { id: BuildingType; icon: React.ReactNode }[] = [
     id: 'combined',
     icon: (
       <svg viewBox="0 0 48 48" className="h-10 w-10" fill="none" stroke="currentColor" strokeWidth={2}>
-        {/* Combined: left shed + right carport under one roof */}
         <line x1="4" y1="14" x2="44" y2="14" />
         <rect x="4" y="14" width="20" height="24" />
         <line x1="24" y1="14" x2="24" y2="38" />
@@ -45,9 +42,29 @@ const BUILDING_TYPES: { id: BuildingType; icon: React.ReactNode }[] = [
   },
 ];
 
-const ROOF_TYPES: { id: RoofType; labelKey: string }[] = [
-  { id: 'pitched', labelKey: 'roofType.pitched' },
-  { id: 'flat', labelKey: 'roofType.flat' },
+const ROOF_TYPES: { id: RoofType; labelKey: string; icon: React.ReactNode }[] = [
+  {
+    id: 'flat',
+    labelKey: 'roofType.flat',
+    icon: (
+      <svg viewBox="0 0 40 28" className="h-6 w-9" fill="none" stroke="currentColor" strokeWidth={1.8}>
+        {/* Flat roof: box with flat top */}
+        <rect x="4" y="6" width="32" height="18" rx="1" />
+        <line x1="2" y1="6" x2="38" y2="6" strokeWidth={2.5} />
+      </svg>
+    ),
+  },
+  {
+    id: 'pitched',
+    labelKey: 'roofType.pitched',
+    icon: (
+      <svg viewBox="0 0 40 28" className="h-6 w-9" fill="none" stroke="currentColor" strokeWidth={1.8}>
+        {/* Pitched roof: box with triangle top */}
+        <rect x="4" y="12" width="32" height="12" rx="1" />
+        <polyline points="2,12 20,2 38,12" strokeWidth={2.5} strokeLinejoin="round" />
+      </svg>
+    ),
+  },
 ];
 
 export default function BuildingTypeSelector() {
@@ -83,19 +100,22 @@ export default function BuildingTypeSelector() {
       {/* Roof type toggle */}
       <div>
         <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
-          {t('roofType.flat').replace('Plat', 'Dak')}type
+          {t('roofType.label')}
         </label>
         <div className="grid grid-cols-2 gap-2">
-          {ROOF_TYPES.map(({ id, labelKey }) => (
+          {ROOF_TYPES.map(({ id, labelKey, icon }) => (
             <button
               key={id}
               onClick={() => setRoofType(id)}
-              className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all ${
+              className={`flex items-center justify-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all ${
                 roofType === id
                   ? 'border-blue-600 bg-blue-50 text-blue-700'
                   : 'border-gray-200 text-gray-600 hover:border-gray-300'
               }`}
             >
+              <span className={roofType === id ? 'text-blue-600' : 'text-gray-400'}>
+                {icon}
+              </span>
               {t(labelKey)}
             </button>
           ))}

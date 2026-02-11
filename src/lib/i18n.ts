@@ -13,6 +13,7 @@ const nl: Record<string, string> = {
   'buildingType.combined.desc': 'Carport + berging onder één dak',
 
   // Roof types
+  'roofType.label': 'Daktype',
   'roofType.flat': 'Platdak',
   'roofType.pitched': 'Zadeldak',
 
