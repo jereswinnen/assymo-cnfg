@@ -9,7 +9,6 @@ import { ROOF_COVERINGS } from '@/lib/constants';
 const ROOF_THICKNESS = 0.08;
 // Must match TimberFrame constants for correct stacking
 const BEAM_H = 0.20;
-const RAFTER_H = 0.15;
 const DECK_T = 0.04;
 
 export default function Roof() {
@@ -85,7 +84,7 @@ function FlatRoof({ width, depth, height, materialProps, isSelected, meshRef, on
   return (
     <mesh
       ref={meshRef}
-      position={[0, height + BEAM_H + RAFTER_H + DECK_T + ROOF_THICKNESS / 2, 0]}
+      position={[0, height + BEAM_H + DECK_T + ROOF_THICKNESS / 2, 0]}
       onPointerOver={onPointerOver}
       onPointerOut={onPointerOut}
       onClick={onClick}
