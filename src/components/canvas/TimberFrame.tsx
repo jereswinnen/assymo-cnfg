@@ -70,12 +70,13 @@ export default function TimberFrame() {
     if (hasBraces) {
       const braceSpan = 0.5; // horizontal & vertical reach
       const braceDiag = Math.sqrt(2) * braceSpan; // actual length of diagonal
-      const braceSize = 0.08;
+      const braceSize = BEAM_W; // same thickness as beams
+      // [cx, cz, dx, dz] — dx/dz point inward toward building center
       const corners: [number, number, number, number][] = [
-        [-hw, hd, 1, 1],    // back-left
-        [hw, hd, -1, 1],    // back-right
-        [-hw, -hd, 1, -1],  // front-left
-        [hw, -hd, -1, -1],  // front-right
+        [-hw, hd, 1, -1],
+        [hw, hd, -1, -1],
+        [-hw, -hd, 1, 1],
+        [hw, -hd, -1, 1],
       ];
       for (const [cx, cz, dx, dz] of corners) {
         // Center of brace: halfway between post top and braceSpan below
