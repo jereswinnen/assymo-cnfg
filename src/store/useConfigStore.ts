@@ -40,7 +40,7 @@ interface ConfigState {
   getTotalQuote: () => ReturnType<typeof calculateQuote>;
 }
 
-function makeDefaultConfig(type: BuildingType = 'overkapping'): BuildingConfig {
+function makeDefaultConfig(type: BuildingType = 'combined'): BuildingConfig {
   return {
     buildingType: type,
     dimensions: { ...DEFAULT_DIMENSIONS },

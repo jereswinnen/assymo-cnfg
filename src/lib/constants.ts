@@ -40,11 +40,11 @@ export const FINISHES = ['Mat', 'Satijn', 'Glans'] as const;
 
 // Default dimensions
 export const DEFAULT_DIMENSIONS: BuildingDimensions = {
-  width: 6,
-  depth: 8,
+  width: 8,
+  depth: 4,
   height: 3,
   roofPitch: 0,
-  bergingWidth: 3,
+  bergingWidth: 4,
 };
 
 // Default wall config
