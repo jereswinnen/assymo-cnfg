@@ -6,6 +6,7 @@ import DimensionsControl from './DimensionsControl';
 import RoofConfigSection from './RoofConfigSection';
 import WallSelector from './WallSelector';
 import SurfaceProperties from './SurfaceProperties';
+import FloorConfigSection from './FloorConfigSection';
 import QuoteSummary from './QuoteSummary';
 import { useConfigStore } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
@@ -49,6 +50,10 @@ export default function ConfigPanel() {
         </AccordionSection>
 
         <AccordionSection number={5} title={t('section.5')}>
+          <FloorConfigSection />
+        </AccordionSection>
+
+        <AccordionSection number={6} title={t('section.6')}>
           <QuoteSummary />
         </AccordionSection>
       </div>

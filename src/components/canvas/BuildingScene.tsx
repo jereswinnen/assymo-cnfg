@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Sky, Clouds, Cloud } from '@react-three/drei';
+import { OrbitControls, Sky } from '@react-three/drei';
 import { Vector3 } from 'three';
 import Building from './Building';
 import Ground from './Ground';
@@ -110,11 +110,7 @@ export default function BuildingScene() {
         rayleigh={0.5}
         turbidity={8}
       />
-      <Clouds material={undefined}>
-        <Cloud position={[-20, 25, -30]} speed={0.2} opacity={0.4} bounds={[30, 5, 8]} segments={20} />
-        <Cloud position={[25, 22, -20]} speed={0.15} opacity={0.35} bounds={[25, 4, 6]} segments={16} />
-        <Cloud position={[0, 28, -40]} speed={0.1} opacity={0.3} bounds={[35, 6, 10]} segments={18} />
-      </Clouds>
+      <fog attach="fog" args={['#b0d0e8', 60, 120]} />
 
       <Building />
       <Ground />

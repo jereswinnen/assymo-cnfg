@@ -36,7 +36,8 @@ const nl: Record<string, string> = {
   'section.2': 'Afmetingen',
   'section.3': 'Dakbedekking',
   'section.4': 'Wanden',
-  'section.5': 'Offerte',
+  'section.5': 'Vloerbedekking',
+  'section.6': 'Offerte',
 
   // Dimensions
   'dim.width': 'Breedte',
