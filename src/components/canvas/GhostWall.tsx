@@ -6,6 +6,18 @@ import { useConfigStore } from '@/store/useConfigStore';
 import { WALL_THICKNESS } from '@/lib/constants';
 import type { WallId } from '@/types/building';
 
+/** Check whether the ray also hit a solid (non-ghost) wall mesh */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function hasSolidWallIntersection(e: any): boolean {
+  return e.intersections.some(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (hit: any) =>
+      hit.object !== e.object &&
+      !hit.object.userData?.ghostWall &&
+      hit.point.y > 0.1,
+  );
+}
+
 interface GhostWallProps {
   wallId: WallId;
 }
@@ -20,9 +32,6 @@ export default function GhostWall({ wallId }: GhostWallProps) {
   const { width, depth, height, bergingWidth } = config.dimensions;
   const overkappingWidth = width - bergingWidth;
   const inset = 0.01;
-  // Offset ghost walls inward from the building edge so they sit behind
-  // solid berging walls and don't intercept clicks through them
-  const ghostInset = WALL_THICKNESS + 0.02;
 
   const { size, position } = useMemo(() => {
     const t = 0.02; // thin ghost plane
@@ -32,17 +41,17 @@ export default function GhostWall({ wallId }: GhostWallProps) {
       case 'ov_front':
         return {
           size: [overkappingWidth - inset * 2, height, t] as [number, number, number],
-          position: [ovCenterX, height / 2, depth / 2 - ghostInset] as [number, number, number],
+          position: [ovCenterX, height / 2, depth / 2 - inset] as [number, number, number],
         };
       case 'ov_back':
         return {
           size: [overkappingWidth - inset * 2, height, t] as [number, number, number],
-          position: [ovCenterX, height / 2, -depth / 2 + ghostInset] as [number, number, number],
+          position: [ovCenterX, height / 2, -depth / 2 + inset] as [number, number, number],
         };
       case 'ov_right':
         return {
           size: [t, height, depth - inset * 2] as [number, number, number],
-          position: [width / 2 - ghostInset, height / 2, 0] as [number, number, number],
+          position: [width / 2 - inset, height / 2, 0] as [number, number, number],
         };
       default:
         return {
@@ -50,7 +59,7 @@ export default function GhostWall({ wallId }: GhostWallProps) {
           position: [0, 0, 0] as [number, number, number],
         };
     }
-  }, [wallId, width, depth, height, overkappingWidth, ghostInset]);
+  }, [wallId, width, depth, height, overkappingWidth]);
 
   const ghostThickness = WALL_THICKNESS * 0.15;
   const renderSize: [number, number, number] = [
@@ -63,8 +72,11 @@ export default function GhostWall({ wallId }: GhostWallProps) {
     <mesh
       position={position}
       renderOrder={-1}
+      userData={{ ghostWall: true }}
       onPointerOver={(e) => {
         if (e.nativeEvent.buttons > 0) return;
+        // If a solid wall is behind this ghost, let the event pass through
+        if (hasSolidWallIntersection(e)) return;
         e.stopPropagation();
         setHovered(true);
         document.body.style.cursor = 'pointer';
@@ -77,6 +89,8 @@ export default function GhostWall({ wallId }: GhostWallProps) {
         pointerDownPos.current = { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY };
       }}
       onClick={(e) => {
+        // If a solid wall is also in the ray path, don't handle — let it propagate
+        if (hasSolidWallIntersection(e)) return;
         const down = pointerDownPos.current;
         if (down) {
           const dx = e.nativeEvent.clientX - down.x;
