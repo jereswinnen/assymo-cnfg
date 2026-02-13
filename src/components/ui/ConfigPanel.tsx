@@ -17,20 +17,22 @@ export default function ConfigPanel() {
   const buildingType = useConfigStore((s) => s.config.buildingType);
 
   return (
-    <aside className="flex h-full flex-col overflow-y-auto bg-background">
-      <div className="border-b border-border px-5 py-4">
+    <aside className="flex h-full flex-col rounded-2xl bg-background/80 backdrop-blur-xl shadow-2xl ring-1 ring-black/[0.08]">
+      {/* Header */}
+      <div className="px-6 py-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-foreground">{t('app.title')}</h2>
+          <h2 className="text-base font-bold tracking-tight text-foreground">{t('app.title')}</h2>
           <button
             onClick={resetConfig}
-            className="text-xs font-medium text-muted-foreground hover:text-destructive transition-colors"
+            className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
           >
             {t('app.reset')}
           </button>
         </div>
       </div>
 
-      <div className="flex-1">
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto">
         <AccordionSection number={1} title={t('section.1')}>
           <BuildingTypeSelector />
         </AccordionSection>
@@ -59,7 +61,7 @@ export default function ConfigPanel() {
           <FloorConfigSection />
         </AccordionSection>
 
-        <AccordionSection number={6} title={t('section.6')}>
+        <AccordionSection number={6} title={t('section.6')} isLast>
           <QuoteSummary />
         </AccordionSection>
       </div>

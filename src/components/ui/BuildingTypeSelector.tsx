@@ -80,29 +80,32 @@ export default function BuildingTypeSelector() {
     <div className="space-y-4">
       {/* Building type cards */}
       <div className="grid grid-cols-3 gap-2">
-        {BUILDING_TYPES.map(({ id, icon }) => (
-          <button
-            key={id}
-            onClick={() => setBuildingType(id)}
-            className={`flex flex-col items-center gap-1.5 rounded-md border p-3 transition-all ${
-              buildingType === id
-                ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                : 'border-border hover:border-primary/40'
-            }`}
-          >
-            <div className={buildingType === id ? 'text-primary' : 'text-muted-foreground'}>
-              {icon}
-            </div>
-            <span className={`text-xs font-medium ${buildingType === id ? 'text-primary' : 'text-muted-foreground'}`}>
-              {t(`buildingType.${id}`)}
-            </span>
-          </button>
-        ))}
+        {BUILDING_TYPES.map(({ id, icon }) => {
+          const isSelected = buildingType === id;
+          return (
+            <button
+              key={id}
+              onClick={() => setBuildingType(id)}
+              className={`flex flex-col items-center gap-1.5 rounded-lg border p-3 transition-all ${
+                isSelected
+                  ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                  : 'border-border hover:border-primary/40'
+              }`}
+            >
+              <div className={isSelected ? 'text-primary' : 'text-muted-foreground'}>
+                {icon}
+              </div>
+              <span className={`text-xs font-medium ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>
+                {t(`buildingType.${id}`)}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Roof type toggle */}
-      <div>
-        <Label className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
+      <div className="space-y-2">
+        <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
           {t('roofType.label')}
         </Label>
         <ToggleGroup
@@ -128,7 +131,7 @@ export default function BuildingTypeSelector() {
       </div>
 
       {/* Corner braces toggle */}
-      <div className="flex items-start gap-3 rounded-md border border-border p-3">
+      <div className="flex items-start gap-3 rounded-lg border border-border p-3">
         <svg viewBox="0 0 24 24" className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" fill="none" stroke="currentColor" strokeWidth={2}>
           <line x1="4" y1="4" x2="4" y2="20" />
           <line x1="4" y1="4" x2="20" y2="4" />

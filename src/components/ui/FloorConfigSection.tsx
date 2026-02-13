@@ -11,29 +11,32 @@ export default function FloorConfigSection() {
 
   return (
     <div className="space-y-2">
-      <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
         {t('floor.material')}
       </Label>
-      <div className="grid grid-cols-2 gap-2">
-        {FLOOR_MATERIALS.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => updateFloor({ materialId: m.id })}
-            className={`flex items-center gap-2.5 rounded-md border px-3 py-2.5 text-left text-sm font-medium transition-all ${
-              floorMaterialId === m.id
-                ? 'border-primary bg-primary/5 ring-1 ring-primary text-primary'
-                : 'border-border text-foreground hover:border-primary/40'
-            }`}
-          >
-            {m.id !== 'geen' && (
-              <span
-                className="inline-block h-5 w-5 shrink-0 rounded border border-border"
-                style={{ backgroundColor: m.color }}
-              />
-            )}
-            {m.label}
-          </button>
-        ))}
+      <div className="grid grid-cols-2 gap-1.5">
+        {FLOOR_MATERIALS.map((m) => {
+          const isSelected = floorMaterialId === m.id;
+          return (
+            <button
+              key={m.id}
+              onClick={() => updateFloor({ materialId: m.id })}
+              className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-all ${
+                isSelected
+                  ? 'border-primary bg-primary/5 ring-1 ring-primary text-primary'
+                  : 'border-border text-foreground hover:border-primary/40'
+              }`}
+            >
+              {m.id !== 'geen' && (
+                <span
+                  className="inline-block h-5 w-5 shrink-0 rounded-md border border-border/50"
+                  style={{ backgroundColor: m.color }}
+                />
+              )}
+              {m.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

@@ -10,14 +10,14 @@ const BuildingScene = dynamic(
 
 export default function Home() {
   return (
-    <div className="flex h-screen flex-col lg:flex-row">
-      {/* 3D Viewport */}
-      <div className="flex-1 min-h-[50vh] lg:min-h-0">
+    <div className="relative h-screen">
+      {/* Full-screen 3D Viewport */}
+      <div className="absolute inset-0">
         <BuildingScene />
       </div>
 
-      {/* Config Panel */}
-      <div className="w-full lg:w-[380px] lg:min-w-[380px] border-t lg:border-t-0 lg:border-l border-gray-200 overflow-y-auto">
+      {/* Floating Config Panel */}
+      <div className="absolute top-3 right-3 bottom-3 w-[420px] z-10">
         <ConfigPanel />
       </div>
     </div>
