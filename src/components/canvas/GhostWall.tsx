@@ -20,6 +20,9 @@ export default function GhostWall({ wallId }: GhostWallProps) {
   const { width, depth, height, bergingWidth } = config.dimensions;
   const overkappingWidth = width - bergingWidth;
   const inset = 0.01;
+  // Offset ghost walls inward from the building edge so they sit behind
+  // solid berging walls and don't intercept clicks through them
+  const ghostInset = WALL_THICKNESS + 0.02;
 
   const { size, position } = useMemo(() => {
     const t = 0.02; // thin ghost plane
@@ -29,17 +32,17 @@ export default function GhostWall({ wallId }: GhostWallProps) {
       case 'ov_front':
         return {
           size: [overkappingWidth - inset * 2, height, t] as [number, number, number],
-          position: [ovCenterX, height / 2, depth / 2 - inset] as [number, number, number],
+          position: [ovCenterX, height / 2, depth / 2 - ghostInset] as [number, number, number],
         };
       case 'ov_back':
         return {
           size: [overkappingWidth - inset * 2, height, t] as [number, number, number],
-          position: [ovCenterX, height / 2, -depth / 2 + inset] as [number, number, number],
+          position: [ovCenterX, height / 2, -depth / 2 + ghostInset] as [number, number, number],
         };
       case 'ov_right':
         return {
           size: [t, height, depth - inset * 2] as [number, number, number],
-          position: [width / 2 - inset, height / 2, 0] as [number, number, number],
+          position: [width / 2 - ghostInset, height / 2, 0] as [number, number, number],
         };
       default:
         return {
@@ -47,10 +50,8 @@ export default function GhostWall({ wallId }: GhostWallProps) {
           position: [0, 0, 0] as [number, number, number],
         };
     }
-  }, [wallId, width, depth, height, overkappingWidth]);
+  }, [wallId, width, depth, height, overkappingWidth, ghostInset]);
 
-  // For the dashed-edge visual: use a slightly thicker box for the ghost
-  // but keep it very thin (WALL_THICKNESS * 0.15)
   const ghostThickness = WALL_THICKNESS * 0.15;
   const renderSize: [number, number, number] = [
     wallId === 'ov_right' ? ghostThickness : size[0],
@@ -61,6 +62,7 @@ export default function GhostWall({ wallId }: GhostWallProps) {
   return (
     <mesh
       position={position}
+      renderOrder={-1}
       onPointerOver={(e) => {
         if (e.nativeEvent.buttons > 0) return;
         e.stopPropagation();
