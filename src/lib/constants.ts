@@ -148,6 +148,10 @@ export function getDefaultWalls(type: BuildingType): Record<string, WallConfig> 
         left: { ...DEFAULT_WALL },
         divider: { ...DEFAULT_WALL },
       };
+    default: {
+      const _exhaustive: never = type;
+      return _exhaustive;
+    }
   }
 }
 
@@ -160,6 +164,10 @@ export function getAvailableWallIds(type: BuildingType): WallId[] {
       return ['front', 'back', 'left', 'right'];
     case 'combined':
       return ['front', 'back', 'left', 'divider', ...OVERKAPPING_WALL_IDS];
+    default: {
+      const _exhaustive: never = type;
+      return _exhaustive;
+    }
   }
 }
 
@@ -177,6 +185,11 @@ export const POST_SPACING = 3; // meters between posts
 
 export const BRACE_PRICE = 45; // per brace
 export const WALL_THICKNESS = 0.15;
+
+// Timber frame geometry (shared between TimberFrame, OverkappingSection, Roof)
+export const POST_SIZE = 0.15; // 15 cm square posts
+export const BEAM_H = 0.20; // beam height
+export const DECK_T = 0.04; // roof deck thickness
 
 // Door / window dimensions (shared between 3D and schematic)
 export const DOOR_W = 0.9; // single door width in meters
@@ -278,5 +291,9 @@ export function getWallLength(
       return width - bergingWidth;
     case 'ov_right':
       return depth;
+    default: {
+      const _exhaustive: never = wallId;
+      return _exhaustive;
+    }
   }
 }

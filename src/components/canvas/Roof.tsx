@@ -4,16 +4,13 @@ import { useRef, useState, useMemo, useCallback } from 'react';
 import { Mesh } from 'three';
 import { Edges } from '@react-three/drei';
 import { useConfigStore } from '@/store/useConfigStore';
-import { ROOF_COVERINGS } from '@/lib/constants';
+import { ROOF_COVERINGS, BEAM_H, DECK_T } from '@/lib/constants';
 import { useRoofTexture } from '@/lib/textures';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ThreePointerEvent = any;
 
 const ROOF_THICKNESS = 0.08;
-// Must match TimberFrame constants for correct stacking
-const BEAM_H = 0.20;
-const DECK_T = 0.04;
 
 export default function Roof() {
   const meshRef = useRef<Mesh>(null);

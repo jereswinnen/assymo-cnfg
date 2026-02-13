@@ -3,15 +3,11 @@
 import { useMemo } from 'react';
 import { MeshStandardMaterial, TextureLoader, RepeatWrapping, SRGBColorSpace } from 'three';
 import { useConfigStore } from '@/store/useConfigStore';
+import { POST_SIZE, BEAM_H, DECK_T, POST_SPACING } from '@/lib/constants';
 
-const TIMBER_COLOR = '#C4A060';
-const POST_SIZE = 0.15;
 const BEAM_W = 0.15;
-const BEAM_H = 0.20;
-const DECK_T = 0.04;
 const FASCIA_T = 0.025;
 const FASCIA_H = 0.20;
-const POST_SPACING = 3;
 
 // Height of timber structure above wall top (beams + deck)
 export const TIMBER_ROOF_OFFSET = BEAM_H + DECK_T;

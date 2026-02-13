@@ -4,6 +4,7 @@ import { useConfigStore } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import SectionLabel from '@/components/ui/SectionLabel';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import type { BuildingType, RoofType } from '@/types/building';
 
@@ -105,9 +106,7 @@ export default function BuildingTypeSelector() {
 
       {/* Roof type toggle */}
       <div className="space-y-2">
-        <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-          {t('roofType.label')}
-        </Label>
+        <SectionLabel>{t('roofType.label')}</SectionLabel>
         <ToggleGroup
           type="single"
           value={roofType}

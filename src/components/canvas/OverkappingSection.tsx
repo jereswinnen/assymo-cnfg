@@ -2,9 +2,8 @@
 
 import { useMemo } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
-import { POST_SPACING } from '@/lib/constants';
+import { POST_SIZE, POST_SPACING } from '@/lib/constants';
 
-const POST_SIZE = 0.15; // 15cm square posts
 const POST_COLOR = '#A08050'; // timber color
 
 interface OverkappingSectionProps {

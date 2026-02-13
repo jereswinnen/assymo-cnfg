@@ -3,7 +3,7 @@
 import { useConfigStore } from '@/store/useConfigStore';
 import { FLOOR_MATERIALS } from '@/lib/constants';
 import { t } from '@/lib/i18n';
-import { Label } from '@/components/ui/label';
+import SectionLabel from '@/components/ui/SectionLabel';
 
 export default function FloorConfigSection() {
   const floorMaterialId = useConfigStore((s) => s.config.floor.materialId);
@@ -11,9 +11,7 @@ export default function FloorConfigSection() {
 
   return (
     <div className="space-y-2">
-      <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-        {t('floor.material')}
-      </Label>
+      <SectionLabel>{t('floor.material')}</SectionLabel>
       <div className="grid grid-cols-2 gap-1.5">
         {FLOOR_MATERIALS.map((m) => {
           const isSelected = floorMaterialId === m.id;

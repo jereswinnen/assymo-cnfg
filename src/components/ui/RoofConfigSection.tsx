@@ -5,6 +5,7 @@ import { ROOF_COVERINGS, TRIM_COLORS } from '@/lib/constants';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import SectionLabel from '@/components/ui/SectionLabel';
 import ColorSwatches from './ColorSwatches';
 
 export default function RoofConfigSection() {
@@ -15,9 +16,7 @@ export default function RoofConfigSection() {
     <div className="space-y-5">
       {/* Roof covering cards */}
       <div className="space-y-2">
-        <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-          {t('roof.covering')}
-        </Label>
+        <SectionLabel>{t('roof.covering')}</SectionLabel>
         <div className="grid grid-cols-2 gap-1.5">
           {ROOF_COVERINGS.map((cov) => {
             const isSelected = roof.coveringId === cov.id;
@@ -49,9 +48,7 @@ export default function RoofConfigSection() {
 
       {/* Trim color swatches */}
       <div className="space-y-2">
-        <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-          {t('roof.trimColor')}
-        </Label>
+        <SectionLabel>{t('roof.trimColor')}</SectionLabel>
         <ColorSwatches
           colors={TRIM_COLORS}
           selectedId={roof.trimColorId}

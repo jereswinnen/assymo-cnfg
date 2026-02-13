@@ -23,12 +23,12 @@ import {
 } from './constants';
 import { t } from './i18n';
 
-function getWallMaterialPrice(materialId: string): number {
-  return WALL_MATERIALS.find((m) => m.id === materialId)?.pricePerSqm ?? 0;
+function findPrice(items: readonly { id: string; pricePerSqm: number }[], id: string): number {
+  return items.find((m) => m.id === id)?.pricePerSqm ?? 0;
 }
 
-function getRoofCoveringPrice(coveringId: string): number {
-  return ROOF_COVERINGS.find((c) => c.id === coveringId)?.pricePerSqm ?? 0;
+function findSurcharge(id: string): number {
+  return DOOR_MATERIALS.find((m) => m.id === id)?.surcharge ?? 0;
 }
 
 function degToRad(deg: number): number {
@@ -140,13 +140,12 @@ export function wallLineItem(
     return { label: t(WALL_LABELS[wallId] ?? wallId), area: 0, materialCost: 0, insulationCost: 0, extrasCost: 0, total: 0 };
   }
   const area = wallNetArea(wallId, config, wallCfg);
-  const materialCost = area * getWallMaterialPrice(wallCfg.materialId);
+  const materialCost = area * findPrice(WALL_MATERIALS, wallCfg.materialId);
   let extrasCost = 0;
   if (wallCfg.hasDoor) {
     extrasCost += DOOR_BASE_PRICE[wallCfg.doorSize] ?? DOOR_BASE_PRICE.enkel;
     if (wallCfg.doorHasWindow) extrasCost += DOOR_WINDOW_SURCHARGE;
-    const doorMatSurcharge = DOOR_MATERIALS.find((m) => m.id === wallCfg.doorMaterialId)?.surcharge ?? 0;
-    extrasCost += doorMatSurcharge;
+    extrasCost += findSurcharge(wallCfg.doorMaterialId);
   }
   if (wallCfg.hasWindow) extrasCost += WINDOW_FLAT_FEE * wallCfg.windowCount;
 
@@ -166,7 +165,7 @@ export function roofLineItem(
   const { width, depth, roofPitch } = config.dimensions;
   const roofCfg: RoofConfig = config.roof;
   const area = roofTotalArea(width, depth, roofPitch, roofCfg.type);
-  const materialCost = area * getRoofCoveringPrice(roofCfg.coveringId);
+  const materialCost = area * findPrice(ROOF_COVERINGS, roofCfg.coveringId);
   const insulationCost = roofCfg.insulation
     ? area * roofCfg.insulationThickness * INSULATION_PRICE_PER_SQM_PER_MM
     : 0;
@@ -228,8 +227,7 @@ export function floorLineItem(config: BuildingConfig): LineItem | null {
 
   const { width, depth } = config.dimensions;
   const area = width * depth;
-  const pricePerSqm = FLOOR_MATERIALS.find((m) => m.id === materialId)?.pricePerSqm ?? 0;
-  const materialCost = area * pricePerSqm;
+  const materialCost = area * findPrice(FLOOR_MATERIALS, materialId);
 
   return {
     label: t('floor.label'),
