@@ -8,6 +8,7 @@ import type {
   BuildingType,
   WallId,
   DoorSize,
+  DoorMaterialId,
 } from '@/types/building';
 
 // Wall materials with Dutch labels
@@ -48,6 +49,20 @@ export const DEFAULT_DIMENSIONS: BuildingDimensions = {
   bergingWidth: 4,
 };
 
+// Door materials
+export interface DoorMaterial {
+  id: DoorMaterialId;
+  label: string;
+  surcharge: number; // extra cost on top of base door price
+}
+
+export const DOOR_MATERIALS: DoorMaterial[] = [
+  { id: 'wood', label: 'Hout', surcharge: 0 },
+  { id: 'aluminium', label: 'Aluminium', surcharge: 150 },
+  { id: 'pvc', label: 'PVC', surcharge: 0 },
+  { id: 'staal', label: 'Staal', surcharge: 250 },
+];
+
 // Door base prices by size + window surcharge
 export const DOOR_BASE_PRICE: Record<DoorSize, number> = {
   enkel: 850,
@@ -60,10 +75,9 @@ export const DOUBLE_DOOR_W = 1.6; // double door width in meters
 // Default wall config
 const DEFAULT_WALL: WallConfig = {
   materialId: 'wood',
-  insulation: true,
-  insulationThickness: 100,
   finish: 'Mat',
   hasDoor: false,
+  doorMaterialId: 'wood',
   doorSize: 'enkel',
   doorHasWindow: false,
   doorPosition: 'midden',

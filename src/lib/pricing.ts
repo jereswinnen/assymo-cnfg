@@ -10,6 +10,7 @@ import {
   INSULATION_PRICE_PER_SQM_PER_MM,
   DOOR_BASE_PRICE,
   DOOR_WINDOW_SURCHARGE,
+  DOOR_MATERIALS,
   DOUBLE_DOOR_W,
   WINDOW_FLAT_FEE,
   SKYLIGHT_FLAT_FEE,
@@ -129,13 +130,12 @@ export function wallLineItem(
   }
   const area = wallNetArea(wallId, config, wallCfg);
   const materialCost = area * getWallMaterialPrice(wallCfg.materialId);
-  const insulationCost = wallCfg.insulation
-    ? area * wallCfg.insulationThickness * INSULATION_PRICE_PER_SQM_PER_MM
-    : 0;
   let extrasCost = 0;
   if (wallCfg.hasDoor) {
     extrasCost += DOOR_BASE_PRICE[wallCfg.doorSize] ?? DOOR_BASE_PRICE.enkel;
     if (wallCfg.doorHasWindow) extrasCost += DOOR_WINDOW_SURCHARGE;
+    const doorMatSurcharge = DOOR_MATERIALS.find((m) => m.id === wallCfg.doorMaterialId)?.surcharge ?? 0;
+    extrasCost += doorMatSurcharge;
   }
   if (wallCfg.hasWindow) extrasCost += WINDOW_FLAT_FEE * wallCfg.windowCount;
 
@@ -143,9 +143,9 @@ export function wallLineItem(
     label: t(WALL_LABELS[wallId] ?? wallId),
     area,
     materialCost,
-    insulationCost,
+    insulationCost: 0,
     extrasCost,
-    total: materialCost + insulationCost + extrasCost,
+    total: materialCost + extrasCost,
   };
 }
 

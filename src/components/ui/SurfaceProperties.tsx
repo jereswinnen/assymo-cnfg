@@ -1,7 +1,7 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
-import { WALL_MATERIALS, FINISHES } from '@/lib/constants';
+import { WALL_MATERIALS, FINISHES, DOOR_MATERIALS } from '@/lib/constants';
 import { t } from '@/lib/i18n';
 import type { WallId } from '@/types/building';
 
@@ -94,36 +94,6 @@ export default function SurfaceProperties() {
         </div>
       </div>
 
-      {/* Insulation */}
-      <div className="rounded-lg border border-gray-200 bg-white">
-        <label className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700">
-          <input
-            type="checkbox"
-            checked={wallCfg.insulation}
-            onChange={(e) => handleChange('insulation', e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-          />
-          {t('surface.insulation')}
-        </label>
-        {wallCfg.insulation && (
-          <div className="border-t border-gray-100 px-3 pb-2.5 pt-2">
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-gray-500">{t('surface.thickness')}</span>
-              <span className="font-medium text-gray-700 tabular-nums">{wallCfg.insulationThickness} mm</span>
-            </div>
-            <input
-              type="range"
-              min={50}
-              max={300}
-              step={10}
-              value={wallCfg.insulationThickness}
-              onChange={(e) => handleChange('insulationThickness', parseInt(e.target.value))}
-              className="w-full accent-blue-600"
-            />
-          </div>
-        )}
-      </div>
-
       {/* Door */}
       <div className="rounded-lg border border-gray-200 bg-white">
         <label className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700">
@@ -137,6 +107,18 @@ export default function SurfaceProperties() {
         </label>
         {wallCfg.hasDoor && (
           <div className="space-y-2.5 border-t border-gray-100 px-3 pb-3 pt-2.5">
+            {/* Material */}
+            <div>
+              <span className="mb-1 block text-xs font-medium text-gray-500">{t('surface.doorMaterial')}</span>
+              <ToggleGroup
+                options={DOOR_MATERIALS.map((m) => ({
+                  value: m.id,
+                  label: t(`surface.doorMaterial.${m.id}`),
+                }))}
+                value={wallCfg.doorMaterialId}
+                onChange={(v) => handleChange('doorMaterialId', v)}
+              />
+            </div>
             {/* Size + Window row */}
             <div className="flex items-end gap-2">
               <div className="flex-1">

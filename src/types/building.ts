@@ -20,16 +20,16 @@ export interface SurfaceMaterial {
   color: string;
 }
 
+export type DoorMaterialId = 'wood' | 'aluminium' | 'pvc' | 'staal';
 export type DoorSize = 'enkel' | 'dubbel';
 export type DoorPosition = 'links' | 'midden' | 'rechts';
 export type DoorSwing = 'dicht' | 'naar_binnen' | 'naar_buiten';
 
 export interface WallConfig {
   materialId: string;
-  insulation: boolean;
-  insulationThickness: number; // mm
   finish: string;
   hasDoor: boolean;
+  doorMaterialId: DoorMaterialId;
   doorSize: DoorSize;
   doorHasWindow: boolean;
   doorPosition: DoorPosition;
