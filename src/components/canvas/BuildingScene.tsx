@@ -28,30 +28,41 @@ function SkyGradient() {
         depthWrite: false,
         uniforms: {},
         vertexShader: `
+          precision highp float;
           varying vec3 vDir;
           void main() {
-            vDir = normalize(position);
+            vDir = position;
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
           }
         `,
         fragmentShader: `
+          precision highp float;
           varying vec3 vDir;
-
-          // Dithering to eliminate color banding
-          float dither(vec2 co) {
-            return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453) / 255.0;
-          }
 
           void main() {
             vec3 dir = normalize(vDir);
-            float h = dir.y;
-            vec3 zenith  = vec3(0.22, 0.42, 0.75);
-            vec3 horizon = vec3(0.55, 0.75, 0.95);
-            vec3 ground  = vec3(0.82, 0.86, 0.90);
-            vec3 sky = h > 0.0
-              ? mix(horizon, zenith, pow(h, 0.4))
-              : mix(horizon, ground, pow(-h, 0.3));
-            sky += dither(gl_FragCoord.xy);
+            // Map y from [-1,1] to [0,1] with smooth transition through horizon
+            float t = dir.y * 0.5 + 0.5;
+
+            vec3 ground  = vec3(0.78, 0.84, 0.92);
+            vec3 horizon = vec3(0.60, 0.78, 0.96);
+            vec3 mid     = vec3(0.36, 0.56, 0.85);
+            vec3 zenith  = vec3(0.18, 0.34, 0.68);
+
+            // 4-stop gradient: ground(0) -> horizon(0.5) -> mid(0.7) -> zenith(1)
+            vec3 sky;
+            if (t < 0.5) {
+              sky = mix(ground, horizon, smoothstep(0.0, 0.5, t));
+            } else if (t < 0.7) {
+              sky = mix(horizon, mid, smoothstep(0.5, 0.7, t));
+            } else {
+              sky = mix(mid, zenith, smoothstep(0.7, 1.0, t));
+            }
+
+            // Dither to eliminate 8-bit banding
+            float noise = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+            sky += (noise - 0.5) / 255.0;
+
             gl_FragColor = vec4(sky, 1.0);
           }
         `,
@@ -61,7 +72,7 @@ function SkyGradient() {
 
   return (
     <mesh scale={[500, 500, 500]} material={material}>
-      <sphereGeometry args={[1, 128, 64]} />
+      <sphereGeometry args={[1, 128, 128]} />
     </mesh>
   );
 }

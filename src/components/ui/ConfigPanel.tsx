@@ -45,7 +45,12 @@ export default function ConfigPanel() {
         <AccordionSection number={4} title={t('section.4')}>
           <div className="space-y-4">
             <WallSelector />
-            {buildingType !== 'overkapping' && <SurfaceProperties />}
+            {buildingType !== 'overkapping' && (
+              <>
+                <div className="border-t border-gray-100" />
+                <SurfaceProperties />
+              </>
+            )}
           </div>
         </AccordionSection>
 

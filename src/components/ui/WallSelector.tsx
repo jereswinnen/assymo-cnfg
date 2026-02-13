@@ -29,18 +29,18 @@ export default function WallSelector() {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-gray-500">{t('wall.clickToSelect')}</p>
+      <p className="text-xs text-gray-400">{t('wall.clickToSelect')}</p>
 
-      {/* Berging walls — always present */}
-      <div className="flex flex-wrap gap-2">
+      {/* Berging walls */}
+      <div className="grid grid-cols-2 gap-1.5">
         {bergingWallIds.map((id: WallId) => (
           <button
             key={id}
             onClick={() => selectElement({ type: 'wall', id })}
-            className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all ${
+            className={`rounded-lg px-3 py-2 text-sm font-medium transition-all ${
               selectedWallId === id
-                ? 'border-blue-600 bg-blue-50 text-blue-700'
-                : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             {t(`wall.${id}`)}
@@ -48,47 +48,54 @@ export default function WallSelector() {
         ))}
       </div>
 
-      {/* Overkapping walls — optional with add/remove */}
+      {/* Overkapping walls */}
       {showOverkapping && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Overkapping wanden</p>
-          <div className="flex flex-wrap gap-2">
-            {OVERKAPPING_WALL_IDS.map((id) => {
-              const exists = !!walls[id];
-              if (exists) {
-                return (
-                  <div key={id} className="flex items-center gap-1">
-                    <button
-                      onClick={() => selectElement({ type: 'wall', id })}
-                      className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all ${
-                        selectedWallId === id
-                          ? 'border-blue-600 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                      }`}
-                    >
-                      {t(`wall.${id}`)}
-                    </button>
-                    <button
-                      onClick={() => removeOverkappingWall(id)}
-                      className="rounded-lg border-2 border-red-200 px-1.5 py-2 text-sm text-red-500 hover:bg-red-50 hover:border-red-300 transition-all"
-                      title="Verwijderen"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                );
-              }
-              return (
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+            Overkapping
+          </p>
+          {OVERKAPPING_WALL_IDS.map((id) => {
+            const exists = !!walls[id];
+            const isSelected = selectedWallId === id;
+            const label = t(`wall.${id}`).replace('Overkapping ', '');
+
+            return (
+              <div
+                key={id}
+                className={`flex items-center justify-between rounded-lg px-3 py-2 transition-all ${
+                  isSelected
+                    ? 'bg-blue-600 text-white'
+                    : exists
+                      ? 'bg-gray-100 text-gray-700'
+                      : 'bg-gray-50 text-gray-400'
+                }`}
+              >
                 <button
-                  key={id}
-                  onClick={() => addOverkappingWall(id)}
-                  className="rounded-lg border-2 border-dashed border-gray-300 px-3 py-2 text-sm font-medium text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-all"
+                  onClick={() => exists ? selectElement({ type: 'wall', id }) : addOverkappingWall(id)}
+                  className="flex-1 text-left text-sm font-medium"
                 >
-                  + {t(`wall.${id}`)}
+                  {label}
                 </button>
-              );
-            })}
-          </div>
+                {exists ? (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeOverkappingWall(id);
+                    }}
+                    className={`ml-2 rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors ${
+                      isSelected
+                        ? 'text-blue-200 hover:text-white hover:bg-blue-500'
+                        : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                    }`}
+                  >
+                    Verwijder
+                  </button>
+                ) : (
+                  <span className="text-xs font-medium text-gray-300">+ Toevoegen</span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
