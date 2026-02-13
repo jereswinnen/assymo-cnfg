@@ -123,6 +123,12 @@ const nl: Record<string, string> = {
 
   // Walls section
   'walls.disabled': 'Overkapping heeft geen wanden',
+
+  // Schematic
+  'view.floorplan': 'Plattegrond',
+  'schematic.title': 'Plattegrond',
+  'schematic.width': 'Breedte',
+  'schematic.depth': 'Diepte',
 };
 
 export function t(key: string): string {

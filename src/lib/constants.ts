@@ -10,6 +10,7 @@ import type {
   BuildingType,
   WallId,
   DoorSize,
+  DoorPosition,
   DoorMaterialId,
 } from '@/types/building';
 
@@ -176,3 +177,106 @@ export const POST_SPACING = 3; // meters between posts
 
 export const BRACE_PRICE = 45; // per brace
 export const WALL_THICKNESS = 0.15;
+
+// Door / window dimensions (shared between 3D and schematic)
+export const DOOR_W = 0.9; // single door width in meters
+export const WIN_W = 1.2; // window width in meters
+
+function doorWidth(doorSize: DoorSize): number {
+  return doorSize === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W;
+}
+
+export function computeDoorX(wallLength: number, doorPosition: DoorPosition, doorSize: DoorSize): number {
+  const margin = 0.5;
+  const dw = doorWidth(doorSize);
+  const usableHalf = wallLength / 2 - margin - dw / 2;
+  switch (doorPosition) {
+    case 'links':
+      return -usableHalf;
+    case 'rechts':
+      return usableHalf;
+    case 'midden':
+    default:
+      return 0;
+  }
+}
+
+export function computeOpeningPositions(
+  wallLength: number,
+  hasDoor: boolean,
+  doorPosition: DoorPosition,
+  doorSize: DoorSize,
+  windowCount: number,
+): { doorX: number; windowXs: number[] } {
+  const margin = 0.5;
+  let doorX = 0;
+  const windowXs: number[] = [];
+  const dw = doorWidth(doorSize);
+
+  if (hasDoor) {
+    doorX = computeDoorX(wallLength, doorPosition, doorSize);
+  }
+
+  if (hasDoor && windowCount > 0) {
+    const doorLeft = doorX - dw / 2 - 0.3;
+    const doorRight = doorX + dw / 2 + 0.3;
+    const wallLeft = -wallLength / 2 + margin;
+    const wallRight = wallLength / 2 - margin;
+
+    const spans: [number, number][] = [];
+    if (doorLeft - wallLeft > WIN_W) spans.push([wallLeft, doorLeft]);
+    if (wallRight - doorRight > WIN_W) spans.push([doorRight, wallRight]);
+
+    const totalSpan = spans.reduce((s, [a, b]) => s + (b - a), 0);
+    let placed = 0;
+    for (const [start, end] of spans) {
+      const spanLen = end - start;
+      const count = Math.round((spanLen / totalSpan) * windowCount) || 0;
+      const toPlace = Math.min(count, windowCount - placed);
+      if (toPlace > 0) {
+        const step = spanLen / toPlace;
+        for (let i = 0; i < toPlace; i++) {
+          windowXs.push(start + step * (i + 0.5));
+        }
+        placed += toPlace;
+      }
+    }
+    while (placed < windowCount && spans.length > 0) {
+      const [start, end] = spans[spans.length - 1];
+      const step = (end - start) / (windowCount - placed + 1);
+      windowXs.push(start + step);
+      placed++;
+    }
+  } else if (windowCount > 0) {
+    const usable = wallLength - 2 * margin;
+    const step = usable / windowCount;
+    for (let i = 0; i < windowCount; i++) {
+      windowXs.push(-wallLength / 2 + margin + step * (i + 0.5));
+    }
+  }
+
+  return { doorX, windowXs };
+}
+
+/** Get the length of a wall based on its ID and building config */
+export function getWallLength(
+  wallId: WallId,
+  buildingType: BuildingType,
+  dimensions: BuildingDimensions,
+): number {
+  const { width, depth, bergingWidth } = dimensions;
+  switch (wallId) {
+    case 'front':
+    case 'back':
+      return buildingType === 'combined' ? bergingWidth : width;
+    case 'left':
+    case 'right':
+    case 'divider':
+      return depth;
+    case 'ov_front':
+    case 'ov_back':
+      return width - bergingWidth;
+    case 'ov_right':
+      return depth;
+  }
+}

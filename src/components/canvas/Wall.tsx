@@ -5,11 +5,9 @@ import { Group, Mesh, MeshStandardMaterial, Shape, Path, ExtrudeGeometry, MathUt
 import { useFrame } from '@react-three/fiber';
 import { Edges } from '@react-three/drei';
 import { useConfigStore } from '@/store/useConfigStore';
-import { WALL_MATERIALS, WALL_THICKNESS, DOUBLE_DOOR_W } from '@/lib/constants';
+import { WALL_MATERIALS, WALL_THICKNESS, DOUBLE_DOOR_W, DOOR_W, computeOpeningPositions } from '@/lib/constants';
 import { useWallTexture, useDoorTexture } from '@/lib/textures';
-import type { WallId, WallConfig, DoorPosition, DoorSwing, DoorSize, DoorMaterialId } from '@/types/building';
-
-const DOOR_W = 0.9;
+import type { WallId, WallConfig, DoorSwing, DoorSize, DoorMaterialId } from '@/types/building';
 const DOOR_H = 2.1;
 const DOOR_DEPTH = 0.05;
 const DOUBLE_W = DOUBLE_DOOR_W; // 1.6m for double doors
@@ -43,21 +41,6 @@ const glassMat = new MeshStandardMaterial({ color: '#B8D4E3', metalness: 0.1, ro
 
 function doorWidth(doorSize: DoorSize): number {
   return doorSize === 'dubbel' ? DOUBLE_W : DOOR_W;
-}
-
-function computeDoorX(wallLength: number, doorPosition: DoorPosition, doorSize: DoorSize): number {
-  const margin = 0.5;
-  const dw = doorWidth(doorSize);
-  const usableHalf = wallLength / 2 - margin - dw / 2;
-  switch (doorPosition) {
-    case 'links':
-      return -usableHalf;
-    case 'rechts':
-      return usableHalf;
-    case 'midden':
-    default:
-      return 0;
-  }
 }
 
 /** Create an ExtrudeGeometry with rectangular holes for doors and/or windows.
@@ -429,62 +412,6 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg }: Ope
   );
 }
 
-function computeOpeningPositions(
-  wallLength: number,
-  hasDoor: boolean,
-  doorPosition: DoorPosition,
-  doorSize: DoorSize,
-  windowCount: number,
-) {
-  const margin = 0.5;
-  let doorX = 0;
-  const windowXs: number[] = [];
-  const dw = doorWidth(doorSize);
-
-  if (hasDoor) {
-    doorX = computeDoorX(wallLength, doorPosition, doorSize);
-  }
-
-  if (hasDoor && windowCount > 0) {
-    const doorLeft = doorX - dw / 2 - 0.3;
-    const doorRight = doorX + dw / 2 + 0.3;
-    const wallLeft = -wallLength / 2 + margin;
-    const wallRight = wallLength / 2 - margin;
-
-    const spans: [number, number][] = [];
-    if (doorLeft - wallLeft > WIN_W) spans.push([wallLeft, doorLeft]);
-    if (wallRight - doorRight > WIN_W) spans.push([doorRight, wallRight]);
-
-    const totalSpan = spans.reduce((s, [a, b]) => s + (b - a), 0);
-    let placed = 0;
-    for (const [start, end] of spans) {
-      const spanLen = end - start;
-      const count = Math.round((spanLen / totalSpan) * windowCount) || 0;
-      const toPlace = Math.min(count, windowCount - placed);
-      if (toPlace > 0) {
-        const step = spanLen / toPlace;
-        for (let i = 0; i < toPlace; i++) {
-          windowXs.push(start + step * (i + 0.5));
-        }
-        placed += toPlace;
-      }
-    }
-    while (placed < windowCount && spans.length > 0) {
-      const [start, end] = spans[spans.length - 1];
-      const step = (end - start) / (windowCount - placed + 1);
-      windowXs.push(start + step);
-      placed++;
-    }
-  } else if (windowCount > 0) {
-    const usable = wallLength - 2 * margin;
-    const step = usable / windowCount;
-    for (let i = 0; i < windowCount; i++) {
-      windowXs.push(-wallLength / 2 + margin + step * (i + 0.5));
-    }
-  }
-
-  return { doorX, windowXs };
-}
 
 /** Create door panel ExtrudeGeometry with a window hole cut out */
 function createDoorPanelWithWindowGeo(panelW: number, panelH: number): ExtrudeGeometry {
