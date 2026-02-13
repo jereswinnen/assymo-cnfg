@@ -104,15 +104,12 @@ export default function BuildingScene() {
 
       <Sky
         distance={450000}
-        sunPosition={[100, 40, 100]}
-        inclination={0.49}
-        azimuth={0.25}
-        rayleigh={2}
-        turbidity={3}
-        mieCoefficient={0.005}
-        mieDirectionalG={0.8}
+        sunPosition={[50, 25, 80]}
+        rayleigh={3}
+        turbidity={4}
+        mieCoefficient={0.003}
+        mieDirectionalG={0.7}
       />
-      <fog attach="fog" args={['#c5dff0', 80, 180]} />
 
       <Building />
       <Ground />
