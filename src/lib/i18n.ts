@@ -129,6 +129,7 @@ const nl: Record<string, string> = {
   'schematic.title': 'Plattegrond',
   'schematic.width': 'Breedte',
   'schematic.depth': 'Diepte',
+  'export.button': 'Exporteren',
 };
 
 export function t(key: string): string {

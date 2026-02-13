@@ -26,7 +26,7 @@ export default function SchematicView() {
       <div className="flex-1 min-h-0 flex items-center justify-center">
         <svg
           viewBox={viewBox}
-          className="w-full h-full"
+          className="schematic-svg w-full h-full"
         >
           {/* Building outline (light dashed rectangle for full footprint) */}
           <rect
@@ -110,17 +110,6 @@ export default function SchematicView() {
             depth={depth}
             bergingWidth={bergingWidth}
           />
-          {/* Title watermark */}
-          <text
-            x={-hw - pad + 0.2}
-            y={-hd - pad + 0.35}
-            fontSize={0.25}
-            fontFamily="system-ui, sans-serif"
-            fill="#ccc"
-            textAnchor="start"
-          >
-            {t('schematic.title')}
-          </text>
         </svg>
       </div>
     </div>
