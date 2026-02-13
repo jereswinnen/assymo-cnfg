@@ -85,7 +85,7 @@ export default function BuildingScene() {
       shadows
       camera={{ position: [12, 8, 12], fov: 45 }}
       onPointerMissed={() => clearSelection()}
-      style={{ background: '#87CEEB' }}
+      style={{ background: '#4a90d9' }}
     >
       <ambientLight intensity={0.5} />
       <directionalLight
@@ -104,13 +104,15 @@ export default function BuildingScene() {
 
       <Sky
         distance={450000}
-        sunPosition={[100, 60, 100]}
-        inclination={0.52}
+        sunPosition={[100, 40, 100]}
+        inclination={0.49}
         azimuth={0.25}
-        rayleigh={0.5}
-        turbidity={8}
+        rayleigh={2}
+        turbidity={3}
+        mieCoefficient={0.005}
+        mieDirectionalG={0.8}
       />
-      <fog attach="fog" args={['#b0d0e8', 60, 120]} />
+      <fog attach="fog" args={['#c5dff0', 80, 180]} />
 
       <Building />
       <Ground />
