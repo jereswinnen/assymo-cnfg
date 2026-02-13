@@ -8,7 +8,9 @@ import {
   WALL_MATERIALS,
   ROOF_COVERINGS,
   INSULATION_PRICE_PER_SQM_PER_MM,
-  DOOR_FLAT_FEE,
+  DOOR_BASE_PRICE,
+  DOOR_WINDOW_SURCHARGE,
+  DOUBLE_DOOR_W,
   WINDOW_FLAT_FEE,
   SKYLIGHT_FLAT_FEE,
   DOOR_AREA_CUTOUT,
@@ -79,7 +81,10 @@ export function wallNetArea(
   wallCfg: WallConfig,
 ): number {
   let area = wallGrossArea(wallId, config);
-  if (wallCfg.hasDoor) area -= DOOR_AREA_CUTOUT;
+  if (wallCfg.hasDoor) {
+    const doorW = wallCfg.doorSize === 'dubbel' ? DOUBLE_DOOR_W : DOOR_AREA_CUTOUT / 2.1;
+    area -= doorW * 2.1;
+  }
   if (wallCfg.hasWindow) area -= WINDOW_AREA_CUTOUT * wallCfg.windowCount;
   return Math.max(0, area);
 }
@@ -128,7 +133,10 @@ export function wallLineItem(
     ? area * wallCfg.insulationThickness * INSULATION_PRICE_PER_SQM_PER_MM
     : 0;
   let extrasCost = 0;
-  if (wallCfg.hasDoor) extrasCost += DOOR_FLAT_FEE;
+  if (wallCfg.hasDoor) {
+    extrasCost += DOOR_BASE_PRICE[wallCfg.doorSize] ?? DOOR_BASE_PRICE.enkel;
+    if (wallCfg.doorHasWindow) extrasCost += DOOR_WINDOW_SURCHARGE;
+  }
   if (wallCfg.hasWindow) extrasCost += WINDOW_FLAT_FEE * wallCfg.windowCount;
 
   return {

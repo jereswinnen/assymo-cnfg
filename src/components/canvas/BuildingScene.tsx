@@ -69,7 +69,7 @@ function CameraAnimator() {
       maxPolarAngle={Math.PI / 2 - 0.05}
       minDistance={5}
       maxDistance={40}
-      enablePan={false}
+      enablePan={true}
     />
   );
 }

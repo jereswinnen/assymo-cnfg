@@ -5,6 +5,34 @@ import { WALL_MATERIALS, FINISHES } from '@/lib/constants';
 import { t } from '@/lib/i18n';
 import type { WallId } from '@/types/building';
 
+function ToggleGroup({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+            value === opt.value
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function SurfaceProperties() {
   const selectedElement = useConfigStore((s) => s.selectedElement);
   const config = useConfigStore((s) => s.config);
@@ -29,46 +57,46 @@ export default function SurfaceProperties() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <h4 className="text-sm font-semibold text-gray-900">
         {label} — {t('surface.properties')}
       </h4>
 
-      {/* Material */}
-      <div className="space-y-1">
-        <label className="block text-sm font-medium text-gray-700">{t('surface.material')}</label>
-        <select
-          value={wallCfg.materialId}
-          onChange={(e) => handleChange('materialId', e.target.value)}
-          className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-        >
-          {WALL_MATERIALS.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.label} — €{m.pricePerSqm}/m²
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Finish */}
-      <div className="space-y-1">
-        <label className="block text-sm font-medium text-gray-700">{t('surface.finish')}</label>
-        <select
-          value={wallCfg.finish}
-          onChange={(e) => handleChange('finish', e.target.value)}
-          className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-        >
-          {FINISHES.map((f) => (
-            <option key={f} value={f}>
-              {f}
-            </option>
-          ))}
-        </select>
+      {/* Material & Finish row */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="mb-1 block text-xs font-medium text-gray-500">{t('surface.material')}</label>
+          <select
+            value={wallCfg.materialId}
+            onChange={(e) => handleChange('materialId', e.target.value)}
+            className="w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            {WALL_MATERIALS.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-gray-500">{t('surface.finish')}</label>
+          <select
+            value={wallCfg.finish}
+            onChange={(e) => handleChange('finish', e.target.value)}
+            className="w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            {FINISHES.map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Insulation */}
-      <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+      <div className="rounded-lg border border-gray-200 bg-white">
+        <label className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700">
           <input
             type="checkbox"
             checked={wallCfg.insulation}
@@ -78,10 +106,10 @@ export default function SurfaceProperties() {
           {t('surface.insulation')}
         </label>
         {wallCfg.insulation && (
-          <div className="ml-6 space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">{t('surface.thickness')}</span>
-              <span className="text-gray-500 tabular-nums">{wallCfg.insulationThickness} mm</span>
+          <div className="border-t border-gray-100 px-3 pb-2.5 pt-2">
+            <div className="flex justify-between text-xs mb-1">
+              <span className="text-gray-500">{t('surface.thickness')}</span>
+              <span className="font-medium text-gray-700 tabular-nums">{wallCfg.insulationThickness} mm</span>
             </div>
             <input
               type="range"
@@ -96,9 +124,9 @@ export default function SurfaceProperties() {
         )}
       </div>
 
-      {/* Door & Windows */}
-      <div className="space-y-2 border-t border-gray-200 pt-3">
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+      {/* Door */}
+      <div className="rounded-lg border border-gray-200 bg-white">
+        <label className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700">
           <input
             type="checkbox"
             checked={wallCfg.hasDoor}
@@ -108,48 +136,63 @@ export default function SurfaceProperties() {
           {t('surface.door')}
         </label>
         {wallCfg.hasDoor && (
-          <div className="ml-6 space-y-3">
-            {/* Door position */}
-            <div className="space-y-1">
-              <span className="block text-sm text-gray-600">{t('surface.doorPosition')}</span>
-              <div className="flex gap-1">
-                {(['links', 'midden', 'rechts'] as const).map((pos) => (
-                  <button
-                    key={pos}
-                    onClick={() => handleChange('doorPosition', pos)}
-                    className={`flex-1 rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${
-                      wallCfg.doorPosition === pos
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    {t(`surface.doorPosition.${pos}`)}
-                  </button>
-                ))}
+          <div className="space-y-2.5 border-t border-gray-100 px-3 pb-3 pt-2.5">
+            {/* Size + Window row */}
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <span className="mb-1 block text-xs font-medium text-gray-500">{t('surface.doorSize')}</span>
+                <ToggleGroup
+                  options={[
+                    { value: 'enkel', label: t('surface.doorSize.enkel') },
+                    { value: 'dubbel', label: t('surface.doorSize.dubbel') },
+                  ]}
+                  value={wallCfg.doorSize}
+                  onChange={(v) => handleChange('doorSize', v)}
+                />
               </div>
+              <label className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 select-none cursor-pointer hover:bg-gray-100 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={wallCfg.doorHasWindow}
+                  onChange={(e) => handleChange('doorHasWindow', e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                {t('surface.doorHasWindow')}
+              </label>
             </div>
-            {/* Door swing direction */}
-            <div className="space-y-1">
-              <span className="block text-sm text-gray-600">{t('surface.doorSwing')}</span>
-              <div className="flex gap-1">
-                {(['naar_binnen', 'naar_buiten'] as const).map((swing) => (
-                  <button
-                    key={swing}
-                    onClick={() => handleChange('doorSwing', swing)}
-                    className={`flex-1 rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${
-                      wallCfg.doorSwing === swing
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    {t(`surface.doorSwing.${swing}`)}
-                  </button>
-                ))}
-              </div>
+            {/* Position */}
+            <div>
+              <span className="mb-1 block text-xs font-medium text-gray-500">{t('surface.doorPosition')}</span>
+              <ToggleGroup
+                options={[
+                  { value: 'links', label: t('surface.doorPosition.links') },
+                  { value: 'midden', label: t('surface.doorPosition.midden') },
+                  { value: 'rechts', label: t('surface.doorPosition.rechts') },
+                ]}
+                value={wallCfg.doorPosition}
+                onChange={(v) => handleChange('doorPosition', v)}
+              />
+            </div>
+            {/* Swing */}
+            <div>
+              <span className="mb-1 block text-xs font-medium text-gray-500">{t('surface.doorSwing')}</span>
+              <ToggleGroup
+                options={[
+                  { value: 'dicht', label: t('surface.doorSwing.dicht') },
+                  { value: 'naar_binnen', label: t('surface.doorSwing.naar_binnen') },
+                  { value: 'naar_buiten', label: t('surface.doorSwing.naar_buiten') },
+                ]}
+                value={wallCfg.doorSwing}
+                onChange={(v) => handleChange('doorSwing', v)}
+              />
             </div>
           </div>
         )}
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+      </div>
+
+      {/* Windows */}
+      <div className="rounded-lg border border-gray-200 bg-white">
+        <label className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700">
           <input
             type="checkbox"
             checked={wallCfg.hasWindow}
@@ -163,10 +206,10 @@ export default function SurfaceProperties() {
           {t('surface.windows')}
         </label>
         {wallCfg.hasWindow && (
-          <div className="ml-6 space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">{t('surface.windowCount')}</span>
-              <span className="text-gray-500 tabular-nums">{wallCfg.windowCount}</span>
+          <div className="border-t border-gray-100 px-3 pb-2.5 pt-2">
+            <div className="flex justify-between text-xs mb-1">
+              <span className="text-gray-500">{t('surface.windowCount')}</span>
+              <span className="font-medium text-gray-700 tabular-nums">{wallCfg.windowCount}</span>
             </div>
             <input
               type="range"

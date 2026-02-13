@@ -7,6 +7,7 @@ import type {
   TrimColor,
   BuildingType,
   WallId,
+  DoorSize,
 } from '@/types/building';
 
 // Wall materials with Dutch labels
@@ -47,6 +48,15 @@ export const DEFAULT_DIMENSIONS: BuildingDimensions = {
   bergingWidth: 4,
 };
 
+// Door base prices by size + window surcharge
+export const DOOR_BASE_PRICE: Record<DoorSize, number> = {
+  enkel: 850,
+  dubbel: 1350,
+};
+export const DOOR_WINDOW_SURCHARGE = 200;
+
+export const DOUBLE_DOOR_W = 1.6; // double door width in meters
+
 // Default wall config
 const DEFAULT_WALL: WallConfig = {
   materialId: 'wood',
@@ -54,8 +64,10 @@ const DEFAULT_WALL: WallConfig = {
   insulationThickness: 100,
   finish: 'Mat',
   hasDoor: false,
+  doorSize: 'enkel',
+  doorHasWindow: false,
   doorPosition: 'midden',
-  doorSwing: 'naar_buiten',
+  doorSwing: 'dicht',
   hasWindow: false,
   windowCount: 0,
 };
