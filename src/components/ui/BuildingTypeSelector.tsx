@@ -121,7 +121,7 @@ export default function BuildingTypeSelector() {
               value={id}
               className="flex-1 gap-2"
             >
-              <span className={roofType === id ? 'text-primary' : 'text-muted-foreground'}>
+              <span className={roofType === id ? 'text-primary-foreground' : 'text-muted-foreground'}>
                 {icon}
               </span>
               {t(label)}

@@ -126,6 +126,7 @@ function CameraAnimator() {
   return (
     <OrbitControls
       ref={controlsRef}
+      target={[3, 0, 0]}
       maxPolarAngle={Math.PI / 2 - 0.05}
       minDistance={5}
       maxDistance={40}
@@ -140,7 +141,7 @@ export default function BuildingScene() {
   return (
     <Canvas
       shadows
-      camera={{ position: [12, 8, 12], fov: 45 }}
+      camera={{ position: [15, 8, 12], fov: 45 }}
       onPointerMissed={() => clearSelection()}
       style={{ background: '#6a9fd8' }}
     >

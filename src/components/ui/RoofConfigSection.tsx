@@ -5,7 +5,6 @@ import { ROOF_COVERINGS, TRIM_COLORS } from '@/lib/constants';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import ColorSwatches from './ColorSwatches';
 
 export default function RoofConfigSection() {
@@ -58,37 +57,6 @@ export default function RoofConfigSection() {
           selectedId={roof.trimColorId}
           onSelect={(id) => updateRoof({ trimColorId: id as typeof roof.trimColorId })}
         />
-      </div>
-
-      {/* Insulation toggle + thickness */}
-      <div className={`rounded-lg transition-all ${roof.insulation ? 'bg-muted/40 p-3 ring-1 ring-border/50' : ''}`}>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="roof-insulation"
-            checked={roof.insulation}
-            onCheckedChange={(checked) => updateRoof({ insulation: !!checked })}
-          />
-          <Label htmlFor="roof-insulation" className="cursor-pointer font-medium">
-            {t('roof.insulation')}
-          </Label>
-        </div>
-        {roof.insulation && (
-          <div className="mt-3 space-y-2">
-            <div className="flex justify-between items-center">
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                {t('roof.thickness')}
-              </Label>
-              <span className="text-sm font-semibold tabular-nums">{roof.insulationThickness} mm</span>
-            </div>
-            <Slider
-              min={50}
-              max={300}
-              step={10}
-              value={[roof.insulationThickness]}
-              onValueChange={([v]) => updateRoof({ insulationThickness: v })}
-            />
-          </div>
-        )}
       </div>
 
       {/* Skylight toggle */}
