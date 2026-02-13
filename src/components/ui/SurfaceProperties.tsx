@@ -3,39 +3,12 @@
 import { useConfigStore } from '@/store/useConfigStore';
 import { WALL_MATERIALS, FINISHES, DOOR_MATERIALS } from '@/lib/constants';
 import { t } from '@/lib/i18n';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Separator } from '@/components/ui/separator';
 import type { WallId } from '@/types/building';
-
-function SegmentedControl({
-  options,
-  value,
-  onChange,
-  size = 'sm',
-}: {
-  options: { value: string; label: string }[];
-  value: string;
-  onChange: (v: string) => void;
-  size?: 'sm' | 'xs';
-}) {
-  return (
-    <div className="flex rounded-lg bg-gray-100 p-0.5">
-      {options.map((opt) => (
-        <button
-          key={opt.value}
-          onClick={() => onChange(opt.value)}
-          className={`flex-1 rounded-md font-medium transition-all ${
-            size === 'xs' ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
-          } ${
-            value === opt.value
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 export default function SurfaceProperties() {
   const selectedElement = useConfigStore((s) => s.selectedElement);
@@ -44,7 +17,7 @@ export default function SurfaceProperties() {
 
   if (!selectedElement || selectedElement.type !== 'wall') {
     return (
-      <div className="rounded-lg bg-gray-50 border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">
+      <div className="rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
         {t('wall.select')}
       </div>
     );
@@ -62,18 +35,18 @@ export default function SurfaceProperties() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <div className="h-3 w-3 rounded-full bg-blue-600" />
-        <h4 className="text-sm font-semibold text-gray-900">{label}</h4>
+        <div className="h-2.5 w-2.5 rounded-full bg-primary" />
+        <Label className="text-sm font-semibold">{label}</Label>
       </div>
 
-      {/* Material selector — visual buttons */}
+      {/* Material selector */}
       <div>
-        <label className="mb-1.5 block text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+        <Label className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
           {t('surface.material')}
-        </label>
+        </Label>
         <div className="grid grid-cols-5 gap-1.5">
           {WALL_MATERIALS.map((m) => (
             <button
@@ -86,20 +59,20 @@ export default function SurfaceProperties() {
                   handleChange('windowCount', 0);
                 }
               }}
-              className={`flex flex-col items-center gap-1 rounded-lg p-2 transition-all ${
+              className={`flex flex-col items-center gap-1 rounded-md p-2 transition-all ${
                 wallCfg.materialId === m.id
-                  ? 'bg-blue-50 ring-2 ring-blue-600'
-                  : 'bg-gray-50 hover:bg-gray-100'
+                  ? 'bg-primary/10 ring-1 ring-primary'
+                  : 'bg-muted/50 hover:bg-muted'
               }`}
             >
               <span
-                className="h-6 w-6 rounded-md border border-gray-200"
+                className="h-6 w-6 rounded border border-border"
                 style={{
                   backgroundColor: m.id === 'glass' ? '#B8D4E3' : m.color,
                   opacity: m.id === 'glass' ? 0.5 : 1,
                 }}
               />
-              <span className="text-[10px] font-medium text-gray-600 leading-tight">{m.label}</span>
+              <span className="text-[10px] font-medium text-muted-foreground leading-tight">{m.label}</span>
             </button>
           ))}
         </div>
@@ -108,89 +81,132 @@ export default function SurfaceProperties() {
       {/* Finish */}
       {!isGlass && (
         <div>
-          <label className="mb-1.5 block text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+          <Label className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
             {t('surface.finish')}
-          </label>
-          <SegmentedControl
-            options={FINISHES.map((f) => ({ value: f, label: f }))}
+          </Label>
+          <ToggleGroup
+            type="single"
             value={wallCfg.finish}
-            onChange={(v) => handleChange('finish', v)}
-            size="xs"
-          />
+            onValueChange={(v) => { if (v) handleChange('finish', v); }}
+            className="w-full"
+            variant="outline"
+            size="sm"
+          >
+            {FINISHES.map((f) => (
+              <ToggleGroupItem key={f} value={f} className="flex-1">
+                {f}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
         </div>
       )}
 
       {isGlass && (
-        <p className="text-xs text-gray-400 italic">Glaswand van zijde tot zijde</p>
+        <p className="text-xs text-muted-foreground italic">Glaswand van zijde tot zijde</p>
       )}
 
       {/* Door section */}
       {!isGlass && (
-        <div className={`rounded-lg transition-all ${
-          wallCfg.hasDoor ? 'bg-gray-50 p-3' : ''
-        }`}>
-          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer select-none">
-            <input
-              type="checkbox"
+        <div className={`rounded-md transition-all ${wallCfg.hasDoor ? 'bg-muted/50 p-3' : ''}`}>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="wall-door"
               checked={wallCfg.hasDoor}
-              onChange={(e) => handleChange('hasDoor', e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              onCheckedChange={(checked) => handleChange('hasDoor', !!checked)}
             />
-            {t('surface.door')}
-          </label>
+            <Label htmlFor="wall-door" className="cursor-pointer">
+              {t('surface.door')}
+            </Label>
+          </div>
           {wallCfg.hasDoor && (
-            <div className="mt-3 space-y-2.5">
-              <SegmentedControl
-                options={DOOR_MATERIALS.map((m) => ({
-                  value: m.id,
-                  label: t(`surface.doorMaterial.${m.id}`),
-                }))}
+            <div className="mt-3 space-y-3">
+              {/* Door material */}
+              <ToggleGroup
+                type="single"
                 value={wallCfg.doorMaterialId}
-                onChange={(v) => handleChange('doorMaterialId', v)}
-                size="xs"
-              />
+                onValueChange={(v) => { if (v) handleChange('doorMaterialId', v); }}
+                className="w-full"
+                variant="outline"
+                size="sm"
+              >
+                {DOOR_MATERIALS.map((m) => (
+                  <ToggleGroupItem key={m.id} value={m.id} className="flex-1 text-xs">
+                    {t(`surface.doorMaterial.${m.id}`)}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+
+              {/* Door size + window toggle */}
               <div className="flex items-center gap-2">
-                <div className="flex-1">
-                  <SegmentedControl
-                    options={[
-                      { value: 'enkel', label: t('surface.doorSize.enkel') },
-                      { value: 'dubbel', label: t('surface.doorSize.dubbel') },
-                    ]}
-                    value={wallCfg.doorSize}
-                    onChange={(v) => handleChange('doorSize', v)}
-                    size="xs"
-                  />
-                </div>
-                <label className="flex items-center gap-1 text-xs text-gray-500 cursor-pointer select-none whitespace-nowrap">
-                  <input
-                    type="checkbox"
+                <ToggleGroup
+                  type="single"
+                  value={wallCfg.doorSize}
+                  onValueChange={(v) => { if (v) handleChange('doorSize', v); }}
+                  className="flex-1"
+                  variant="outline"
+                  size="sm"
+                >
+                  <ToggleGroupItem value="enkel" className="flex-1 text-xs">
+                    {t('surface.doorSize.enkel')}
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="dubbel" className="flex-1 text-xs">
+                    {t('surface.doorSize.dubbel')}
+                  </ToggleGroupItem>
+                </ToggleGroup>
+
+                <Separator orientation="vertical" className="h-6" />
+
+                <div className="flex items-center gap-1.5">
+                  <Checkbox
+                    id="door-window"
                     checked={wallCfg.doorHasWindow}
-                    onChange={(e) => handleChange('doorHasWindow', e.target.checked)}
-                    className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    onCheckedChange={(checked) => handleChange('doorHasWindow', !!checked)}
                   />
-                  Raam
-                </label>
+                  <Label htmlFor="door-window" className="cursor-pointer text-xs text-muted-foreground whitespace-nowrap">
+                    Raam
+                  </Label>
+                </div>
               </div>
-              <SegmentedControl
-                options={[
-                  { value: 'links', label: t('surface.doorPosition.links') },
-                  { value: 'midden', label: t('surface.doorPosition.midden') },
-                  { value: 'rechts', label: t('surface.doorPosition.rechts') },
-                ]}
+
+              {/* Door position */}
+              <ToggleGroup
+                type="single"
                 value={wallCfg.doorPosition}
-                onChange={(v) => handleChange('doorPosition', v)}
-                size="xs"
-              />
-              <SegmentedControl
-                options={[
-                  { value: 'dicht', label: t('surface.doorSwing.dicht') },
-                  { value: 'naar_binnen', label: t('surface.doorSwing.naar_binnen') },
-                  { value: 'naar_buiten', label: t('surface.doorSwing.naar_buiten') },
-                ]}
+                onValueChange={(v) => { if (v) handleChange('doorPosition', v); }}
+                className="w-full"
+                variant="outline"
+                size="sm"
+              >
+                <ToggleGroupItem value="links" className="flex-1 text-xs">
+                  {t('surface.doorPosition.links')}
+                </ToggleGroupItem>
+                <ToggleGroupItem value="midden" className="flex-1 text-xs">
+                  {t('surface.doorPosition.midden')}
+                </ToggleGroupItem>
+                <ToggleGroupItem value="rechts" className="flex-1 text-xs">
+                  {t('surface.doorPosition.rechts')}
+                </ToggleGroupItem>
+              </ToggleGroup>
+
+              {/* Door swing */}
+              <ToggleGroup
+                type="single"
                 value={wallCfg.doorSwing}
-                onChange={(v) => handleChange('doorSwing', v)}
-                size="xs"
-              />
+                onValueChange={(v) => { if (v) handleChange('doorSwing', v); }}
+                className="w-full"
+                variant="outline"
+                size="sm"
+              >
+                <ToggleGroupItem value="dicht" className="flex-1 text-xs">
+                  {t('surface.doorSwing.dicht')}
+                </ToggleGroupItem>
+                <ToggleGroupItem value="naar_binnen" className="flex-1 text-xs">
+                  {t('surface.doorSwing.naar_binnen')}
+                </ToggleGroupItem>
+                <ToggleGroupItem value="naar_buiten" className="flex-1 text-xs">
+                  {t('surface.doorSwing.naar_buiten')}
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
           )}
         </div>
@@ -198,36 +214,33 @@ export default function SurfaceProperties() {
 
       {/* Windows section */}
       {!isGlass && (
-        <div className={`rounded-lg transition-all ${
-          wallCfg.hasWindow ? 'bg-gray-50 p-3' : ''
-        }`}>
-          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer select-none">
-            <input
-              type="checkbox"
+        <div className={`rounded-md transition-all ${wallCfg.hasWindow ? 'bg-muted/50 p-3' : ''}`}>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="wall-windows"
               checked={wallCfg.hasWindow}
-              onChange={(e) => {
-                handleChange('hasWindow', e.target.checked);
-                if (!e.target.checked) handleChange('windowCount', 0);
+              onCheckedChange={(checked) => {
+                handleChange('hasWindow', !!checked);
+                if (!checked) handleChange('windowCount', 0);
                 else if (wallCfg.windowCount === 0) handleChange('windowCount', 1);
               }}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            {t('surface.windows')}
-          </label>
+            <Label htmlFor="wall-windows" className="cursor-pointer">
+              {t('surface.windows')}
+            </Label>
+          </div>
           {wallCfg.hasWindow && (
-            <div className="mt-2.5">
-              <div className="flex justify-between text-xs mb-1">
-                <span className="text-gray-400">{t('surface.windowCount')}</span>
-                <span className="font-semibold text-gray-700 tabular-nums">{wallCfg.windowCount}</span>
+            <div className="mt-3 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-muted-foreground">{t('surface.windowCount')}</span>
+                <span className="text-sm font-medium tabular-nums">{wallCfg.windowCount}</span>
               </div>
-              <input
-                type="range"
+              <Slider
                 min={1}
                 max={6}
                 step={1}
-                value={wallCfg.windowCount}
-                onChange={(e) => handleChange('windowCount', parseInt(e.target.value))}
-                className="w-full accent-blue-600"
+                value={[wallCfg.windowCount]}
+                onValueChange={([v]) => handleChange('windowCount', v)}
               />
             </div>
           )}

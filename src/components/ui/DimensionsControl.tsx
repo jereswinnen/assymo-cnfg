@@ -2,6 +2,8 @@
 
 import { useConfigStore } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
 
 interface SliderRowProps {
   label: string;
@@ -15,21 +17,19 @@ interface SliderRowProps {
 
 function SliderRow({ label, value, min, max, step, unit, onChange }: SliderRowProps) {
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex justify-between text-sm">
-        <span className="font-medium text-gray-700">{label}</span>
-        <span className="text-gray-500 tabular-nums">
+    <div className="space-y-2">
+      <div className="flex justify-between items-center">
+        <Label>{label}</Label>
+        <span className="text-sm text-muted-foreground tabular-nums">
           {value.toFixed(step < 1 ? 1 : 0)} {unit}
         </span>
       </div>
-      <input
-        type="range"
+      <Slider
         min={min}
         max={max}
         step={step}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full accent-blue-600"
+        value={[value]}
+        onValueChange={([v]) => onChange(v)}
       />
     </div>
   );
@@ -42,7 +42,7 @@ export default function DimensionsControl() {
   const updateDimensions = useConfigStore((s) => s.updateDimensions);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <SliderRow
         label={t('dim.width')}
         value={dimensions.width}

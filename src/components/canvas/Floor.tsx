@@ -11,7 +11,7 @@ export default function Floor() {
   const { width, depth } = config.dimensions;
 
   const material = FLOOR_MATERIALS.find((m) => m.id === materialId);
-  const texture = useFloorTexture(materialId, width, depth);
+  const pbr = useFloorTexture(materialId, width, depth);
 
   if (materialId === 'geen' || !material) return null;
 
@@ -19,10 +19,12 @@ export default function Floor() {
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
       <planeGeometry args={[width, depth]} />
       <meshStandardMaterial
-        color={texture ? '#ffffff' : material.color}
-        map={texture ?? undefined}
+        color={pbr ? '#ffffff' : material.color}
+        map={pbr?.map ?? undefined}
+        normalMap={pbr?.normalMap ?? undefined}
+        roughnessMap={pbr?.roughnessMap ?? undefined}
         metalness={0}
-        roughness={0.8}
+        roughness={pbr ? 1 : 0.8}
       />
     </mesh>
   );

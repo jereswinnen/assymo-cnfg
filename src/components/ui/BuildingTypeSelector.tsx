@@ -2,13 +2,16 @@
 
 import { useConfigStore } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import type { BuildingType, RoofType } from '@/types/building';
 
 const BUILDING_TYPES: { id: BuildingType; icon: React.ReactNode }[] = [
   {
     id: 'overkapping',
     icon: (
-      <svg viewBox="0 0 48 48" className="h-10 w-10" fill="none" stroke="currentColor" strokeWidth={2}>
+      <svg viewBox="0 0 48 48" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth={2}>
         <line x1="6" y1="14" x2="42" y2="14" />
         <line x1="6" y1="14" x2="6" y2="38" />
         <line x1="42" y1="14" x2="42" y2="38" />
@@ -20,7 +23,7 @@ const BUILDING_TYPES: { id: BuildingType; icon: React.ReactNode }[] = [
   {
     id: 'berging',
     icon: (
-      <svg viewBox="0 0 48 48" className="h-10 w-10" fill="none" stroke="currentColor" strokeWidth={2}>
+      <svg viewBox="0 0 48 48" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth={2}>
         <rect x="6" y="14" width="36" height="24" />
         <line x1="6" y1="14" x2="24" y2="6" />
         <line x1="42" y1="14" x2="24" y2="6" />
@@ -31,7 +34,7 @@ const BUILDING_TYPES: { id: BuildingType; icon: React.ReactNode }[] = [
   {
     id: 'combined',
     icon: (
-      <svg viewBox="0 0 48 48" className="h-10 w-10" fill="none" stroke="currentColor" strokeWidth={2}>
+      <svg viewBox="0 0 48 48" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth={2}>
         <line x1="4" y1="14" x2="44" y2="14" />
         <rect x="4" y="14" width="20" height="24" />
         <line x1="24" y1="14" x2="24" y2="38" />
@@ -42,13 +45,12 @@ const BUILDING_TYPES: { id: BuildingType; icon: React.ReactNode }[] = [
   },
 ];
 
-const ROOF_TYPES: { id: RoofType; labelKey: string; icon: React.ReactNode }[] = [
+const ROOF_TYPES: { id: RoofType; label: string; icon: React.ReactNode }[] = [
   {
     id: 'flat',
-    labelKey: 'roofType.flat',
+    label: 'roofType.flat',
     icon: (
-      <svg viewBox="0 0 40 28" className="h-6 w-9" fill="none" stroke="currentColor" strokeWidth={1.8}>
-        {/* Flat roof: box with flat top */}
+      <svg viewBox="0 0 40 28" className="h-5 w-7" fill="none" stroke="currentColor" strokeWidth={1.8}>
         <rect x="4" y="6" width="32" height="18" rx="1" />
         <line x1="2" y1="6" x2="38" y2="6" strokeWidth={2.5} />
       </svg>
@@ -56,10 +58,9 @@ const ROOF_TYPES: { id: RoofType; labelKey: string; icon: React.ReactNode }[] = 
   },
   {
     id: 'pitched',
-    labelKey: 'roofType.pitched',
+    label: 'roofType.pitched',
     icon: (
-      <svg viewBox="0 0 40 28" className="h-6 w-9" fill="none" stroke="currentColor" strokeWidth={1.8}>
-        {/* Pitched roof: box with triangle top */}
+      <svg viewBox="0 0 40 28" className="h-5 w-7" fill="none" stroke="currentColor" strokeWidth={1.8}>
         <rect x="4" y="12" width="32" height="12" rx="1" />
         <polyline points="2,12 20,2 38,12" strokeWidth={2.5} strokeLinejoin="round" />
       </svg>
@@ -83,16 +84,16 @@ export default function BuildingTypeSelector() {
           <button
             key={id}
             onClick={() => setBuildingType(id)}
-            className={`flex flex-col items-center gap-2 rounded-lg border-2 p-3 transition-all ${
+            className={`flex flex-col items-center gap-1.5 rounded-md border p-3 transition-all ${
               buildingType === id
-                ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-200'
-                : 'border-gray-200 hover:border-gray-300 bg-white'
+                ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                : 'border-border hover:border-primary/40'
             }`}
           >
-            <div className={buildingType === id ? 'text-blue-600' : 'text-gray-500'}>
+            <div className={buildingType === id ? 'text-primary' : 'text-muted-foreground'}>
               {icon}
             </div>
-            <span className={`text-xs font-medium ${buildingType === id ? 'text-blue-700' : 'text-gray-600'}`}>
+            <span className={`text-xs font-medium ${buildingType === id ? 'text-primary' : 'text-muted-foreground'}`}>
               {t(`buildingType.${id}`)}
             </span>
           </button>
@@ -101,49 +102,49 @@ export default function BuildingTypeSelector() {
 
       {/* Roof type toggle */}
       <div>
-        <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
+        <Label className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
           {t('roofType.label')}
-        </label>
-        <div className="grid grid-cols-2 gap-2">
-          {ROOF_TYPES.map(({ id, labelKey, icon }) => (
-            <button
+        </Label>
+        <ToggleGroup
+          type="single"
+          value={roofType}
+          onValueChange={(v) => { if (v) setRoofType(v as RoofType); }}
+          className="w-full"
+          variant="outline"
+        >
+          {ROOF_TYPES.map(({ id, label, icon }) => (
+            <ToggleGroupItem
               key={id}
-              onClick={() => setRoofType(id)}
-              className={`flex items-center justify-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all ${
-                roofType === id
-                  ? 'border-blue-600 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
-              }`}
+              value={id}
+              className="flex-1 gap-2"
             >
-              <span className={roofType === id ? 'text-blue-600' : 'text-gray-400'}>
+              <span className={roofType === id ? 'text-primary' : 'text-muted-foreground'}>
                 {icon}
               </span>
-              {t(labelKey)}
-            </button>
+              {t(label)}
+            </ToggleGroupItem>
           ))}
-        </div>
+        </ToggleGroup>
       </div>
+
       {/* Corner braces toggle */}
-      <div>
-        <label className="flex items-center justify-between rounded-lg border-2 px-3 py-2.5 cursor-pointer transition-all border-gray-200 hover:border-gray-300">
-          <div className="flex items-center gap-2">
-            <svg viewBox="0 0 24 24" className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2}>
-              <line x1="4" y1="4" x2="4" y2="20" />
-              <line x1="4" y1="4" x2="20" y2="4" />
-              <line x1="4" y1="12" x2="12" y2="4" strokeWidth={2.5} />
-            </svg>
-            <div>
-              <span className="text-sm font-medium text-gray-700">{t('structure.cornerBraces')}</span>
-              <p className="text-xs text-gray-400">{t('structure.cornerBraces.desc')}</p>
-            </div>
-          </div>
-          <input
-            type="checkbox"
-            checked={hasCornerBraces}
-            onChange={toggleCornerBraces}
-            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-          />
-        </label>
+      <div className="flex items-start gap-3 rounded-md border border-border p-3">
+        <svg viewBox="0 0 24 24" className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" fill="none" stroke="currentColor" strokeWidth={2}>
+          <line x1="4" y1="4" x2="4" y2="20" />
+          <line x1="4" y1="4" x2="20" y2="4" />
+          <line x1="4" y1="12" x2="12" y2="4" strokeWidth={2.5} />
+        </svg>
+        <div className="flex-1">
+          <Label htmlFor="corner-braces" className="cursor-pointer">
+            {t('structure.cornerBraces')}
+          </Label>
+          <p className="text-xs text-muted-foreground">{t('structure.cornerBraces.desc')}</p>
+        </div>
+        <Checkbox
+          id="corner-braces"
+          checked={hasCornerBraces}
+          onCheckedChange={() => toggleCornerBraces()}
+        />
       </div>
     </div>
   );

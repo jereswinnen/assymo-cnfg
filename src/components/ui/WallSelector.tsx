@@ -3,6 +3,7 @@
 import { useConfigStore } from '@/store/useConfigStore';
 import { getAvailableWallIds, isOverkappingWall, OVERKAPPING_WALL_IDS } from '@/lib/constants';
 import { t } from '@/lib/i18n';
+import { Label } from '@/components/ui/label';
 import type { WallId } from '@/types/building';
 
 export default function WallSelector() {
@@ -17,7 +18,7 @@ export default function WallSelector() {
 
   if (wallIds.length === 0) {
     return (
-      <div className="rounded-lg bg-gray-50 border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">
+      <div className="rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
         {t('walls.disabled')}
       </div>
     );
@@ -29,7 +30,7 @@ export default function WallSelector() {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-gray-400">{t('wall.clickToSelect')}</p>
+      <p className="text-xs text-muted-foreground">{t('wall.clickToSelect')}</p>
 
       {/* Berging walls */}
       <div className="grid grid-cols-2 gap-1.5">
@@ -37,10 +38,10 @@ export default function WallSelector() {
           <button
             key={id}
             onClick={() => selectElement({ type: 'wall', id })}
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+            className={`rounded-md px-3 py-2 text-sm font-medium transition-all ${
               selectedWallId === id
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
             }`}
           >
             {t(`wall.${id}`)}
@@ -51,30 +52,30 @@ export default function WallSelector() {
       {/* Overkapping walls */}
       {showOverkapping && (
         <div className="space-y-1.5">
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+          <Label className="text-xs uppercase tracking-wide text-muted-foreground">
             Overkapping
-          </p>
+          </Label>
           {OVERKAPPING_WALL_IDS.map((id) => {
             const exists = !!walls[id];
             const isSelected = selectedWallId === id;
-            const label = t(`wall.${id}`).replace('Overkapping ', '');
+            const wallLabel = t(`wall.${id}`).replace('Overkapping ', '');
 
             return (
               <div
                 key={id}
-                className={`flex items-center justify-between rounded-lg px-3 py-2 transition-all ${
+                className={`flex items-center justify-between rounded-md px-3 py-2 transition-all ${
                   isSelected
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-primary text-primary-foreground'
                     : exists
-                      ? 'bg-gray-100 text-gray-700'
-                      : 'bg-gray-50 text-gray-400'
+                      ? 'bg-muted text-foreground'
+                      : 'bg-muted/40 text-muted-foreground'
                 }`}
               >
                 <button
                   onClick={() => exists ? selectElement({ type: 'wall', id }) : addOverkappingWall(id)}
                   className="flex-1 text-left text-sm font-medium"
                 >
-                  {label}
+                  {wallLabel}
                 </button>
                 {exists ? (
                   <button
@@ -82,16 +83,16 @@ export default function WallSelector() {
                       e.stopPropagation();
                       removeOverkappingWall(id);
                     }}
-                    className={`ml-2 rounded-md px-1.5 py-0.5 text-xs font-medium transition-colors ${
+                    className={`ml-2 rounded px-1.5 py-0.5 text-xs font-medium transition-colors ${
                       isSelected
-                        ? 'text-blue-200 hover:text-white hover:bg-blue-500'
-                        : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                        ? 'text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary/80'
+                        : 'text-muted-foreground hover:text-destructive hover:bg-destructive/10'
                     }`}
                   >
                     Verwijder
                   </button>
                 ) : (
-                  <span className="text-xs font-medium text-gray-300">+ Toevoegen</span>
+                  <span className="text-xs font-medium text-muted-foreground/50">+ Toevoegen</span>
                 )}
               </div>
             );

@@ -15,17 +15,17 @@ export default function AccordionSection({ number, title, children }: AccordionS
   const isOpen = activeSection === number;
 
   return (
-    <div className="border-b border-gray-200">
+    <div className="border-b border-border">
       <button
         onClick={() => setSection(isOpen ? -1 : number)}
-        className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+        className="flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-muted/50 transition-colors"
       >
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
           {number}
         </span>
-        <span className="flex-1 text-sm font-semibold text-gray-900">{title}</span>
+        <span className="flex-1 text-sm font-semibold text-foreground">{title}</span>
         <svg
-          className={`h-4 w-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { TextureLoader, RepeatWrapping, SRGBColorSpace } from 'three';
+import { TextureLoader, RepeatWrapping, SRGBColorSpace, LinearSRGBColorSpace } from 'three';
 import type { Texture } from 'three';
 
 // Map material IDs to texture file paths
@@ -12,16 +12,29 @@ const WALL_TEXTURE_MAP: Record<string, string> = {
   metal: '/textures/metal.jpg',
 };
 
-const FLOOR_TEXTURE_MAP: Record<string, string> = {
-  tegels: '/textures/floor_tiles.jpg',
-  beton: '/textures/floor_concrete.jpg',
-  hout: '/textures/floor_wood.jpg',
+// Floor PBR texture maps (color, normal, roughness per material)
+const FLOOR_TEXTURE_MAP: Record<string, { color: string; normal: string; roughness: string }> = {
+  tegels: {
+    color: '/textures/floor_tiles_color.jpg',
+    normal: '/textures/floor_tiles_normal.jpg',
+    roughness: '/textures/floor_tiles_roughness.jpg',
+  },
+  beton: {
+    color: '/textures/floor_concrete_color.jpg',
+    normal: '/textures/floor_concrete_normal.jpg',
+    roughness: '/textures/floor_concrete_roughness.jpg',
+  },
+  hout: {
+    color: '/textures/floor_wood_color.jpg',
+    normal: '/textures/floor_wood_normal.jpg',
+    roughness: '/textures/floor_wood_roughness.jpg',
+  },
 };
 
 const FLOOR_TILE_SIZE: Record<string, [number, number]> = {
   tegels: [2, 2],
   beton: [3, 3],
-  hout: [2, 2],
+  hout: [1.5, 1.5],
 };
 
 const ROOF_TEXTURE_MAP: Record<string, string> = {
@@ -45,15 +58,16 @@ const ROOF_TILE_SIZE: Record<string, [number, number]> = {
 const loader = new TextureLoader();
 const textureCache = new Map<string, Texture>();
 
-function loadTexture(path: string): Texture {
-  const cached = textureCache.get(path);
+function loadTexture(path: string, srgb = true): Texture {
+  const cacheKey = `${path}:${srgb ? 's' : 'l'}`;
+  const cached = textureCache.get(cacheKey);
   if (cached) return cached;
 
   const tex = loader.load(path);
   tex.wrapS = RepeatWrapping;
   tex.wrapT = RepeatWrapping;
-  tex.colorSpace = SRGBColorSpace;
-  textureCache.set(path, tex);
+  tex.colorSpace = srgb ? SRGBColorSpace : LinearSRGBColorSpace;
+  textureCache.set(cacheKey, tex);
   return tex;
 }
 
@@ -126,25 +140,39 @@ export function useRoofTexture(
   return texture;
 }
 
-/** Returns a texture for a floor material, tiled to match the given dimensions */
+export interface FloorPBR {
+  map: Texture;
+  normalMap: Texture;
+  roughnessMap: Texture;
+}
+
+/** Returns PBR textures for a floor material, tiled to match the given dimensions */
 export function useFloorTexture(
   materialId: string,
   floorWidth: number,
   floorDepth: number,
-): Texture | null {
-  const path = FLOOR_TEXTURE_MAP[materialId];
+): FloorPBR | null {
+  const paths = FLOOR_TEXTURE_MAP[materialId];
   const tileSize = FLOOR_TILE_SIZE[materialId];
 
-  const texture = useMemo(() => {
-    if (!path) return null;
-    return loadTexture(path);
-  }, [path]);
+  const textures = useMemo(() => {
+    if (!paths) return null;
+    return {
+      map: loadTexture(paths.color, true),
+      normalMap: loadTexture(paths.normal, false),
+      roughnessMap: loadTexture(paths.roughness, false),
+    };
+  }, [paths]);
 
   useEffect(() => {
-    if (texture && tileSize) {
-      texture.repeat.set(floorWidth / tileSize[0], floorDepth / tileSize[1]);
+    if (textures && tileSize) {
+      const rx = floorWidth / tileSize[0];
+      const ry = floorDepth / tileSize[1];
+      textures.map.repeat.set(rx, ry);
+      textures.normalMap.repeat.set(rx, ry);
+      textures.roughnessMap.repeat.set(rx, ry);
     }
-  }, [texture, tileSize, floorWidth, floorDepth]);
+  }, [textures, tileSize, floorWidth, floorDepth]);
 
-  return texture;
+  return textures;
 }

@@ -8,6 +8,7 @@ import WallSelector from './WallSelector';
 import SurfaceProperties from './SurfaceProperties';
 import FloorConfigSection from './FloorConfigSection';
 import QuoteSummary from './QuoteSummary';
+import { Separator } from '@/components/ui/separator';
 import { useConfigStore } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
 
@@ -16,13 +17,13 @@ export default function ConfigPanel() {
   const buildingType = useConfigStore((s) => s.config.buildingType);
 
   return (
-    <aside className="flex h-full flex-col overflow-y-auto bg-white">
-      <div className="border-b border-gray-200 px-5 py-4">
+    <aside className="flex h-full flex-col overflow-y-auto bg-background">
+      <div className="border-b border-border px-5 py-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">{t('app.title')}</h2>
+          <h2 className="text-lg font-bold text-foreground">{t('app.title')}</h2>
           <button
             onClick={resetConfig}
-            className="text-xs font-medium text-gray-500 hover:text-red-600 transition-colors"
+            className="text-xs font-medium text-muted-foreground hover:text-destructive transition-colors"
           >
             {t('app.reset')}
           </button>
@@ -47,7 +48,7 @@ export default function ConfigPanel() {
             <WallSelector />
             {buildingType !== 'overkapping' && (
               <>
-                <div className="border-t border-gray-100" />
+                <Separator />
                 <SurfaceProperties />
               </>
             )}

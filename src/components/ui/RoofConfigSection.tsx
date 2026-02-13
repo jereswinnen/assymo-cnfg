@@ -3,6 +3,9 @@
 import { useConfigStore } from '@/store/useConfigStore';
 import { ROOF_COVERINGS, TRIM_COLORS } from '@/lib/constants';
 import { t } from '@/lib/i18n';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import ColorSwatches from './ColorSwatches';
 
 export default function RoofConfigSection() {
@@ -13,29 +16,29 @@ export default function RoofConfigSection() {
     <div className="space-y-4">
       {/* Roof covering cards */}
       <div>
-        <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
+        <Label className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
           {t('roof.covering')}
-        </label>
+        </Label>
         <div className="grid grid-cols-2 gap-2">
           {ROOF_COVERINGS.map((cov) => (
             <button
               key={cov.id}
               onClick={() => updateRoof({ coveringId: cov.id })}
-              className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2 transition-all ${
+              className={`flex items-center gap-2 rounded-md border px-3 py-2 text-left transition-all ${
                 roof.coveringId === cov.id
-                  ? 'border-blue-600 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                  ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                  : 'border-border hover:border-primary/40'
               }`}
             >
               <div
-                className="h-6 w-6 rounded border border-gray-300"
+                className="h-6 w-6 shrink-0 rounded border border-border"
                 style={{ backgroundColor: cov.color }}
               />
-              <div className="text-left">
-                <div className={`text-xs font-medium ${roof.coveringId === cov.id ? 'text-blue-700' : 'text-gray-700'}`}>
+              <div>
+                <div className={`text-xs font-medium ${roof.coveringId === cov.id ? 'text-primary' : 'text-foreground'}`}>
                   {cov.label}
                 </div>
-                <div className="text-[10px] text-gray-400">€{cov.pricePerSqm}/m²</div>
+                <div className="text-[10px] text-muted-foreground">{'\u20AC'}{cov.pricePerSqm}/m{'\u00B2'}</div>
               </div>
             </button>
           ))}
@@ -44,9 +47,9 @@ export default function RoofConfigSection() {
 
       {/* Trim color swatches */}
       <div>
-        <label className="block text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
+        <Label className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
           {t('roof.trimColor')}
-        </label>
+        </Label>
         <ColorSwatches
           colors={TRIM_COLORS}
           selectedId={roof.trimColorId}
@@ -55,45 +58,45 @@ export default function RoofConfigSection() {
       </div>
 
       {/* Insulation toggle + thickness */}
-      <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-          <input
-            type="checkbox"
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="roof-insulation"
             checked={roof.insulation}
-            onChange={(e) => updateRoof({ insulation: e.target.checked })}
-            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            onCheckedChange={(checked) => updateRoof({ insulation: !!checked })}
           />
-          {t('roof.insulation')}
-        </label>
+          <Label htmlFor="roof-insulation" className="cursor-pointer">
+            {t('roof.insulation')}
+          </Label>
+        </div>
         {roof.insulation && (
-          <div className="ml-6 space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">{t('roof.thickness')}</span>
-              <span className="text-gray-500 tabular-nums">{roof.insulationThickness} mm</span>
+          <div className="ml-6 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">{t('roof.thickness')}</span>
+              <span className="text-sm text-muted-foreground tabular-nums">{roof.insulationThickness} mm</span>
             </div>
-            <input
-              type="range"
+            <Slider
               min={50}
               max={300}
               step={10}
-              value={roof.insulationThickness}
-              onChange={(e) => updateRoof({ insulationThickness: parseInt(e.target.value) })}
-              className="w-full accent-blue-600"
+              value={[roof.insulationThickness]}
+              onValueChange={([v]) => updateRoof({ insulationThickness: v })}
             />
           </div>
         )}
       </div>
 
       {/* Skylight toggle */}
-      <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-        <input
-          type="checkbox"
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id="roof-skylight"
           checked={roof.hasSkylight}
-          onChange={(e) => updateRoof({ hasSkylight: e.target.checked })}
-          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          onCheckedChange={(checked) => updateRoof({ hasSkylight: !!checked })}
         />
-        {t('roof.skylight')}
-      </label>
+        <Label htmlFor="roof-skylight" className="cursor-pointer">
+          {t('roof.skylight')}
+        </Label>
+      </div>
     </div>
   );
 }
