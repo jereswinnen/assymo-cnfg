@@ -17,10 +17,26 @@ export default function Ground() {
     return tex;
   }, []);
 
+  // Clone for bump so we can use independent settings if needed
+  const bumpTexture = useMemo(() => {
+    const loader = new TextureLoader();
+    const tex = loader.load('/textures/grass.jpg');
+    tex.wrapS = RepeatWrapping;
+    tex.wrapT = RepeatWrapping;
+    tex.repeat.set(GROUND_SIZE / TILE_SIZE, GROUND_SIZE / TILE_SIZE);
+    return tex;
+  }, []);
+
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
-      <planeGeometry args={[GROUND_SIZE, GROUND_SIZE]} />
-      <meshStandardMaterial map={texture} metalness={0} roughness={1} />
+      <planeGeometry args={[GROUND_SIZE, GROUND_SIZE, 128, 128]} />
+      <meshStandardMaterial
+        map={texture}
+        bumpMap={bumpTexture}
+        bumpScale={0.3}
+        metalness={0}
+        roughness={1}
+      />
     </mesh>
   );
 }
