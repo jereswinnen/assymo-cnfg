@@ -51,6 +51,7 @@ export default function SurfaceProperties() {
   if (!wallCfg) return null;
 
   const label = t(`wall.${wallId}`);
+  const isGlass = wallCfg.materialId === 'glass';
 
   function handleChange(field: string, value: unknown) {
     updateWall(wallId, { [field]: value });
@@ -63,12 +64,20 @@ export default function SurfaceProperties() {
       </h4>
 
       {/* Material & Finish row */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className={isGlass ? '' : 'grid grid-cols-2 gap-2'}>
         <div>
           <label className="mb-1 block text-xs font-medium text-gray-500">{t('surface.material')}</label>
           <select
             value={wallCfg.materialId}
-            onChange={(e) => handleChange('materialId', e.target.value)}
+            onChange={(e) => {
+              handleChange('materialId', e.target.value);
+              // When switching to glass, disable door/windows
+              if (e.target.value === 'glass') {
+                handleChange('hasDoor', false);
+                handleChange('hasWindow', false);
+                handleChange('windowCount', 0);
+              }
+            }}
             className="w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           >
             {WALL_MATERIALS.map((m) => (
@@ -78,24 +87,30 @@ export default function SurfaceProperties() {
             ))}
           </select>
         </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-500">{t('surface.finish')}</label>
-          <select
-            value={wallCfg.finish}
-            onChange={(e) => handleChange('finish', e.target.value)}
-            className="w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          >
-            {FINISHES.map((f) => (
-              <option key={f} value={f}>
-                {f}
-              </option>
-            ))}
-          </select>
-        </div>
+        {!isGlass && (
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-500">{t('surface.finish')}</label>
+            <select
+              value={wallCfg.finish}
+              onChange={(e) => handleChange('finish', e.target.value)}
+              className="w-full rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            >
+              {FINISHES.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
+      {isGlass && (
+        <p className="text-xs text-gray-400">Glaswand van zijde tot zijde — geen deur/ramen mogelijk</p>
+      )}
+
       {/* Door */}
-      <div className="rounded-lg border border-gray-200 bg-white">
+      {!isGlass && <div className="rounded-lg border border-gray-200 bg-white">
         <label className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700">
           <input
             type="checkbox"
@@ -170,10 +185,10 @@ export default function SurfaceProperties() {
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Windows */}
-      <div className="rounded-lg border border-gray-200 bg-white">
+      {!isGlass && <div className="rounded-lg border border-gray-200 bg-white">
         <label className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700">
           <input
             type="checkbox"
@@ -204,7 +219,7 @@ export default function SurfaceProperties() {
             />
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

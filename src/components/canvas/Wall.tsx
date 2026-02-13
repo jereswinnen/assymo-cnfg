@@ -278,35 +278,57 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
     return () => { wallGeo?.dispose(); };
   }, [wallGeo]);
 
+  const isGlass = materialId === 'glass';
+
+  // Shared pointer handlers
+  const pointerHandlers = {
+    onPointerOver: (e: { nativeEvent: MouseEvent; stopPropagation: () => void }) => {
+      if (e.nativeEvent.buttons > 0) return;
+      e.stopPropagation();
+      setHovered(true);
+      document.body.style.cursor = 'pointer';
+    },
+    onPointerOut: () => {
+      setHovered(false);
+      document.body.style.cursor = 'auto';
+    },
+    onPointerDown: (e: { nativeEvent: MouseEvent }) => {
+      pointerDownPos.current = { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY };
+    },
+    onClick: (e: { nativeEvent: MouseEvent; stopPropagation: () => void }) => {
+      const down = pointerDownPos.current;
+      if (down) {
+        const dx = e.nativeEvent.clientX - down.x;
+        const dy = e.nativeEvent.clientY - down.y;
+        if (dx * dx + dy * dy > 16) return;
+      }
+      e.stopPropagation();
+      selectElement({ type: 'wall', id: wallId });
+    },
+  };
+
+  if (isGlass) {
+    return (
+      <GlassWallMesh
+        position={position}
+        rotation={rotation}
+        wallLength={wallLength}
+        height={height}
+        wallId={wallId}
+        isSelected={isSelected}
+        hovered={hovered}
+        pointerHandlers={pointerHandlers}
+      />
+    );
+  }
+
   return (
     <group>
       <mesh
         ref={meshRef}
         position={position}
         rotation={rotation}
-        onPointerOver={(e) => {
-          if (e.nativeEvent.buttons > 0) return;
-          e.stopPropagation();
-          setHovered(true);
-          document.body.style.cursor = 'pointer';
-        }}
-        onPointerOut={() => {
-          setHovered(false);
-          document.body.style.cursor = 'auto';
-        }}
-        onPointerDown={(e) => {
-          pointerDownPos.current = { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY };
-        }}
-        onClick={(e) => {
-          const down = pointerDownPos.current;
-          if (down) {
-            const dx = e.nativeEvent.clientX - down.x;
-            const dy = e.nativeEvent.clientY - down.y;
-            if (dx * dx + dy * dy > 16) return;
-          }
-          e.stopPropagation();
-          selectElement({ type: 'wall', id: wallId });
-        }}
+        {...pointerHandlers}
       >
         {wallGeo ? (
           <primitive object={wallGeo} attach="geometry" />
@@ -684,6 +706,108 @@ function WindowMesh({ x }: { x: number }) {
       {/* Cross dividers - horizontal */}
       <mesh material={frameMat}>
         <boxGeometry args={[WIN_W, FRAME_T * 0.7, FRAME_D]} />
+      </mesh>
+    </group>
+  );
+}
+
+// ---------- Full glass wall ----------
+
+const MULLION_SPACING = 1.2; // vertical mullion every 1.2m
+const TRANSOM_H = 1.3; // horizontal transom height from bottom
+const GLASS_FRAME = 0.05; // frame bar thickness for glass wall
+
+interface GlassWallMeshProps {
+  position: [number, number, number];
+  rotation: [number, number, number];
+  wallLength: number;
+  height: number;
+  wallId: WallId;
+  isSelected: boolean;
+  hovered: boolean;
+  pointerHandlers: Record<string, unknown>;
+}
+
+function GlassWallMesh({
+  position: pos,
+  rotation: rot,
+  wallLength,
+  height,
+  wallId,
+  isSelected,
+  hovered,
+  pointerHandlers,
+}: GlassWallMeshProps) {
+  // Determine local axes based on wall orientation
+  const isSideWall = wallId === 'left' || wallId === 'right' || wallId === 'divider' || wallId === 'ov_right';
+  // Glass pane sits in the wall plane
+  const glassThickness = 0.02;
+  const paneW = wallLength - GLASS_FRAME * 2;
+  const paneH = height - GLASS_FRAME * 2;
+
+  // Mullion positions (vertical dividers)
+  const mullionXs: number[] = [];
+  const mullionCount = Math.max(0, Math.floor(wallLength / MULLION_SPACING) - 1);
+  if (mullionCount > 0) {
+    const spacing = wallLength / (mullionCount + 1);
+    for (let i = 1; i <= mullionCount; i++) {
+      mullionXs.push(-wallLength / 2 + spacing * i);
+    }
+  }
+
+  // Transom Y position (relative to wall center)
+  const transomY = -height / 2 + TRANSOM_H;
+
+  // For side walls, the "width" is along Z and "thickness" along X
+  // For front/back walls, "width" is along X and "thickness" along Z
+  const glassSize: [number, number, number] = isSideWall
+    ? [glassThickness, paneH, paneW]
+    : [paneW, paneH, glassThickness];
+
+  return (
+    <group position={pos} rotation={rot}>
+      {/* Glass pane */}
+      <mesh {...pointerHandlers}>
+        <boxGeometry args={glassSize} />
+        <meshStandardMaterial
+          color="#B8D4E3"
+          metalness={0.1}
+          roughness={0.05}
+          transparent
+          opacity={0.3}
+          emissive={isSelected ? '#3b82f6' : hovered ? '#60a5fa' : '#000000'}
+          emissiveIntensity={isSelected ? 0.35 : hovered ? 0.15 : 0}
+        />
+      </mesh>
+
+      {/* Frame — outer border */}
+      {/* Top */}
+      <mesh position={[0, height / 2 - GLASS_FRAME / 2, 0]} material={frameMat}>
+        <boxGeometry args={isSideWall ? [FRAME_D, GLASS_FRAME, wallLength] : [wallLength, GLASS_FRAME, FRAME_D]} />
+      </mesh>
+      {/* Bottom */}
+      <mesh position={[0, -height / 2 + GLASS_FRAME / 2, 0]} material={frameMat}>
+        <boxGeometry args={isSideWall ? [FRAME_D, GLASS_FRAME, wallLength] : [wallLength, GLASS_FRAME, FRAME_D]} />
+      </mesh>
+      {/* Left edge */}
+      <mesh position={isSideWall ? [0, 0, -wallLength / 2 + GLASS_FRAME / 2] : [-wallLength / 2 + GLASS_FRAME / 2, 0, 0]} material={frameMat}>
+        <boxGeometry args={isSideWall ? [FRAME_D, height, GLASS_FRAME] : [GLASS_FRAME, height, FRAME_D]} />
+      </mesh>
+      {/* Right edge */}
+      <mesh position={isSideWall ? [0, 0, wallLength / 2 - GLASS_FRAME / 2] : [wallLength / 2 - GLASS_FRAME / 2, 0, 0]} material={frameMat}>
+        <boxGeometry args={isSideWall ? [FRAME_D, height, GLASS_FRAME] : [GLASS_FRAME, height, FRAME_D]} />
+      </mesh>
+
+      {/* Vertical mullions */}
+      {mullionXs.map((mx, i) => (
+        <mesh key={`m${i}`} position={isSideWall ? [0, 0, mx] : [mx, 0, 0]} material={frameMat}>
+          <boxGeometry args={isSideWall ? [FRAME_D, height, GLASS_FRAME * 0.7] : [GLASS_FRAME * 0.7, height, FRAME_D]} />
+        </mesh>
+      ))}
+
+      {/* Horizontal transom */}
+      <mesh position={[0, transomY, 0]} material={frameMat}>
+        <boxGeometry args={isSideWall ? [FRAME_D, GLASS_FRAME * 0.7, wallLength] : [wallLength, GLASS_FRAME * 0.7, FRAME_D]} />
       </mesh>
     </group>
   );

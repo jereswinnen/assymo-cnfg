@@ -17,6 +17,7 @@ export const WALL_MATERIALS: SurfaceMaterial[] = [
   { id: 'brick', label: 'Steen', pricePerSqm: 65, color: '#8B4513' },
   { id: 'render', label: 'Stucwerk', pricePerSqm: 55, color: '#F5F5DC' },
   { id: 'metal', label: 'Metaal', pricePerSqm: 70, color: '#708090' },
+  { id: 'glass', label: 'Glas', pricePerSqm: 120, color: '#B8D4E3' },
 ];
 
 // Roof coverings with 3D colors
