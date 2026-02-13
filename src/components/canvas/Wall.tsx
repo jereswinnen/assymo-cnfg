@@ -1,12 +1,12 @@
 'use client';
 
-import { useRef, useState, useMemo } from 'react';
-import { Mesh, MeshStandardMaterial } from 'three';
+import { useRef, useState, useMemo, useEffect } from 'react';
+import { Mesh, MeshStandardMaterial, Shape, Path, ExtrudeGeometry } from 'three';
 import { Edges } from '@react-three/drei';
 import { useConfigStore } from '@/store/useConfigStore';
 import { WALL_MATERIALS, WALL_THICKNESS } from '@/lib/constants';
 import { useWallTexture } from '@/lib/textures';
-import type { WallId, WallConfig } from '@/types/building';
+import type { WallId, WallConfig, DoorPosition, DoorSwing } from '@/types/building';
 
 const DOOR_W = 0.9;
 const DOOR_H = 2.1;
@@ -23,6 +23,93 @@ const frameMat = new MeshStandardMaterial({ color: '#2A2A2A', metalness: 0.4, ro
 const glassMat = new MeshStandardMaterial({ color: '#B8D4E3', metalness: 0.1, roughness: 0.05, transparent: true, opacity: 0.3 });
 const voidMat = new MeshStandardMaterial({ color: '#1a1a2e', metalness: 0, roughness: 1 });
 const handleMat = new MeshStandardMaterial({ color: '#888888', metalness: 0.6, roughness: 0.3 });
+
+// ---------- helpers ----------
+
+function computeDoorX(wallLength: number, doorPosition: DoorPosition): number {
+  const margin = 0.5;
+  const usableHalf = wallLength / 2 - margin - DOOR_W / 2;
+  switch (doorPosition) {
+    case 'links':
+      return -usableHalf;
+    case 'rechts':
+      return usableHalf;
+    case 'midden':
+    default:
+      return 0;
+  }
+}
+
+/** Create an ExtrudeGeometry with a rectangular door hole cut out.
+ *  The geometry is centered at origin (same bounding box as a BoxGeometry of equal size)
+ *  so it can be positioned identically to the box it replaces. */
+function createWallWithDoorGeo(
+  wallLength: number,
+  wallHeight: number,
+  thickness: number,
+  doorX: number,
+  wallId: WallId,
+): ExtrudeGeometry {
+  const hw = wallLength / 2;
+  const hh = wallHeight / 2;
+
+  // Outer rectangle (centered at origin)
+  const shape = new Shape();
+  shape.moveTo(-hw, -hh);
+  shape.lineTo(hw, -hh);
+  shape.lineTo(hw, hh);
+  shape.lineTo(-hw, hh);
+  shape.closePath();
+
+  // Door hole (bottom sits at bottom of wall = -hh)
+  const dw = DOOR_W / 2;
+  const dh = Math.min(DOOR_H, wallHeight - 0.05);
+  const hole = new Path();
+  hole.moveTo(doorX - dw, -hh);
+  hole.lineTo(doorX + dw, -hh);
+  hole.lineTo(doorX + dw, -hh + dh);
+  hole.lineTo(doorX - dw, -hh + dh);
+  hole.closePath();
+  shape.holes.push(hole);
+
+  const geo = new ExtrudeGeometry(shape, {
+    depth: thickness,
+    bevelEnabled: false,
+  });
+
+  // Center along extrusion axis (Z)
+  geo.translate(0, 0, -thickness / 2);
+
+  // Normalize UVs to 0-1 range so the existing texture repeat works
+  const uvAttr = geo.getAttribute('uv');
+  for (let i = 0; i < uvAttr.count; i++) {
+    const u = uvAttr.getX(i);
+    const v = uvAttr.getY(i);
+    uvAttr.setXY(i, (u + hw) / wallLength, (v + hh) / wallHeight);
+  }
+  uvAttr.needsUpdate = true;
+
+  // Rotate geometry so it matches the boxGeometry orientation for each wall type.
+  // Front/back boxes are [w, h, t] — the extruded shape is already [w, h, t]. ✓
+  // Side wall boxes are [t, h, d] — the extruded shape is [d, h, t], needs 90° Y rotation.
+  // Back wall needs PI rotation so "links" maps to the viewer's left from outside.
+  switch (wallId) {
+    case 'back':
+      geo.rotateY(Math.PI);
+      break;
+    case 'left':
+      geo.rotateY(Math.PI / 2);
+      break;
+    case 'right':
+    case 'divider':
+      geo.rotateY(-Math.PI / 2);
+      break;
+  }
+
+  return geo;
+}
+
+// ---------- Wall component ----------
 
 interface WallProps {
   wallId: WallId;
@@ -60,7 +147,6 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
 
   const { size, position, rotation } = useMemo(() => {
     const t = WALL_THICKNESS;
-    // Small inset so walls sit just inside the timber frame (prevents z-fighting with posts)
     const inset = 0.01;
     switch (wallId) {
       case 'front':
@@ -96,6 +182,22 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
     }
   }, [wallId, w, d, height, offsetX]);
 
+  // Door hole geometry
+  const doorX = useMemo(() => {
+    if (!wallCfg.hasDoor) return 0;
+    return computeDoorX(wallLength, wallCfg.doorPosition ?? 'midden');
+  }, [wallCfg.hasDoor, wallCfg.doorPosition, wallLength]);
+
+  const wallGeo = useMemo(() => {
+    if (!wallCfg.hasDoor) return null;
+    return createWallWithDoorGeo(wallLength, height, WALL_THICKNESS, doorX, wallId);
+  }, [wallCfg.hasDoor, wallLength, height, doorX, wallId]);
+
+  // Dispose old geometry when it changes
+  useEffect(() => {
+    return () => { wallGeo?.dispose(); };
+  }, [wallGeo]);
+
   return (
     <group>
       <mesh
@@ -103,7 +205,7 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
         position={position}
         rotation={rotation}
         onPointerOver={(e) => {
-          if (e.nativeEvent.buttons > 0) return; // skip hover during drag/orbit
+          if (e.nativeEvent.buttons > 0) return;
           e.stopPropagation();
           setHovered(true);
           document.body.style.cursor = 'pointer';
@@ -116,18 +218,21 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
           pointerDownPos.current = { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY };
         }}
         onClick={(e) => {
-          // Ignore click if pointer moved (was a drag/orbit)
           const down = pointerDownPos.current;
           if (down) {
             const dx = e.nativeEvent.clientX - down.x;
             const dy = e.nativeEvent.clientY - down.y;
-            if (dx * dx + dy * dy > 16) return; // moved more than 4px
+            if (dx * dx + dy * dy > 16) return;
           }
           e.stopPropagation();
           selectElement({ type: 'wall', id: wallId });
         }}
       >
-        <boxGeometry args={size} />
+        {wallGeo ? (
+          <primitive object={wallGeo} attach="geometry" />
+        ) : (
+          <boxGeometry args={size} />
+        )}
         <meshStandardMaterial
           color={texture ? '#ffffff' : color}
           map={texture ?? undefined}
@@ -169,7 +274,6 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg }: Ope
   const t = WALL_THICKNESS;
   const outOffset = t / 2 + 0.01;
 
-  // Determine group position (at outer face) and rotation
   let groupPos: [number, number, number];
   let groupRot: [number, number, number] = [0, 0, 0];
 
@@ -192,12 +296,22 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg }: Ope
       break;
   }
 
-  // Compute horizontal positions for openings
-  const { doorX, windowXs } = computeOpeningPositions(wallLength, wallCfg.hasDoor, wallCfg.windowCount);
+  const { doorX, windowXs } = computeOpeningPositions(
+    wallLength,
+    wallCfg.hasDoor,
+    wallCfg.doorPosition ?? 'midden',
+    wallCfg.windowCount,
+  );
 
   return (
     <group position={groupPos} rotation={groupRot}>
-      {wallCfg.hasDoor && <DoorMesh x={doorX} height={height} />}
+      {wallCfg.hasDoor && (
+        <DoorMesh
+          x={doorX}
+          height={height}
+          swing={wallCfg.doorSwing ?? 'naar_buiten'}
+        />
+      )}
       {windowXs.map((wx, i) => (
         <WindowMesh key={i} x={wx} />
       ))}
@@ -205,24 +319,50 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg }: Ope
   );
 }
 
-function computeOpeningPositions(wallLength: number, hasDoor: boolean, windowCount: number) {
+function computeOpeningPositions(
+  wallLength: number,
+  hasDoor: boolean,
+  doorPosition: DoorPosition,
+  windowCount: number,
+) {
   const margin = 0.5;
   let doorX = 0;
   const windowXs: number[] = [];
 
+  if (hasDoor) {
+    doorX = computeDoorX(wallLength, doorPosition);
+  }
+
   if (hasDoor && windowCount > 0) {
-    doorX = -wallLength / 5;
-    const winStart = doorX + DOOR_W / 2 + 0.4;
-    const winEnd = wallLength / 2 - margin;
-    const span = winEnd - winStart;
-    if (span > 0 && windowCount > 0) {
-      const step = span / windowCount;
-      for (let i = 0; i < windowCount; i++) {
-        windowXs.push(winStart + step * (i + 0.5));
+    const doorLeft = doorX - DOOR_W / 2 - 0.3;
+    const doorRight = doorX + DOOR_W / 2 + 0.3;
+    const wallLeft = -wallLength / 2 + margin;
+    const wallRight = wallLength / 2 - margin;
+
+    const spans: [number, number][] = [];
+    if (doorLeft - wallLeft > WIN_W) spans.push([wallLeft, doorLeft]);
+    if (wallRight - doorRight > WIN_W) spans.push([doorRight, wallRight]);
+
+    const totalSpan = spans.reduce((s, [a, b]) => s + (b - a), 0);
+    let placed = 0;
+    for (const [start, end] of spans) {
+      const spanLen = end - start;
+      const count = Math.round((spanLen / totalSpan) * windowCount) || 0;
+      const toPlace = Math.min(count, windowCount - placed);
+      if (toPlace > 0) {
+        const step = spanLen / toPlace;
+        for (let i = 0; i < toPlace; i++) {
+          windowXs.push(start + step * (i + 0.5));
+        }
+        placed += toPlace;
       }
     }
-  } else if (hasDoor) {
-    doorX = 0;
+    while (placed < windowCount && spans.length > 0) {
+      const [start, end] = spans[spans.length - 1];
+      const step = (end - start) / (windowCount - placed + 1);
+      windowXs.push(start + step);
+      placed++;
+    }
   } else if (windowCount > 0) {
     const usable = wallLength - 2 * margin;
     const step = usable / windowCount;
@@ -234,17 +374,17 @@ function computeOpeningPositions(wallLength: number, hasDoor: boolean, windowCou
   return { doorX, windowXs };
 }
 
-function DoorMesh({ x, height }: { x: number; height: number }) {
+function DoorMesh({ x, height, swing }: { x: number; height: number; swing: DoorSwing }) {
   const doorY = DOOR_H / 2;
-  // Scale door if it's taller than wall
   const dh = Math.min(DOOR_H, height - 0.1);
+
+  // In the WallOpenings local space, +Z = outward from wall.
+  // Three.js Y-rotation: positive angle rotates +X toward -Z (inward).
+  // So: naar_binnen = positive angle, naar_buiten = negative angle.
+  const swingAngle = swing === 'naar_binnen' ? Math.PI / 3 : -Math.PI / 3;
 
   return (
     <group position={[x, doorY, 0]}>
-      {/* Door panel */}
-      <mesh material={doorMat}>
-        <boxGeometry args={[DOOR_W, dh, DOOR_DEPTH]} />
-      </mesh>
       {/* Frame top */}
       <mesh position={[0, dh / 2 + FRAME_T / 2, 0]} material={frameMat}>
         <boxGeometry args={[DOOR_W + FRAME_T * 2, FRAME_T, FRAME_D]} />
@@ -257,10 +397,16 @@ function DoorMesh({ x, height }: { x: number; height: number }) {
       <mesh position={[DOOR_W / 2 + FRAME_T / 2, 0, 0]} material={frameMat}>
         <boxGeometry args={[FRAME_T, dh + FRAME_T, FRAME_D]} />
       </mesh>
-      {/* Handle */}
-      <mesh position={[DOOR_W / 2 - 0.12, 0, DOOR_DEPTH / 2 + 0.01]} material={handleMat}>
-        <boxGeometry args={[0.04, 0.15, 0.03]} />
-      </mesh>
+      {/* Door panel — hinged on left side */}
+      <group position={[-DOOR_W / 2, 0, 0]} rotation={[0, swingAngle, 0]}>
+        <mesh position={[DOOR_W / 2, 0, 0]} material={doorMat}>
+          <boxGeometry args={[DOOR_W, dh, DOOR_DEPTH]} />
+        </mesh>
+        {/* Handle */}
+        <mesh position={[DOOR_W - 0.12, 0, DOOR_DEPTH / 2 + 0.01]} material={handleMat}>
+          <boxGeometry args={[0.04, 0.15, 0.03]} />
+        </mesh>
+      </group>
     </group>
   );
 }
@@ -270,7 +416,7 @@ function WindowMesh({ x }: { x: number }) {
 
   return (
     <group position={[x, winY, 0]}>
-      {/* Dark backing to simulate interior void — covers wall surface behind glass */}
+      {/* Dark backing to simulate interior void */}
       <mesh position={[0, 0, -0.015]} material={voidMat} renderOrder={-1}>
         <boxGeometry args={[WIN_W + 0.02, WIN_H + 0.02, 0.03]} />
       </mesh>
@@ -278,7 +424,6 @@ function WindowMesh({ x }: { x: number }) {
       <mesh material={glassMat}>
         <boxGeometry args={[WIN_W, WIN_H, WIN_DEPTH]} />
       </mesh>
-      {/* Frame edges */}
       {/* Top */}
       <mesh position={[0, WIN_H / 2 + FRAME_T / 2, 0]} material={frameMat}>
         <boxGeometry args={[WIN_W + FRAME_T * 2, FRAME_T, FRAME_D]} />

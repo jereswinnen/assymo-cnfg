@@ -54,6 +54,8 @@ const DEFAULT_WALL: WallConfig = {
   insulationThickness: 100,
   finish: 'Mat',
   hasDoor: false,
+  doorPosition: 'midden',
+  doorSwing: 'naar_buiten',
   hasWindow: false,
   windowCount: 0,
 };

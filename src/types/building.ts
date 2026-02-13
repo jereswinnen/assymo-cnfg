@@ -20,12 +20,17 @@ export interface SurfaceMaterial {
   color: string;
 }
 
+export type DoorPosition = 'links' | 'midden' | 'rechts';
+export type DoorSwing = 'naar_binnen' | 'naar_buiten';
+
 export interface WallConfig {
   materialId: string;
   insulation: boolean;
   insulationThickness: number; // mm
   finish: string;
   hasDoor: boolean;
+  doorPosition: DoorPosition;
+  doorSwing: DoorSwing;
   hasWindow: boolean;
   windowCount: number;
 }

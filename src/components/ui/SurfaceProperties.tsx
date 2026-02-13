@@ -107,6 +107,48 @@ export default function SurfaceProperties() {
           />
           {t('surface.door')}
         </label>
+        {wallCfg.hasDoor && (
+          <div className="ml-6 space-y-3">
+            {/* Door position */}
+            <div className="space-y-1">
+              <span className="block text-sm text-gray-600">{t('surface.doorPosition')}</span>
+              <div className="flex gap-1">
+                {(['links', 'midden', 'rechts'] as const).map((pos) => (
+                  <button
+                    key={pos}
+                    onClick={() => handleChange('doorPosition', pos)}
+                    className={`flex-1 rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${
+                      wallCfg.doorPosition === pos
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {t(`surface.doorPosition.${pos}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Door swing direction */}
+            <div className="space-y-1">
+              <span className="block text-sm text-gray-600">{t('surface.doorSwing')}</span>
+              <div className="flex gap-1">
+                {(['naar_binnen', 'naar_buiten'] as const).map((swing) => (
+                  <button
+                    key={swing}
+                    onClick={() => handleChange('doorSwing', swing)}
+                    className={`flex-1 rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${
+                      wallCfg.doorSwing === swing
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {t(`surface.doorSwing.${swing}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
         <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
           <input
             type="checkbox"
