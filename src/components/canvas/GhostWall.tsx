@@ -103,12 +103,14 @@ export default function GhostWall({ wallId }: GhostWallProps) {
     >
       <boxGeometry args={renderSize} />
       <meshStandardMaterial
-        color="#3b82f6"
+        color={hovered ? '#60a5fa' : '#3b82f6'}
         transparent
-        opacity={hovered ? 0.25 : 0.1}
+        opacity={hovered ? 0.35 : 0.1}
         depthWrite={false}
+        emissive="#3b82f6"
+        emissiveIntensity={hovered ? 0.4 : 0}
       />
-      <Edges color="#3b82f6" threshold={15} lineWidth={1} />
+      <Edges color={hovered ? '#60a5fa' : '#3b82f6'} threshold={15} lineWidth={1} />
     </mesh>
   );
 }
