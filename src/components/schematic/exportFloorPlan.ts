@@ -67,7 +67,8 @@ function buildSpecRows(config: BuildingConfig): string {
       if (w.hasDoor) {
         const size = t(`surface.doorSize.${w.doorSize}`);
         const mat = doorMaterialLabel(w.doorMaterialId);
-        parts.push(`${t('surface.door')}: ${size} (${mat})`);
+        const withWindow = w.doorHasWindow ? `, ${t('surface.doorHasWindow').toLowerCase()}` : '';
+        parts.push(`${t('surface.door')}: ${size} (${mat}${withWindow})`);
       }
       if (w.hasWindow && w.windowCount > 0) {
         parts.push(`${w.windowCount}× ${t('surface.windows').toLowerCase()}`);

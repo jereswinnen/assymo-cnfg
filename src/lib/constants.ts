@@ -143,8 +143,8 @@ export function getDefaultWalls(type: BuildingType): Record<string, WallConfig> 
     case 'combined':
       // Carport + berging: berging gets 3 outer walls + divider, overkapping is open
       return {
-        front: { ...DEFAULT_WALL, hasDoor: true, hasWindow: true, windowCount: 1 },
-        back: { ...DEFAULT_WALL, hasWindow: true, windowCount: 1 },
+        front: { ...DEFAULT_WALL, hasDoor: true },
+        back: { ...DEFAULT_WALL },
         left: { ...DEFAULT_WALL },
         divider: { ...DEFAULT_WALL },
       };
