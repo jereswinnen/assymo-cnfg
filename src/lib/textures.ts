@@ -19,7 +19,7 @@ const ROOF_TEXTURE_MAP: Record<string, string> = {
 
 // How many meters each texture tile covers (controls repeat density)
 const WALL_TILE_SIZE: Record<string, [number, number]> = {
-  wood: [3, 3],
+  wood: [1.5, 1.5],
   brick: [5, 3.5],
   render: [3, 3],
   metal: [1.5, 2],
@@ -78,7 +78,8 @@ export function useDoorTexture(
 
   const texture = useMemo(() => {
     if (!path) return null;
-    return loadTexture(path);
+    // Clone so door repeat doesn't overwrite the shared wall texture
+    return loadTexture(path).clone();
   }, [path]);
 
   useEffect(() => {
