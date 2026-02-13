@@ -72,8 +72,15 @@ export const DOOR_WINDOW_SURCHARGE = 200;
 
 export const DOUBLE_DOOR_W = 1.6; // double door width in meters
 
+// Overkapping wall IDs (optional walls for combined building type)
+export const OVERKAPPING_WALL_IDS: WallId[] = ['ov_front', 'ov_back', 'ov_right'];
+
+export function isOverkappingWall(id: WallId): boolean {
+  return (OVERKAPPING_WALL_IDS as string[]).includes(id);
+}
+
 // Default wall config
-const DEFAULT_WALL: WallConfig = {
+export const DEFAULT_WALL: WallConfig = {
   materialId: 'wood',
   finish: 'Mat',
   hasDoor: false,
@@ -129,7 +136,7 @@ export function getAvailableWallIds(type: BuildingType): WallId[] {
     case 'berging':
       return ['front', 'back', 'left', 'right'];
     case 'combined':
-      return ['front', 'back', 'left', 'divider'];
+      return ['front', 'back', 'left', 'divider', ...OVERKAPPING_WALL_IDS];
   }
 }
 

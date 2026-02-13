@@ -11,7 +11,7 @@ export interface BuildingDimensions {
   bergingWidth: number; // width of berging section (for combined type)
 }
 
-export type WallId = 'front' | 'back' | 'left' | 'right' | 'divider';
+export type WallId = 'front' | 'back' | 'left' | 'right' | 'divider' | 'ov_front' | 'ov_back' | 'ov_right';
 
 export interface SurfaceMaterial {
   id: string;

@@ -60,6 +60,8 @@ export function wallGrossArea(
   const { width, depth, height, bergingWidth } = config.dimensions;
   const bt = config.buildingType;
 
+  const overkappingWidth = width - bergingWidth;
+
   switch (wallId) {
     case 'front':
     case 'back':
@@ -72,6 +74,11 @@ export function wallGrossArea(
     case 'right':
       return depth * height;
     case 'divider':
+      return depth * height;
+    case 'ov_front':
+    case 'ov_back':
+      return overkappingWidth * height;
+    case 'ov_right':
       return depth * height;
   }
 }
@@ -118,6 +125,9 @@ const WALL_LABELS: Record<string, string> = {
   left: 'wall.left',
   right: 'wall.right',
   divider: 'wall.divider',
+  ov_front: 'wall.ov_front',
+  ov_back: 'wall.ov_back',
+  ov_right: 'wall.ov_right',
 };
 
 export function wallLineItem(

@@ -3,7 +3,10 @@
 import Roof from './Roof';
 import TimberFrame from './TimberFrame';
 import BergingSection from './BergingSection';
+import Wall from './Wall';
+import GhostWall from './GhostWall';
 import { useConfigStore } from '@/store/useConfigStore';
+import { OVERKAPPING_WALL_IDS } from '@/lib/constants';
 
 export default function Building() {
   const config = useConfigStore((s) => s.config);
@@ -32,6 +35,16 @@ export default function Building() {
           offsetX={buildingType === 'combined' ? bergingOffset : 0}
         />
       )}
+
+      {/* Overkapping walls / ghost placeholders (combined type only) */}
+      {buildingType === 'combined' &&
+        OVERKAPPING_WALL_IDS.map((id) =>
+          config.walls[id] ? (
+            <Wall key={id} wallId={id} />
+          ) : (
+            <GhostWall key={id} wallId={id} />
+          ),
+        )}
 
       {/* Roof spans full building */}
       <Roof />

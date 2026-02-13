@@ -130,6 +130,7 @@ function createWallWithOpeningsGeo(
   // Rotate geometry so it matches the boxGeometry orientation for each wall type.
   switch (wallId) {
     case 'back':
+    case 'ov_back':
       geo.rotateY(Math.PI);
       break;
     case 'left':
@@ -137,6 +138,7 @@ function createWallWithOpeningsGeo(
       break;
     case 'right':
     case 'divider':
+    case 'ov_right':
       geo.rotateY(-Math.PI / 2);
       break;
   }
@@ -162,9 +164,10 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
   const selectedElement = useConfigStore((s) => s.selectedElement);
   const selectElement = useConfigStore((s) => s.selectElement);
 
-  const { width: fullWidth, depth: fullDepth, height } = config.dimensions;
+  const { width: fullWidth, depth: fullDepth, height, bergingWidth } = config.dimensions;
   const w = sectionWidth ?? fullWidth;
   const d = sectionDepth ?? fullDepth;
+  const overkappingWidth = fullWidth - bergingWidth;
 
   const wallCfg = config.walls[wallId];
   const materialId = wallCfg?.materialId ?? 'brick';
@@ -172,7 +175,10 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
   const color = material?.color ?? '#cccccc';
 
   // Wall face dimensions for texture tiling
-  const wallLength = wallId === 'front' || wallId === 'back' ? w : d;
+  const wallLength =
+    wallId === 'ov_front' || wallId === 'ov_back' ? overkappingWidth
+    : wallId === 'front' || wallId === 'back' ? w
+    : d;
   const texture = useWallTexture(materialId, wallLength, height);
 
   if (!wallCfg) return null;
@@ -214,8 +220,30 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
           position: [offsetX + w / 2, height / 2, 0] as [number, number, number],
           rotation: [0, 0, 0] as [number, number, number],
         };
+      case 'ov_front': {
+        const ovCenterX = fullWidth / 2 - overkappingWidth / 2;
+        return {
+          size: [overkappingWidth - inset * 2, height, t] as [number, number, number],
+          position: [ovCenterX, height / 2, d / 2 - inset] as [number, number, number],
+          rotation: [0, 0, 0] as [number, number, number],
+        };
+      }
+      case 'ov_back': {
+        const ovCenterX = fullWidth / 2 - overkappingWidth / 2;
+        return {
+          size: [overkappingWidth - inset * 2, height, t] as [number, number, number],
+          position: [ovCenterX, height / 2, -d / 2 + inset] as [number, number, number],
+          rotation: [0, 0, 0] as [number, number, number],
+        };
+      }
+      case 'ov_right':
+        return {
+          size: [t, height, d - inset * 2] as [number, number, number],
+          position: [fullWidth / 2 - inset, height / 2, 0] as [number, number, number],
+          rotation: [0, 0, 0] as [number, number, number],
+        };
     }
-  }, [wallId, w, d, height, offsetX]);
+  }, [wallId, w, d, height, offsetX, fullWidth, overkappingWidth]);
 
   // Compute opening positions (shared between geometry holes and overlays)
   const hasOpenings = wallCfg.hasDoor || (wallCfg.hasWindow && wallCfg.windowCount > 0);
@@ -302,7 +330,7 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
       <WallOpenings
         wallId={wallId}
         wallPosition={position}
-        wallLength={wallId === 'front' || wallId === 'back' ? w : d}
+        wallLength={wallId === 'ov_front' || wallId === 'ov_back' ? overkappingWidth : wallId === 'front' || wallId === 'back' ? w : d}
         height={height}
         wallCfg={wallCfg}
       />
@@ -331,9 +359,11 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg }: Ope
 
   switch (wallId) {
     case 'front':
+    case 'ov_front':
       groupPos = [wallPosition[0], 0, wallPosition[2] + outOffset];
       break;
     case 'back':
+    case 'ov_back':
       groupPos = [wallPosition[0], 0, wallPosition[2] - outOffset];
       groupRot = [0, Math.PI, 0];
       break;
@@ -343,6 +373,7 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg }: Ope
       break;
     case 'right':
     case 'divider':
+    case 'ov_right':
       groupPos = [wallPosition[0] + outOffset, 0, wallPosition[2]];
       groupRot = [0, -Math.PI / 2, 0];
       break;

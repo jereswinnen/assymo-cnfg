@@ -15,6 +15,9 @@ const WALL_CAMERA_POSITIONS: Record<WallId, [number, number, number]> = {
   left: [-15, 6, 0],
   right: [15, 6, 0],
   divider: [8, 6, 10],
+  ov_front: [8, 6, 15],
+  ov_back: [8, 6, -15],
+  ov_right: [15, 6, 0],
 };
 
 function CameraAnimator() {

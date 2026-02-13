@@ -12,7 +12,9 @@ import type {
 import {
   DEFAULT_DIMENSIONS,
   DEFAULT_ROOF,
+  DEFAULT_WALL,
   getDefaultWalls,
+  isOverkappingWall,
 } from '@/lib/constants';
 import { calculateQuote } from '@/lib/pricing';
 
@@ -31,6 +33,8 @@ interface ConfigState {
   setRoofType: (type: RoofType) => void;
   updateRoof: (patch: Partial<RoofConfig>) => void;
   updateWall: (id: WallId, patch: Partial<WallConfig>) => void;
+  addOverkappingWall: (id: WallId) => void;
+  removeOverkappingWall: (id: WallId) => void;
   toggleCornerBraces: () => void;
   setAccordionSection: (n: number) => void;
   resetConfig: () => void;
@@ -120,6 +124,32 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         },
       },
     })),
+
+  addOverkappingWall: (id) =>
+    set((state) => {
+      if (!isOverkappingWall(id)) return state;
+      return {
+        config: {
+          ...state.config,
+          walls: { ...state.config.walls, [id]: { ...DEFAULT_WALL } },
+        },
+        selectedElement: { type: 'wall', id },
+        activeAccordionSection: 4,
+        cameraTargetWallId: id,
+      };
+    }),
+
+  removeOverkappingWall: (id) =>
+    set((state) => {
+      if (!isOverkappingWall(id)) return state;
+      const { [id]: _, ...rest } = state.config.walls;
+      const clearSelection =
+        state.selectedElement?.type === 'wall' && state.selectedElement.id === id;
+      return {
+        config: { ...state.config, walls: rest },
+        selectedElement: clearSelection ? null : state.selectedElement,
+      };
+    }),
 
   toggleCornerBraces: () =>
     set((state) => ({

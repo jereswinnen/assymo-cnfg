@@ -51,6 +51,9 @@ const nl: Record<string, string> = {
   'wall.left': 'Linkerkant',
   'wall.right': 'Rechterkant',
   'wall.divider': 'Tussenwand',
+  'wall.ov_front': 'Overkapping voorkant',
+  'wall.ov_back': 'Overkapping achterkant',
+  'wall.ov_right': 'Overkapping rechterkant',
   'wall.select': 'Selecteer een wand om te configureren',
   'wall.clickToSelect': 'Klik op een wand in het 3D-model of selecteer hieronder',
 
