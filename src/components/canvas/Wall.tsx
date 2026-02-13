@@ -21,7 +21,6 @@ const FRAME_D = 0.04; // frame bar depth
 const doorMat = new MeshStandardMaterial({ color: '#3E2B1C', metalness: 0.1, roughness: 0.6 });
 const frameMat = new MeshStandardMaterial({ color: '#2A2A2A', metalness: 0.4, roughness: 0.3 });
 const glassMat = new MeshStandardMaterial({ color: '#B8D4E3', metalness: 0.1, roughness: 0.05, transparent: true, opacity: 0.3 });
-const voidMat = new MeshStandardMaterial({ color: '#1a1a2e', metalness: 0, roughness: 1 });
 const handleMat = new MeshStandardMaterial({ color: '#888888', metalness: 0.6, roughness: 0.3 });
 
 // ---------- helpers ----------
@@ -40,15 +39,16 @@ function computeDoorX(wallLength: number, doorPosition: DoorPosition): number {
   }
 }
 
-/** Create an ExtrudeGeometry with a rectangular door hole cut out.
+/** Create an ExtrudeGeometry with rectangular holes for doors and/or windows.
  *  The geometry is centered at origin (same bounding box as a BoxGeometry of equal size)
  *  so it can be positioned identically to the box it replaces. */
-function createWallWithDoorGeo(
+function createWallWithOpeningsGeo(
   wallLength: number,
   wallHeight: number,
   thickness: number,
-  doorX: number,
   wallId: WallId,
+  doorX: number | null,
+  windowXs: number[],
 ): ExtrudeGeometry {
   const hw = wallLength / 2;
   const hh = wallHeight / 2;
@@ -61,16 +61,32 @@ function createWallWithDoorGeo(
   shape.lineTo(-hw, hh);
   shape.closePath();
 
-  // Door hole (bottom sits at bottom of wall = -hh)
-  const dw = DOOR_W / 2;
-  const dh = Math.min(DOOR_H, wallHeight - 0.05);
-  const hole = new Path();
-  hole.moveTo(doorX - dw, -hh);
-  hole.lineTo(doorX + dw, -hh);
-  hole.lineTo(doorX + dw, -hh + dh);
-  hole.lineTo(doorX - dw, -hh + dh);
-  hole.closePath();
-  shape.holes.push(hole);
+  // Door hole (bottom at ground level)
+  if (doorX !== null) {
+    const dw = DOOR_W / 2;
+    const dh = Math.min(DOOR_H, wallHeight - 0.05);
+    const hole = new Path();
+    hole.moveTo(doorX - dw, -hh);
+    hole.lineTo(doorX + dw, -hh);
+    hole.lineTo(doorX + dw, -hh + dh);
+    hole.lineTo(doorX - dw, -hh + dh);
+    hole.closePath();
+    shape.holes.push(hole);
+  }
+
+  // Window holes
+  for (const wx of windowXs) {
+    const ww = WIN_W / 2;
+    const winBottom = -hh + WIN_SILL;
+    const winTop = winBottom + WIN_H;
+    const hole = new Path();
+    hole.moveTo(wx - ww, winBottom);
+    hole.lineTo(wx + ww, winBottom);
+    hole.lineTo(wx + ww, winTop);
+    hole.lineTo(wx - ww, winTop);
+    hole.closePath();
+    shape.holes.push(hole);
+  }
 
   const geo = new ExtrudeGeometry(shape, {
     depth: thickness,
@@ -90,9 +106,6 @@ function createWallWithDoorGeo(
   uvAttr.needsUpdate = true;
 
   // Rotate geometry so it matches the boxGeometry orientation for each wall type.
-  // Front/back boxes are [w, h, t] — the extruded shape is already [w, h, t]. ✓
-  // Side wall boxes are [t, h, d] — the extruded shape is [d, h, t], needs 90° Y rotation.
-  // Back wall needs PI rotation so "links" maps to the viewer's left from outside.
   switch (wallId) {
     case 'back':
       geo.rotateY(Math.PI);
@@ -182,16 +195,30 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
     }
   }, [wallId, w, d, height, offsetX]);
 
-  // Door hole geometry
-  const doorX = useMemo(() => {
-    if (!wallCfg.hasDoor) return 0;
-    return computeDoorX(wallLength, wallCfg.doorPosition ?? 'midden');
-  }, [wallCfg.hasDoor, wallCfg.doorPosition, wallLength]);
+  // Compute opening positions (shared between geometry holes and overlays)
+  const hasOpenings = wallCfg.hasDoor || (wallCfg.hasWindow && wallCfg.windowCount > 0);
+  const { doorX: computedDoorX, windowXs: computedWindowXs } = useMemo(
+    () =>
+      computeOpeningPositions(
+        wallLength,
+        wallCfg.hasDoor,
+        wallCfg.doorPosition ?? 'midden',
+        wallCfg.hasWindow ? wallCfg.windowCount : 0,
+      ),
+    [wallLength, wallCfg.hasDoor, wallCfg.doorPosition, wallCfg.hasWindow, wallCfg.windowCount],
+  );
 
   const wallGeo = useMemo(() => {
-    if (!wallCfg.hasDoor) return null;
-    return createWallWithDoorGeo(wallLength, height, WALL_THICKNESS, doorX, wallId);
-  }, [wallCfg.hasDoor, wallLength, height, doorX, wallId]);
+    if (!hasOpenings) return null;
+    return createWallWithOpeningsGeo(
+      wallLength,
+      height,
+      WALL_THICKNESS,
+      wallId,
+      wallCfg.hasDoor ? computedDoorX : null,
+      computedWindowXs,
+    );
+  }, [hasOpenings, wallLength, height, wallId, wallCfg.hasDoor, computedDoorX, computedWindowXs]);
 
   // Dispose old geometry when it changes
   useEffect(() => {
@@ -416,10 +443,6 @@ function WindowMesh({ x }: { x: number }) {
 
   return (
     <group position={[x, winY, 0]}>
-      {/* Dark backing to simulate interior void */}
-      <mesh position={[0, 0, -0.015]} material={voidMat} renderOrder={-1}>
-        <boxGeometry args={[WIN_W + 0.02, WIN_H + 0.02, 0.03]} />
-      </mesh>
       {/* Glass pane */}
       <mesh material={glassMat}>
         <boxGeometry args={[WIN_W, WIN_H, WIN_DEPTH]} />
