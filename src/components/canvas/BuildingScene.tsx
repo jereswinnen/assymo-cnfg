@@ -1,9 +1,9 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Sky } from '@react-three/drei';
-import { Vector3 } from 'three';
+import { OrbitControls } from '@react-three/drei';
+import { Vector3, BackSide, ShaderMaterial } from 'three';
 import Building from './Building';
 import Ground from './Ground';
 import { useConfigStore } from '@/store/useConfigStore';
@@ -19,6 +19,45 @@ const WALL_CAMERA_POSITIONS: Record<WallId, [number, number, number]> = {
   ov_back: [8, 6, -15],
   ov_right: [15, 6, 0],
 };
+
+function SkyGradient() {
+  const material = useMemo(
+    () =>
+      new ShaderMaterial({
+        side: BackSide,
+        depthWrite: false,
+        uniforms: {},
+        vertexShader: `
+          varying vec3 vWorldPosition;
+          void main() {
+            vec4 worldPos = modelMatrix * vec4(position, 1.0);
+            vWorldPosition = worldPos.xyz;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          varying vec3 vWorldPosition;
+          void main() {
+            float h = normalize(vWorldPosition).y;
+            vec3 zenith  = vec3(0.22, 0.42, 0.75);
+            vec3 horizon = vec3(0.55, 0.75, 0.95);
+            vec3 ground  = vec3(0.82, 0.86, 0.90);
+            vec3 sky = h > 0.0
+              ? mix(horizon, zenith, pow(h, 0.4))
+              : mix(horizon, ground, pow(-h, 0.3));
+            gl_FragColor = vec4(sky, 1.0);
+          }
+        `,
+      }),
+    [],
+  );
+
+  return (
+    <mesh scale={[500, 500, 500]} material={material}>
+      <sphereGeometry args={[1, 32, 32]} />
+    </mesh>
+  );
+}
 
 function CameraAnimator() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -85,7 +124,7 @@ export default function BuildingScene() {
       shadows
       camera={{ position: [12, 8, 12], fov: 45 }}
       onPointerMissed={() => clearSelection()}
-      style={{ background: '#4a90d9' }}
+      style={{ background: '#6a9fd8' }}
     >
       <ambientLight intensity={0.5} />
       <directionalLight
@@ -102,14 +141,7 @@ export default function BuildingScene() {
       />
       <directionalLight position={[-5, 5, -5]} intensity={0.3} />
 
-      <Sky
-        distance={450000}
-        sunPosition={[50, 25, 80]}
-        rayleigh={3}
-        turbidity={4}
-        mieCoefficient={0.003}
-        mieDirectionalG={0.7}
-      />
+      <SkyGradient />
 
       <Building />
       <Ground />
