@@ -28,23 +28,30 @@ function SkyGradient() {
         depthWrite: false,
         uniforms: {},
         vertexShader: `
-          varying vec3 vWorldPosition;
+          varying vec3 vDir;
           void main() {
-            vec4 worldPos = modelMatrix * vec4(position, 1.0);
-            vWorldPosition = worldPos.xyz;
+            vDir = normalize(position);
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
           }
         `,
         fragmentShader: `
-          varying vec3 vWorldPosition;
+          varying vec3 vDir;
+
+          // Dithering to eliminate color banding
+          float dither(vec2 co) {
+            return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453) / 255.0;
+          }
+
           void main() {
-            float h = normalize(vWorldPosition).y;
+            vec3 dir = normalize(vDir);
+            float h = dir.y;
             vec3 zenith  = vec3(0.22, 0.42, 0.75);
             vec3 horizon = vec3(0.55, 0.75, 0.95);
             vec3 ground  = vec3(0.82, 0.86, 0.90);
             vec3 sky = h > 0.0
               ? mix(horizon, zenith, pow(h, 0.4))
               : mix(horizon, ground, pow(-h, 0.3));
+            sky += dither(gl_FragCoord.xy);
             gl_FragColor = vec4(sky, 1.0);
           }
         `,
@@ -54,7 +61,7 @@ function SkyGradient() {
 
   return (
     <mesh scale={[500, 500, 500]} material={material}>
-      <sphereGeometry args={[1, 32, 32]} />
+      <sphereGeometry args={[1, 128, 64]} />
     </mesh>
   );
 }
