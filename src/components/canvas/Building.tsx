@@ -1,6 +1,7 @@
 'use client';
 
 import Roof from './Roof';
+import Floor from './Floor';
 import TimberFrame from './TimberFrame';
 import BergingSection from './BergingSection';
 import Wall from './Wall';
@@ -45,6 +46,9 @@ export default function Building() {
             <GhostWall key={id} wallId={id} />
           ),
         )}
+
+      {/* Floor covering */}
+      <Floor />
 
       {/* Roof spans full building */}
       <Roof />

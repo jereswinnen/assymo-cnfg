@@ -1,6 +1,7 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
+import { FLOOR_MATERIALS } from '@/lib/constants';
 import { t } from '@/lib/i18n';
 
 interface SliderRowProps {
@@ -39,7 +40,9 @@ export default function DimensionsControl() {
   const dimensions = useConfigStore((s) => s.config.dimensions);
   const buildingType = useConfigStore((s) => s.config.buildingType);
   const roofType = useConfigStore((s) => s.config.roof.type);
+  const floorMaterialId = useConfigStore((s) => s.config.floor.materialId);
   const updateDimensions = useConfigStore((s) => s.updateDimensions);
+  const updateFloor = useConfigStore((s) => s.updateFloor);
 
   return (
     <div className="space-y-3">
@@ -92,6 +95,26 @@ export default function DimensionsControl() {
           onChange={(v) => updateDimensions({ roofPitch: v })}
         />
       )}
+
+      {/* Floor covering */}
+      <div>
+        <label className="mb-1 block text-sm font-medium text-gray-700">{t('floor.material')}</label>
+        <div className="flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+          {FLOOR_MATERIALS.map((m) => (
+            <button
+              key={m.id}
+              onClick={() => updateFloor({ materialId: m.id })}
+              className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all ${
+                floorMaterialId === m.id
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

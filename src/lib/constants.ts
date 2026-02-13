@@ -3,6 +3,8 @@ import type {
   BuildingDimensions,
   WallConfig,
   RoofConfig,
+  FloorConfig,
+  FloorMaterialId,
   RoofCovering,
   TrimColor,
   BuildingType,
@@ -102,6 +104,25 @@ export const DEFAULT_ROOF: RoofConfig = {
   insulation: true,
   insulationThickness: 150,
   hasSkylight: false,
+};
+
+// Floor materials
+export interface FloorMaterial {
+  id: FloorMaterialId;
+  label: string;
+  pricePerSqm: number;
+  color: string;
+}
+
+export const FLOOR_MATERIALS: FloorMaterial[] = [
+  { id: 'geen', label: 'Geen', pricePerSqm: 0, color: 'transparent' },
+  { id: 'tegels', label: 'Tegels', pricePerSqm: 35, color: '#B0A090' },
+  { id: 'beton', label: 'Beton', pricePerSqm: 25, color: '#A0A0A0' },
+  { id: 'hout', label: 'Hout (vlonders)', pricePerSqm: 55, color: '#C4A672' },
+];
+
+export const DEFAULT_FLOOR: FloorConfig = {
+  materialId: 'geen',
 };
 
 // Generate default walls for a given building type

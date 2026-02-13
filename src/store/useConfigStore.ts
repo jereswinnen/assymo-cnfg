@@ -5,6 +5,7 @@ import type {
   BuildingType,
   RoofType,
   RoofConfig,
+  FloorConfig,
   SelectedElement,
   WallId,
   WallConfig,
@@ -12,6 +13,7 @@ import type {
 import {
   DEFAULT_DIMENSIONS,
   DEFAULT_ROOF,
+  DEFAULT_FLOOR,
   DEFAULT_WALL,
   getDefaultWalls,
   isOverkappingWall,
@@ -32,6 +34,7 @@ interface ConfigState {
   setBuildingType: (type: BuildingType) => void;
   setRoofType: (type: RoofType) => void;
   updateRoof: (patch: Partial<RoofConfig>) => void;
+  updateFloor: (patch: Partial<FloorConfig>) => void;
   updateWall: (id: WallId, patch: Partial<WallConfig>) => void;
   addOverkappingWall: (id: WallId) => void;
   removeOverkappingWall: (id: WallId) => void;
@@ -49,6 +52,7 @@ function makeDefaultConfig(type: BuildingType = 'combined'): BuildingConfig {
     buildingType: type,
     dimensions: { ...DEFAULT_DIMENSIONS },
     roof: { ...DEFAULT_ROOF },
+    floor: { ...DEFAULT_FLOOR },
     walls: getDefaultWalls(type),
     hasCornerBraces: type !== 'berging',
   };
@@ -111,6 +115,14 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       config: {
         ...state.config,
         roof: { ...state.config.roof, ...patch },
+      },
+    })),
+
+  updateFloor: (patch) =>
+    set((state) => ({
+      config: {
+        ...state.config,
+        floor: { ...state.config.floor, ...patch },
       },
     })),
 

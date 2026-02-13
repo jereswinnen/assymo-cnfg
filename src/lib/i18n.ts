@@ -112,6 +112,14 @@ const nl: Record<string, string> = {
   'quote.braces': 'Schoren',
   'quote.roof': 'Dak',
 
+  // Floor
+  'floor.label': 'Vloer',
+  'floor.material': 'Vloerbedekking',
+  'floor.geen': 'Geen',
+  'floor.tegels': 'Tegels',
+  'floor.beton': 'Beton',
+  'floor.hout': 'Hout (vlonders)',
+
   // Walls section
   'walls.disabled': 'Overkapping heeft geen wanden',
 };

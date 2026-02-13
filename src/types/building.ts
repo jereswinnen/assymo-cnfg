@@ -38,6 +38,12 @@ export interface WallConfig {
   windowCount: number;
 }
 
+export type FloorMaterialId = 'geen' | 'tegels' | 'beton' | 'hout';
+
+export interface FloorConfig {
+  materialId: FloorMaterialId;
+}
+
 export interface RoofConfig {
   type: RoofType;
   coveringId: RoofCoveringId;
@@ -64,6 +70,7 @@ export interface BuildingConfig {
   buildingType: BuildingType;
   dimensions: BuildingDimensions;
   roof: RoofConfig;
+  floor: FloorConfig;
   walls: Record<string, WallConfig>;
   hasCornerBraces: boolean;
 }

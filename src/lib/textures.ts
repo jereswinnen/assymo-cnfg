@@ -12,6 +12,18 @@ const WALL_TEXTURE_MAP: Record<string, string> = {
   metal: '/textures/metal.jpg',
 };
 
+const FLOOR_TEXTURE_MAP: Record<string, string> = {
+  tegels: '/textures/floor_tiles.jpg',
+  beton: '/textures/floor_concrete.jpg',
+  hout: '/textures/floor_wood.jpg',
+};
+
+const FLOOR_TILE_SIZE: Record<string, [number, number]> = {
+  tegels: [2, 2],
+  beton: [3, 3],
+  hout: [2, 2],
+};
+
 const ROOF_TEXTURE_MAP: Record<string, string> = {
   dakpannen: '/textures/tiles.jpg',
   riet: '/textures/thatch.jpg',
@@ -110,6 +122,29 @@ export function useRoofTexture(
       texture.repeat.set(roofWidth / tileSize[0], roofDepth / tileSize[1]);
     }
   }, [texture, tileSize, roofWidth, roofDepth]);
+
+  return texture;
+}
+
+/** Returns a texture for a floor material, tiled to match the given dimensions */
+export function useFloorTexture(
+  materialId: string,
+  floorWidth: number,
+  floorDepth: number,
+): Texture | null {
+  const path = FLOOR_TEXTURE_MAP[materialId];
+  const tileSize = FLOOR_TILE_SIZE[materialId];
+
+  const texture = useMemo(() => {
+    if (!path) return null;
+    return loadTexture(path);
+  }, [path]);
+
+  useEffect(() => {
+    if (texture && tileSize) {
+      texture.repeat.set(floorWidth / tileSize[0], floorDepth / tileSize[1]);
+    }
+  }, [texture, tileSize, floorWidth, floorDepth]);
 
   return texture;
 }

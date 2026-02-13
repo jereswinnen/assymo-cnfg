@@ -7,6 +7,7 @@ import type {
 import {
   WALL_MATERIALS,
   ROOF_COVERINGS,
+  FLOOR_MATERIALS,
   INSULATION_PRICE_PER_SQM_PER_MM,
   DOOR_BASE_PRICE,
   DOOR_WINDOW_SURCHARGE,
@@ -221,6 +222,25 @@ export function braceLineItem(
   };
 }
 
+export function floorLineItem(config: BuildingConfig): LineItem | null {
+  const { materialId } = config.floor;
+  if (materialId === 'geen') return null;
+
+  const { width, depth } = config.dimensions;
+  const area = width * depth;
+  const pricePerSqm = FLOOR_MATERIALS.find((m) => m.id === materialId)?.pricePerSqm ?? 0;
+  const materialCost = area * pricePerSqm;
+
+  return {
+    label: t('floor.label'),
+    area,
+    materialCost,
+    insulationCost: 0,
+    extrasCost: 0,
+    total: materialCost,
+  };
+}
+
 export function calculateQuote(config: BuildingConfig): {
   lineItems: LineItem[];
   total: number;
@@ -241,6 +261,10 @@ export function calculateQuote(config: BuildingConfig): {
     const item = wallLineItem(id, config);
     if (item.total > 0) lineItems.push(item);
   }
+
+  // Floor line item
+  const floor = floorLineItem(config);
+  if (floor) lineItems.push(floor);
 
   // Single roof line item
   lineItems.push(roofLineItem(config));
