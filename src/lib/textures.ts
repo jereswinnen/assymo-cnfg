@@ -68,6 +68,28 @@ export function useWallTexture(
   return texture;
 }
 
+/** Returns a wood texture sized for a door panel */
+export function useDoorTexture(
+  materialId: string,
+  panelWidth: number,
+  panelHeight: number,
+): Texture | null {
+  const path = materialId === 'wood' ? '/textures/wood.jpg' : null;
+
+  const texture = useMemo(() => {
+    if (!path) return null;
+    return loadTexture(path);
+  }, [path]);
+
+  useEffect(() => {
+    if (texture) {
+      texture.repeat.set(panelWidth / 1.5, panelHeight / 2);
+    }
+  }, [texture, panelWidth, panelHeight]);
+
+  return texture;
+}
+
 /** Returns a texture for a roof covering, tiled to match the given dimensions */
 export function useRoofTexture(
   coveringId: string,

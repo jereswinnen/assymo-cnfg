@@ -6,7 +6,7 @@ import { useFrame } from '@react-three/fiber';
 import { Edges } from '@react-three/drei';
 import { useConfigStore } from '@/store/useConfigStore';
 import { WALL_MATERIALS, WALL_THICKNESS, DOUBLE_DOOR_W } from '@/lib/constants';
-import { useWallTexture } from '@/lib/textures';
+import { useWallTexture, useDoorTexture } from '@/lib/textures';
 import type { WallId, WallConfig, DoorPosition, DoorSwing, DoorSize, DoorMaterialId } from '@/types/building';
 
 const DOOR_W = 0.9;
@@ -20,23 +20,20 @@ const WIN_DEPTH = 0.03;
 const FRAME_T = 0.04; // frame bar thickness
 const FRAME_D = 0.04; // frame bar depth
 
-// Door panel materials per door material type
-const DOOR_PANEL_MATS: Record<DoorMaterialId, MeshStandardMaterial> = {
-  wood: new MeshStandardMaterial({ color: '#8B6840', metalness: 0.05, roughness: 0.7, emissive: '#3A2810', emissiveIntensity: 0.3 }),
-  aluminium: new MeshStandardMaterial({ color: '#2A2A2A', metalness: 0.7, roughness: 0.25, emissive: '#1A1A1A', emissiveIntensity: 0.25 }),
-  pvc: new MeshStandardMaterial({ color: '#1E1E1E', metalness: 0.05, roughness: 0.4, emissive: '#151515', emissiveIntensity: 0.25 }),
-  staal: new MeshStandardMaterial({ color: '#2C2C2C', metalness: 0.85, roughness: 0.2, emissive: '#1A1A1A', emissiveIntensity: 0.25 }),
+// Door panel material configs (color when no texture, and material properties)
+const DOOR_MAT_CFG: Record<DoorMaterialId, { color: string; metalness: number; roughness: number; emissive: string; emissiveIntensity: number }> = {
+  wood: { color: '#8B6840', metalness: 0.05, roughness: 0.7, emissive: '#3A2810', emissiveIntensity: 0.3 },
+  aluminium: { color: '#2A2A2A', metalness: 0.7, roughness: 0.25, emissive: '#1A1A1A', emissiveIntensity: 0.25 },
+  pvc: { color: '#1E1E1E', metalness: 0.05, roughness: 0.4, emissive: '#151515', emissiveIntensity: 0.25 },
+  staal: { color: '#2C2C2C', metalness: 0.85, roughness: 0.2, emissive: '#1A1A1A', emissiveIntensity: 0.25 },
 };
 
 // Handle materials: dark for wood, light for the rest
 const HANDLE_DARK = new MeshStandardMaterial({ color: '#333333', metalness: 0.7, roughness: 0.3, emissive: '#222222', emissiveIntensity: 0.3 });
 const HANDLE_LIGHT = new MeshStandardMaterial({ color: '#E0E0E0', metalness: 0.9, roughness: 0.1, emissive: '#999999', emissiveIntensity: 0.4 });
 
-function getDoorMats(matId: DoorMaterialId) {
-  return {
-    panel: DOOR_PANEL_MATS[matId] ?? DOOR_PANEL_MATS.wood,
-    handle: matId === 'wood' ? HANDLE_DARK : HANDLE_LIGHT,
-  };
+function getHandleMat(matId: DoorMaterialId) {
+  return matId === 'wood' ? HANDLE_DARK : HANDLE_LIGHT;
 }
 
 const frameMat = new MeshStandardMaterial({ color: '#2A2A2A', metalness: 0.4, roughness: 0.3 });
@@ -497,7 +494,10 @@ function DoorMesh({ x, height, swing, doorSize, doorHasWindow, doorMaterialId }:
   const dh = Math.min(DOOR_H, height - 0.1);
   const panelW = doorSize === 'dubbel' ? DOUBLE_W / 2 : DOOR_W;
   const totalW = doorSize === 'dubbel' ? DOUBLE_W : DOOR_W;
-  const { panel: panelMat, handle: hMat } = getDoorMats(doorMaterialId);
+  const hMat = getHandleMat(doorMaterialId);
+  const mc = DOOR_MAT_CFG[doorMaterialId];
+  const doorTex = useDoorTexture(doorMaterialId, panelW, dh);
+  const panelColor = doorTex ? '#ffffff' : mc.color;
 
   // Target angle: dicht=0, naar_binnen=+60°, naar_buiten=-60°
   const targetAngle =
@@ -554,12 +554,13 @@ function DoorMesh({ x, height, swing, doorSize, doorHasWindow, doorMaterialId }:
         </mesh>
         {/* Left panel — hinged on left edge */}
         <group ref={hingeA} position={[-totalW / 2, 0, 0]}>
-          <mesh position={[panelW / 2, 0, 0]} material={panelMat}>
+          <mesh position={[panelW / 2, 0, 0]}>
             {panelGeoA ? (
               <primitive object={panelGeoA} attach="geometry" />
             ) : (
               <boxGeometry args={[panelW, dh, DOOR_DEPTH]} />
             )}
+            <meshStandardMaterial color={panelColor} map={doorTex ?? undefined} metalness={mc.metalness} roughness={mc.roughness} emissive={mc.emissive} emissiveIntensity={mc.emissiveIntensity} />
           </mesh>
           {doorHasWindow && <DoorGlass cx={panelW / 2} panelW={panelW} dh={dh} />}
           <mesh position={[panelW - 0.12, 0, DOOR_DEPTH / 2 + 0.01]} material={hMat}>
@@ -568,12 +569,13 @@ function DoorMesh({ x, height, swing, doorSize, doorHasWindow, doorMaterialId }:
         </group>
         {/* Right panel — hinged on right edge (mirror swing) */}
         <group ref={hingeB} position={[totalW / 2, 0, 0]}>
-          <mesh position={[-panelW / 2, 0, 0]} material={panelMat}>
+          <mesh position={[-panelW / 2, 0, 0]}>
             {panelGeoB ? (
               <primitive object={panelGeoB} attach="geometry" />
             ) : (
               <boxGeometry args={[panelW, dh, DOOR_DEPTH]} />
             )}
+            <meshStandardMaterial color={panelColor} map={doorTex ?? undefined} metalness={mc.metalness} roughness={mc.roughness} emissive={mc.emissive} emissiveIntensity={mc.emissiveIntensity} />
           </mesh>
           {doorHasWindow && <DoorGlass cx={-panelW / 2} panelW={panelW} dh={dh} />}
           <mesh position={[-panelW + 0.12, 0, DOOR_DEPTH / 2 + 0.01]} material={hMat}>
@@ -601,12 +603,13 @@ function DoorMesh({ x, height, swing, doorSize, doorHasWindow, doorMaterialId }:
       </mesh>
       {/* Door panel — hinged on left side */}
       <group ref={hingeA} position={[-totalW / 2, 0, 0]}>
-        <mesh position={[panelW / 2, 0, 0]} material={panelMat}>
+        <mesh position={[panelW / 2, 0, 0]}>
           {panelGeoA ? (
             <primitive object={panelGeoA} attach="geometry" />
           ) : (
             <boxGeometry args={[panelW, dh, DOOR_DEPTH]} />
           )}
+          <meshStandardMaterial color={panelColor} map={doorTex ?? undefined} metalness={mc.metalness} roughness={mc.roughness} emissive={mc.emissive} emissiveIntensity={mc.emissiveIntensity} />
         </mesh>
         {doorHasWindow && <DoorGlass cx={panelW / 2} panelW={panelW} dh={dh} />}
         {/* Handle */}
