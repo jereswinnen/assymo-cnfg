@@ -9,6 +9,7 @@ import SurfaceProperties from './SurfaceProperties';
 import FloorConfigSection from './FloorConfigSection';
 import QuoteSummary from './QuoteSummary';
 import { Separator } from '@/components/ui/separator';
+import ConfigCodeDialog from './ConfigCodeDialog';
 import { useConfigStore } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
 
@@ -17,17 +18,20 @@ export default function ConfigPanel() {
   const buildingType = useConfigStore((s) => s.config.buildingType);
 
   return (
-    <aside className="flex h-full flex-col rounded-2xl bg-background/80 backdrop-blur-xl shadow-2xl ring-1 ring-black/[0.08]">
+    <aside className="flex h-full flex-col overflow-hidden bg-background lg:rounded-2xl lg:bg-background/80 lg:backdrop-blur-xl lg:shadow-2xl lg:ring-1 lg:ring-black/[0.08]">
       {/* Header */}
-      <div className="px-6 py-5">
+      <div className="px-4 py-3 lg:px-6 lg:py-5">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold tracking-tight text-foreground">{t('app.title')}</h2>
-          <button
-            onClick={resetConfig}
-            className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-          >
-            {t('app.reset')}
-          </button>
+          <div className="flex items-center gap-2">
+            <ConfigCodeDialog />
+            <button
+              onClick={resetConfig}
+              className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              {t('app.reset')}
+            </button>
+          </div>
         </div>
       </div>
 

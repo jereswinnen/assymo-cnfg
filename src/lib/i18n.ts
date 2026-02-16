@@ -130,6 +130,16 @@ const nl: Record<string, string> = {
   'schematic.width': 'Breedte',
   'schematic.depth': 'Diepte',
   'export.button': 'Exporteren',
+
+  // Config code
+  'code.title': 'Configuratiecode',
+  'code.currentLabel': 'Uw configuratiecode',
+  'code.copy': 'Kopieer',
+  'code.copied': 'Gekopieerd!',
+  'code.loadTitle': 'Code laden',
+  'code.loadPlaceholder': 'Voer code in...',
+  'code.load': 'Laden',
+  'code.invalidCode': 'Ongeldige code',
 };
 
 export function t(key: string): string {

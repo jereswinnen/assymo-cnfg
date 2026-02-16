@@ -41,6 +41,7 @@ interface ConfigState {
   toggleCornerBraces: () => void;
   setAccordionSection: (n: number) => void;
   resetConfig: () => void;
+  loadConfig: (config: BuildingConfig) => void;
 
   // Computed selectors
   getSelectedWallConfig: () => WallConfig | null;
@@ -176,6 +177,13 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   resetConfig: () =>
     set({
       config: makeDefaultConfig(),
+      selectedElement: null,
+      activeAccordionSection: 1,
+    }),
+
+  loadConfig: (config) =>
+    set({
+      config,
       selectedElement: null,
       activeAccordionSection: 1,
     }),

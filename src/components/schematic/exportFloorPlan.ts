@@ -1,5 +1,6 @@
 import type { BuildingConfig, WallId } from '@/types/building';
 import { t } from '@/lib/i18n';
+import { encodeConfig } from '@/lib/configCode';
 import {
   WALL_MATERIALS,
   ROOF_COVERINGS,
@@ -99,6 +100,7 @@ export function exportFloorPlan(config: BuildingConfig) {
   const svgMarkup = svgEl.outerHTML;
 
   const specRows = buildSpecRows(config);
+  const configCode = encodeConfig(config);
   const title = `${t('app.title')} — ${t('schematic.title')}`;
   const date = new Date().toLocaleDateString('nl-NL', {
     year: 'numeric',
@@ -133,7 +135,10 @@ export function exportFloorPlan(config: BuildingConfig) {
 <div class="page">
   <div class="header">
     <h1>${title}</h1>
-    <span class="date">${date}</span>
+    <div style="text-align:right">
+      <span class="date">${date}</span><br>
+      <span style="font-family:monospace;font-size:11px;color:#666">Code: ${configCode}</span>
+    </div>
   </div>
   <div class="plan-container">${svgMarkup}</div>
 </div>
@@ -142,7 +147,10 @@ export function exportFloorPlan(config: BuildingConfig) {
 <div class="page">
   <div class="header">
     <h1>${t('app.title')} — ${t('section.6')}</h1>
-    <span class="date">${date}</span>
+    <div style="text-align:right">
+      <span class="date">${date}</span><br>
+      <span style="font-family:monospace;font-size:11px;color:#666">Code: ${configCode}</span>
+    </div>
   </div>
   <div class="specs">
     <table>${specRows}</table>
