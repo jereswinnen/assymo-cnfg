@@ -8,7 +8,7 @@ const GROUND_W = 25;
 const GROUND_D = 25;
 const GROUND_H = 1.2;
 const GROUND_R = 0.2;
-const GRASS_TILE = 3;
+const GRASS_TILE = 4;
 const EARTH_TILE = 2;
 
 function useRepeatingTexture(path: string, repeatX: number, repeatY: number, srgb: boolean): Texture {
