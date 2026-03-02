@@ -147,7 +147,7 @@ export default function BuildingScene() {
       onPointerMissed={() => clearSelection()}
       style={{ background: '#6a9fd8' }}
     >
-      <ambientLight intensity={0.5} />
+      <ambientLight intensity={0.7} />
       <directionalLight
         position={[10, 15, 10]}
         intensity={1.2}

@@ -2,17 +2,16 @@
 
 import { useRef, useState, useMemo, useCallback } from 'react';
 import { Mesh } from 'three';
-import { Edges } from '@react-three/drei';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
-import { ROOF_COVERINGS, BEAM_H, DECK_T } from '@/lib/constants';
+import { ROOF_COVERINGS, TRIM_COLORS, BEAM_H } from '@/lib/constants';
 import { useRoofTexture } from '@/lib/textures';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ThreePointerEvent = any;
 
-const ROOF_THICKNESS = 0.08;
-const ROOF_OVERHANG = 0.3;
+const EPDM_THICKNESS = 0.02;
+const ROOF_EDGE = 0.12; // must match TimberFrame
 
 export default function Roof() {
   const meshRef = useRef<Mesh>(null);
@@ -33,12 +32,12 @@ export default function Roof() {
   const isSelected = selectedElement?.type === 'roof';
   const roofTexture = useRoofTexture(roof.coveringId, width, depth);
 
-  // Compute overhang per side (no overhang on connected sides)
-  const overhang = useMemo(() => {
-    const sides = { left: ROOF_OVERHANG, right: ROOF_OVERHANG, front: ROOF_OVERHANG, back: ROOF_OVERHANG };
+  // Determine which sides have connections (for suppressing trim)
+  const connectedSides = useMemo(() => {
+    const sides = new Set<string>();
     for (const c of connections) {
-      if (c.buildingAId === buildingId) (sides as Record<string, number>)[c.sideA] = 0;
-      if (c.buildingBId === buildingId) (sides as Record<string, number>)[c.sideB] = 0;
+      if (c.buildingAId === buildingId) sides.add(c.sideA);
+      if (c.buildingBId === buildingId) sides.add(c.sideB);
     }
     return sides;
   }, [connections, buildingId]);
@@ -78,10 +77,13 @@ export default function Roof() {
     emissiveIntensity: isSelected ? 0.35 : hovered ? 0.15 : 0,
   };
 
+  const trimColor = TRIM_COLORS.find((c) => c.id === roof.trimColorId)?.hex ?? '#3C3C3C';
+
   if (roof.type === 'flat') {
     return <FlatRoof
       width={width} depth={depth} height={height}
-      overhang={overhang}
+      connectedSides={connectedSides}
+      trimColor={trimColor}
       materialProps={materialProps}
       isSelected={isSelected}
       meshRef={meshRef}
@@ -103,11 +105,12 @@ export default function Roof() {
   />;
 }
 
-interface Overhang { left: number; right: number; front: number; back: number; }
+const TRIM_T = 0.02; // trim strip thickness
 
 interface FlatRoofProps {
   width: number; depth: number; height: number;
-  overhang: Overhang;
+  connectedSides: Set<string>;
+  trimColor: string;
   materialProps: Record<string, unknown>;
   isSelected: boolean;
   meshRef: React.RefObject<Mesh | null>;
@@ -117,26 +120,54 @@ interface FlatRoofProps {
   onClick: (e: ThreePointerEvent) => void;
 }
 
-function FlatRoof({ width, depth, height, overhang, materialProps, isSelected, meshRef, onPointerOver, onPointerOut, onPointerDown, onClick }: FlatRoofProps) {
-  const roofW = width + overhang.left + overhang.right;
-  const roofD = depth + overhang.front + overhang.back;
-  // Offset center if overhang is asymmetric
-  const offX = (overhang.right - overhang.left) / 2;
-  const offZ = (overhang.back - overhang.front) / 2;
+function FlatRoof({ width, depth, height, connectedSides, trimColor, materialProps, isSelected, meshRef, onPointerOver, onPointerOut, onPointerDown, onClick }: FlatRoofProps) {
+  const epdmY = height + BEAM_H + ROOF_EDGE + EPDM_THICKNESS / 2;
+  const trimY = height + BEAM_H + ROOF_EDGE + EPDM_THICKNESS / 2;
+
+  const hw = width / 2;
+  const hd = depth / 2;
+
+  // Trim strips on non-connected edges (sits on top of the wood edge)
+  const trimStrips = useMemo(() => {
+    const strips: { pos: [number, number, number]; size: [number, number, number] }[] = [];
+    if (!connectedSides.has('front')) {
+      strips.push({ pos: [0, trimY, -hd], size: [width, EPDM_THICKNESS, TRIM_T] });
+    }
+    if (!connectedSides.has('back')) {
+      strips.push({ pos: [0, trimY, hd], size: [width, EPDM_THICKNESS, TRIM_T] });
+    }
+    if (!connectedSides.has('left')) {
+      strips.push({ pos: [-hw, trimY, 0], size: [TRIM_T, EPDM_THICKNESS, depth] });
+    }
+    if (!connectedSides.has('right')) {
+      strips.push({ pos: [hw, trimY, 0], size: [TRIM_T, EPDM_THICKNESS, depth] });
+    }
+    return strips;
+  }, [width, depth, hw, hd, trimY, connectedSides]);
 
   return (
-    <mesh
-      ref={meshRef}
-      position={[offX, height + BEAM_H + DECK_T + ROOF_THICKNESS / 2, offZ]}
-      onPointerOver={onPointerOver}
-      onPointerOut={onPointerOut}
-      onPointerDown={onPointerDown}
-      onClick={onClick}
-    >
-      <boxGeometry args={[roofW, ROOF_THICKNESS, roofD]} />
-      <meshStandardMaterial key={materialProps.map ? 'textured' : 'flat'} {...materialProps} />
-      <Edges color={isSelected ? '#2563eb' : '#333333'} threshold={15} />
-    </mesh>
+    <group>
+      {/* EPDM membrane — thin, on top of the wood deck */}
+      <mesh
+        ref={meshRef}
+        position={[0, epdmY, 0]}
+        onPointerOver={onPointerOver}
+        onPointerOut={onPointerOut}
+        onPointerDown={onPointerDown}
+        onClick={onClick}
+      >
+        <boxGeometry args={[width, EPDM_THICKNESS, depth]} />
+        <meshStandardMaterial key={materialProps.map ? 'textured' : 'flat'} {...materialProps} />
+      </mesh>
+
+      {/* Metal trim strips on exposed edges */}
+      {trimStrips.map((s, i) => (
+        <mesh key={i} position={s.pos}>
+          <boxGeometry args={s.size} />
+          <meshStandardMaterial color={trimColor} metalness={0.5} roughness={0.35} />
+        </mesh>
+      ))}
+    </group>
   );
 }
 
@@ -179,10 +210,9 @@ function PitchedRoof({ width, depth, height, roofPitch, materialProps, isSelecte
           onPointerDown={onPointerDown}
           onClick={onClick}
         >
-          <boxGeometry args={[roofSlantLength, ROOF_THICKNESS, depth]} />
+          <boxGeometry args={[roofSlantLength, ROOF_EDGE, depth]} />
           <meshStandardMaterial key={materialProps.map ? 'textured' : 'flat'} {...materialProps} />
-          <Edges color={isSelected ? '#2563eb' : '#333333'} threshold={15} />
-        </mesh>
+            </mesh>
       ))}
     </group>
   );

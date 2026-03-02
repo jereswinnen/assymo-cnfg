@@ -7,8 +7,6 @@ import { useConfigStore } from '@/store/useConfigStore';
 import { POST_SIZE, BEAM_H, DECK_T, POST_SPACING } from '@/lib/constants';
 
 const BEAM_W = 0.15;
-const FASCIA_T = 0.025;
-const FASCIA_H = 0.20;
 
 export const TIMBER_ROOF_OFFSET = BEAM_H + DECK_T;
 
@@ -115,15 +113,10 @@ export default function TimberFrame() {
     }
 
     if (isFlat) {
-      const deckY = height + BEAM_H + DECK_T / 2;
-      boxes.push({ pos: [0, deckY, 0], size: [width + 0.1, DECK_T, depth + 0.1] });
-
-      const fasciaY = height + BEAM_H + DECK_T + FASCIA_H / 2;
-      const ov = 0.15;
-      if (!suppB) boxes.push({ pos: [0, fasciaY, hd + ov], size: [width + 2 * ov, FASCIA_H, FASCIA_T] });
-      if (!suppF) boxes.push({ pos: [0, fasciaY, -hd - ov], size: [width + 2 * ov, FASCIA_H, FASCIA_T] });
-      if (!suppL) boxes.push({ pos: [-hw - ov, fasciaY, 0], size: [FASCIA_T, FASCIA_H, depth + 2 * ov] });
-      if (!suppR) boxes.push({ pos: [hw + ov, fasciaY, 0], size: [FASCIA_T, FASCIA_H, depth + 2 * ov] });
+      // Tall deck = visible wood edge of the roof
+      const ROOF_EDGE = 0.12;
+      const deckY = height + BEAM_H + ROOF_EDGE / 2;
+      boxes.push({ pos: [0, deckY, 0], size: [width, ROOF_EDGE, depth] });
     } else {
       const pitchRad = (roofPitch * Math.PI) / 180;
       const roofRise = Math.tan(pitchRad) * hw;

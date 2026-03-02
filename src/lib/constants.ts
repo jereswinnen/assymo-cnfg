@@ -27,7 +27,7 @@ export const WALL_MATERIALS: SurfaceMaterial[] = [
 export const ROOF_COVERINGS: RoofCovering[] = [
   { id: 'dakpannen', label: 'Dakpannen', pricePerSqm: 55, color: '#8B4513' },
   { id: 'riet', label: 'Riet', pricePerSqm: 85, color: '#C4A84E' },
-  { id: 'epdm', label: 'EPDM', pricePerSqm: 35, color: '#4A4A4A' },
+  { id: 'epdm', label: 'EPDM', pricePerSqm: 35, color: '#2C2C2C' },
   { id: 'polycarbonaat', label: 'Polycarbonaat', pricePerSqm: 40, color: '#D4E8F0' },
   { id: 'metaal', label: 'Staalplaten', pricePerSqm: 50, color: '#708090' },
 ];
