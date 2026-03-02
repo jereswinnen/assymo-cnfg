@@ -1,14 +1,26 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
 import SchematicPosts from './SchematicPosts';
 import SchematicWalls from './SchematicWalls';
 import SchematicOpenings from './SchematicOpenings';
 import DimensionLine from './DimensionLine';
+import type { WallSide, SnapConnection } from '@/types/building';
+
+function getConnectedSides(buildingId: string, connections: SnapConnection[]): Set<WallSide> {
+  const sides = new Set<WallSide>();
+  for (const c of connections) {
+    if (c.buildingAId === buildingId) sides.add(c.sideA);
+    if (c.buildingBId === buildingId) sides.add(c.sideB);
+  }
+  return sides;
+}
 
 export default function SchematicView() {
   const buildings = useConfigStore((s) => s.buildings);
+  const connections = useConfigStore((s) => s.connections);
   const selectedElement = useConfigStore((s) => s.selectedElement);
 
   // Compute bounding box of all buildings
@@ -23,8 +35,23 @@ export default function SchematicView() {
     maxZ = Math.max(maxZ, cz + hd);
   }
 
-  const pad = 1.8;
-  const viewBox = `${minX - pad} ${minZ - pad} ${maxX - minX + 2 * pad} ${maxZ - minZ + 2 * pad}`;
+  const totalW = maxX - minX;
+  const totalD = maxZ - minZ;
+  const showTotalDimension = buildings.length > 1 && connections.length > 0;
+
+  const pad = showTotalDimension ? 2.4 : 1.8;
+  const viewBox = `${minX - pad} ${minZ - pad} ${totalW + 2 * pad} ${totalD + 2 * pad}`;
+
+  // Per-building: which side is the outermost for the depth dimension?
+  const rightmostBuilding = useMemo(() => {
+    let best = buildings[0];
+    for (const b of buildings) {
+      if (b.position[0] + b.dimensions.width / 2 > best.position[0] + best.dimensions.width / 2) {
+        best = b;
+      }
+    }
+    return best;
+  }, [buildings]);
 
   return (
     <div className="flex flex-col h-full p-6">
@@ -38,6 +65,7 @@ export default function SchematicView() {
             const { width, depth } = b.dimensions;
             const hw = width / 2;
             const hd = depth / 2;
+            const connected = getConnectedSides(b.id, connections);
 
             return (
               <g key={b.id}>
@@ -48,9 +76,9 @@ export default function SchematicView() {
                   width={width}
                   height={depth}
                   fill={b.type === 'berging' ? '#f0ebe4' : '#fafafa'}
-                  stroke="#ddd"
+                  stroke={b.type === 'berging' ? '#ccc' : '#bbb'}
                   strokeWidth={0.02}
-                  strokeDasharray="0.1 0.06"
+                  strokeDasharray={b.type === 'overkapping' ? '0.12 0.06' : undefined}
                 />
 
                 {/* Posts */}
@@ -74,7 +102,7 @@ export default function SchematicView() {
                   offsetY={oz}
                 />
 
-                {/* Dimension lines */}
+                {/* Per-building width dimension */}
                 <DimensionLine
                   x1={ox - hw}
                   y1={oz + hd}
@@ -83,29 +111,33 @@ export default function SchematicView() {
                   offset={0.8}
                   label={`${width.toFixed(1)}m`}
                 />
-                <DimensionLine
-                  x1={ox + hw}
-                  y1={oz - hd}
-                  x2={ox + hw}
-                  y2={oz + hd}
-                  offset={0.8}
-                  label={`${depth.toFixed(1)}m`}
-                />
+
+                {/* Depth dimension — only on rightmost building */}
+                {b.id === rightmostBuilding.id && (
+                  <DimensionLine
+                    x1={maxX}
+                    y1={minZ}
+                    x2={maxX}
+                    y2={maxZ}
+                    offset={showTotalDimension ? 1.6 : 0.8}
+                    label={`${depth.toFixed(1)}m`}
+                  />
+                )}
 
                 {/* Building type label */}
                 <text
                   x={ox}
                   y={oz}
-                  fontSize={0.18 * 0.85}
+                  fontSize={0.22}
                   fontFamily="system-ui, sans-serif"
-                  fill="#bbb"
+                  fill="#aaa"
                   textAnchor="middle"
                   dominantBaseline="central"
                 >
                   {t(`building.name.${b.type}`)}
                 </text>
 
-                {/* Wall labels */}
+                {/* Wall labels — skip on connected sides */}
                 <g
                   fontSize={0.18}
                   fontFamily="system-ui, sans-serif"
@@ -113,26 +145,46 @@ export default function SchematicView() {
                   textAnchor="middle"
                   dominantBaseline="central"
                 >
-                  <text x={ox} y={oz + hd + 0.35}>{t('wall.front')}</text>
-                  <text x={ox} y={oz - hd - 0.35}>{t('wall.back')}</text>
-                  <text
-                    x={ox - hw - 0.35}
-                    y={oz}
-                    transform={`rotate(-90, ${ox - hw - 0.35}, ${oz})`}
-                  >
-                    {t('wall.left')}
-                  </text>
-                  <text
-                    x={ox + hw + 0.35}
-                    y={oz}
-                    transform={`rotate(90, ${ox + hw + 0.35}, ${oz})`}
-                  >
-                    {t('wall.right')}
-                  </text>
+                  {!connected.has('front') && (
+                    <text x={ox} y={oz + hd + 0.35}>{t('wall.front')}</text>
+                  )}
+                  {!connected.has('back') && (
+                    <text x={ox} y={oz - hd - 0.35}>{t('wall.back')}</text>
+                  )}
+                  {!connected.has('left') && (
+                    <text
+                      x={ox - hw - 0.35}
+                      y={oz}
+                      transform={`rotate(-90, ${ox - hw - 0.35}, ${oz})`}
+                    >
+                      {t('wall.left')}
+                    </text>
+                  )}
+                  {!connected.has('right') && (
+                    <text
+                      x={ox + hw + 0.35}
+                      y={oz}
+                      transform={`rotate(90, ${ox + hw + 0.35}, ${oz})`}
+                    >
+                      {t('wall.right')}
+                    </text>
+                  )}
                 </g>
               </g>
             );
           })}
+
+          {/* Total dimension line spanning all buildings */}
+          {showTotalDimension && (
+            <DimensionLine
+              x1={minX}
+              y1={maxZ}
+              x2={maxX}
+              y2={maxZ}
+              offset={1.6}
+              label={`${totalW.toFixed(1)}m`}
+            />
+          )}
         </svg>
       </div>
     </div>

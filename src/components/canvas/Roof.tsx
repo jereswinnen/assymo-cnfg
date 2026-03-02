@@ -12,6 +12,7 @@ import { useRoofTexture } from '@/lib/textures';
 type ThreePointerEvent = any;
 
 const ROOF_THICKNESS = 0.08;
+const ROOF_OVERHANG = 0.3;
 
 export default function Roof() {
   const meshRef = useRef<Mesh>(null);
@@ -20,6 +21,7 @@ export default function Roof() {
   const buildingId = useBuildingId();
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
   const roof = useConfigStore((s) => s.roof);
+  const connections = useConfigStore((s) => s.connections);
   const selectedElement = useConfigStore((s) => s.selectedElement);
   const selectElement = useConfigStore((s) => s.selectElement);
 
@@ -30,6 +32,16 @@ export default function Roof() {
 
   const isSelected = selectedElement?.type === 'roof';
   const roofTexture = useRoofTexture(roof.coveringId, width, depth);
+
+  // Compute overhang per side (no overhang on connected sides)
+  const overhang = useMemo(() => {
+    const sides = { left: ROOF_OVERHANG, right: ROOF_OVERHANG, front: ROOF_OVERHANG, back: ROOF_OVERHANG };
+    for (const c of connections) {
+      if (c.buildingAId === buildingId) (sides as Record<string, number>)[c.sideA] = 0;
+      if (c.buildingBId === buildingId) (sides as Record<string, number>)[c.sideB] = 0;
+    }
+    return sides;
+  }, [connections, buildingId]);
 
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
 
@@ -69,6 +81,7 @@ export default function Roof() {
   if (roof.type === 'flat') {
     return <FlatRoof
       width={width} depth={depth} height={height}
+      overhang={overhang}
       materialProps={materialProps}
       isSelected={isSelected}
       meshRef={meshRef}
@@ -90,8 +103,11 @@ export default function Roof() {
   />;
 }
 
+interface Overhang { left: number; right: number; front: number; back: number; }
+
 interface FlatRoofProps {
   width: number; depth: number; height: number;
+  overhang: Overhang;
   materialProps: Record<string, unknown>;
   isSelected: boolean;
   meshRef: React.RefObject<Mesh | null>;
@@ -101,17 +117,23 @@ interface FlatRoofProps {
   onClick: (e: ThreePointerEvent) => void;
 }
 
-function FlatRoof({ width, depth, height, materialProps, isSelected, meshRef, onPointerOver, onPointerOut, onPointerDown, onClick }: FlatRoofProps) {
+function FlatRoof({ width, depth, height, overhang, materialProps, isSelected, meshRef, onPointerOver, onPointerOut, onPointerDown, onClick }: FlatRoofProps) {
+  const roofW = width + overhang.left + overhang.right;
+  const roofD = depth + overhang.front + overhang.back;
+  // Offset center if overhang is asymmetric
+  const offX = (overhang.right - overhang.left) / 2;
+  const offZ = (overhang.back - overhang.front) / 2;
+
   return (
     <mesh
       ref={meshRef}
-      position={[0, height + BEAM_H + DECK_T + ROOF_THICKNESS / 2, 0]}
+      position={[offX, height + BEAM_H + DECK_T + ROOF_THICKNESS / 2, offZ]}
       onPointerOver={onPointerOver}
       onPointerOut={onPointerOut}
       onPointerDown={onPointerDown}
       onClick={onClick}
     >
-      <boxGeometry args={[width + 0.3, ROOF_THICKNESS, depth + 0.3]} />
+      <boxGeometry args={[roofW, ROOF_THICKNESS, roofD]} />
       <meshStandardMaterial key={materialProps.map ? 'textured' : 'flat'} {...materialProps} />
       <Edges color={isSelected ? '#2563eb' : '#333333'} threshold={15} />
     </mesh>
