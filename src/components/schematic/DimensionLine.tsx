@@ -26,9 +26,9 @@ export default function DimensionLine({ x1, y1, x2, y2, offset, label }: Dimensi
 
   // Extension lines: from near the wall to just past the dimension line
   const extGap = Math.sign(offset) * 0.06;
-  const extOver = Math.sign(offset) * 0.08;
+  const extOver = Math.sign(offset) * 0.10;
 
-  // Text position (midpoint)
+  // Text position (midpoint of dimension line)
   const tx = (ox1 + ox2) / 2;
   const ty = (oy1 + oy2) / 2;
 
@@ -37,10 +37,13 @@ export default function DimensionLine({ x1, y1, x2, y2, offset, label }: Dimensi
   if (angle > 90) angle -= 180;
   if (angle < -90) angle += 180;
 
-  const textOffset = -Math.sign(offset) * 0.12;
+  // Estimate label bounding box for the white background
+  const charW = 0.13;
+  const labelW = label.length * charW + 0.1;
+  const labelH = 0.26;
 
   return (
-    <g stroke="#888" strokeWidth={0.02} fill="none">
+    <g stroke="#777" strokeWidth={0.02} fill="none">
       {/* Extension lines */}
       <line
         x1={x1 + nx * extGap}
@@ -58,32 +61,44 @@ export default function DimensionLine({ x1, y1, x2, y2, offset, label }: Dimensi
       {/* Dimension line */}
       <line x1={ox1} y1={oy1} x2={ox2} y2={oy2} />
 
-      {/* Tick marks (perpendicular) */}
+      {/* Tick marks (perpendicular slash style) */}
       <line
-        x1={ox1 - nx * 0.06}
-        y1={oy1 - ny * 0.06}
-        x2={ox1 + nx * 0.06}
-        y2={oy1 + ny * 0.06}
-        strokeWidth={0.03}
+        x1={ox1 - nx * 0.06 - dx / len * 0.04}
+        y1={oy1 - ny * 0.06 - dy / len * 0.04}
+        x2={ox1 + nx * 0.06 + dx / len * 0.04}
+        y2={oy1 + ny * 0.06 + dy / len * 0.04}
+        strokeWidth={0.025}
       />
       <line
-        x1={ox2 - nx * 0.06}
-        y1={oy2 - ny * 0.06}
-        x2={ox2 + nx * 0.06}
-        y2={oy2 + ny * 0.06}
-        strokeWidth={0.03}
+        x1={ox2 - nx * 0.06 - dx / len * 0.04}
+        y1={oy2 - ny * 0.06 - dy / len * 0.04}
+        x2={ox2 + nx * 0.06 + dx / len * 0.04}
+        y2={oy2 + ny * 0.06 + dy / len * 0.04}
+        strokeWidth={0.025}
+      />
+
+      {/* White background behind label to prevent overlap */}
+      <rect
+        x={tx - labelW / 2}
+        y={ty - labelH / 2}
+        width={labelW}
+        height={labelH}
+        fill="white"
+        stroke="none"
+        transform={`rotate(${angle}, ${tx}, ${ty})`}
       />
 
       {/* Label */}
       <text
-        x={tx + nx * textOffset}
-        y={ty + ny * textOffset}
+        x={tx}
+        y={ty}
         textAnchor="middle"
         dominantBaseline="central"
-        transform={`rotate(${angle}, ${tx + nx * textOffset}, ${ty + ny * textOffset})`}
+        transform={`rotate(${angle}, ${tx}, ${ty})`}
         fontSize={0.22}
+        fontWeight={600}
         fontFamily="system-ui, sans-serif"
-        fill="#555"
+        fill="#444"
         stroke="none"
       >
         {label}

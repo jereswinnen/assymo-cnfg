@@ -7,7 +7,7 @@ import SchematicPosts from './SchematicPosts';
 import SchematicWalls from './SchematicWalls';
 import SchematicOpenings from './SchematicOpenings';
 import DimensionLine from './DimensionLine';
-import type { WallSide, SnapConnection } from '@/types/building';
+import type { WallSide, SnapConnection, BuildingEntity } from '@/types/building';
 
 function getConnectedSides(buildingId: string, connections: SnapConnection[]): Set<WallSide> {
   const sides = new Set<WallSide>();
@@ -16,6 +16,50 @@ function getConnectedSides(buildingId: string, connections: SnapConnection[]): S
     if (c.buildingBId === buildingId) sides.add(c.sideB);
   }
   return sides;
+}
+
+/** Find the connection edge segments between buildings */
+function getConnectionEdges(
+  buildings: BuildingEntity[],
+  connections: SnapConnection[],
+): { x1: number; y1: number; x2: number; y2: number; isOpen: boolean }[] {
+  const edges: { x1: number; y1: number; x2: number; y2: number; isOpen: boolean }[] = [];
+  const byId = new Map(buildings.map(b => [b.id, b]));
+
+  for (const c of connections) {
+    const a = byId.get(c.buildingAId);
+    const b = byId.get(c.buildingBId);
+    if (!a || !b) continue;
+
+    // Find the shared edge segment (overlap on perpendicular axis)
+    const aLeft = a.position[0] - a.dimensions.width / 2;
+    const aRight = a.position[0] + a.dimensions.width / 2;
+    const aTop = a.position[1] - a.dimensions.depth / 2;
+    const aBottom = a.position[1] + a.dimensions.depth / 2;
+    const bLeft = b.position[0] - b.dimensions.width / 2;
+    const bRight = b.position[0] + b.dimensions.width / 2;
+    const bTop = b.position[1] - b.dimensions.depth / 2;
+    const bBottom = b.position[1] + b.dimensions.depth / 2;
+
+    if (c.sideA === 'right' || c.sideA === 'left') {
+      // Vertical shared edge
+      const ex = c.sideA === 'right' ? aRight : aLeft;
+      const overlapTop = Math.max(aTop, bTop);
+      const overlapBottom = Math.min(aBottom, bBottom);
+      if (overlapBottom > overlapTop) {
+        edges.push({ x1: ex, y1: overlapTop, x2: ex, y2: overlapBottom, isOpen: c.isOpen });
+      }
+    } else {
+      // Horizontal shared edge
+      const ey = c.sideA === 'front' ? aBottom : aTop;
+      const overlapLeft = Math.max(aLeft, bLeft);
+      const overlapRight = Math.min(aRight, bRight);
+      if (overlapRight > overlapLeft) {
+        edges.push({ x1: overlapLeft, y1: ey, x2: overlapRight, y2: ey, isOpen: c.isOpen });
+      }
+    }
+  }
+  return edges;
 }
 
 export default function SchematicView() {
@@ -39,10 +83,16 @@ export default function SchematicView() {
   const totalD = maxZ - minZ;
   const showTotalDimension = buildings.length > 1 && connections.length > 0;
 
-  const pad = showTotalDimension ? 2.4 : 1.8;
+  const pad = showTotalDimension ? 2.8 : 2.0;
   const viewBox = `${minX - pad} ${minZ - pad} ${totalW + 2 * pad} ${totalD + 2 * pad}`;
 
-  // Per-building: which side is the outermost for the depth dimension?
+  // Connection edge segments for rendering
+  const connectionEdges = useMemo(
+    () => getConnectionEdges(buildings, connections),
+    [buildings, connections],
+  );
+
+  // Rightmost building for depth dimension placement
   const rightmostBuilding = useMemo(() => {
     let best = buildings[0];
     for (const b of buildings) {
@@ -60,24 +110,48 @@ export default function SchematicView() {
           viewBox={viewBox}
           className="schematic-svg w-full h-full"
         >
+          {/* Defs: diagonal hatch for overkapping */}
+          <defs>
+            <pattern
+              id="hatch-overkapping"
+              width={0.3}
+              height={0.3}
+              patternUnits="userSpaceOnUse"
+              patternTransform="rotate(45)"
+            >
+              <line x1={0} y1={0} x2={0} y2={0.3} stroke="#ddd" strokeWidth={0.02} />
+            </pattern>
+          </defs>
+
           {buildings.map((b) => {
             const [ox, oz] = b.position;
             const { width, depth } = b.dimensions;
             const hw = width / 2;
             const hd = depth / 2;
             const connected = getConnectedSides(b.id, connections);
+            const hasWalls = Object.keys(b.walls).length > 0;
 
             return (
               <g key={b.id}>
+                {/* Building fill */}
+                <rect
+                  x={ox - hw}
+                  y={oz - hd}
+                  width={width}
+                  height={depth}
+                  fill={b.type === 'berging' ? '#f0ebe4' : 'url(#hatch-overkapping)'}
+                  stroke="none"
+                />
+
                 {/* Building outline */}
                 <rect
                   x={ox - hw}
                   y={oz - hd}
                   width={width}
                   height={depth}
-                  fill={b.type === 'berging' ? '#f0ebe4' : '#fafafa'}
-                  stroke={b.type === 'berging' ? '#ccc' : '#bbb'}
-                  strokeWidth={0.02}
+                  fill="none"
+                  stroke={b.type === 'berging' ? '#999' : '#bbb'}
+                  strokeWidth={b.type === 'berging' ? 0.03 : 0.02}
                   strokeDasharray={b.type === 'overkapping' ? '0.12 0.06' : undefined}
                 />
 
@@ -108,80 +182,95 @@ export default function SchematicView() {
                   y1={oz + hd}
                   x2={ox + hw}
                   y2={oz + hd}
-                  offset={0.8}
+                  offset={showTotalDimension ? 1.0 : 0.8}
                   label={`${width.toFixed(1)}m`}
                 />
-
-                {/* Depth dimension — only on rightmost building */}
-                {b.id === rightmostBuilding.id && (
-                  <DimensionLine
-                    x1={maxX}
-                    y1={minZ}
-                    x2={maxX}
-                    y2={maxZ}
-                    offset={showTotalDimension ? 1.6 : 0.8}
-                    label={`${depth.toFixed(1)}m`}
-                  />
-                )}
 
                 {/* Building type label */}
                 <text
                   x={ox}
                   y={oz}
-                  fontSize={0.22}
+                  fontSize={0.24}
+                  fontWeight={500}
                   fontFamily="system-ui, sans-serif"
-                  fill="#aaa"
+                  fill={b.type === 'berging' ? '#888' : '#aaa'}
                   textAnchor="middle"
                   dominantBaseline="central"
                 >
                   {t(`building.name.${b.type}`)}
                 </text>
 
-                {/* Wall labels — skip on connected sides */}
-                <g
-                  fontSize={0.18}
-                  fontFamily="system-ui, sans-serif"
-                  fill="#999"
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                >
-                  {!connected.has('front') && (
-                    <text x={ox} y={oz + hd + 0.35}>{t('wall.front')}</text>
-                  )}
-                  {!connected.has('back') && (
-                    <text x={ox} y={oz - hd - 0.35}>{t('wall.back')}</text>
-                  )}
-                  {!connected.has('left') && (
-                    <text
-                      x={ox - hw - 0.35}
-                      y={oz}
-                      transform={`rotate(-90, ${ox - hw - 0.35}, ${oz})`}
-                    >
-                      {t('wall.left')}
-                    </text>
-                  )}
-                  {!connected.has('right') && (
-                    <text
-                      x={ox + hw + 0.35}
-                      y={oz}
-                      transform={`rotate(90, ${ox + hw + 0.35}, ${oz})`}
-                    >
-                      {t('wall.right')}
-                    </text>
-                  )}
-                </g>
+                {/* Wall labels — only for buildings with walls, skip connected sides */}
+                {hasWalls && (
+                  <g
+                    fontSize={0.16}
+                    fontFamily="system-ui, sans-serif"
+                    fill="#888"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                  >
+                    {!connected.has('front') && (
+                      <text x={ox} y={oz + hd + 0.3}>{t('wall.front')}</text>
+                    )}
+                    {!connected.has('back') && (
+                      <text x={ox} y={oz - hd - 0.3}>{t('wall.back')}</text>
+                    )}
+                    {!connected.has('left') && (
+                      <text
+                        x={ox - hw - 0.3}
+                        y={oz}
+                        transform={`rotate(-90, ${ox - hw - 0.3}, ${oz})`}
+                      >
+                        {t('wall.left')}
+                      </text>
+                    )}
+                    {!connected.has('right') && (
+                      <text
+                        x={ox + hw + 0.3}
+                        y={oz}
+                        transform={`rotate(90, ${ox + hw + 0.3}, ${oz})`}
+                      >
+                        {t('wall.right')}
+                      </text>
+                    )}
+                  </g>
+                )}
               </g>
             );
           })}
 
-          {/* Total dimension line spanning all buildings */}
+          {/* Connection edge indicators */}
+          {connectionEdges.map((edge, i) => (
+            <line
+              key={`conn-${i}`}
+              x1={edge.x1}
+              y1={edge.y1}
+              x2={edge.x2}
+              y2={edge.y2}
+              stroke={edge.isOpen ? '#3b82f6' : '#888'}
+              strokeWidth={0.04}
+              strokeDasharray={edge.isOpen ? '0.12 0.08' : undefined}
+            />
+          ))}
+
+          {/* Depth dimension — outside rightmost edge (negative offset = push right) */}
+          <DimensionLine
+            x1={maxX}
+            y1={minZ}
+            x2={maxX}
+            y2={maxZ}
+            offset={showTotalDimension ? -2.0 : -1.0}
+            label={`${totalD.toFixed(1)}m`}
+          />
+
+          {/* Total width dimension spanning all buildings */}
           {showTotalDimension && (
             <DimensionLine
               x1={minX}
               y1={maxZ}
               x2={maxX}
               y2={maxZ}
-              offset={1.6}
+              offset={1.8}
               label={`${totalW.toFixed(1)}m`}
             />
           )}

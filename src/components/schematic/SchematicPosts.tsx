@@ -42,9 +42,9 @@ export default function SchematicPosts({ width, depth, offsetX = 0, offsetY = 0 
           y={offsetY + y - half}
           width={POST_SIZE}
           height={POST_SIZE}
-          fill="#5C4A2A"
-          stroke="#3A2E1A"
-          strokeWidth={0.015}
+          fill="#8B7355"
+          stroke="#5C4A2A"
+          strokeWidth={0.02}
         />
       ))}
     </g>
