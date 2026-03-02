@@ -9,7 +9,7 @@ import SectionLabel from '@/components/ui/SectionLabel';
 import ColorSwatches from './ColorSwatches';
 
 export default function RoofConfigSection() {
-  const roof = useConfigStore((s) => s.config.roof);
+  const roof = useConfigStore((s) => s.roof);
   const updateRoof = useConfigStore((s) => s.updateRoof);
 
   return (

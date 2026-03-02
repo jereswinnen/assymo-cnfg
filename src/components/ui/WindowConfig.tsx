@@ -10,16 +10,20 @@ import type { WallId } from '@/types/building';
 
 interface WindowConfigProps {
   wallId: WallId;
+  buildingId: string;
 }
 
-export default function WindowConfig({ wallId }: WindowConfigProps) {
-  const wallCfg = useConfigStore((s) => s.config.walls[wallId]);
-  const updateWall = useConfigStore((s) => s.updateWall);
+export default function WindowConfig({ wallId, buildingId }: WindowConfigProps) {
+  const wallCfg = useConfigStore((s) => {
+    const b = s.buildings.find(b => b.id === buildingId);
+    return b?.walls[wallId] ?? null;
+  });
+  const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
 
   if (!wallCfg) return null;
 
   function handleChange(field: string, value: unknown) {
-    updateWall(wallId, { [field]: value });
+    updateBuildingWall(buildingId, wallId, { [field]: value });
   }
 
   return (

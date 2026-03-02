@@ -86,15 +86,12 @@ export function createWallWithOpeningsGeo(
   // Rotate geometry so it matches the boxGeometry orientation for each wall type.
   switch (wallId) {
     case 'back':
-    case 'ov_back':
       geo.rotateY(Math.PI);
       break;
     case 'left':
       geo.rotateY(Math.PI / 2);
       break;
     case 'right':
-    case 'divider':
-    case 'ov_right':
       geo.rotateY(-Math.PI / 2);
       break;
   }

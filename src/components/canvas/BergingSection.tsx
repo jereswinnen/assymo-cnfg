@@ -1,28 +1,23 @@
 'use client';
 
 import Wall from './Wall';
+import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
-import { isOverkappingWall } from '@/lib/constants';
 import type { WallId } from '@/types/building';
 
-interface BergingSectionProps {
-  sectionWidth: number;
-  offsetX: number;
-}
+export default function BergingSection() {
+  const buildingId = useBuildingId();
+  const walls = useConfigStore((s) => {
+    const b = s.buildings.find(b => b.id === buildingId);
+    return b?.walls ?? {};
+  });
 
-export default function BergingSection({ sectionWidth, offsetX }: BergingSectionProps) {
-  const walls = useConfigStore((s) => s.config.walls);
-  const wallIds = (Object.keys(walls) as WallId[]).filter((id) => !isOverkappingWall(id));
+  const wallIds = Object.keys(walls) as WallId[];
 
   return (
     <group>
       {wallIds.map((id) => (
-        <Wall
-          key={id}
-          wallId={id}
-          sectionWidth={sectionWidth}
-          offsetX={offsetX}
-        />
+        <Wall key={id} wallId={id} />
       ))}
     </group>
   );

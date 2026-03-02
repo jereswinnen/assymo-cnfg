@@ -4,19 +4,21 @@ import { useState, useCallback } from 'react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { QrCode, Copy, Check, X } from 'lucide-react';
 import { useConfigStore } from '@/store/useConfigStore';
-import { encodeConfig, decodeConfig, formatCode } from '@/lib/configCode';
+import { encodeState, decodeState, formatCode } from '@/lib/configCode';
 import { t } from '@/lib/i18n';
 
 export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = {}) {
-  const config = useConfigStore((s) => s.config);
-  const loadConfig = useConfigStore((s) => s.loadConfig);
+  const buildings = useConfigStore((s) => s.buildings);
+  const connections = useConfigStore((s) => s.connections);
+  const roof = useConfigStore((s) => s.roof);
+  const loadState = useConfigStore((s) => s.loadState);
 
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [error, setError] = useState('');
 
-  const currentCode = open ? encodeConfig(config) : '';
+  const currentCode = open ? encodeState(buildings, connections, roof) : '';
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(currentCode).then(() => {
@@ -26,7 +28,6 @@ export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = 
   }, [currentCode]);
 
   const handleInputChange = (val: string) => {
-    // Auto-format with dashes as the user types
     const raw = val.replace(/[^0-9a-zA-Z]/g, '');
     setInputValue(formatCode(raw));
     setError('');
@@ -34,8 +35,8 @@ export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = 
 
   const handleLoad = () => {
     try {
-      const decoded = decodeConfig(inputValue);
-      loadConfig(decoded);
+      const { buildings: b, connections: c, roof: r } = decodeState(inputValue);
+      loadState(b, c, r);
       setInputValue('');
       setError('');
       setOpen(false);
@@ -80,7 +81,6 @@ export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = 
             </DialogPrimitive.Close>
           </div>
 
-          {/* Current code display */}
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground">
               {t('code.currentLabel')}
@@ -108,10 +108,8 @@ export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = 
             </div>
           </div>
 
-          {/* Separator */}
           <div className="my-5 h-px bg-border" />
 
-          {/* Load code */}
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground">
               {t('code.loadTitle')}

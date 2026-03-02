@@ -1,4 +1,4 @@
-export type BuildingType = 'overkapping' | 'berging' | 'combined';
+export type BuildingType = 'overkapping' | 'berging';
 export type RoofType = 'flat' | 'pitched';
 export type RoofCoveringId = 'dakpannen' | 'riet' | 'epdm' | 'polycarbonaat' | 'metaal';
 export type TrimColorId = 'antraciet' | 'wit' | 'zwart' | 'bruin' | 'groen';
@@ -7,11 +7,10 @@ export interface BuildingDimensions {
   width: number;
   depth: number;
   height: number;
-  roofPitch: number; // angle in degrees
-  bergingWidth: number; // width of berging section (for combined type)
 }
 
-export type WallId = 'front' | 'back' | 'left' | 'right' | 'divider' | 'ov_front' | 'ov_back' | 'ov_right';
+export type WallId = 'front' | 'back' | 'left' | 'right';
+export type WallSide = 'left' | 'right' | 'front' | 'back';
 
 export interface SurfaceMaterial {
   id: string;
@@ -46,6 +45,7 @@ export interface FloorConfig {
 
 export interface RoofConfig {
   type: RoofType;
+  pitch: number;
   coveringId: RoofCoveringId;
   trimColorId: TrimColorId;
   insulation: boolean;
@@ -66,16 +66,25 @@ export interface TrimColor {
   hex: string;
 }
 
-export interface BuildingConfig {
-  buildingType: BuildingType;
+export interface BuildingEntity {
+  id: string;
+  type: BuildingType;
+  position: [number, number]; // [x, z]
   dimensions: BuildingDimensions;
-  roof: RoofConfig;
-  floor: FloorConfig;
   walls: Record<string, WallConfig>;
   hasCornerBraces: boolean;
+  floor: FloorConfig;
+}
+
+export interface SnapConnection {
+  buildingAId: string;
+  sideA: WallSide;
+  buildingBId: string;
+  sideB: WallSide;
+  isOpen: boolean;
 }
 
 export type SelectedElement =
-  | { type: 'wall'; id: WallId }
+  | { type: 'wall'; id: WallId; buildingId: string }
   | { type: 'roof' }
   | null;

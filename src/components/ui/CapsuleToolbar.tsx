@@ -15,7 +15,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import ConfigCodeDialog from './ConfigCodeDialog';
-import BuildingTypeSelector from './BuildingTypeSelector';
+import BuildingManager from './BuildingManager';
 import DimensionsControl from './DimensionsControl';
 import RoofConfigSection from './RoofConfigSection';
 import WallSelector from './WallSelector';
@@ -47,11 +47,14 @@ const sections = [
 ] as const;
 
 function WallsContent() {
-  const buildingType = useConfigStore((s) => s.config.buildingType);
+  const selectedBuilding = useConfigStore((s) => {
+    const b = s.buildings.find(b => b.id === s.selectedBuildingId);
+    return b ?? null;
+  });
   return (
     <div className="space-y-4">
       <WallSelector />
-      {buildingType !== 'overkapping' && (
+      {selectedBuilding && selectedBuilding.type !== 'overkapping' && (
         <>
           <Separator />
           <SurfaceProperties />
@@ -63,7 +66,7 @@ function WallsContent() {
 
 function SectionContent({ number }: { number: number }) {
   switch (number) {
-    case 1: return <BuildingTypeSelector />;
+    case 1: return <BuildingManager />;
     case 2: return <DimensionsControl />;
     case 3: return <RoofConfigSection />;
     case 4: return <WallsContent />;

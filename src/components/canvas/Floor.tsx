@@ -1,14 +1,16 @@
 'use client';
 
+import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
 import { FLOOR_MATERIALS } from '@/lib/constants';
 import { useFloorTexture } from '@/lib/textures';
 
 export default function Floor() {
-  const config = useConfigStore((s) => s.config);
-  const { materialId } = config.floor;
+  const buildingId = useBuildingId();
+  const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
 
-  const { width, depth } = config.dimensions;
+  const materialId = building?.floor.materialId ?? 'geen';
+  const { width, depth } = building?.dimensions ?? { width: 8, depth: 4 };
 
   const material = FLOOR_MATERIALS.find((m) => m.id === materialId);
   const pbr = useFloorTexture(materialId, width, depth);

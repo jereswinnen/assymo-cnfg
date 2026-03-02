@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { MeshStandardMaterial, TextureLoader, RepeatWrapping, SRGBColorSpace } from 'three';
+import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
 import { POST_SIZE, BEAM_H, DECK_T, POST_SPACING } from '@/lib/constants';
 
@@ -9,7 +10,6 @@ const BEAM_W = 0.15;
 const FASCIA_T = 0.025;
 const FASCIA_H = 0.20;
 
-// Height of timber structure above wall top (beams + deck)
 export const TIMBER_ROOF_OFFSET = BEAM_H + DECK_T;
 
 interface BoxData {
@@ -19,11 +19,16 @@ interface BoxData {
 }
 
 export default function TimberFrame() {
-  const config = useConfigStore((s) => s.config);
-  const { width, depth, height } = config.dimensions;
-  const isFlat = config.roof.type === 'flat';
-  const roofPitch = config.dimensions.roofPitch;
-  const hasBraces = config.hasCornerBraces;
+  const buildingId = useBuildingId();
+  const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
+  const roof = useConfigStore((s) => s.roof);
+
+  const width = building?.dimensions.width ?? 8;
+  const depth = building?.dimensions.depth ?? 4;
+  const height = building?.dimensions.height ?? 3;
+  const isFlat = roof.type === 'flat';
+  const roofPitch = roof.pitch;
+  const hasBraces = building?.hasCornerBraces ?? false;
 
   const timberMat = useMemo(() => {
     const tex = new TextureLoader().load('/textures/wood.jpg');
@@ -39,7 +44,7 @@ export default function TimberFrame() {
     const hd = depth / 2;
     const boxes: BoxData[] = [];
 
-    // --- Posts ---
+    // Posts
     const postPositions: [number, number][] = [];
     const postsW = Math.max(2, Math.floor(width / POST_SPACING) + 1);
     const stepW = width / (postsW - 1);
@@ -59,19 +64,18 @@ export default function TimberFrame() {
       boxes.push({ pos: [x, height / 2, z], size: [POST_SIZE, height, POST_SIZE] });
     }
 
-    // --- Top plate beams ---
+    // Top plate beams
     const beamY = height + BEAM_H / 2;
     boxes.push({ pos: [0, beamY, hd], size: [width + BEAM_W, BEAM_H, BEAM_W] });
     boxes.push({ pos: [0, beamY, -hd], size: [width + BEAM_W, BEAM_H, BEAM_W] });
     boxes.push({ pos: [-hw, beamY, 0], size: [BEAM_W, BEAM_H, depth + BEAM_W] });
     boxes.push({ pos: [hw, beamY, 0], size: [BEAM_W, BEAM_H, depth + BEAM_W] });
 
-    // --- Corner braces (diagonal 45° brackets) ---
+    // Corner braces
     if (hasBraces) {
-      const braceSpan = 0.45; // horizontal & vertical reach
+      const braceSpan = 0.45;
       const braceDiag = Math.sqrt(2) * braceSpan;
-      const braceThick = 0.10; // thinner than beams for visual clarity
-      // [cx, cz, dx, dz] — dx/dz point inward toward building center
+      const braceThick = 0.10;
       const corners: [number, number, number, number][] = [
         [-hw, hd, 1, -1],
         [hw, hd, -1, -1],
@@ -79,15 +83,12 @@ export default function TimberFrame() {
         [hw, -hd, -1, 1],
       ];
       for (const [cx, cz, dx, dz] of corners) {
-        // Brace top meets beam bottom, brace bottom is braceSpan below
         const midY = height - braceSpan / 2;
-        // Brace in X-beam plane (rotated around Z)
         boxes.push({
           pos: [cx + dx * braceSpan / 2, midY, cz],
           size: [braceDiag, braceThick, braceThick],
           rot: [0, 0, dx * Math.PI / 4],
         });
-        // Brace in Z-beam plane (rotated around X)
         boxes.push({
           pos: [cx, midY, cz + dz * braceSpan / 2],
           size: [braceThick, braceThick, braceDiag],
@@ -97,11 +98,9 @@ export default function TimberFrame() {
     }
 
     if (isFlat) {
-      // --- Solid roof deck ---
       const deckY = height + BEAM_H + DECK_T / 2;
       boxes.push({ pos: [0, deckY, 0], size: [width + 0.1, DECK_T, depth + 0.1] });
 
-      // --- Fascia ---
       const fasciaY = height + BEAM_H + DECK_T + FASCIA_H / 2;
       const ov = 0.15;
       boxes.push({ pos: [0, fasciaY, hd + ov], size: [width + 2 * ov, FASCIA_H, FASCIA_T] });
@@ -109,7 +108,6 @@ export default function TimberFrame() {
       boxes.push({ pos: [-hw - ov, fasciaY, 0], size: [FASCIA_T, FASCIA_H, depth + 2 * ov] });
       boxes.push({ pos: [hw + ov, fasciaY, 0], size: [FASCIA_T, FASCIA_H, depth + 2 * ov] });
     } else {
-      // --- Ridge beam ---
       const pitchRad = (roofPitch * Math.PI) / 180;
       const roofRise = Math.tan(pitchRad) * hw;
       boxes.push({ pos: [0, height + roofRise, 0], size: [BEAM_W, BEAM_H, depth + BEAM_W] });

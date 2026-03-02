@@ -27,7 +27,7 @@ export const WALL_MATERIALS: SurfaceMaterial[] = [
 export const ROOF_COVERINGS: RoofCovering[] = [
   { id: 'dakpannen', label: 'Dakpannen', pricePerSqm: 55, color: '#8B4513' },
   { id: 'riet', label: 'Riet', pricePerSqm: 85, color: '#C4A84E' },
-  { id: 'epdm', label: 'EPDM', pricePerSqm: 35, color: '#2C2C2C' },
+  { id: 'epdm', label: 'EPDM', pricePerSqm: 35, color: '#4A4A4A' },
   { id: 'polycarbonaat', label: 'Polycarbonaat', pricePerSqm: 40, color: '#D4E8F0' },
   { id: 'metaal', label: 'Staalplaten', pricePerSqm: 50, color: '#708090' },
 ];
@@ -46,18 +46,16 @@ export const FINISHES = ['Mat', 'Satijn', 'Glans'] as const;
 
 // Default dimensions
 export const DEFAULT_DIMENSIONS: BuildingDimensions = {
-  width: 8,
+  width: 4,
   depth: 4,
   height: 3,
-  roofPitch: 0,
-  bergingWidth: 4,
 };
 
 // Door materials
 export interface DoorMaterial {
   id: DoorMaterialId;
   label: string;
-  surcharge: number; // extra cost on top of base door price
+  surcharge: number;
 }
 
 export const DOOR_MATERIALS: DoorMaterial[] = [
@@ -74,14 +72,7 @@ export const DOOR_BASE_PRICE: Record<DoorSize, number> = {
 };
 export const DOOR_WINDOW_SURCHARGE = 200;
 
-export const DOUBLE_DOOR_W = 1.6; // double door width in meters
-
-// Overkapping wall IDs (optional walls for combined building type)
-export const OVERKAPPING_WALL_IDS: WallId[] = ['ov_front', 'ov_back', 'ov_right'];
-
-export function isOverkappingWall(id: WallId): boolean {
-  return (OVERKAPPING_WALL_IDS as string[]).includes(id);
-}
+export const DOUBLE_DOOR_W = 1.6;
 
 // Default wall config
 export const DEFAULT_WALL: WallConfig = {
@@ -97,9 +88,10 @@ export const DEFAULT_WALL: WallConfig = {
   windowCount: 0,
 };
 
-// Default roof config (unified)
+// Default roof config
 export const DEFAULT_ROOF: RoofConfig = {
   type: 'flat',
+  pitch: 0,
   coveringId: 'epdm',
   trimColorId: 'antraciet',
   insulation: true,
@@ -130,23 +122,13 @@ export const DEFAULT_FLOOR: FloorConfig = {
 export function getDefaultWalls(type: BuildingType): Record<string, WallConfig> {
   switch (type) {
     case 'overkapping':
-      // Open carport — no walls
       return {};
     case 'berging':
-      // Closed shed — all 4 walls
       return {
-        front: { ...DEFAULT_WALL, hasDoor: true, hasWindow: true, windowCount: 2 },
-        back: { ...DEFAULT_WALL, hasWindow: true, windowCount: 1 },
-        left: { ...DEFAULT_WALL },
-        right: { ...DEFAULT_WALL },
-      };
-    case 'combined':
-      // Carport + berging: berging gets 3 outer walls + divider, overkapping is open
-      return {
-        front: { ...DEFAULT_WALL, hasDoor: true },
+        front: { ...DEFAULT_WALL },
         back: { ...DEFAULT_WALL },
         left: { ...DEFAULT_WALL },
-        divider: { ...DEFAULT_WALL },
+        right: { ...DEFAULT_WALL },
       };
     default: {
       const _exhaustive: never = type;
@@ -162,8 +144,6 @@ export function getAvailableWallIds(type: BuildingType): WallId[] {
       return [];
     case 'berging':
       return ['front', 'back', 'left', 'right'];
-    case 'combined':
-      return ['front', 'back', 'left', 'divider', ...OVERKAPPING_WALL_IDS];
     default: {
       const _exhaustive: never = type;
       return _exhaustive;
@@ -172,28 +152,32 @@ export function getAvailableWallIds(type: BuildingType): WallId[] {
 }
 
 // Pricing extras
-export const INSULATION_PRICE_PER_SQM_PER_MM = 0.12; // €/m²/mm
+export const INSULATION_PRICE_PER_SQM_PER_MM = 0.12;
 export const DOOR_FLAT_FEE = 850;
 export const WINDOW_FLAT_FEE = 420;
 export const SKYLIGHT_FLAT_FEE = 780;
-export const DOOR_AREA_CUTOUT = 2.1 * 0.9; // m²
-export const WINDOW_AREA_CUTOUT = 1.2 * 1.0; // m²
+export const DOOR_AREA_CUTOUT = 2.1 * 0.9;
+export const WINDOW_AREA_CUTOUT = 1.2 * 1.0;
 
 // Post pricing for overkapping sections
-export const POST_PRICE = 120; // per post
-export const POST_SPACING = 3; // meters between posts
+export const POST_PRICE = 120;
+export const POST_SPACING = 3;
 
-export const BRACE_PRICE = 45; // per brace
+export const BRACE_PRICE = 45;
 export const WALL_THICKNESS = 0.15;
 
-// Timber frame geometry (shared between TimberFrame, OverkappingSection, Roof)
-export const POST_SIZE = 0.15; // 15 cm square posts
-export const BEAM_H = 0.20; // beam height
-export const DECK_T = 0.04; // roof deck thickness
+// Timber frame geometry
+export const POST_SIZE = 0.15;
+export const BEAM_H = 0.20;
+export const DECK_T = 0.04;
 
-// Door / window dimensions (shared between 3D and schematic)
-export const DOOR_W = 0.9; // single door width in meters
-export const WIN_W = 1.2; // window width in meters
+// Door / window dimensions
+export const DOOR_W = 0.9;
+export const WIN_W = 1.2;
+
+// Snap thresholds
+export const SNAP_THRESHOLD = 0.5;
+export const SNAP_ALIGN_THRESHOLD = 0.3;
 
 function doorWidth(doorSize: DoorSize): number {
   return doorSize === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W;
@@ -271,25 +255,15 @@ export function computeOpeningPositions(
   return { doorX, windowXs };
 }
 
-/** Get the length of a wall based on its ID and building config */
-export function getWallLength(
-  wallId: WallId,
-  buildingType: BuildingType,
-  dimensions: BuildingDimensions,
-): number {
-  const { width, depth, bergingWidth } = dimensions;
+/** Get the length of a wall based on its ID and dimensions */
+export function getWallLength(wallId: WallId, dimensions: BuildingDimensions): number {
+  const { width, depth } = dimensions;
   switch (wallId) {
     case 'front':
     case 'back':
-      return buildingType === 'combined' ? bergingWidth : width;
+      return width;
     case 'left':
     case 'right':
-    case 'divider':
-      return depth;
-    case 'ov_front':
-    case 'ov_back':
-      return width - bergingWidth;
-    case 'ov_right':
       return depth;
     default: {
       const _exhaustive: never = wallId;

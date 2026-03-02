@@ -1,17 +1,21 @@
 import type {
-  BuildingConfig,
+  BuildingEntity,
   BuildingType,
   RoofType,
+  RoofConfig,
   RoofCoveringId,
   TrimColorId,
   FloorMaterialId,
   WallConfig,
   WallId,
+  WallSide,
   DoorMaterialId,
   DoorSize,
   DoorPosition,
   DoorSwing,
+  SnapConnection,
 } from '@/types/building';
+import { DEFAULT_FLOOR, getDefaultWalls } from '@/lib/constants';
 
 // ─── Base58 (Bitcoin-style, no 0/O/I/l) ─────────────────────────────
 const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -19,13 +23,11 @@ const BASE58_DECODE: Record<string, number> = {};
 for (let i = 0; i < BASE58.length; i++) BASE58_DECODE[BASE58[i]] = i;
 
 function toBase58(bytes: Uint8Array): string {
-  // Count leading zero bytes → become '1' chars
   let leadingZeros = 0;
   for (const b of bytes) {
     if (b !== 0) break;
     leadingZeros++;
   }
-  // Convert byte array to base58 via repeated division
   const digits: number[] = [];
   for (const byte of bytes) {
     let carry = byte;
@@ -90,6 +92,12 @@ class BitWriter {
     }
   }
 
+  writeSigned(value: number, numBits: number): void {
+    // Encode signed int: offset by 2^(numBits-1)
+    const offset = 1 << (numBits - 1);
+    this.write(clamp(value + offset, 0, (1 << numBits) - 1), numBits);
+  }
+
   toBytes(): Uint8Array {
     const out = [...this.bytes];
     if (this.bitPos > 0) {
@@ -121,15 +129,20 @@ class BitReader {
     }
     return value;
   }
+
+  readSigned(numBits: number): number {
+    const offset = 1 << (numBits - 1);
+    return this.read(numBits) - offset;
+  }
 }
 
 // ─── Lookup tables ───────────────────────────────────────────────────
-const BUILDING_TYPES: BuildingType[] = ['overkapping', 'berging', 'combined'];
-const ROOF_TYPES: RoofType[] = ['flat', 'pitched'];
+const BUILDING_TYPES: BuildingType[] = ['overkapping', 'berging'];
 const COVERING_IDS: RoofCoveringId[] = ['dakpannen', 'riet', 'epdm', 'polycarbonaat', 'metaal'];
 const TRIM_IDS: TrimColorId[] = ['antraciet', 'wit', 'zwart', 'bruin', 'groen'];
 const FLOOR_IDS: FloorMaterialId[] = ['geen', 'tegels', 'beton', 'hout'];
-const WALL_SLOTS: WallId[] = ['front', 'back', 'left', 'right', 'divider', 'ov_front', 'ov_back', 'ov_right'];
+const WALL_SLOTS: WallId[] = ['front', 'back', 'left', 'right'];
+const WALL_SIDES: WallSide[] = ['left', 'right', 'front', 'back'];
 const MATERIAL_IDS = ['wood', 'brick', 'render', 'metal', 'glass'];
 const FINISH_IDS = ['Mat', 'Satijn', 'Glans'];
 const DOOR_MATERIAL_IDS: DoorMaterialId[] = ['wood', 'aluminium', 'pvc', 'staal'];
@@ -146,77 +159,124 @@ function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
 }
 
-// ─── Encode ──────────────────────────────────────────────────────────
-const VERSION = 1;
+// ─── Encode (Version 2: multi-building) ──────────────────────────────
+const VERSION = 2;
 
-export function encodeConfig(config: BuildingConfig): string {
+function encodeWall(w: BitWriter, wall: WallConfig) {
+  w.write(indexOf(MATERIAL_IDS, wall.materialId), 3);
+  w.write(indexOf(FINISH_IDS, wall.finish), 2);
+  w.write(wall.hasDoor ? 1 : 0, 1);
+  if (wall.hasDoor) {
+    w.write(indexOf(DOOR_MATERIAL_IDS, wall.doorMaterialId), 2);
+    w.write(indexOf(DOOR_SIZES, wall.doorSize), 1);
+    w.write(wall.doorHasWindow ? 1 : 0, 1);
+    w.write(indexOf(DOOR_POSITIONS, wall.doorPosition), 2);
+    w.write(indexOf(DOOR_SWINGS, wall.doorSwing), 2);
+  }
+  w.write(wall.hasWindow ? 1 : 0, 1);
+  if (wall.hasWindow) {
+    w.write(clamp(wall.windowCount, 0, 7), 3);
+  }
+}
+
+function decodeWall(r: BitReader): WallConfig {
+  const materialId = MATERIAL_IDS[clamp(r.read(3), 0, 4)];
+  const finish = FINISH_IDS[clamp(r.read(2), 0, 2)];
+  const hasDoor = r.read(1) === 1;
+  let doorMaterialId: DoorMaterialId = 'wood';
+  let doorSize: DoorSize = 'enkel';
+  let doorHasWindow = false;
+  let doorPosition: DoorPosition = 'midden';
+  let doorSwing: DoorSwing = 'dicht';
+  if (hasDoor) {
+    doorMaterialId = DOOR_MATERIAL_IDS[clamp(r.read(2), 0, 3)];
+    doorSize = DOOR_SIZES[clamp(r.read(1), 0, 1)];
+    doorHasWindow = r.read(1) === 1;
+    doorPosition = DOOR_POSITIONS[clamp(r.read(2), 0, 2)];
+    doorSwing = DOOR_SWINGS[clamp(r.read(2), 0, 2)];
+  }
+  const hasWindow = r.read(1) === 1;
+  const windowCount = hasWindow ? clamp(r.read(3), 0, 7) : 0;
+
+  return {
+    materialId, finish, hasDoor, doorMaterialId, doorSize,
+    doorHasWindow, doorPosition, doorSwing, hasWindow, windowCount,
+  };
+}
+
+export function encodeState(
+  buildings: BuildingEntity[],
+  connections: SnapConnection[],
+  roof: RoofConfig,
+): string {
   const w = new BitWriter();
-  const { buildingType, dimensions, roof, floor, walls, hasCornerBraces } = config;
 
-  // Header (conditional fields save ~16 bits in common cases)
+  // Header
   w.write(VERSION, 2);
-  const typeIdx = indexOf(BUILDING_TYPES, buildingType);
-  w.write(typeIdx, 2);
-  w.write(clamp(Math.round((dimensions.width - 3) / 0.5), 0, 24), 5);
-  w.write(clamp(Math.round((dimensions.depth - 3) / 0.5), 0, 34), 6);
-  w.write(clamp(Math.round((dimensions.height - 2) / 0.25), 0, 16), 5);
 
-  const isPitched = roof.type === 'pitched';
-  w.write(isPitched ? 1 : 0, 1);
-  if (isPitched) {
-    w.write(clamp(dimensions.roofPitch, 0, 55), 6);
+  // Shared roof
+  w.write(roof.type === 'pitched' ? 1 : 0, 1);
+  if (roof.type === 'pitched') {
+    w.write(clamp(roof.pitch, 0, 55), 6);
   }
-
-  const isCombined = buildingType === 'combined';
-  if (isCombined) {
-    w.write(clamp(Math.round((dimensions.bergingWidth - 2) / 0.5), 0, 22), 5);
-  }
-
   w.write(indexOf(COVERING_IDS, roof.coveringId), 3);
   w.write(indexOf(TRIM_IDS, roof.trimColorId), 3);
-
   w.write(roof.insulation ? 1 : 0, 1);
   if (roof.insulation) {
     w.write(clamp(Math.round((roof.insulationThickness - 50) / 10), 0, 25), 5);
   }
-
   w.write(roof.hasSkylight ? 1 : 0, 1);
-  w.write(indexOf(FLOOR_IDS, floor.materialId), 2);
-  w.write(hasCornerBraces ? 1 : 0, 1);
 
-  // Wall existence mask
-  let mask = 0;
-  for (let i = 0; i < WALL_SLOTS.length; i++) {
-    if (walls[WALL_SLOTS[i]]) mask |= 1 << i;
+  // Building count
+  w.write(clamp(buildings.length, 1, 8) - 1, 3);
+
+  // Per-building data
+  for (const b of buildings) {
+    w.write(indexOf(BUILDING_TYPES, b.type), 1);
+    w.write(clamp(Math.round((b.dimensions.width - 3) / 0.5), 0, 24), 5);
+    w.write(clamp(Math.round((b.dimensions.depth - 3) / 0.5), 0, 34), 6);
+    w.write(clamp(Math.round((b.dimensions.height - 2) / 0.25), 0, 16), 5);
+
+    // Position: signed, scaled by 0.5m, 8 bits each (-32 to 31.5)
+    w.writeSigned(clamp(Math.round(b.position[0] / 0.5), -64, 63), 7);
+    w.writeSigned(clamp(Math.round(b.position[1] / 0.5), -64, 63), 7);
+
+    w.write(indexOf(FLOOR_IDS, b.floor.materialId), 2);
+    w.write(b.hasCornerBraces ? 1 : 0, 1);
+
+    // Wall mask + data
+    let mask = 0;
+    for (let i = 0; i < WALL_SLOTS.length; i++) {
+      if (b.walls[WALL_SLOTS[i]]) mask |= 1 << i;
+    }
+    w.write(mask, 4);
+
+    for (let i = 0; i < WALL_SLOTS.length; i++) {
+      if (!(mask & (1 << i))) continue;
+      encodeWall(w, b.walls[WALL_SLOTS[i]]);
+    }
   }
-  w.write(mask, 8);
 
-  // Per-wall data
-  for (let i = 0; i < WALL_SLOTS.length; i++) {
-    if (!(mask & (1 << i))) continue;
-    const wall = walls[WALL_SLOTS[i]];
-    w.write(indexOf(MATERIAL_IDS, wall.materialId), 3);
-    w.write(indexOf(FINISH_IDS, wall.finish), 2);
-    w.write(wall.hasDoor ? 1 : 0, 1);
-    if (wall.hasDoor) {
-      w.write(indexOf(DOOR_MATERIAL_IDS, wall.doorMaterialId), 2);
-      w.write(indexOf(DOOR_SIZES, wall.doorSize), 1);
-      w.write(wall.doorHasWindow ? 1 : 0, 1);
-      w.write(indexOf(DOOR_POSITIONS, wall.doorPosition), 2);
-      w.write(indexOf(DOOR_SWINGS, wall.doorSwing), 2);
-    }
-    w.write(wall.hasWindow ? 1 : 0, 1);
-    if (wall.hasWindow) {
-      w.write(clamp(wall.windowCount, 0, 7), 3);
-    }
+  // Connections
+  w.write(clamp(connections.length, 0, 15), 4);
+  for (const c of connections) {
+    const idxA = buildings.findIndex(b => b.id === c.buildingAId);
+    const idxB = buildings.findIndex(b => b.id === c.buildingBId);
+    w.write(clamp(idxA, 0, 7), 3);
+    w.write(indexOf(WALL_SIDES, c.sideA), 2);
+    w.write(clamp(idxB, 0, 7), 3);
+    w.write(indexOf(WALL_SIDES, c.sideB), 2);
+    w.write(c.isOpen ? 1 : 0, 1);
   }
 
   return formatCode(toBase58(w.toBytes()));
 }
 
-// ─── Decode ──────────────────────────────────────────────────────────
-export function decodeConfig(code: string): BuildingConfig {
-  // Strip dashes/spaces only — Base58 is case-sensitive
+export function decodeState(code: string): {
+  buildings: BuildingEntity[];
+  connections: SnapConnection[];
+  roof: RoofConfig;
+} {
   const normalized = code.replace(/[-\s]/g, '');
   const bytes = fromBase58(normalized);
   const r = new BitReader(bytes);
@@ -224,65 +284,72 @@ export function decodeConfig(code: string): BuildingConfig {
   const version = r.read(2);
   if (version !== VERSION) throw new Error('Unsupported version');
 
-  const buildingType = BUILDING_TYPES[clamp(r.read(2), 0, 2)];
-  const width = clamp(r.read(5) * 0.5 + 3, 3, 15);
-  const depth = clamp(r.read(6) * 0.5 + 3, 3, 20);
-  const height = clamp(r.read(5) * 0.25 + 2, 2, 6);
-
+  // Shared roof
   const isPitched = r.read(1) === 1;
-  const roofPitch = isPitched ? clamp(r.read(6), 0, 55) : 0;
+  const pitch = isPitched ? clamp(r.read(6), 0, 55) : 0;
   const roofType: RoofType = isPitched ? 'pitched' : 'flat';
-
-  const isCombined = buildingType === 'combined';
-  const bergingWidth = isCombined ? clamp(r.read(5) * 0.5 + 2, 2, 13) : 4;
-
   const coveringId = COVERING_IDS[clamp(r.read(3), 0, 4)];
   const trimColorId = TRIM_IDS[clamp(r.read(3), 0, 4)];
-
   const insulation = r.read(1) === 1;
   const insulationThickness = insulation ? clamp(r.read(5) * 10 + 50, 50, 300) : 150;
-
   const hasSkylight = r.read(1) === 1;
-  const floorMaterialId = FLOOR_IDS[clamp(r.read(2), 0, 3)];
-  const hasCornerBraces = r.read(1) === 1;
 
-  const mask = r.read(8);
-  const walls: Record<string, WallConfig> = {};
+  const roof: RoofConfig = {
+    type: roofType, pitch, coveringId, trimColorId,
+    insulation, insulationThickness, hasSkylight,
+  };
 
-  for (let i = 0; i < WALL_SLOTS.length; i++) {
-    if (!(mask & (1 << i))) continue;
-    const materialId = MATERIAL_IDS[clamp(r.read(3), 0, 4)];
-    const finish = FINISH_IDS[clamp(r.read(2), 0, 2)];
-    const hasDoor = r.read(1) === 1;
-    let doorMaterialId: DoorMaterialId = 'wood';
-    let doorSize: DoorSize = 'enkel';
-    let doorHasWindow = false;
-    let doorPosition: DoorPosition = 'midden';
-    let doorSwing: DoorSwing = 'dicht';
-    if (hasDoor) {
-      doorMaterialId = DOOR_MATERIAL_IDS[clamp(r.read(2), 0, 3)];
-      doorSize = DOOR_SIZES[clamp(r.read(1), 0, 1)];
-      doorHasWindow = r.read(1) === 1;
-      doorPosition = DOOR_POSITIONS[clamp(r.read(2), 0, 2)];
-      doorSwing = DOOR_SWINGS[clamp(r.read(2), 0, 2)];
+  // Buildings
+  const buildingCount = r.read(3) + 1;
+  const buildings: BuildingEntity[] = [];
+
+  for (let bi = 0; bi < buildingCount; bi++) {
+    const type = BUILDING_TYPES[clamp(r.read(1), 0, 1)];
+    const width = clamp(r.read(5) * 0.5 + 3, 3, 15);
+    const depth = clamp(r.read(6) * 0.5 + 3, 3, 20);
+    const height = clamp(r.read(5) * 0.25 + 2, 2, 6);
+    const posX = r.readSigned(7) * 0.5;
+    const posZ = r.readSigned(7) * 0.5;
+    const floorMaterialId = FLOOR_IDS[clamp(r.read(2), 0, 3)];
+    const hasCornerBraces = r.read(1) === 1;
+
+    const mask = r.read(4);
+    const walls: Record<string, WallConfig> = {};
+    for (let i = 0; i < WALL_SLOTS.length; i++) {
+      if (!(mask & (1 << i))) continue;
+      walls[WALL_SLOTS[i]] = decodeWall(r);
     }
-    const hasWindow = r.read(1) === 1;
-    const windowCount = hasWindow ? clamp(r.read(3), 0, 7) : 0;
 
-    walls[WALL_SLOTS[i]] = {
-      materialId, finish, hasDoor, doorMaterialId, doorSize,
-      doorHasWindow, doorPosition, doorSwing, hasWindow, windowCount,
-    };
+    buildings.push({
+      id: crypto.randomUUID(),
+      type,
+      position: [posX, posZ],
+      dimensions: { width, depth, height },
+      walls: Object.keys(walls).length > 0 ? walls : getDefaultWalls(type),
+      hasCornerBraces,
+      floor: { materialId: floorMaterialId },
+    });
   }
 
-  return {
-    buildingType,
-    dimensions: { width, depth, height, roofPitch, bergingWidth },
-    roof: { type: roofType, coveringId, trimColorId, insulation, insulationThickness, hasSkylight },
-    floor: { materialId: floorMaterialId },
-    walls,
-    hasCornerBraces,
-  };
+  // Connections
+  const connCount = r.read(4);
+  const connections: SnapConnection[] = [];
+  for (let ci = 0; ci < connCount; ci++) {
+    const idxA = clamp(r.read(3), 0, buildings.length - 1);
+    const sideA = WALL_SIDES[clamp(r.read(2), 0, 3)];
+    const idxB = clamp(r.read(3), 0, buildings.length - 1);
+    const sideB = WALL_SIDES[clamp(r.read(2), 0, 3)];
+    const isOpen = r.read(1) === 1;
+    connections.push({
+      buildingAId: buildings[idxA].id,
+      sideA,
+      buildingBId: buildings[idxB].id,
+      sideB,
+      isOpen,
+    });
+  }
+
+  return { buildings, connections, roof };
 }
 
 // ─── Format ──────────────────────────────────────────────────────────

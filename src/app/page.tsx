@@ -7,7 +7,6 @@ import SchematicView from '@/components/schematic/SchematicView';
 import { exportFloorPlan } from '@/components/schematic/exportFloorPlan';
 import { useConfigStore } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
-import type { BuildingConfig } from '@/types/building';
 
 const BuildingScene = dynamic(
   () => import('@/components/canvas/BuildingScene'),
@@ -17,12 +16,14 @@ const BuildingScene = dynamic(
 function ViewToggle({
   viewMode,
   setViewMode,
-  config,
 }: {
   viewMode: '3d' | 'plan';
   setViewMode: (v: '3d' | 'plan') => void;
-  config: BuildingConfig;
 }) {
+  const buildings = useConfigStore((s) => s.buildings);
+  const connections = useConfigStore((s) => s.connections);
+  const roof = useConfigStore((s) => s.roof);
+
   return (
     <div className="flex items-center gap-2">
       <div className="flex gap-1 bg-background/80 backdrop-blur-xl rounded-xl shadow-md ring-1 ring-black/[0.08] p-1">
@@ -60,7 +61,7 @@ function ViewToggle({
 
       {viewMode === 'plan' && (
         <button
-          onClick={() => exportFloorPlan(config)}
+          onClick={() => exportFloorPlan(buildings, connections, roof)}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-background/80 backdrop-blur-xl shadow-md ring-1 ring-black/[0.08] text-foreground/70 hover:text-foreground hover:bg-background/90 transition-all"
         >
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -77,11 +78,9 @@ function ViewToggle({
 
 export default function Home() {
   const [viewMode, setViewMode] = useState<'3d' | 'plan'>('3d');
-  const config = useConfigStore((s) => s.config);
 
   return (
     <div className="relative h-dvh">
-      {/* Full-screen canvas */}
       {viewMode === '3d' && (
         <div className="absolute inset-0">
           <BuildingScene />
@@ -94,12 +93,10 @@ export default function Home() {
         </div>
       )}
 
-      {/* Floating view toggle — top-left */}
       <div className="absolute top-3 left-3 z-20">
-        <ViewToggle viewMode={viewMode} setViewMode={setViewMode} config={config} />
+        <ViewToggle viewMode={viewMode} setViewMode={setViewMode} />
       </div>
 
-      {/* Capsule toolbar (positions itself via fixed) */}
       <CapsuleToolbar />
     </div>
   );

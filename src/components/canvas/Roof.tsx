@@ -3,6 +3,7 @@
 import { useRef, useState, useMemo, useCallback } from 'react';
 import { Mesh } from 'three';
 import { Edges } from '@react-three/drei';
+import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
 import { ROOF_COVERINGS, BEAM_H, DECK_T } from '@/lib/constants';
 import { useRoofTexture } from '@/lib/textures';
@@ -16,17 +17,19 @@ export default function Roof() {
   const meshRef = useRef<Mesh>(null);
   const [hovered, setHovered] = useState(false);
 
-  const config = useConfigStore((s) => s.config);
+  const buildingId = useBuildingId();
+  const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
+  const roof = useConfigStore((s) => s.roof);
   const selectedElement = useConfigStore((s) => s.selectedElement);
   const selectElement = useConfigStore((s) => s.selectElement);
 
-  const { width, depth, height, roofPitch } = config.dimensions;
-  const roofCfg = config.roof;
-  const covering = ROOF_COVERINGS.find((c) => c.id === roofCfg.coveringId);
+  const { width, depth, height } = building?.dimensions ?? { width: 8, depth: 4, height: 3 };
+  const roofPitch = roof.pitch;
+  const covering = ROOF_COVERINGS.find((c) => c.id === roof.coveringId);
   const color = covering?.color ?? '#cccccc';
 
   const isSelected = selectedElement?.type === 'roof';
-  const roofTexture = useRoofTexture(roofCfg.coveringId, width, depth);
+  const roofTexture = useRoofTexture(roof.coveringId, width, depth);
 
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
 
@@ -57,13 +60,13 @@ export default function Roof() {
   const materialProps = {
     color: roofTexture ? '#ffffff' : color,
     map: roofTexture ?? undefined,
-    metalness: 0.3,
-    roughness: 0.5,
+    metalness: roofTexture ? 0.3 : 0.1,
+    roughness: roofTexture ? 0.5 : 0.85,
     emissive: isSelected ? '#3b82f6' : hovered ? '#60a5fa' : '#000000',
     emissiveIntensity: isSelected ? 0.35 : hovered ? 0.15 : 0,
   };
 
-  if (roofCfg.type === 'flat') {
+  if (roof.type === 'flat') {
     return <FlatRoof
       width={width} depth={depth} height={height}
       materialProps={materialProps}

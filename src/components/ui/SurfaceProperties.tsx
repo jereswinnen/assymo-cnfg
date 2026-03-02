@@ -11,8 +11,8 @@ import type { WallId } from '@/types/building';
 
 export default function SurfaceProperties() {
   const selectedElement = useConfigStore((s) => s.selectedElement);
-  const config = useConfigStore((s) => s.config);
-  const updateWall = useConfigStore((s) => s.updateWall);
+  const buildings = useConfigStore((s) => s.buildings);
+  const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
 
   if (!selectedElement || selectedElement.type !== 'wall') {
     return (
@@ -23,25 +23,25 @@ export default function SurfaceProperties() {
   }
 
   const wallId = selectedElement.id as WallId;
-  const wallCfg = config.walls[wallId];
+  const buildingId = selectedElement.buildingId;
+  const building = buildings.find(b => b.id === buildingId);
+  const wallCfg = building?.walls[wallId];
   if (!wallCfg) return null;
 
   const label = t(`wall.${wallId}`);
   const isGlass = wallCfg.materialId === 'glass';
 
   function handleChange(field: string, value: unknown) {
-    updateWall(wallId, { [field]: value });
+    updateBuildingWall(buildingId, wallId, { [field]: value });
   }
 
   return (
     <div className="space-y-5">
-      {/* Header */}
       <div className="flex items-center gap-2">
         <div className="h-2 w-2 rounded-full bg-primary" />
         <span className="text-sm font-semibold text-foreground">{label}</span>
       </div>
 
-      {/* Material selector */}
       <div className="space-y-2">
         <SectionLabel>{t('surface.material')}</SectionLabel>
         <div className="grid grid-cols-5 gap-1.5">
@@ -82,7 +82,6 @@ export default function SurfaceProperties() {
         </div>
       </div>
 
-      {/* Finish */}
       {!isGlass && (
         <div className="space-y-2">
           <SectionLabel>{t('surface.finish')}</SectionLabel>
@@ -107,11 +106,8 @@ export default function SurfaceProperties() {
         <p className="text-xs text-muted-foreground italic">Glaswand van zijde tot zijde</p>
       )}
 
-      {/* Door section */}
-      {!isGlass && <DoorConfig wallId={wallId} />}
-
-      {/* Windows section */}
-      {!isGlass && <WindowConfig wallId={wallId} />}
+      {!isGlass && <DoorConfig wallId={wallId} buildingId={buildingId} />}
+      {!isGlass && <WindowConfig wallId={wallId} buildingId={buildingId} />}
     </div>
   );
 }

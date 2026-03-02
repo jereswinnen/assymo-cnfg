@@ -11,16 +11,20 @@ import type { WallId } from '@/types/building';
 
 interface DoorConfigProps {
   wallId: WallId;
+  buildingId: string;
 }
 
-export default function DoorConfig({ wallId }: DoorConfigProps) {
-  const wallCfg = useConfigStore((s) => s.config.walls[wallId]);
-  const updateWall = useConfigStore((s) => s.updateWall);
+export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
+  const wallCfg = useConfigStore((s) => {
+    const b = s.buildings.find(b => b.id === buildingId);
+    return b?.walls[wallId] ?? null;
+  });
+  const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
 
   if (!wallCfg) return null;
 
   function handleChange(field: string, value: unknown) {
-    updateWall(wallId, { [field]: value });
+    updateBuildingWall(buildingId, wallId, { [field]: value });
   }
 
   return (
@@ -37,7 +41,6 @@ export default function DoorConfig({ wallId }: DoorConfigProps) {
       </div>
       {wallCfg.hasDoor && (
         <div className="mt-4 space-y-3">
-          {/* Door material */}
           <div className="space-y-1.5">
             <SectionLabel>{t('surface.doorMaterial')}</SectionLabel>
             <ToggleGroup
@@ -56,7 +59,6 @@ export default function DoorConfig({ wallId }: DoorConfigProps) {
             </ToggleGroup>
           </div>
 
-          {/* Door size + window toggle */}
           <div className="space-y-1.5">
             <SectionLabel>{t('surface.doorSize')}</SectionLabel>
             <div className="flex items-center gap-2">
@@ -89,7 +91,6 @@ export default function DoorConfig({ wallId }: DoorConfigProps) {
             </div>
           </div>
 
-          {/* Door position */}
           <div className="space-y-1.5">
             <SectionLabel>{t('surface.doorPosition')}</SectionLabel>
             <ToggleGroup
@@ -112,7 +113,6 @@ export default function DoorConfig({ wallId }: DoorConfigProps) {
             </ToggleGroup>
           </div>
 
-          {/* Door swing */}
           <div className="space-y-1.5">
             <SectionLabel>{t('surface.doorSwing')}</SectionLabel>
             <ToggleGroup

@@ -4,19 +4,15 @@ import Roof from './Roof';
 import Floor from './Floor';
 import TimberFrame from './TimberFrame';
 import BergingSection from './BergingSection';
-import Wall from './Wall';
-import GhostWall from './GhostWall';
+import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
-import { OVERKAPPING_WALL_IDS } from '@/lib/constants';
 
 export default function Building() {
-  const config = useConfigStore((s) => s.config);
+  const buildingId = useBuildingId();
+  const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
   const clearSelection = useConfigStore((s) => s.clearSelection);
 
-  const { buildingType } = config;
-  const { width, bergingWidth } = config.dimensions;
-
-  const bergingOffset = buildingType === 'combined' ? -(width / 2 - bergingWidth / 2) : 0;
+  if (!building) return null;
 
   return (
     <group
@@ -26,31 +22,11 @@ export default function Building() {
         }
       }}
     >
-      {/* Timber frame always visible */}
       <TimberFrame />
 
-      {/* Berging section walls (berging and combined types) */}
-      {(buildingType === 'berging' || buildingType === 'combined') && (
-        <BergingSection
-          sectionWidth={buildingType === 'combined' ? bergingWidth : width}
-          offsetX={buildingType === 'combined' ? bergingOffset : 0}
-        />
-      )}
+      {building.type === 'berging' && <BergingSection />}
 
-      {/* Overkapping walls / ghost placeholders (combined type only) */}
-      {buildingType === 'combined' &&
-        OVERKAPPING_WALL_IDS.map((id) =>
-          config.walls[id] ? (
-            <Wall key={id} wallId={id} />
-          ) : (
-            <GhostWall key={id} wallId={id} />
-          ),
-        )}
-
-      {/* Floor covering */}
       <Floor />
-
-      {/* Roof spans full building */}
       <Roof />
     </group>
   );

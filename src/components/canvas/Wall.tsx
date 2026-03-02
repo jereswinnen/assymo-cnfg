@@ -3,8 +3,9 @@
 import { useRef, useState, useMemo, useEffect } from 'react';
 import { Mesh } from 'three';
 import { Edges } from '@react-three/drei';
+import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
-import { WALL_MATERIALS, WALL_THICKNESS, computeOpeningPositions } from '@/lib/constants';
+import { WALL_MATERIALS, WALL_THICKNESS, computeOpeningPositions, getWallLength } from '@/lib/constants';
 import { useWallTexture } from '@/lib/textures';
 import { createWallWithOpeningsGeo, FRAME_D } from './wallGeometry';
 import { frameMat } from './DoorMesh';
@@ -12,51 +13,39 @@ import DoorMesh from './DoorMesh';
 import WindowMesh from './WindowMesh';
 import type { WallId, WallConfig } from '@/types/building';
 
-// ---------- Glass wall constants ----------
-
-const MULLION_SPACING = 1.2; // vertical mullion every 1.2m
-const TRANSOM_H = 1.3; // horizontal transom height from bottom
-const GLASS_FRAME = 0.05; // frame bar thickness for glass wall
-
-// ---------- Wall component ----------
+const MULLION_SPACING = 1.2;
+const TRANSOM_H = 1.3;
+const GLASS_FRAME = 0.05;
 
 interface WallProps {
   wallId: WallId;
-  sectionWidth?: number;
-  sectionDepth?: number;
-  offsetX?: number;
 }
 
-export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }: WallProps) {
+export default function Wall({ wallId }: WallProps) {
   const meshRef = useRef<Mesh>(null);
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
   const [hovered, setHovered] = useState(false);
 
-  const config = useConfigStore((s) => s.config);
+  const buildingId = useBuildingId();
+  const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
   const selectedElement = useConfigStore((s) => s.selectedElement);
   const selectElement = useConfigStore((s) => s.selectElement);
 
-  const { width: fullWidth, depth: fullDepth, height, bergingWidth } = config.dimensions;
-  const w = sectionWidth ?? fullWidth;
-  const d = sectionDepth ?? fullDepth;
-  const overkappingWidth = fullWidth - bergingWidth;
+  const dimensions = building?.dimensions ?? { width: 8, depth: 4, height: 3 };
+  const { width, depth, height } = dimensions;
 
-  const wallCfg = config.walls[wallId];
+  const wallCfg = building?.walls[wallId];
   const materialId = wallCfg?.materialId ?? 'brick';
   const material = WALL_MATERIALS.find((m) => m.id === materialId);
   const color = material?.color ?? '#cccccc';
 
-  // Wall face dimensions for texture tiling
-  const wallLength =
-    wallId === 'ov_front' || wallId === 'ov_back' ? overkappingWidth
-    : wallId === 'front' || wallId === 'back' ? w
-    : d;
+  const wallLength = getWallLength(wallId, dimensions);
   const texture = useWallTexture(materialId, wallLength, height);
 
   if (!wallCfg) return null;
 
   const isSelected =
-    selectedElement?.type === 'wall' && selectedElement.id === wallId;
+    selectedElement?.type === 'wall' && selectedElement.id === wallId && selectedElement.buildingId === buildingId;
 
   const { size, position, rotation } = useMemo(() => {
     const t = WALL_THICKNESS;
@@ -64,60 +53,31 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
     switch (wallId) {
       case 'front':
         return {
-          size: [w - inset * 2, height, t] as [number, number, number],
-          position: [offsetX, height / 2, d / 2 - inset] as [number, number, number],
+          size: [width - inset * 2, height, t] as [number, number, number],
+          position: [0, height / 2, depth / 2 - inset] as [number, number, number],
           rotation: [0, 0, 0] as [number, number, number],
         };
       case 'back':
         return {
-          size: [w - inset * 2, height, t] as [number, number, number],
-          position: [offsetX, height / 2, -d / 2 + inset] as [number, number, number],
+          size: [width - inset * 2, height, t] as [number, number, number],
+          position: [0, height / 2, -depth / 2 + inset] as [number, number, number],
           rotation: [0, 0, 0] as [number, number, number],
         };
       case 'left':
         return {
-          size: [t, height, d - inset * 2] as [number, number, number],
-          position: [offsetX - w / 2 + inset, height / 2, 0] as [number, number, number],
+          size: [t, height, depth - inset * 2] as [number, number, number],
+          position: [-width / 2 + inset, height / 2, 0] as [number, number, number],
           rotation: [0, 0, 0] as [number, number, number],
         };
       case 'right':
         return {
-          size: [t, height, d - inset * 2] as [number, number, number],
-          position: [offsetX + w / 2 - inset, height / 2, 0] as [number, number, number],
-          rotation: [0, 0, 0] as [number, number, number],
-        };
-      case 'divider':
-        return {
-          size: [t, height, d - inset * 2] as [number, number, number],
-          position: [offsetX + w / 2, height / 2, 0] as [number, number, number],
-          rotation: [0, 0, 0] as [number, number, number],
-        };
-      case 'ov_front': {
-        const ovCenterX = fullWidth / 2 - overkappingWidth / 2;
-        return {
-          size: [overkappingWidth - inset * 2, height, t] as [number, number, number],
-          position: [ovCenterX, height / 2, d / 2 - inset] as [number, number, number],
-          rotation: [0, 0, 0] as [number, number, number],
-        };
-      }
-      case 'ov_back': {
-        const ovCenterX = fullWidth / 2 - overkappingWidth / 2;
-        return {
-          size: [overkappingWidth - inset * 2, height, t] as [number, number, number],
-          position: [ovCenterX, height / 2, -d / 2 + inset] as [number, number, number],
-          rotation: [0, 0, 0] as [number, number, number],
-        };
-      }
-      case 'ov_right':
-        return {
-          size: [t, height, d - inset * 2] as [number, number, number],
-          position: [fullWidth / 2 - inset, height / 2, 0] as [number, number, number],
+          size: [t, height, depth - inset * 2] as [number, number, number],
+          position: [width / 2 - inset, height / 2, 0] as [number, number, number],
           rotation: [0, 0, 0] as [number, number, number],
         };
     }
-  }, [wallId, w, d, height, offsetX, fullWidth, overkappingWidth]);
+  }, [wallId, width, depth, height]);
 
-  // Compute opening positions (shared between geometry holes and overlays)
   const hasOpenings = wallCfg.hasDoor || (wallCfg.hasWindow && wallCfg.windowCount > 0);
   const ds = wallCfg.doorSize ?? 'enkel';
   const { doorX: computedDoorX, windowXs: computedWindowXs } = useMemo(
@@ -145,14 +105,12 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
     );
   }, [hasOpenings, wallLength, height, wallId, wallCfg.hasDoor, computedDoorX, ds, computedWindowXs]);
 
-  // Dispose old geometry when it changes
   useEffect(() => {
     return () => { wallGeo?.dispose(); };
   }, [wallGeo]);
 
   const isGlass = materialId === 'glass';
 
-  // Shared pointer handlers
   const pointerHandlers = {
     onPointerOver: (e: { nativeEvent: MouseEvent; stopPropagation: () => void }) => {
       if (e.nativeEvent.buttons > 0) return;
@@ -175,7 +133,7 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
         if (dx * dx + dy * dy > 16) return;
       }
       e.stopPropagation();
-      selectElement({ type: 'wall', id: wallId });
+      selectElement({ type: 'wall', id: wallId, buildingId });
     },
   };
 
@@ -224,15 +182,13 @@ export default function Wall({ wallId, sectionWidth, sectionDepth, offsetX = 0 }
       <WallOpenings
         wallId={wallId}
         wallPosition={position}
-        wallLength={wallId === 'ov_front' || wallId === 'ov_back' ? overkappingWidth : wallId === 'front' || wallId === 'back' ? w : d}
+        wallLength={wallLength}
         height={height}
         wallCfg={wallCfg}
       />
     </group>
   );
 }
-
-// --- Door & Window overlay positioning ---
 
 interface OpeningsProps {
   wallId: WallId;
@@ -253,11 +209,9 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg }: Ope
 
   switch (wallId) {
     case 'front':
-    case 'ov_front':
       groupPos = [wallPosition[0], 0, wallPosition[2] + outOffset];
       break;
     case 'back':
-    case 'ov_back':
       groupPos = [wallPosition[0], 0, wallPosition[2] - outOffset];
       groupRot = [0, Math.PI, 0];
       break;
@@ -266,8 +220,6 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg }: Ope
       groupRot = [0, Math.PI / 2, 0];
       break;
     case 'right':
-    case 'divider':
-    case 'ov_right':
       groupPos = [wallPosition[0] + outOffset, 0, wallPosition[2]];
       groupRot = [0, -Math.PI / 2, 0];
       break;
@@ -301,8 +253,6 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg }: Ope
   );
 }
 
-// ---------- Full glass wall ----------
-
 interface GlassWallMeshProps {
   position: [number, number, number];
   rotation: [number, number, number];
@@ -324,12 +274,11 @@ function GlassWallMesh({
   hovered,
   pointerHandlers,
 }: GlassWallMeshProps) {
-  const isSideWall = wallId === 'left' || wallId === 'right' || wallId === 'divider' || wallId === 'ov_right';
+  const isSideWall = wallId === 'left' || wallId === 'right';
   const glassThickness = 0.02;
   const paneW = wallLength - GLASS_FRAME * 2;
   const paneH = height - GLASS_FRAME * 2;
 
-  // Mullion positions (vertical dividers)
   const mullionXs: number[] = [];
   const mullionCount = Math.max(0, Math.floor(wallLength / MULLION_SPACING) - 1);
   if (mullionCount > 0) {
@@ -339,7 +288,6 @@ function GlassWallMesh({
     }
   }
 
-  // Transom Y position (relative to wall center)
   const transomY = -height / 2 + TRANSOM_H;
 
   const glassSize: [number, number, number] = isSideWall
@@ -348,7 +296,6 @@ function GlassWallMesh({
 
   return (
     <group position={pos} rotation={rot}>
-      {/* Glass pane */}
       <mesh {...pointerHandlers}>
         <boxGeometry args={glassSize} />
         <meshStandardMaterial
@@ -362,32 +309,25 @@ function GlassWallMesh({
         />
       </mesh>
 
-      {/* Frame -- outer border */}
-      {/* Top */}
       <mesh position={[0, height / 2 - GLASS_FRAME / 2, 0]} material={frameMat}>
         <boxGeometry args={isSideWall ? [FRAME_D, GLASS_FRAME, wallLength] : [wallLength, GLASS_FRAME, FRAME_D]} />
       </mesh>
-      {/* Bottom */}
       <mesh position={[0, -height / 2 + GLASS_FRAME / 2, 0]} material={frameMat}>
         <boxGeometry args={isSideWall ? [FRAME_D, GLASS_FRAME, wallLength] : [wallLength, GLASS_FRAME, FRAME_D]} />
       </mesh>
-      {/* Left edge */}
       <mesh position={isSideWall ? [0, 0, -wallLength / 2 + GLASS_FRAME / 2] : [-wallLength / 2 + GLASS_FRAME / 2, 0, 0]} material={frameMat}>
         <boxGeometry args={isSideWall ? [FRAME_D, height, GLASS_FRAME] : [GLASS_FRAME, height, FRAME_D]} />
       </mesh>
-      {/* Right edge */}
       <mesh position={isSideWall ? [0, 0, wallLength / 2 - GLASS_FRAME / 2] : [wallLength / 2 - GLASS_FRAME / 2, 0, 0]} material={frameMat}>
         <boxGeometry args={isSideWall ? [FRAME_D, height, GLASS_FRAME] : [GLASS_FRAME, height, FRAME_D]} />
       </mesh>
 
-      {/* Vertical mullions */}
       {mullionXs.map((mx, i) => (
         <mesh key={`m${i}`} position={isSideWall ? [0, 0, mx] : [mx, 0, 0]} material={frameMat}>
           <boxGeometry args={isSideWall ? [FRAME_D, height, GLASS_FRAME * 0.7] : [GLASS_FRAME * 0.7, height, FRAME_D]} />
         </mesh>
       ))}
 
-      {/* Horizontal transom */}
       <mesh position={[0, transomY, 0]} material={frameMat}>
         <boxGeometry args={isSideWall ? [FRAME_D, GLASS_FRAME * 0.7, wallLength] : [wallLength, GLASS_FRAME * 0.7, FRAME_D]} />
       </mesh>

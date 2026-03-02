@@ -1,19 +1,20 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
-import { calculateQuote } from '@/lib/pricing';
+import { calculateTotalQuote } from '@/lib/pricing';
 import { t } from '@/lib/i18n';
 
 export default function QuoteSummary() {
-  const config = useConfigStore((s) => s.config);
-  const { lineItems, total } = calculateQuote(config);
+  const buildings = useConfigStore((s) => s.buildings);
+  const roof = useConfigStore((s) => s.roof);
+  const { lineItems, total } = calculateTotalQuote(buildings, roof);
 
   return (
     <div className="space-y-3">
       <div className="divide-y divide-border/60">
-        {lineItems.map((item) => (
+        {lineItems.map((item, i) => (
           <div
-            key={item.label}
+            key={`${item.label}-${i}`}
             className="flex items-center justify-between py-2.5 text-sm"
           >
             <div>

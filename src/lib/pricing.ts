@@ -1,5 +1,5 @@
 import type {
-  BuildingConfig,
+  BuildingEntity,
   WallId,
   WallConfig,
   RoofConfig,
@@ -20,6 +20,7 @@ import {
   POST_PRICE,
   POST_SPACING,
   BRACE_PRICE,
+  getWallLength,
 } from './constants';
 import { t } from './i18n';
 
@@ -35,7 +36,6 @@ function degToRad(deg: number): number {
   return (deg * Math.PI) / 180;
 }
 
-// Calculate the total roof area based on type
 export function roofTotalArea(
   width: number,
   depth: number,
@@ -45,7 +45,6 @@ export function roofTotalArea(
   if (roofType === 'flat') {
     return width * depth;
   }
-  // Pitched: two panels
   const halfWidth = width / 2;
   const cosP = Math.cos(degToRad(roofPitch));
   if (cosP === 0) return 0;
@@ -53,43 +52,14 @@ export function roofTotalArea(
   return 2 * panelArea;
 }
 
-// Wall gross area — accounts for bergingWidth in combined mode
-export function wallGrossArea(
-  wallId: WallId,
-  config: BuildingConfig,
-): number {
-  const { width, depth, height, bergingWidth } = config.dimensions;
-  const bt = config.buildingType;
-
-  const overkappingWidth = width - bergingWidth;
-
-  switch (wallId) {
-    case 'front':
-    case 'back':
-      if (bt === 'combined') {
-        // Only covers the berging section width
-        return bergingWidth * height;
-      }
-      return width * height;
-    case 'left':
-    case 'right':
-      return depth * height;
-    case 'divider':
-      return depth * height;
-    case 'ov_front':
-    case 'ov_back':
-      return overkappingWidth * height;
-    case 'ov_right':
-      return depth * height;
-  }
+export function wallGrossArea(wallId: WallId, building: BuildingEntity): number {
+  const { height } = building.dimensions;
+  const wallLength = getWallLength(wallId, building.dimensions);
+  return wallLength * height;
 }
 
-export function wallNetArea(
-  wallId: WallId,
-  config: BuildingConfig,
-  wallCfg: WallConfig,
-): number {
-  let area = wallGrossArea(wallId, config);
+export function wallNetArea(wallId: WallId, building: BuildingEntity, wallCfg: WallConfig): number {
+  let area = wallGrossArea(wallId, building);
   if (wallCfg.hasDoor) {
     const doorW = wallCfg.doorSize === 'dubbel' ? DOUBLE_DOOR_W : DOOR_AREA_CUTOUT / 2.1;
     area -= doorW * 2.1;
@@ -98,16 +68,9 @@ export function wallNetArea(
   return Math.max(0, area);
 }
 
-// Count posts for overkapping section
-export function postCount(
-  overkappingWidth: number,
-  depth: number,
-): number {
-  // Posts along both long sides (depth), spaced POST_SPACING apart, plus corners
+export function postCount(width: number, depth: number): number {
   const postsPerSide = Math.max(2, Math.floor(depth / POST_SPACING) + 1);
-  // Posts along width at front and back
-  const postsPerEnd = Math.max(2, Math.floor(overkappingWidth / POST_SPACING) + 1);
-  // 4 corners counted once; two long sides + two short sides minus 4 corner overlaps
+  const postsPerEnd = Math.max(2, Math.floor(width / POST_SPACING) + 1);
   return 2 * postsPerSide + 2 * postsPerEnd - 4;
 }
 
@@ -125,21 +88,14 @@ const WALL_LABELS: Record<string, string> = {
   back: 'wall.back',
   left: 'wall.left',
   right: 'wall.right',
-  divider: 'wall.divider',
-  ov_front: 'wall.ov_front',
-  ov_back: 'wall.ov_back',
-  ov_right: 'wall.ov_right',
 };
 
-export function wallLineItem(
-  wallId: WallId,
-  config: BuildingConfig,
-): LineItem {
-  const wallCfg = config.walls[wallId];
+function wallLineItem(wallId: WallId, building: BuildingEntity): LineItem {
+  const wallCfg = building.walls[wallId];
   if (!wallCfg) {
     return { label: t(WALL_LABELS[wallId] ?? wallId), area: 0, materialCost: 0, insulationCost: 0, extrasCost: 0, total: 0 };
   }
-  const area = wallNetArea(wallId, config, wallCfg);
+  const area = wallNetArea(wallId, building, wallCfg);
   const materialCost = area * findPrice(WALL_MATERIALS, wallCfg.materialId);
   let extrasCost = 0;
   if (wallCfg.hasDoor) {
@@ -159,18 +115,15 @@ export function wallLineItem(
   };
 }
 
-export function roofLineItem(
-  config: BuildingConfig,
-): LineItem {
-  const { width, depth, roofPitch } = config.dimensions;
-  const roofCfg: RoofConfig = config.roof;
-  const area = roofTotalArea(width, depth, roofPitch, roofCfg.type);
-  const materialCost = area * findPrice(ROOF_COVERINGS, roofCfg.coveringId);
-  const insulationCost = roofCfg.insulation
-    ? area * roofCfg.insulationThickness * INSULATION_PRICE_PER_SQM_PER_MM
+function roofLineItem(building: BuildingEntity, roof: RoofConfig): LineItem {
+  const { width, depth } = building.dimensions;
+  const area = roofTotalArea(width, depth, roof.pitch, roof.type);
+  const materialCost = area * findPrice(ROOF_COVERINGS, roof.coveringId);
+  const insulationCost = roof.insulation
+    ? area * roof.insulationThickness * INSULATION_PRICE_PER_SQM_PER_MM
     : 0;
   let extrasCost = 0;
-  if (roofCfg.hasSkylight) extrasCost += SKYLIGHT_FLAT_FEE;
+  if (roof.hasSkylight) extrasCost += SKYLIGHT_FLAT_FEE;
 
   return {
     label: t('quote.roof'),
@@ -182,17 +135,11 @@ export function roofLineItem(
   };
 }
 
-export function postLineItem(
-  config: BuildingConfig,
-): LineItem | null {
-  const bt = config.buildingType;
-  if (bt === 'berging') return null;
-
-  const { width, depth, bergingWidth } = config.dimensions;
-  const overkappingWidth = bt === 'combined' ? width - bergingWidth : width;
-  const count = postCount(overkappingWidth, depth);
+function postLineItem(building: BuildingEntity): LineItem | null {
+  if (building.type === 'berging') return null;
+  const { width, depth } = building.dimensions;
+  const count = postCount(width, depth);
   const total = count * POST_PRICE;
-
   return {
     label: `${t('quote.posts')} (${count}×)`,
     area: 0,
@@ -203,14 +150,10 @@ export function postLineItem(
   };
 }
 
-export function braceLineItem(
-  config: BuildingConfig,
-): LineItem | null {
-  if (!config.hasCornerBraces) return null;
-  // One brace per corner post (4 corners), 2 braces per corner (one per axis)
+function braceLineItem(building: BuildingEntity): LineItem | null {
+  if (!building.hasCornerBraces) return null;
   const count = 8;
   const total = count * BRACE_PRICE;
-
   return {
     label: `${t('quote.braces')} (${count}×)`,
     area: 0,
@@ -221,14 +164,12 @@ export function braceLineItem(
   };
 }
 
-export function floorLineItem(config: BuildingConfig): LineItem | null {
-  const { materialId } = config.floor;
+function floorLineItem(building: BuildingEntity): LineItem | null {
+  const { materialId } = building.floor;
   if (materialId === 'geen') return null;
-
-  const { width, depth } = config.dimensions;
+  const { width, depth } = building.dimensions;
   const area = width * depth;
   const materialCost = area * findPrice(FLOOR_MATERIALS, materialId);
-
   return {
     label: t('floor.label'),
     area,
@@ -239,34 +180,42 @@ export function floorLineItem(config: BuildingConfig): LineItem | null {
   };
 }
 
-export function calculateQuote(config: BuildingConfig): {
+export function calculateBuildingQuote(building: BuildingEntity, roof: RoofConfig): {
   lineItems: LineItem[];
   total: number;
 } {
   const lineItems: LineItem[] = [];
 
-  // Post line item for overkapping sections
-  const posts = postLineItem(config);
+  const posts = postLineItem(building);
   if (posts) lineItems.push(posts);
 
-  // Brace line item
-  const braces = braceLineItem(config);
+  const braces = braceLineItem(building);
   if (braces) lineItems.push(braces);
 
-  // Wall line items
-  const wallIds = Object.keys(config.walls) as WallId[];
+  const wallIds = Object.keys(building.walls) as WallId[];
   for (const id of wallIds) {
-    const item = wallLineItem(id, config);
+    const item = wallLineItem(id, building);
     if (item.total > 0) lineItems.push(item);
   }
 
-  // Floor line item
-  const floor = floorLineItem(config);
+  const floor = floorLineItem(building);
   if (floor) lineItems.push(floor);
 
-  // Single roof line item
-  lineItems.push(roofLineItem(config));
+  lineItems.push(roofLineItem(building, roof));
 
+  const total = lineItems.reduce((sum, item) => sum + item.total, 0);
+  return { lineItems, total };
+}
+
+export function calculateTotalQuote(buildings: BuildingEntity[], roof: RoofConfig): {
+  lineItems: LineItem[];
+  total: number;
+} {
+  const lineItems: LineItem[] = [];
+  for (const building of buildings) {
+    const { lineItems: items } = calculateBuildingQuote(building, roof);
+    lineItems.push(...items);
+  }
   const total = lineItems.reduce((sum, item) => sum + item.total, 0);
   return { lineItems, total };
 }

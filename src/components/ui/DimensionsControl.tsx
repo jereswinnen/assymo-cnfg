@@ -36,10 +36,25 @@ function SliderRow({ label, value, min, max, step, unit, onChange }: SliderRowPr
 }
 
 export default function DimensionsControl() {
-  const dimensions = useConfigStore((s) => s.config.dimensions);
-  const buildingType = useConfigStore((s) => s.config.buildingType);
-  const roofType = useConfigStore((s) => s.config.roof.type);
-  const updateDimensions = useConfigStore((s) => s.updateDimensions);
+  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingId);
+  const building = useConfigStore((s) => {
+    if (!s.selectedBuildingId) return null;
+    return s.buildings.find(b => b.id === s.selectedBuildingId) ?? null;
+  });
+  const roofType = useConfigStore((s) => s.roof.type);
+  const roofPitch = useConfigStore((s) => s.roof.pitch);
+  const updateBuildingDimensions = useConfigStore((s) => s.updateBuildingDimensions);
+  const updateRoof = useConfigStore((s) => s.updateRoof);
+
+  if (!building || !selectedBuildingId) {
+    return (
+      <div className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+        Selecteer een gebouw
+      </div>
+    );
+  }
+
+  const { dimensions } = building;
 
   return (
     <div className="space-y-4">
@@ -50,7 +65,7 @@ export default function DimensionsControl() {
         max={15}
         step={0.5}
         unit="m"
-        onChange={(v) => updateDimensions({ width: v })}
+        onChange={(v) => updateBuildingDimensions(selectedBuildingId, { width: v })}
       />
       <SliderRow
         label={t('dim.depth')}
@@ -59,7 +74,7 @@ export default function DimensionsControl() {
         max={20}
         step={0.5}
         unit="m"
-        onChange={(v) => updateDimensions({ depth: v })}
+        onChange={(v) => updateBuildingDimensions(selectedBuildingId, { depth: v })}
       />
       <SliderRow
         label={t('dim.height')}
@@ -68,28 +83,17 @@ export default function DimensionsControl() {
         max={6}
         step={0.25}
         unit="m"
-        onChange={(v) => updateDimensions({ height: v })}
+        onChange={(v) => updateBuildingDimensions(selectedBuildingId, { height: v })}
       />
-      {buildingType === 'combined' && (
-        <SliderRow
-          label={t('dim.bergingWidth')}
-          value={dimensions.bergingWidth}
-          min={2}
-          max={dimensions.width - 2}
-          step={0.5}
-          unit="m"
-          onChange={(v) => updateDimensions({ bergingWidth: v })}
-        />
-      )}
       {roofType === 'pitched' && (
         <SliderRow
           label={t('dim.roofPitch')}
-          value={dimensions.roofPitch}
+          value={roofPitch}
           min={5}
           max={55}
           step={1}
           unit="°"
-          onChange={(v) => updateDimensions({ roofPitch: v })}
+          onChange={(v) => updateRoof({ pitch: v })}
         />
       )}
     </div>

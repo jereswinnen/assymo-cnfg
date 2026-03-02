@@ -7,10 +7,8 @@ const nl: Record<string, string> = {
   // Building types
   'buildingType.overkapping': 'Overkapping',
   'buildingType.berging': 'Berging',
-  'buildingType.combined': 'Gecombineerd',
   'buildingType.overkapping.desc': 'Open carport met palen',
   'buildingType.berging.desc': 'Gesloten berging met wanden',
-  'buildingType.combined.desc': 'Carport + berging onder één dak',
 
   // Roof types
   'roofType.label': 'Daktype',
@@ -32,7 +30,7 @@ const nl: Record<string, string> = {
   'trimColor.groen': 'Groen',
 
   // Accordion sections
-  'section.1': 'Type gebouw',
+  'section.1': 'Gebouwen',
   'section.2': 'Afmetingen',
   'section.3': 'Dakbedekking',
   'section.4': 'Wanden',
@@ -44,17 +42,12 @@ const nl: Record<string, string> = {
   'dim.depth': 'Diepte',
   'dim.height': 'Hoogte',
   'dim.roofPitch': 'Dakhelling',
-  'dim.bergingWidth': 'Breedte berging',
 
   // Walls
   'wall.front': 'Voorkant',
   'wall.back': 'Achterkant',
   'wall.left': 'Linkerkant',
   'wall.right': 'Rechterkant',
-  'wall.divider': 'Tussenwand',
-  'wall.ov_front': 'Overkapping voorkant',
-  'wall.ov_back': 'Overkapping achterkant',
-  'wall.ov_right': 'Overkapping rechterkant',
   'wall.select': 'Selecteer een wand om te configureren',
   'wall.clickToSelect': 'Klik op een wand in het 3D-model of selecteer hieronder',
 
@@ -123,6 +116,15 @@ const nl: Record<string, string> = {
 
   // Walls section
   'walls.disabled': 'Overkapping heeft geen wanden',
+
+  // Building manager
+  'building.add.berging': 'Gebouw toevoegen',
+  'building.add.overkapping': 'Overkapping toevoegen',
+  'building.delete': 'Verwijderen',
+  'building.name.berging': 'Gebouw',
+  'building.name.overkapping': 'Overkapping',
+  'connection.open': 'Open doorgang',
+  'connection.closed': 'Gesloten',
 
   // Schematic
   'view.floorplan': 'Plattegrond',
