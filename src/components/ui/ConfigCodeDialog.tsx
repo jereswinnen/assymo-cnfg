@@ -7,7 +7,7 @@ import { useConfigStore } from '@/store/useConfigStore';
 import { encodeConfig, decodeConfig, formatCode } from '@/lib/configCode';
 import { t } from '@/lib/i18n';
 
-export default function ConfigCodeDialog() {
+export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = {}) {
   const config = useConfigStore((s) => s.config);
   const loadConfig = useConfigStore((s) => s.loadConfig);
 
@@ -56,10 +56,16 @@ export default function ConfigCodeDialog() {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={handleOpenChange}>
       <DialogPrimitive.Trigger asChild>
-        <button className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-          <QrCode className="h-3.5 w-3.5" />
-          Code
-        </button>
+        {iconOnly ? (
+          <button className="flex items-center justify-center h-11 w-11 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+            <QrCode className="h-5 w-5" />
+          </button>
+        ) : (
+          <button className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+            <QrCode className="h-3.5 w-3.5" />
+            Code
+          </button>
+        )}
       </DialogPrimitive.Trigger>
 
       <DialogPrimitive.Portal>

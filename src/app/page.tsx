@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import ConfigPanel from '@/components/ui/ConfigPanel';
+import CapsuleToolbar from '@/components/ui/CapsuleToolbar';
 import SchematicView from '@/components/schematic/SchematicView';
 import { exportFloorPlan } from '@/components/schematic/exportFloorPlan';
 import { useConfigStore } from '@/store/useConfigStore';
@@ -80,54 +80,27 @@ export default function Home() {
   const config = useConfigStore((s) => s.config);
 
   return (
-    <>
-      {/* ── Vertical split: mobile + tablet (< 1024px) ── */}
-      <div className="flex flex-col h-dvh lg:hidden">
-        {/* Viewer */}
-        <div className="relative h-[42vh] md:h-[50vh] min-h-0 shrink-0">
-          {viewMode === '3d' && <BuildingScene />}
-          {viewMode === 'plan' && (
-            <div className="absolute inset-0 bg-white">
-              <SchematicView />
-            </div>
-          )}
+    <div className="relative h-dvh">
+      {/* Full-screen canvas */}
+      {viewMode === '3d' && (
+        <div className="absolute inset-0">
+          <BuildingScene />
         </div>
+      )}
 
-        {/* Toolbar */}
-        <div className="flex items-center px-3 py-2 bg-muted/50 border-y border-border/50">
-          <ViewToggle viewMode={viewMode} setViewMode={setViewMode} config={config} />
+      {viewMode === 'plan' && (
+        <div className="absolute inset-0 bg-white">
+          <SchematicView />
         </div>
+      )}
 
-        {/* Config panel */}
-        <div className="flex-1 min-h-0 overflow-hidden rounded-t-2xl bg-background shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
-          <ConfigPanel />
-        </div>
+      {/* Floating view toggle — top-left */}
+      <div className="absolute top-3 left-3 z-20">
+        <ViewToggle viewMode={viewMode} setViewMode={setViewMode} config={config} />
       </div>
 
-      {/* ── Desktop layout: floating panel (>= 1024px) ── */}
-      <div className="relative h-dvh hidden lg:block">
-        {viewMode === '3d' && (
-          <div className="absolute inset-0">
-            <BuildingScene />
-          </div>
-        )}
-
-        {viewMode === 'plan' && (
-          <div className="absolute inset-0 bg-white">
-            <div className="absolute inset-0 right-[440px]">
-              <SchematicView />
-            </div>
-          </div>
-        )}
-
-        <div className="absolute top-3 right-3 bottom-3 w-[420px] z-10">
-          <ConfigPanel />
-        </div>
-
-        <div className="absolute bottom-4 left-4 z-20">
-          <ViewToggle viewMode={viewMode} setViewMode={setViewMode} config={config} />
-        </div>
-      </div>
-    </>
+      {/* Capsule toolbar (positions itself via fixed) */}
+      <CapsuleToolbar />
+    </div>
   );
 }
