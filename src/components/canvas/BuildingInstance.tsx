@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback, useMemo } from 'react';
+import { useRef, useCallback, useEffect, useMemo } from 'react';
 import { useThree } from '@react-three/fiber';
 import { Raycaster, Vector2, Vector3, Plane, BoxGeometry } from 'three';
 import { BuildingProvider } from '@/lib/BuildingContext';
@@ -26,7 +26,11 @@ export default function BuildingInstance({ buildingId }: BuildingInstanceProps) 
   const dragStart = useRef<Vector3 | null>(null);
   const startPos = useRef<[number, number]>([0, 0]);
   const pointerDownScreen = useRef<{ x: number; y: number } | null>(null);
+  const cleanupDrag = useRef<(() => void) | null>(null);
   const { gl, camera } = useThree();
+
+  // Clean up drag listeners on unmount
+  useEffect(() => () => { cleanupDrag.current?.(); }, []);
 
   const getGroundPoint = useCallback((clientX: number, clientY: number): Vector3 | null => {
     const rect = gl.domElement.getBoundingClientRect();
@@ -83,12 +87,14 @@ export default function BuildingInstance({ buildingId }: BuildingInstanceProps) 
       dragging.current = false;
       dragStart.current = null;
       pointerDownScreen.current = null;
+      cleanupDrag.current = null;
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
 
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
+    cleanupDrag.current = onUp;
   }, [building, buildingId, getGroundPoint, updateBuildingPosition, setDraggedBuildingId, setConnections]);
 
   const setAccordionSection = useConfigStore((s) => s.setAccordionSection);
@@ -126,6 +132,7 @@ export default function BuildingInstance({ buildingId }: BuildingInstanceProps) 
 
 function SelectionOutline({ width, depth, height }: { width: number; depth: number; height: number }) {
   const geo = useMemo(() => new BoxGeometry(width + 0.1, height + 0.1, depth + 0.1), [width, depth, height]);
+  useEffect(() => () => { geo.dispose(); }, [geo]);
   return (
     <lineSegments position={[0, height / 2, 0]}>
       <edgesGeometry args={[geo]} />

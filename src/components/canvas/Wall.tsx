@@ -1,12 +1,13 @@
 'use client';
 
-import { useRef, useState, useMemo, useEffect } from 'react';
+import { useRef, useMemo, useEffect, useCallback } from 'react';
 import { Mesh } from 'three';
 import { Edges } from '@react-three/drei';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
 import { WALL_MATERIALS, WALL_THICKNESS, computeOpeningPositions, getWallLength } from '@/lib/constants';
 import { useWallTexture } from '@/lib/textures';
+import { useClickableObject } from '@/lib/useClickableObject';
 import { createWallWithOpeningsGeo, FRAME_D } from './wallGeometry';
 import { frameMat } from './DoorMesh';
 import DoorMesh from './DoorMesh';
@@ -23,13 +24,14 @@ interface WallProps {
 
 export default function Wall({ wallId }: WallProps) {
   const meshRef = useRef<Mesh>(null);
-  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
-  const [hovered, setHovered] = useState(false);
 
   const buildingId = useBuildingId();
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
   const selectedElement = useConfigStore((s) => s.selectedElement);
   const selectElement = useConfigStore((s) => s.selectElement);
+
+  const onSelect = useCallback(() => selectElement({ type: 'wall', id: wallId, buildingId }), [selectElement, wallId, buildingId]);
+  const { hovered, handlers: pointerHandlers } = useClickableObject(onSelect);
 
   const dimensions = building?.dimensions ?? { width: 8, depth: 4, height: 3 };
   const { width, depth, height } = dimensions;
@@ -110,32 +112,6 @@ export default function Wall({ wallId }: WallProps) {
   }, [wallGeo]);
 
   const isGlass = materialId === 'glass';
-
-  const pointerHandlers = {
-    onPointerOver: (e: { nativeEvent: MouseEvent; stopPropagation: () => void }) => {
-      if (e.nativeEvent.buttons > 0) return;
-      e.stopPropagation();
-      setHovered(true);
-      document.body.style.cursor = 'pointer';
-    },
-    onPointerOut: () => {
-      setHovered(false);
-      document.body.style.cursor = 'auto';
-    },
-    onPointerDown: (e: { nativeEvent: MouseEvent }) => {
-      pointerDownPos.current = { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY };
-    },
-    onClick: (e: { nativeEvent: MouseEvent; stopPropagation: () => void }) => {
-      const down = pointerDownPos.current;
-      if (down) {
-        const dx = e.nativeEvent.clientX - down.x;
-        const dy = e.nativeEvent.clientY - down.y;
-        if (dx * dx + dy * dy > 16) return;
-      }
-      e.stopPropagation();
-      selectElement({ type: 'wall', id: wallId, buildingId });
-    },
-  };
 
   if (isGlass) {
     return (

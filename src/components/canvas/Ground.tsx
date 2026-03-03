@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { TextureLoader, RepeatWrapping, SRGBColorSpace, LinearSRGBColorSpace, Texture } from 'three';
 import { RoundedBox } from '@react-three/drei';
 
@@ -12,14 +12,18 @@ const GRASS_TILE = 4;
 const EARTH_TILE = 2;
 
 function useRepeatingTexture(path: string, repeatX: number, repeatY: number, srgb: boolean): Texture {
-  return useMemo(() => {
-    const tex = new TextureLoader().load(path);
-    tex.wrapS = RepeatWrapping;
-    tex.wrapT = RepeatWrapping;
-    tex.colorSpace = srgb ? SRGBColorSpace : LinearSRGBColorSpace;
-    tex.repeat.set(repeatX, repeatY);
-    return tex;
+  const tex = useMemo(() => {
+    const t = new TextureLoader().load(path);
+    t.wrapS = RepeatWrapping;
+    t.wrapT = RepeatWrapping;
+    t.colorSpace = srgb ? SRGBColorSpace : LinearSRGBColorSpace;
+    t.repeat.set(repeatX, repeatY);
+    return t;
   }, [path, repeatX, repeatY, srgb]);
+
+  useEffect(() => () => { tex.dispose(); }, [tex]);
+
+  return tex;
 }
 
 export default function Ground() {

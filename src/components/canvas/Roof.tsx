@@ -1,21 +1,18 @@
 'use client';
 
-import { useRef, useState, useMemo, useCallback } from 'react';
+import { useRef, useMemo, useCallback } from 'react';
 import { Mesh } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
 import { ROOF_COVERINGS, TRIM_COLORS, BEAM_H } from '@/lib/constants';
 import { useRoofTexture } from '@/lib/textures';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ThreePointerEvent = any;
+import { useClickableObject } from '@/lib/useClickableObject';
 
 const EPDM_THICKNESS = 0.02;
 const ROOF_EDGE = 0.12; // must match TimberFrame
 
 export default function Roof() {
   const meshRef = useRef<Mesh>(null);
-  const [hovered, setHovered] = useState(false);
 
   const buildingId = useBuildingId();
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
@@ -42,31 +39,8 @@ export default function Roof() {
     return sides;
   }, [connections, buildingId]);
 
-  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
-
-  const handlePointerOver = useCallback((e: ThreePointerEvent) => {
-    if (e.nativeEvent.buttons > 0) return;
-    e.stopPropagation();
-    setHovered(true);
-    document.body.style.cursor = 'pointer';
-  }, []);
-  const handlePointerOut = useCallback(() => {
-    setHovered(false);
-    document.body.style.cursor = 'auto';
-  }, []);
-  const handlePointerDown = useCallback((e: ThreePointerEvent) => {
-    pointerDownPos.current = { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY };
-  }, []);
-  const handleClick = useCallback((e: ThreePointerEvent) => {
-    const down = pointerDownPos.current;
-    if (down) {
-      const dx = e.nativeEvent.clientX - down.x;
-      const dy = e.nativeEvent.clientY - down.y;
-      if (dx * dx + dy * dy > 16) return;
-    }
-    e.stopPropagation();
-    selectElement({ type: 'roof' });
-  }, [selectElement]);
+  const onSelect = useCallback(() => selectElement({ type: 'roof' }), [selectElement]);
+  const { hovered, handlers } = useClickableObject(onSelect);
 
   const materialProps = {
     color: roofTexture ? '#ffffff' : color,
@@ -85,42 +59,37 @@ export default function Roof() {
       connectedSides={connectedSides}
       trimColor={trimColor}
       materialProps={materialProps}
-      isSelected={isSelected}
       meshRef={meshRef}
-      onPointerOver={handlePointerOver}
-      onPointerOut={handlePointerOut}
-      onPointerDown={handlePointerDown}
-      onClick={handleClick}
+      pointerHandlers={handlers}
     />;
   }
 
   return <PitchedRoof
     width={width} depth={depth} height={height} roofPitch={roofPitch}
     materialProps={materialProps}
-    isSelected={isSelected}
-    onPointerOver={handlePointerOver}
-    onPointerOut={handlePointerOut}
-    onPointerDown={handlePointerDown}
-    onClick={handleClick}
+    pointerHandlers={handlers}
   />;
 }
 
 const TRIM_T = 0.02; // trim strip thickness
+
+interface PointerHandlers {
+  onPointerOver: (e: unknown) => void;
+  onPointerOut: () => void;
+  onPointerDown: (e: unknown) => void;
+  onClick: (e: unknown) => void;
+}
 
 interface FlatRoofProps {
   width: number; depth: number; height: number;
   connectedSides: Set<string>;
   trimColor: string;
   materialProps: Record<string, unknown>;
-  isSelected: boolean;
   meshRef: React.RefObject<Mesh | null>;
-  onPointerOver: (e: ThreePointerEvent) => void;
-  onPointerOut: () => void;
-  onPointerDown: (e: ThreePointerEvent) => void;
-  onClick: (e: ThreePointerEvent) => void;
+  pointerHandlers: PointerHandlers;
 }
 
-function FlatRoof({ width, depth, height, connectedSides, trimColor, materialProps, isSelected, meshRef, onPointerOver, onPointerOut, onPointerDown, onClick }: FlatRoofProps) {
+function FlatRoof({ width, depth, height, connectedSides, trimColor, materialProps, meshRef, pointerHandlers }: FlatRoofProps) {
   const epdmY = height + BEAM_H + ROOF_EDGE + EPDM_THICKNESS / 2;
   const trimY = height + BEAM_H + ROOF_EDGE + EPDM_THICKNESS / 2;
 
@@ -151,10 +120,7 @@ function FlatRoof({ width, depth, height, connectedSides, trimColor, materialPro
       <mesh
         ref={meshRef}
         position={[0, epdmY, 0]}
-        onPointerOver={onPointerOver}
-        onPointerOut={onPointerOut}
-        onPointerDown={onPointerDown}
-        onClick={onClick}
+        {...pointerHandlers}
       >
         <boxGeometry args={[width, EPDM_THICKNESS, depth]} />
         <meshStandardMaterial key={materialProps.map ? 'textured' : 'flat'} {...materialProps} />
@@ -174,14 +140,10 @@ function FlatRoof({ width, depth, height, connectedSides, trimColor, materialPro
 interface PitchedRoofProps {
   width: number; depth: number; height: number; roofPitch: number;
   materialProps: Record<string, unknown>;
-  isSelected: boolean;
-  onPointerOver: (e: ThreePointerEvent) => void;
-  onPointerOut: () => void;
-  onPointerDown: (e: ThreePointerEvent) => void;
-  onClick: (e: ThreePointerEvent) => void;
+  pointerHandlers: PointerHandlers;
 }
 
-function PitchedRoof({ width, depth, height, roofPitch, materialProps, isSelected, onPointerOver, onPointerOut, onPointerDown, onClick }: PitchedRoofProps) {
+function PitchedRoof({ width, depth, height, roofPitch, materialProps, pointerHandlers }: PitchedRoofProps) {
   const pitchRad = (roofPitch * Math.PI) / 180;
   const halfWidth = width / 2;
   const roofRise = Math.tan(pitchRad) * halfWidth;
@@ -205,10 +167,7 @@ function PitchedRoof({ width, depth, height, roofPitch, materialProps, isSelecte
           key={i}
           position={panel.position}
           rotation={panel.rotation}
-          onPointerOver={onPointerOver}
-          onPointerOut={onPointerOut}
-          onPointerDown={onPointerDown}
-          onClick={onClick}
+          {...pointerHandlers}
         >
           <boxGeometry args={[roofSlantLength, ROOF_EDGE, depth]} />
           <meshStandardMaterial key={materialProps.map ? 'textured' : 'flat'} {...materialProps} />

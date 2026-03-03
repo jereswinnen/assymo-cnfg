@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
 import { Label } from '@/components/ui/label';
@@ -45,8 +46,11 @@ export default function BuildingManager() {
   const setRoofType = useConfigStore((s) => s.setRoofType);
 
   const selectedBuilding = buildings.find(b => b.id === selectedBuildingId);
-  const selectedConnections = connections.filter(
-    c => c.buildingAId === selectedBuildingId || c.buildingBId === selectedBuildingId,
+  const selectedConnections = useMemo(
+    () => connections.filter(
+      c => c.buildingAId === selectedBuildingId || c.buildingBId === selectedBuildingId,
+    ),
+    [connections, selectedBuildingId],
   );
 
   return (

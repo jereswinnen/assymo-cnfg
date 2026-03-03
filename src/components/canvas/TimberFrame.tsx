@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { MeshStandardMaterial, TextureLoader, RepeatWrapping, SRGBColorSpace } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
@@ -46,6 +46,11 @@ export default function TimberFrame() {
     tex.repeat.set(2, 2);
     return new MeshStandardMaterial({ map: tex, color: '#ffffff', metalness: 0.05, roughness: 0.8 });
   }, []);
+
+  useEffect(() => () => {
+    timberMat.map?.dispose();
+    timberMat.dispose();
+  }, [timberMat]);
 
   const elements = useMemo(() => {
     const hw = width / 2;

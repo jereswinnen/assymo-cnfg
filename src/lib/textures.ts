@@ -82,7 +82,7 @@ export function useWallTexture(
 
   const texture = useMemo(() => {
     if (!path) return null;
-    return loadTexture(path);
+    return loadTexture(path).clone();
   }, [path]);
 
   useEffect(() => {
@@ -90,6 +90,8 @@ export function useWallTexture(
       texture.repeat.set(wallWidth / tileSize[0], wallHeight / tileSize[1]);
     }
   }, [texture, tileSize, wallWidth, wallHeight]);
+
+  useEffect(() => () => { texture?.dispose(); }, [texture]);
 
   return texture;
 }
@@ -104,7 +106,6 @@ export function useDoorTexture(
 
   const texture = useMemo(() => {
     if (!path) return null;
-    // Clone so door repeat doesn't overwrite the shared wall texture
     return loadTexture(path).clone();
   }, [path]);
 
@@ -113,6 +114,8 @@ export function useDoorTexture(
       texture.repeat.set(panelWidth / 1.5, panelHeight / 2);
     }
   }, [texture, panelWidth, panelHeight]);
+
+  useEffect(() => () => { texture?.dispose(); }, [texture]);
 
   return texture;
 }
@@ -128,7 +131,7 @@ export function useRoofTexture(
 
   const texture = useMemo(() => {
     if (!path) return null;
-    return loadTexture(path);
+    return loadTexture(path).clone();
   }, [path]);
 
   useEffect(() => {
@@ -136,6 +139,8 @@ export function useRoofTexture(
       texture.repeat.set(roofWidth / tileSize[0], roofDepth / tileSize[1]);
     }
   }, [texture, tileSize, roofWidth, roofDepth]);
+
+  useEffect(() => () => { texture?.dispose(); }, [texture]);
 
   return texture;
 }
@@ -158,9 +163,9 @@ export function useFloorTexture(
   const textures = useMemo(() => {
     if (!paths) return null;
     return {
-      map: loadTexture(paths.color, true),
-      normalMap: loadTexture(paths.normal, false),
-      roughnessMap: loadTexture(paths.roughness, false),
+      map: loadTexture(paths.color, true).clone(),
+      normalMap: loadTexture(paths.normal, false).clone(),
+      roughnessMap: loadTexture(paths.roughness, false).clone(),
     };
   }, [paths]);
 
@@ -173,6 +178,15 @@ export function useFloorTexture(
       textures.roughnessMap.repeat.set(rx, ry);
     }
   }, [textures, tileSize, floorWidth, floorDepth]);
+
+  useEffect(() => {
+    if (!textures) return;
+    return () => {
+      textures.map.dispose();
+      textures.normalMap.dispose();
+      textures.roughnessMap.dispose();
+    };
+  }, [textures]);
 
   return textures;
 }

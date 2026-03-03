@@ -64,6 +64,8 @@ function SkyGradient() {
     [],
   );
 
+  useEffect(() => () => { material.dispose(); }, [material]);
+
   return (
     <mesh scale={[500, 500, 500]} material={material}>
       <sphereGeometry args={[1, 128, 128]} />
