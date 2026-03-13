@@ -28,6 +28,21 @@ function ViewToggle({
     <div className="flex items-center gap-2">
       <div className="flex gap-1 bg-background/80 backdrop-blur-xl rounded-xl shadow-md ring-1 ring-black/[0.08] p-1">
         <button
+          onClick={() => setViewMode('plan')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            viewMode === 'plan'
+              ? 'bg-foreground text-background shadow-sm'
+              : 'text-foreground/60 hover:text-foreground/80'
+          }`}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="1" y="1" width="14" height="14" rx="1" />
+            <line x1="6" y1="1" x2="6" y2="15" />
+            <line x1="6" y1="8" x2="15" y2="8" />
+          </svg>
+          2D
+        </button>
+        <button
           onClick={() => setViewMode('3d')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
             viewMode === '3d'
@@ -41,21 +56,6 @@ function ViewToggle({
             <path d="M14.5 4.75L8 8L1.5 4.75" />
           </svg>
           3D
-        </button>
-        <button
-          onClick={() => setViewMode('plan')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-            viewMode === 'plan'
-              ? 'bg-foreground text-background shadow-sm'
-              : 'text-foreground/60 hover:text-foreground/80'
-          }`}
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="1" y="1" width="14" height="14" rx="1" />
-            <line x1="6" y1="1" x2="6" y2="15" />
-            <line x1="6" y1="8" x2="15" y2="8" />
-          </svg>
-          {t('view.floorplan')}
         </button>
       </div>
 
@@ -77,7 +77,7 @@ function ViewToggle({
 }
 
 export default function Home() {
-  const [viewMode, setViewMode] = useState<'3d' | 'plan'>('3d');
+  const [viewMode, setViewMode] = useState<'3d' | 'plan'>('plan');
 
   return (
     <div className="relative h-dvh">
