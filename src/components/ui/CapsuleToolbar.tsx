@@ -125,17 +125,15 @@ export default function CapsuleToolbar() {
               side={popoverSide}
               className={
                 isDesktop
-                  ? `${number === 4 ? 'w-96' : 'w-80'} max-h-[min(70vh,600px)] overflow-hidden flex flex-col`
-                  : 'w-[min(90vw,380px)] max-h-[min(50vh,400px)] overflow-hidden flex flex-col'
+                  ? `${number === 4 ? 'w-96' : 'w-80'}`
+                  : 'w-[min(90vw,380px)]'
               }
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
-              <h3 className="text-sm font-semibold text-foreground mb-3 shrink-0">
+              <h3 className="text-sm font-semibold text-foreground mb-3">
                 {t(`section.${number}`)}
               </h3>
-              <div className="overflow-y-auto min-h-0">
-                <SectionContent number={number} />
-              </div>
+              <SectionContent number={number} />
             </PopoverContent>
           </Popover>
         ))}

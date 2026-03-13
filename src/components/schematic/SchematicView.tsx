@@ -232,26 +232,6 @@ export default function SchematicView() {
             </pattern>
           </defs>
 
-          {/* Poles as small filled squares */}
-          {poles.map((p) => {
-            const s = 0.18;
-            const isSelected = p.id === selectedBuildingId;
-            return (
-              <rect
-                key={p.id}
-                x={p.position[0] - s / 2}
-                y={p.position[1] - s / 2}
-                width={s}
-                height={s}
-                fill="#8B6914"
-                stroke={isSelected ? '#3b82f6' : '#666'}
-                strokeWidth={isSelected ? 0.04 : 0.02}
-                style={{ cursor: 'grab' }}
-                onPointerDown={(e) => onBuildingPointerDown(e, p.id)}
-              />
-            );
-          })}
-
           {normalBuildings.map((b) => {
             const [ox, oz] = b.position;
             const { width, depth } = b.dimensions;
@@ -390,6 +370,26 @@ export default function SchematicView() {
                   </g>
                 )}
               </g>
+            );
+          })}
+
+          {/* Poles as small filled squares — rendered after buildings so they're on top */}
+          {poles.map((p) => {
+            const s = 0.18;
+            const isSelected = p.id === selectedBuildingId;
+            return (
+              <rect
+                key={p.id}
+                x={p.position[0] - s / 2}
+                y={p.position[1] - s / 2}
+                width={s}
+                height={s}
+                fill="#8B6914"
+                stroke={isSelected ? '#3b82f6' : '#666'}
+                strokeWidth={isSelected ? 0.04 : 0.02}
+                style={{ cursor: 'grab' }}
+                onPointerDown={(e) => onBuildingPointerDown(e, p.id)}
+              />
             );
           })}
 
