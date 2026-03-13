@@ -67,16 +67,20 @@ export default function SchematicView() {
   const connections = useConfigStore((s) => s.connections);
   const selectedElement = useConfigStore((s) => s.selectedElement);
 
-  // Compute bounding box of all buildings
+  const normalBuildings = buildings.filter(b => b.type !== 'paal');
+  const poles = buildings.filter(b => b.type === 'paal');
+
+  // Compute bounding box of all buildings (including poles)
   let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
   for (const b of buildings) {
     const [cx, cz] = b.position;
     const hw = b.dimensions.width / 2;
     const hd = b.dimensions.depth / 2;
-    minX = Math.min(minX, cx - hw);
-    maxX = Math.max(maxX, cx + hw);
-    minZ = Math.min(minZ, cz - hd);
-    maxZ = Math.max(maxZ, cz + hd);
+    const pad2 = b.type === 'paal' ? 0.3 : 0;
+    minX = Math.min(minX, cx - hw - pad2);
+    maxX = Math.max(maxX, cx + hw + pad2);
+    minZ = Math.min(minZ, cz - hd - pad2);
+    maxZ = Math.max(maxZ, cz + hd + pad2);
   }
 
   const totalW = maxX - minX;
@@ -123,7 +127,20 @@ export default function SchematicView() {
             </pattern>
           </defs>
 
-          {buildings.map((b) => {
+          {/* Poles as small filled circles */}
+          {poles.map((p) => (
+            <circle
+              key={p.id}
+              cx={p.position[0]}
+              cy={p.position[1]}
+              r={0.12}
+              fill="#8B6914"
+              stroke="#666"
+              strokeWidth={0.02}
+            />
+          ))}
+
+          {normalBuildings.map((b) => {
             const [ox, oz] = b.position;
             const { width, depth } = b.dimensions;
             const hw = width / 2;

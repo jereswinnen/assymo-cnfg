@@ -7,6 +7,7 @@ const nl: Record<string, string> = {
   // Building types
   'buildingType.overkapping': 'Overkapping',
   'buildingType.berging': 'Berging',
+  'buildingType.paal': 'Paal',
   'buildingType.overkapping.desc': 'Open carport met palen',
   'buildingType.berging.desc': 'Gesloten berging met wanden',
 
@@ -104,6 +105,7 @@ const nl: Record<string, string> = {
   'quote.total': 'Totaal',
   'quote.posts': 'Staanders',
   'quote.braces': 'Schoren',
+  'quote.pole': 'Paal',
   'quote.roof': 'Dak',
 
   // Floor
@@ -120,9 +122,11 @@ const nl: Record<string, string> = {
   // Building manager
   'building.add.berging': 'Gebouw toevoegen',
   'building.add.overkapping': 'Overkapping toevoegen',
+  'building.add.paal': 'Paal toevoegen',
   'building.delete': 'Verwijderen',
   'building.name.berging': 'Gebouw',
   'building.name.overkapping': 'Overkapping',
+  'building.name.paal': 'Paal',
   'connection.open': 'Open doorgang',
   'connection.closed': 'Gesloten',
 

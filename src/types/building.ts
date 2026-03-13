@@ -1,4 +1,4 @@
-export type BuildingType = 'overkapping' | 'berging';
+export type BuildingType = 'overkapping' | 'berging' | 'paal';
 export type RoofType = 'flat' | 'pitched';
 export type RoofCoveringId = 'dakpannen' | 'riet' | 'epdm' | 'polycarbonaat' | 'metaal';
 export type TrimColorId = 'antraciet' | 'wit' | 'zwart' | 'bruin' | 'groen';

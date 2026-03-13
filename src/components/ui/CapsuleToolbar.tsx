@@ -54,7 +54,7 @@ function WallsContent() {
   return (
     <div className="space-y-4">
       <WallSelector />
-      {selectedBuilding && selectedBuilding.type !== 'overkapping' && (
+      {selectedBuilding && selectedBuilding.type === 'berging' && (
         <>
           <Separator />
           <SurfaceProperties />

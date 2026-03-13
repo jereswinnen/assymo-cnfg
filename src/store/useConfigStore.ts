@@ -17,6 +17,7 @@ import {
   DEFAULT_ROOF,
   DEFAULT_FLOOR,
   DEFAULT_WALL,
+  POLE_DIMENSIONS,
   getDefaultWalls,
 } from '@/lib/constants';
 
@@ -73,7 +74,7 @@ function createBuilding(type: BuildingType, position: [number, number]): Buildin
     id: crypto.randomUUID(),
     type,
     position,
-    dimensions: { ...DEFAULT_DIMENSIONS },
+    dimensions: type === 'paal' ? { ...POLE_DIMENSIONS } : { ...DEFAULT_DIMENSIONS },
     walls: getDefaultWalls(type),
     hasCornerBraces: type === 'overkapping',
     floor: { ...DEFAULT_FLOOR },
@@ -114,7 +115,11 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
   removeBuilding: (id) =>
     set((state) => {
-      if (state.buildings.length <= 1) return state;
+      const target = state.buildings.find(b => b.id === id);
+      // Always keep at least one non-pole building
+      const nonPoleCount = state.buildings.filter(b => b.type !== 'paal').length;
+      if (!target) return state;
+      if (target.type !== 'paal' && nonPoleCount <= 1) return state;
       const buildings = state.buildings.filter(b => b.id !== id);
       const connections = state.connections.filter(
         c => c.buildingAId !== id && c.buildingBId !== id,

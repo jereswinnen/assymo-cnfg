@@ -137,7 +137,7 @@ class BitReader {
 }
 
 // ─── Lookup tables ───────────────────────────────────────────────────
-const BUILDING_TYPES: BuildingType[] = ['overkapping', 'berging'];
+const BUILDING_TYPES: BuildingType[] = ['overkapping', 'berging', 'paal'];
 const COVERING_IDS: RoofCoveringId[] = ['dakpannen', 'riet', 'epdm', 'polycarbonaat', 'metaal'];
 const TRIM_IDS: TrimColorId[] = ['antraciet', 'wit', 'zwart', 'bruin', 'groen'];
 const FLOOR_IDS: FloorMaterialId[] = ['geen', 'tegels', 'beton', 'hout'];
@@ -159,8 +159,8 @@ function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
 }
 
-// ─── Encode (Version 2: multi-building) ──────────────────────────────
-const VERSION = 2;
+// ─── Encode (Version 3: poles) ───────────────────────────────────────
+const VERSION = 3;
 
 function encodeWall(w: BitWriter, wall: WallConfig) {
   w.write(indexOf(MATERIAL_IDS, wall.materialId), 3);
@@ -232,28 +232,36 @@ export function encodeState(
 
   // Per-building data
   for (const b of buildings) {
-    w.write(indexOf(BUILDING_TYPES, b.type), 1);
-    w.write(clamp(Math.round((b.dimensions.width - 3) / 0.5), 0, 24), 5);
-    w.write(clamp(Math.round((b.dimensions.depth - 3) / 0.5), 0, 34), 6);
-    w.write(clamp(Math.round((b.dimensions.height - 2) / 0.25), 0, 16), 5);
+    w.write(indexOf(BUILDING_TYPES, b.type), 2);
 
-    // Position: signed, scaled by 0.5m, 8 bits each (-32 to 31.5)
-    w.writeSigned(clamp(Math.round(b.position[0] / 0.5), -64, 63), 7);
-    w.writeSigned(clamp(Math.round(b.position[1] / 0.5), -64, 63), 7);
+    if (b.type === 'paal') {
+      // Poles: only height + position
+      w.write(clamp(Math.round((b.dimensions.height - 2) / 0.25), 0, 16), 5);
+      w.writeSigned(clamp(Math.round(b.position[0] / 0.5), -64, 63), 7);
+      w.writeSigned(clamp(Math.round(b.position[1] / 0.5), -64, 63), 7);
+    } else {
+      w.write(clamp(Math.round((b.dimensions.width - 3) / 0.5), 0, 24), 5);
+      w.write(clamp(Math.round((b.dimensions.depth - 3) / 0.5), 0, 34), 6);
+      w.write(clamp(Math.round((b.dimensions.height - 2) / 0.25), 0, 16), 5);
 
-    w.write(indexOf(FLOOR_IDS, b.floor.materialId), 2);
-    w.write(b.hasCornerBraces ? 1 : 0, 1);
+      // Position: signed, scaled by 0.5m
+      w.writeSigned(clamp(Math.round(b.position[0] / 0.5), -64, 63), 7);
+      w.writeSigned(clamp(Math.round(b.position[1] / 0.5), -64, 63), 7);
 
-    // Wall mask + data
-    let mask = 0;
-    for (let i = 0; i < WALL_SLOTS.length; i++) {
-      if (b.walls[WALL_SLOTS[i]]) mask |= 1 << i;
-    }
-    w.write(mask, 4);
+      w.write(indexOf(FLOOR_IDS, b.floor.materialId), 2);
+      w.write(b.hasCornerBraces ? 1 : 0, 1);
 
-    for (let i = 0; i < WALL_SLOTS.length; i++) {
-      if (!(mask & (1 << i))) continue;
-      encodeWall(w, b.walls[WALL_SLOTS[i]]);
+      // Wall mask + data
+      let mask = 0;
+      for (let i = 0; i < WALL_SLOTS.length; i++) {
+        if (b.walls[WALL_SLOTS[i]]) mask |= 1 << i;
+      }
+      w.write(mask, 4);
+
+      for (let i = 0; i < WALL_SLOTS.length; i++) {
+        if (!(mask & (1 << i))) continue;
+        encodeWall(w, b.walls[WALL_SLOTS[i]]);
+      }
     }
   }
 
@@ -282,7 +290,9 @@ export function decodeState(code: string): {
   const r = new BitReader(bytes);
 
   const version = r.read(2);
-  if (version !== VERSION) throw new Error('Unsupported version');
+  if (version !== 2 && version !== 3) throw new Error('Unsupported version');
+
+  const isV3 = version === 3;
 
   // Shared roof
   const isPitched = r.read(1) === 1;
@@ -304,7 +314,26 @@ export function decodeState(code: string): {
   const buildings: BuildingEntity[] = [];
 
   for (let bi = 0; bi < buildingCount; bi++) {
-    const type = BUILDING_TYPES[clamp(r.read(1), 0, 1)];
+    const typeBits = isV3 ? 2 : 1;
+    const typeIdx = r.read(typeBits);
+    const type = BUILDING_TYPES[clamp(typeIdx, 0, BUILDING_TYPES.length - 1)];
+
+    if (isV3 && type === 'paal') {
+      const height = clamp(r.read(5) * 0.25 + 2, 2, 6);
+      const posX = r.readSigned(7) * 0.5;
+      const posZ = r.readSigned(7) * 0.5;
+      buildings.push({
+        id: crypto.randomUUID(),
+        type: 'paal',
+        position: [posX, posZ],
+        dimensions: { width: 0.15, depth: 0.15, height },
+        walls: {},
+        hasCornerBraces: false,
+        floor: { materialId: 'geen' },
+      });
+      continue;
+    }
+
     const width = clamp(r.read(5) * 0.5 + 3, 3, 15);
     const depth = clamp(r.read(6) * 0.5 + 3, 3, 20);
     const height = clamp(r.read(5) * 0.25 + 2, 2, 6);

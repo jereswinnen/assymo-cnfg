@@ -55,27 +55,32 @@ export default function DimensionsControl() {
   }
 
   const { dimensions } = building;
+  const isPole = building.type === 'paal';
 
   return (
     <div className="space-y-4">
-      <SliderRow
-        label={t('dim.width')}
-        value={dimensions.width}
-        min={3}
-        max={15}
-        step={0.5}
-        unit="m"
-        onChange={(v) => updateBuildingDimensions(selectedBuildingId, { width: v })}
-      />
-      <SliderRow
-        label={t('dim.depth')}
-        value={dimensions.depth}
-        min={3}
-        max={20}
-        step={0.5}
-        unit="m"
-        onChange={(v) => updateBuildingDimensions(selectedBuildingId, { depth: v })}
-      />
+      {!isPole && (
+        <>
+          <SliderRow
+            label={t('dim.width')}
+            value={dimensions.width}
+            min={3}
+            max={15}
+            step={0.5}
+            unit="m"
+            onChange={(v) => updateBuildingDimensions(selectedBuildingId, { width: v })}
+          />
+          <SliderRow
+            label={t('dim.depth')}
+            value={dimensions.depth}
+            min={3}
+            max={20}
+            step={0.5}
+            unit="m"
+            onChange={(v) => updateBuildingDimensions(selectedBuildingId, { depth: v })}
+          />
+        </>
+      )}
       <SliderRow
         label={t('dim.height')}
         value={dimensions.height}
@@ -85,7 +90,7 @@ export default function DimensionsControl() {
         unit="m"
         onChange={(v) => updateBuildingDimensions(selectedBuildingId, { height: v })}
       />
-      {roofType === 'pitched' && (
+      {!isPole && roofType === 'pitched' && (
         <SliderRow
           label={t('dim.roofPitch')}
           value={roofPitch}

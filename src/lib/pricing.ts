@@ -136,7 +136,7 @@ function roofLineItem(building: BuildingEntity, roof: RoofConfig): LineItem {
 }
 
 function postLineItem(building: BuildingEntity): LineItem | null {
-  if (building.type === 'berging') return null;
+  if (building.type === 'berging' || building.type === 'paal') return null;
   const { width, depth } = building.dimensions;
   const count = postCount(width, depth);
   const total = count * POST_PRICE;
@@ -184,6 +184,19 @@ export function calculateBuildingQuote(building: BuildingEntity, roof: RoofConfi
   lineItems: LineItem[];
   total: number;
 } {
+  // Pole: single post price
+  if (building.type === 'paal') {
+    const item: LineItem = {
+      label: t('quote.pole'),
+      area: 0,
+      materialCost: POST_PRICE,
+      insulationCost: 0,
+      extrasCost: 0,
+      total: POST_PRICE,
+    };
+    return { lineItems: [item], total: POST_PRICE };
+  }
+
   const lineItems: LineItem[] = [];
 
   const posts = postLineItem(building);

@@ -130,6 +130,8 @@ export function getDefaultWalls(type: BuildingType): Record<string, WallConfig> 
         left: { ...DEFAULT_WALL },
         right: { ...DEFAULT_WALL },
       };
+    case 'paal':
+      return {};
     default: {
       const _exhaustive: never = type;
       return _exhaustive;
@@ -144,6 +146,8 @@ export function getAvailableWallIds(type: BuildingType): WallId[] {
       return [];
     case 'berging':
       return ['front', 'back', 'left', 'right'];
+    case 'paal':
+      return [];
     default: {
       const _exhaustive: never = type;
       return _exhaustive;
@@ -174,6 +178,13 @@ export const DECK_T = 0.04;
 // Door / window dimensions
 export const DOOR_W = 0.9;
 export const WIN_W = 1.2;
+
+// Pole dimensions (single post)
+export const POLE_DIMENSIONS: BuildingDimensions = {
+  width: POST_SIZE,
+  depth: POST_SIZE,
+  height: 3,
+};
 
 // Snap thresholds
 export const SNAP_THRESHOLD = 0.5;

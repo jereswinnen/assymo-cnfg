@@ -5,7 +5,7 @@ import { useThree } from '@react-three/fiber';
 import { Raycaster, Vector2, Vector3, Plane, BoxGeometry } from 'three';
 import { BuildingProvider } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
-import { detectSnap } from '@/lib/snap';
+import { detectSnap, detectPoleSnap } from '@/lib/snap';
 import Building from './Building';
 
 const groundPlane = new Plane(new Vector3(0, 1, 0), 0);
@@ -72,12 +72,19 @@ export default function BuildingInstance({ buildingId }: BuildingInstanceProps) 
         startPos.current[1] + delta.z,
       ];
 
-      const others = useConfigStore.getState().buildings.filter(b => b.id !== buildingId);
-      const tempBuilding = { ...building, position: newPos };
-      const { snappedPosition, newConnections } = detectSnap(tempBuilding, others);
+      const allBuildings = useConfigStore.getState().buildings;
+      const isPole = building.type === 'paal';
 
-      updateBuildingPosition(buildingId, snappedPosition);
-      setConnections(newConnections);
+      if (isPole) {
+        const snapped = detectPoleSnap(newPos, allBuildings.filter(b => b.id !== buildingId));
+        updateBuildingPosition(buildingId, snapped);
+      } else {
+        const others = allBuildings.filter(b => b.id !== buildingId && b.type !== 'paal');
+        const tempBuilding = { ...building, position: newPos };
+        const { snappedPosition, newConnections } = detectSnap(tempBuilding, others);
+        updateBuildingPosition(buildingId, snappedPosition);
+        setConnections(newConnections);
+      }
     };
 
     const onUp = () => {
@@ -123,6 +130,7 @@ export default function BuildingInstance({ buildingId }: BuildingInstanceProps) 
             width={building.dimensions.width}
             depth={building.dimensions.depth}
             height={building.dimensions.height}
+            isPole={building.type === 'paal'}
           />
         )}
       </group>
@@ -130,8 +138,9 @@ export default function BuildingInstance({ buildingId }: BuildingInstanceProps) 
   );
 }
 
-function SelectionOutline({ width, depth, height }: { width: number; depth: number; height: number }) {
-  const geo = useMemo(() => new BoxGeometry(width + 0.1, height + 0.1, depth + 0.1), [width, depth, height]);
+function SelectionOutline({ width, depth, height, isPole }: { width: number; depth: number; height: number; isPole?: boolean }) {
+  const margin = isPole ? 0.4 : 0.1;
+  const geo = useMemo(() => new BoxGeometry(width + margin, height + margin, depth + margin), [width, depth, height, margin]);
   useEffect(() => () => { geo.dispose(); }, [geo]);
   return (
     <lineSegments position={[0, height / 2, 0]}>

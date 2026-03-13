@@ -1,7 +1,9 @@
 import type { BuildingEntity, SnapConnection, WallSide } from '@/types/building';
+import { POST_SIZE } from '@/lib/constants';
 
 export const SNAP_THRESHOLD = 0.5;
 export const SNAP_ALIGN_THRESHOLD = 0.3;
+const POLE_DETENT_THRESHOLD = 0.35;
 
 interface Edge {
   axis: 'x' | 'z';
@@ -123,4 +125,86 @@ export function detectSnap(
     snappedPosition: [nx, nz],
     newConnections: connections,
   };
+}
+
+/** Snap a pole's center to building edges, corners, and midpoints.
+ *  Order: edge slide first, then corners/midpoints override as detents. */
+export function detectPoleSnap(
+  polePos: [number, number],
+  buildings: BuildingEntity[],
+): [number, number] {
+  const [px, pz] = polePos;
+  let bestDist = SNAP_THRESHOLD;
+  let snapX = px;
+  let snapZ = pz;
+
+  // Pass 1: edge slide (general snap to nearest point on edge)
+  for (const b of buildings) {
+    if (b.type === 'paal') continue;
+
+    const [cx, cz] = b.position;
+    const hw = b.dimensions.width / 2;
+    const hd = b.dimensions.depth / 2;
+
+    const edges: { fixed: 'x' | 'z'; val: number; min: number; max: number }[] = [
+      { fixed: 'z', val: cz - hd, min: cx - hw, max: cx + hw },
+      { fixed: 'z', val: cz + hd, min: cx - hw, max: cx + hw },
+      { fixed: 'x', val: cx - hw, min: cz - hd, max: cz + hd },
+      { fixed: 'x', val: cx + hw, min: cz - hd, max: cz + hd },
+    ];
+
+    for (const e of edges) {
+      if (e.fixed === 'z') {
+        const distToEdge = Math.abs(pz - e.val);
+        const clampedX = Math.max(e.min, Math.min(e.max, px));
+        const d = Math.hypot(px - clampedX, pz - e.val);
+        if (distToEdge < SNAP_THRESHOLD && d < bestDist) {
+          bestDist = d;
+          snapX = clampedX;
+          snapZ = e.val;
+        }
+      } else {
+        const distToEdge = Math.abs(px - e.val);
+        const clampedZ = Math.max(e.min, Math.min(e.max, pz));
+        const d = Math.hypot(px - e.val, pz - clampedZ);
+        if (distToEdge < SNAP_THRESHOLD && d < bestDist) {
+          bestDist = d;
+          snapX = e.val;
+          snapZ = clampedZ;
+        }
+      }
+    }
+  }
+
+  // Pass 2: corners and midpoints override as detents.
+  // Checked against the edge-snapped position so that once the pole is
+  // sliding along an edge, only the along-edge distance to the target matters.
+  let detentDist = POLE_DETENT_THRESHOLD;
+  for (const b of buildings) {
+    if (b.type === 'paal') continue;
+
+    const [cx, cz] = b.position;
+    const hw = b.dimensions.width / 2;
+    const hd = b.dimensions.depth / 2;
+
+    const targets: [number, number][] = [
+      // 4 corners
+      [cx - hw, cz - hd], [cx + hw, cz - hd],
+      [cx - hw, cz + hd], [cx + hw, cz + hd],
+      // 4 edge midpoints
+      [cx, cz - hd], [cx, cz + hd],
+      [cx - hw, cz], [cx + hw, cz],
+    ];
+
+    for (const [tx, tz] of targets) {
+      const d = Math.hypot(snapX - tx, snapZ - tz);
+      if (d < detentDist) {
+        detentDist = d;
+        snapX = tx;
+        snapZ = tz;
+      }
+    }
+  }
+
+  return [snapX, snapZ];
 }
