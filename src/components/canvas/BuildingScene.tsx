@@ -5,7 +5,6 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { Vector3, BackSide, ShaderMaterial } from 'three';
 import BuildingInstance from './BuildingInstance';
-import DragPlane from './DragPlane';
 import Ground from './Ground';
 import { useConfigStore } from '@/store/useConfigStore';
 import type { WallId } from '@/types/building';
@@ -170,7 +169,6 @@ export default function BuildingScene() {
         <BuildingInstance key={b.id} buildingId={b.id} />
       ))}
 
-      <DragPlane />
       <Ground />
 
       <CameraAnimator />
