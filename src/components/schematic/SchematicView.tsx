@@ -127,18 +127,22 @@ export default function SchematicView() {
             </pattern>
           </defs>
 
-          {/* Poles as small filled circles */}
-          {poles.map((p) => (
-            <circle
-              key={p.id}
-              cx={p.position[0]}
-              cy={p.position[1]}
-              r={0.12}
-              fill="#8B6914"
-              stroke="#666"
-              strokeWidth={0.02}
-            />
-          ))}
+          {/* Poles as small filled squares */}
+          {poles.map((p) => {
+            const s = 0.18;
+            return (
+              <rect
+                key={p.id}
+                x={p.position[0] - s / 2}
+                y={p.position[1] - s / 2}
+                width={s}
+                height={s}
+                fill="#8B6914"
+                stroke="#666"
+                strokeWidth={0.02}
+              />
+            );
+          })}
 
           {normalBuildings.map((b) => {
             const [ox, oz] = b.position;
