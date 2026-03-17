@@ -4,7 +4,7 @@ import { useRef, useMemo, useEffect, useCallback } from 'react';
 import { Mesh } from 'three';
 import { Edges } from '@react-three/drei';
 import { useBuildingId } from '@/lib/BuildingContext';
-import { useConfigStore } from '@/store/useConfigStore';
+import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { WALL_MATERIALS, WALL_THICKNESS, computeOpeningPositions, getWallLength } from '@/lib/constants';
 import { useWallTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
@@ -27,6 +27,7 @@ export default function Wall({ wallId }: WallProps) {
 
   const buildingId = useBuildingId();
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
+  const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const selectedElement = useConfigStore((s) => s.selectedElement);
   const selectElement = useConfigStore((s) => s.selectElement);
 
@@ -34,7 +35,8 @@ export default function Wall({ wallId }: WallProps) {
   const { hovered, handlers: pointerHandlers } = useClickableObject(onSelect);
 
   const dimensions = building?.dimensions ?? { width: 8, depth: 4, height: 3 };
-  const { width, depth, height } = dimensions;
+  const height = building ? getEffectiveHeight(building, defaultHeight) : 3;
+  const { width, depth } = dimensions;
 
   const wallCfg = building?.walls[wallId];
   const materialId = wallCfg?.materialId ?? 'brick';

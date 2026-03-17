@@ -4,6 +4,7 @@ import Roof from './Roof';
 import Floor from './Floor';
 import TimberFrame from './TimberFrame';
 import BergingSection from './BergingSection';
+import Wall from './Wall';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { POST_SIZE } from '@/lib/constants';
@@ -27,21 +28,11 @@ export default function Building() {
   }
 
   if (building.type === 'muur') {
-    const h = getEffectiveHeight(building, defaultHeight);
-    const wallCfg = building.walls['front'];
     const isVertical = building.orientation === 'vertical';
 
     return (
       <group rotation={isVertical ? [0, Math.PI / 2, 0] : [0, 0, 0]}>
-        <mesh position={[0, h / 2, 0]}>
-          <boxGeometry args={[building.dimensions.width, h, POST_SIZE]} />
-          <meshStandardMaterial
-            color={wallCfg?.materialId === 'glass' ? '#B8D4E3' : wallCfg?.materialId === 'brick' ? '#8B4513' : wallCfg?.materialId === 'render' ? '#F5F5DC' : wallCfg?.materialId === 'metal' ? '#708090' : '#8B6914'}
-            transparent={wallCfg?.materialId === 'glass'}
-            opacity={wallCfg?.materialId === 'glass' ? 0.4 : 1}
-            side={2}
-          />
-        </mesh>
+        <Wall wallId="front" />
       </group>
     );
   }
