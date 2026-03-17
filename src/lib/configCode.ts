@@ -1,6 +1,7 @@
 import type {
   BuildingEntity,
   BuildingType,
+  Orientation,
   RoofType,
   RoofConfig,
   RoofCoveringId,
@@ -137,7 +138,8 @@ class BitReader {
 }
 
 // ─── Lookup tables ───────────────────────────────────────────────────
-const BUILDING_TYPES: BuildingType[] = ['overkapping', 'berging', 'paal'];
+const BUILDING_TYPES: BuildingType[] = ['overkapping', 'berging', 'paal', 'muur'];
+const ORIENTATIONS: Orientation[] = ['horizontal', 'vertical'];
 const COVERING_IDS: RoofCoveringId[] = ['dakpannen', 'riet', 'epdm', 'polycarbonaat', 'metaal'];
 const TRIM_IDS: TrimColorId[] = ['antraciet', 'wit', 'zwart', 'bruin', 'groen'];
 const FLOOR_IDS: FloorMaterialId[] = ['geen', 'tegels', 'beton', 'hout'];
@@ -159,8 +161,8 @@ function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
 }
 
-// ─── Encode (Version 3: poles) ───────────────────────────────────────
-const VERSION = 3;
+// ─── Encode (Version 4: muur, orientation, heightOverride, defaultHeight) ──
+const VERSION = 4;
 
 function encodeWall(w: BitWriter, wall: WallConfig) {
   w.write(indexOf(MATERIAL_IDS, wall.materialId), 3);
@@ -208,13 +210,16 @@ export function encodeState(
   buildings: BuildingEntity[],
   connections: SnapConnection[],
   roof: RoofConfig,
+  defaultHeight: number = 3,
 ): string {
   const w = new BitWriter();
 
-  // Header
-  w.write(VERSION, 2);
+  // Header: version 4 uses escape code 0 in 2-bit field, then 2-bit extension
+  // v4 = write(0,2) + write(0,2)  →  decoder reads 2 bits, if 0 reads 2 more → 4+ext
+  w.write(0, 2); // escape: extended version
+  w.write(0, 2); // extension bits: 4 + 0 = version 4
 
-  // Shared roof
+  // Shared roof (same as v3)
   w.write(roof.type === 'pitched' ? 1 : 0, 1);
   if (roof.type === 'pitched') {
     w.write(clamp(roof.pitch, 0, 55), 6);
@@ -227,6 +232,9 @@ export function encodeState(
   }
   w.write(roof.hasSkylight ? 1 : 0, 1);
 
+  // Default height: 5 bits, encodes 2.0–6.0 in 0.25 steps
+  w.write(clamp(Math.round((defaultHeight - 2) / 0.25), 0, 16), 5);
+
   // Building count
   w.write(clamp(buildings.length, 1, 8) - 1, 3);
 
@@ -234,12 +242,34 @@ export function encodeState(
   for (const b of buildings) {
     w.write(indexOf(BUILDING_TYPES, b.type), 2);
 
+    // Height override (all types)
+    const hasOverride = b.heightOverride != null;
+    w.write(hasOverride ? 1 : 0, 1);
+    if (hasOverride) {
+      w.write(clamp(Math.round((b.heightOverride! - 2) / 0.25), 0, 16), 5);
+    }
+
+    // Orientation (all types): 0=horizontal, 1=vertical
+    w.write(indexOf(ORIENTATIONS, b.orientation ?? 'horizontal'), 1);
+
     if (b.type === 'paal') {
-      // Poles: only height + position
-      w.write(clamp(Math.round((b.dimensions.height - 2) / 0.25), 0, 16), 5);
+      // Poles: position only (height from override/default)
       w.writeSigned(clamp(Math.round(b.position[0] / 0.5), -64, 63), 7);
       w.writeSigned(clamp(Math.round(b.position[1] / 0.5), -64, 63), 7);
+    } else if (b.type === 'muur') {
+      // Muur: width + position + wall flag + wall data
+      w.write(clamp(Math.round((b.dimensions.width - 1) / 0.5), 0, 31), 5);
+      w.writeSigned(clamp(Math.round(b.position[0] / 0.5), -64, 63), 7);
+      w.writeSigned(clamp(Math.round(b.position[1] / 0.5), -64, 63), 7);
+
+      // Single wall (front)
+      const hasFrontWall = !!b.walls['front'];
+      w.write(hasFrontWall ? 1 : 0, 1);
+      if (hasFrontWall) {
+        encodeWall(w, b.walls['front']);
+      }
     } else {
+      // overkapping / berging
       w.write(clamp(Math.round((b.dimensions.width - 3) / 0.5), 0, 24), 5);
       w.write(clamp(Math.round((b.dimensions.depth - 3) / 0.5), 0, 34), 6);
       w.write(clamp(Math.round((b.dimensions.height - 2) / 0.25), 0, 16), 5);
@@ -284,15 +314,21 @@ export function decodeState(code: string): {
   buildings: BuildingEntity[];
   connections: SnapConnection[];
   roof: RoofConfig;
+  defaultHeight: number;
 } {
   const normalized = code.replace(/[-\s]/g, '');
   const bytes = fromBase58(normalized);
   const r = new BitReader(bytes);
 
-  const version = r.read(2);
-  if (version !== 2 && version !== 3) throw new Error('Unsupported version');
+  let version = r.read(2);
+  if (version === 0) {
+    // Extended version: 4 + next 2 bits
+    version = 4 + r.read(2);
+  }
+  if (version !== 2 && version !== 3 && version !== 4) throw new Error('Unsupported version');
 
   const isV3 = version === 3;
+  const isV4 = version === 4;
 
   // Shared roof
   const isPitched = r.read(1) === 1;
@@ -309,17 +345,38 @@ export function decodeState(code: string): {
     insulation, insulationThickness, hasSkylight,
   };
 
+  // Default height (v4 only)
+  const defaultHeight = isV4 ? clamp(r.read(5) * 0.25 + 2, 2, 6) : 3;
+
   // Buildings
   const buildingCount = r.read(3) + 1;
   const buildings: BuildingEntity[] = [];
 
   for (let bi = 0; bi < buildingCount; bi++) {
-    const typeBits = isV3 ? 2 : 1;
+    const typeBits = (isV3 || isV4) ? 2 : 1;
     const typeIdx = r.read(typeBits);
     const type = BUILDING_TYPES[clamp(typeIdx, 0, BUILDING_TYPES.length - 1)];
 
-    if (isV3 && type === 'paal') {
-      const height = clamp(r.read(5) * 0.25 + 2, 2, 6);
+    // V4: per-building heightOverride and orientation
+    let heightOverride: number | null = null;
+    let orientation: Orientation = 'horizontal';
+    if (isV4) {
+      const hasOverride = r.read(1) === 1;
+      if (hasOverride) {
+        heightOverride = clamp(r.read(5) * 0.25 + 2, 2, 6);
+      }
+      orientation = ORIENTATIONS[clamp(r.read(1), 0, 1)];
+    }
+
+    if ((isV3 || isV4) && type === 'paal') {
+      let height: number;
+      if (isV3) {
+        // v3: height encoded inline for paal
+        height = clamp(r.read(5) * 0.25 + 2, 2, 6);
+      } else {
+        // v4: height comes from override or default
+        height = heightOverride ?? defaultHeight;
+      }
       const posX = r.readSigned(7) * 0.5;
       const posZ = r.readSigned(7) * 0.5;
       buildings.push({
@@ -330,6 +387,34 @@ export function decodeState(code: string): {
         walls: {},
         hasCornerBraces: false,
         floor: { materialId: 'geen' },
+        orientation,
+        heightOverride,
+      });
+      continue;
+    }
+
+    if (isV4 && type === 'muur') {
+      const width = clamp(r.read(5) * 0.5 + 1, 1, 16.5);
+      const posX = r.readSigned(7) * 0.5;
+      const posZ = r.readSigned(7) * 0.5;
+      const height = heightOverride ?? defaultHeight;
+
+      const hasFrontWall = r.read(1) === 1;
+      const walls: Record<string, WallConfig> = {};
+      if (hasFrontWall) {
+        walls['front'] = decodeWall(r);
+      }
+
+      buildings.push({
+        id: crypto.randomUUID(),
+        type: 'muur',
+        position: [posX, posZ],
+        dimensions: { width, depth: 0.2, height },
+        walls,
+        hasCornerBraces: false,
+        floor: { materialId: 'geen' },
+        orientation,
+        heightOverride,
       });
       continue;
     }
@@ -357,6 +442,8 @@ export function decodeState(code: string): {
       walls: Object.keys(walls).length > 0 ? walls : getDefaultWalls(type),
       hasCornerBraces,
       floor: { materialId: floorMaterialId },
+      orientation,
+      heightOverride,
     });
   }
 
@@ -378,7 +465,7 @@ export function decodeState(code: string): {
     });
   }
 
-  return { buildings, connections, roof };
+  return { buildings, connections, roof, defaultHeight };
 }
 
 // ─── Format ──────────────────────────────────────────────────────────

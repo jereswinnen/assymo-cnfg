@@ -11,14 +11,16 @@ export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = 
   const buildings = useConfigStore((s) => s.buildings);
   const connections = useConfigStore((s) => s.connections);
   const roof = useConfigStore((s) => s.roof);
+  const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const loadState = useConfigStore((s) => s.loadState);
+  const setDefaultHeight = useConfigStore((s) => s.setDefaultHeight);
 
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [error, setError] = useState('');
 
-  const currentCode = open ? encodeState(buildings, connections, roof) : '';
+  const currentCode = open ? encodeState(buildings, connections, roof, defaultHeight) : '';
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(currentCode).then(() => {
@@ -35,8 +37,9 @@ export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = 
 
   const handleLoad = () => {
     try {
-      const { buildings: b, connections: c, roof: r } = decodeState(inputValue);
+      const { buildings: b, connections: c, roof: r, defaultHeight: dh } = decodeState(inputValue);
       loadState(b, c, r);
+      setDefaultHeight(dh);
       setInputValue('');
       setError('');
       setOpen(false);
