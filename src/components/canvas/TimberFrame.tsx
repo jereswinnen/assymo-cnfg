@@ -3,7 +3,7 @@
 import { useMemo, useEffect } from 'react';
 import { MeshStandardMaterial, TextureLoader, RepeatWrapping, SRGBColorSpace } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
-import { useConfigStore } from '@/store/useConfigStore';
+import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { POST_SIZE, BEAM_H, DECK_T, POST_SPACING } from '@/lib/constants';
 
 const BEAM_W = 0.15;
@@ -22,9 +22,11 @@ export default function TimberFrame() {
   const roof = useConfigStore((s) => s.roof);
   const connections = useConfigStore((s) => s.connections);
 
+  const defaultHeight = useConfigStore((s) => s.defaultHeight);
+
   const width = building?.dimensions.width ?? 8;
   const depth = building?.dimensions.depth ?? 4;
-  const height = building?.dimensions.height ?? 3;
+  const height = building ? getEffectiveHeight(building, defaultHeight) : 3;
   const isFlat = roof.type === 'flat';
   const roofPitch = roof.pitch;
   const hasBraces = building?.hasCornerBraces ?? false;

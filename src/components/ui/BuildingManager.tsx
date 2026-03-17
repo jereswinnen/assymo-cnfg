@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useConfigStore } from '@/store/useConfigStore';
+import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -45,6 +45,8 @@ export default function BuildingManager() {
   const toggleConnectionOpen = useConfigStore((s) => s.toggleConnectionOpen);
   const setRoofType = useConfigStore((s) => s.setRoofType);
 
+  const defaultHeight = useConfigStore((s) => s.defaultHeight);
+
   const selectedBuilding = buildings.find(b => b.id === selectedBuildingId);
   const selectedConnections = useMemo(
     () => connections.filter(
@@ -60,6 +62,7 @@ export default function BuildingManager() {
         {buildings.map((b, i) => {
           const isSelected = b.id === selectedBuildingId;
           const typeLabel = t(`building.name.${b.type}`);
+          const effectiveH = b.heightOverride ?? defaultHeight;
           return (
             <div
               key={b.id}
@@ -77,10 +80,10 @@ export default function BuildingManager() {
                 </span>
                 <span className="block text-[11px] text-muted-foreground tabular-nums">
                   {b.type === 'paal'
-                    ? `${b.dimensions.height.toFixed(1)} m`
+                    ? `${effectiveH.toFixed(1)} m`
                     : b.type === 'muur'
-                    ? `${b.dimensions.width.toFixed(1)} × ${b.dimensions.height.toFixed(1)} m`
-                    : `${b.dimensions.width.toFixed(1)} × ${b.dimensions.depth.toFixed(1)} × ${b.dimensions.height.toFixed(1)} m`
+                    ? `${b.dimensions.width.toFixed(1)} × ${effectiveH.toFixed(1)} m`
+                    : `${b.dimensions.width.toFixed(1)} × ${b.dimensions.depth.toFixed(1)} × ${effectiveH.toFixed(1)} m`
                   }
                 </span>
               </div>
