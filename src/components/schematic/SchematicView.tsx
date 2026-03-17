@@ -2,7 +2,7 @@
 
 import { useRef, useMemo, useState, useCallback } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
-import { detectSnap, detectPoleSnap } from '@/lib/snap';
+import { detectSnap, detectPoleSnap, detectWallSnap } from '@/lib/snap';
 import { t } from '@/lib/i18n';
 import SchematicPosts from './SchematicPosts';
 import SchematicWalls from './SchematicWalls';
@@ -95,15 +95,19 @@ export default function SchematicView() {
   // Freeze viewBox during drag to prevent coordinate system shifts
   const [frozenViewBox, setFrozenViewBox] = useState<string | null>(null);
 
-  const normalBuildings = buildings.filter(b => b.type !== 'paal');
+  const normalBuildings = buildings.filter(b => b.type !== 'paal' && b.type !== 'muur');
+  const walls = buildings.filter(b => b.type === 'muur');
   const poles = buildings.filter(b => b.type === 'paal');
 
   // Compute bounding box of all buildings (including poles)
   let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
   for (const b of buildings) {
     const [cx, cz] = b.position;
-    const hw = b.dimensions.width / 2;
-    const hd = b.dimensions.depth / 2;
+    const isVertMuur = b.type === 'muur' && b.orientation === 'vertical';
+    const bw = isVertMuur ? b.dimensions.depth : b.dimensions.width;
+    const bd = isVertMuur ? b.dimensions.width : b.dimensions.depth;
+    const hw = bw / 2;
+    const hd = bd / 2;
     const pad2 = b.type === 'paal' ? 0.3 : 0;
     minX = Math.min(minX, cx - hw - pad2);
     maxX = Math.max(maxX, cx + hw + pad2);
@@ -175,8 +179,16 @@ export default function SchematicView() {
     if (building.type === 'paal') {
       const snapped = detectPoleSnap(newPos, allBuildings.filter(b => b.id !== building.id));
       updateBuildingPosition(building.id, snapped);
+    } else if (building.type === 'muur') {
+      const snapped = detectWallSnap(
+        newPos,
+        building.dimensions.width,
+        building.orientation,
+        allBuildings.filter(b => b.id !== building.id),
+      );
+      updateBuildingPosition(building.id, snapped);
     } else {
-      const others = allBuildings.filter(b => b.id !== building.id && b.type !== 'paal');
+      const others = allBuildings.filter(b => b.id !== building.id && b.type !== 'paal' && b.type !== 'muur');
       const tempBuilding = { ...building, position: newPos };
       const { snappedPosition, newConnections } = detectSnap(tempBuilding, others);
       updateBuildingPosition(building.id, snappedPosition);
@@ -369,6 +381,41 @@ export default function SchematicView() {
                     )}
                   </g>
                 )}
+              </g>
+            );
+          })}
+
+          {/* Standalone walls — rendered between buildings and poles */}
+          {walls.map((w) => {
+            const [ox, oz] = w.position;
+            const isHorizontal = w.orientation === 'horizontal';
+            const wallW = isHorizontal ? w.dimensions.width : w.dimensions.depth;
+            const wallD = isHorizontal ? w.dimensions.depth : w.dimensions.width;
+            const hw = wallW / 2;
+            const hd = wallD / 2;
+            const isSelected = w.id === selectedBuildingId;
+
+            // Wall material color
+            const wallCfg = w.walls['front'];
+            const materialColor = wallCfg?.materialId === 'brick' ? '#8B4513'
+              : wallCfg?.materialId === 'render' ? '#F5F5DC'
+              : wallCfg?.materialId === 'metal' ? '#708090'
+              : wallCfg?.materialId === 'glass' ? '#B8D4E3'
+              : '#c4956a'; // wood default
+
+            return (
+              <g key={w.id}>
+                <rect
+                  x={ox - hw}
+                  y={oz - hd}
+                  width={wallW}
+                  height={wallD}
+                  fill={materialColor}
+                  stroke={isSelected ? '#3b82f6' : '#666'}
+                  strokeWidth={isSelected ? 0.04 : 0.02}
+                  style={{ cursor: 'grab' }}
+                  onPointerDown={(e) => onBuildingPointerDown(e, w.id)}
+                />
               </g>
             );
           })}
