@@ -46,11 +46,35 @@ const sections = [
   { number: 6, icon: FileText },
 ] as const;
 
+function MuurWallAutoSelect({ buildingId }: { buildingId: string }) {
+  const selectElement = useConfigStore((s) => s.selectElement);
+  const selectedElement = useConfigStore((s) => s.selectedElement);
+
+  useEffect(() => {
+    const isAlreadySelected = selectedElement?.type === 'wall' && selectedElement.buildingId === buildingId;
+    if (!isAlreadySelected) {
+      selectElement({ type: 'wall', id: 'front', buildingId });
+    }
+  }, [buildingId, selectElement, selectedElement]);
+
+  return null;
+}
+
 function WallsContent() {
   const selectedBuilding = useConfigStore((s) => {
     const b = s.buildings.find(b => b.id === s.selectedBuildingId);
     return b ?? null;
   });
+
+  if (selectedBuilding?.type === 'muur') {
+    return (
+      <div className="space-y-4">
+        <MuurWallAutoSelect buildingId={selectedBuilding.id} />
+        <SurfaceProperties />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <WallSelector />
