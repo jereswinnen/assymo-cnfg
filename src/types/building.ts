@@ -1,4 +1,5 @@
-export type BuildingType = 'overkapping' | 'berging' | 'paal';
+export type BuildingType = 'overkapping' | 'berging' | 'paal' | 'muur';
+export type Orientation = 'horizontal' | 'vertical';
 export type RoofType = 'flat' | 'pitched';
 export type RoofCoveringId = 'dakpannen' | 'riet' | 'epdm' | 'polycarbonaat' | 'metaal';
 export type TrimColorId = 'antraciet' | 'wit' | 'zwart' | 'bruin' | 'groen';
@@ -74,6 +75,8 @@ export interface BuildingEntity {
   walls: Record<string, WallConfig>;
   hasCornerBraces: boolean;
   floor: FloorConfig;
+  orientation: Orientation;
+  heightOverride: number | null;
 }
 
 export interface SnapConnection {
