@@ -208,3 +208,121 @@ export function detectPoleSnap(
 
   return [snapX, snapZ];
 }
+
+/** Snap a standalone wall to building edges, poles, and other wall endpoints.
+ *  Pass 1: edge slide (long edge along building edges).
+ *  Pass 2: endpoint detent (short ends snap to corners/poles/wall ends). */
+export function detectWallSnap(
+  wallPos: [number, number],
+  wallWidth: number,
+  orientation: 'horizontal' | 'vertical',
+  buildings: BuildingEntity[],
+): [number, number] {
+  const [wx, wz] = wallPos;
+  let bestDist = SNAP_THRESHOLD;
+  let snapX = wx;
+  let snapZ = wz;
+
+  const halfLong = wallWidth / 2;
+  const halfShort = POST_SIZE / 2;
+
+  // Pass 1: edge slide — wall's long edge slides along building edges
+  for (const b of buildings) {
+    if (b.type === 'paal' || b.type === 'muur') continue;
+
+    const [cx, cz] = b.position;
+    const hw = b.dimensions.width / 2;
+    const hd = b.dimensions.depth / 2;
+
+    if (orientation === 'horizontal') {
+      // Wall runs along X — snap Z to top/bottom edges of buildings
+      const edges = [
+        { z: cz - hd, xMin: cx - hw, xMax: cx + hw },
+        { z: cz + hd, xMin: cx - hw, xMax: cx + hw },
+      ];
+      for (const e of edges) {
+        const dist = Math.abs(wz - e.z);
+        const wallLeft = wx - halfLong;
+        const wallRight = wx + halfLong;
+        if (dist < bestDist && wallRight > e.xMin - SNAP_THRESHOLD && wallLeft < e.xMax + SNAP_THRESHOLD) {
+          bestDist = dist;
+          snapZ = e.z;
+          snapX = wx;
+        }
+      }
+    } else {
+      // Wall runs along Z — snap X to left/right edges of buildings
+      const edges = [
+        { x: cx - hw, zMin: cz - hd, zMax: cz + hd },
+        { x: cx + hw, zMin: cz - hd, zMax: cz + hd },
+      ];
+      for (const e of edges) {
+        const dist = Math.abs(wx - e.x);
+        const wallTop = wz - halfLong;
+        const wallBottom = wz + halfLong;
+        if (dist < bestDist && wallBottom > e.zMin - SNAP_THRESHOLD && wallTop < e.zMax + SNAP_THRESHOLD) {
+          bestDist = dist;
+          snapX = e.x;
+          snapZ = wz;
+        }
+      }
+    }
+  }
+
+  // Pass 2: endpoint detent — wall endpoints snap to corners, poles, other wall endpoints
+  const wallEndpoints: [number, number][] = orientation === 'horizontal'
+    ? [[snapX - halfLong, snapZ], [snapX + halfLong, snapZ]]
+    : [[snapX, snapZ - halfLong], [snapX, snapZ + halfLong]];
+
+  let detentDist = POLE_DETENT_THRESHOLD;
+  let detentDx = 0;
+  let detentDz = 0;
+  let detentFound = false;
+
+  const targets: [number, number][] = [];
+
+  for (const b of buildings) {
+    if (b.type === 'paal') {
+      targets.push([...b.position]);
+      continue;
+    }
+    if (b.type === 'muur') {
+      const oHalfLong = b.dimensions.width / 2;
+      if (b.orientation === 'horizontal') {
+        targets.push([b.position[0] - oHalfLong, b.position[1]]);
+        targets.push([b.position[0] + oHalfLong, b.position[1]]);
+      } else {
+        targets.push([b.position[0], b.position[1] - oHalfLong]);
+        targets.push([b.position[0], b.position[1] + oHalfLong]);
+      }
+      continue;
+    }
+    // Building corners
+    const [cx, cz] = b.position;
+    const hw = b.dimensions.width / 2;
+    const hd = b.dimensions.depth / 2;
+    targets.push(
+      [cx - hw, cz - hd], [cx + hw, cz - hd],
+      [cx - hw, cz + hd], [cx + hw, cz + hd],
+    );
+  }
+
+  for (const ep of wallEndpoints) {
+    for (const [tx, tz] of targets) {
+      const d = Math.hypot(ep[0] - tx, ep[1] - tz);
+      if (d < detentDist) {
+        detentDist = d;
+        detentDx = tx - ep[0];
+        detentDz = tz - ep[1];
+        detentFound = true;
+      }
+    }
+  }
+
+  if (detentFound) {
+    snapX += detentDx;
+    snapZ += detentDz;
+  }
+
+  return [snapX, snapZ];
+}
