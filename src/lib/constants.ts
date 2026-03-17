@@ -132,6 +132,10 @@ export function getDefaultWalls(type: BuildingType): Record<string, WallConfig> 
       };
     case 'paal':
       return {};
+    case 'muur':
+      return {
+        front: { ...DEFAULT_WALL },
+      };
     default: {
       const _exhaustive: never = type;
       return _exhaustive;
@@ -148,6 +152,8 @@ export function getAvailableWallIds(type: BuildingType): WallId[] {
       return ['front', 'back', 'left', 'right'];
     case 'paal':
       return [];
+    case 'muur':
+      return ['front'];
     default: {
       const _exhaustive: never = type;
       return _exhaustive;
@@ -183,6 +189,13 @@ export const WIN_W = 1.2;
 export const POLE_DIMENSIONS: BuildingDimensions = {
   width: POST_SIZE,
   depth: POST_SIZE,
+  height: 3,
+};
+
+// Standalone wall dimensions
+export const WALL_DIMENSIONS: BuildingDimensions = {
+  width: POST_SPACING, // 3m
+  depth: POST_SIZE,    // 0.15m
   height: 3,
 };
 
