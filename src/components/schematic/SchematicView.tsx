@@ -84,6 +84,7 @@ export default function SchematicView() {
   const setConnections = useConfigStore((s) => s.setConnections);
   const setDraggedBuildingId = useConfigStore((s) => s.setDraggedBuildingId);
   const setAccordionSection = useConfigStore((s) => s.setAccordionSection);
+  const setOrientation = useConfigStore((s) => s.setOrientation);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
@@ -391,8 +392,11 @@ export default function SchematicView() {
             const isHorizontal = w.orientation === 'horizontal';
             const isSelected = w.id === selectedBuildingId;
 
-            // For horizontal muur: use dimensions as-is, 'front' wall config renders horizontally
-            // For vertical muur: swap width/depth and map 'front' config to 'left' for vertical rendering
+            // Coordinate mapping for SchematicWalls/SchematicOpenings:
+            // These components use getWallGeometries() which produces 'front' as a horizontal wall
+            // and 'left' as a vertical wall. For horizontal muur we use 'front' as-is.
+            // For vertical muur we swap width↔depth and remap 'front' config → 'left' wallId
+            // so the wall renders vertically with correct door/window placement.
             const schematicDims = isHorizontal
               ? w.dimensions
               : { width: w.dimensions.depth, depth: w.dimensions.width, height: w.dimensions.height };
@@ -400,22 +404,28 @@ export default function SchematicView() {
               ? w.walls
               : { left: w.walls['front'] };
 
-            // Invisible hit target covers the full wall area for drag
+            // Visual dimensions after orientation
             const wallW = isHorizontal ? w.dimensions.width : w.dimensions.depth;
             const wallD = isHorizontal ? w.dimensions.depth : w.dimensions.width;
+            // Enlarged hit target (0.5m min) so thin walls are easy to click/drag
+            const hitH = Math.max(wallD, 0.5);
 
             return (
               <g key={w.id}>
-                {/* Hit target for drag */}
+                {/* Enlarged invisible hit target for drag + double-click to rotate */}
                 <rect
                   x={ox - wallW / 2}
-                  y={oz - wallD / 2}
+                  y={oz - hitH / 2}
                   width={wallW}
-                  height={wallD}
+                  height={hitH}
                   fill="transparent"
                   stroke="none"
                   style={{ cursor: 'grab' }}
                   onPointerDown={(e) => onBuildingPointerDown(e, w.id)}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    setOrientation(w.id, isHorizontal ? 'vertical' : 'horizontal');
+                  }}
                 />
 
                 {/* Wall segments with door/window gaps */}
@@ -439,6 +449,44 @@ export default function SchematicView() {
                     offsetY={oz}
                   />
                 </g>
+
+                {/* Dimension line showing wall length */}
+                <g pointerEvents="none">
+                  {isHorizontal ? (
+                    <DimensionLine
+                      x1={ox - w.dimensions.width / 2}
+                      y1={oz + wallD / 2}
+                      x2={ox + w.dimensions.width / 2}
+                      y2={oz + wallD / 2}
+                      offset={0.5}
+                      label={`${w.dimensions.width.toFixed(1)}m`}
+                    />
+                  ) : (
+                    <DimensionLine
+                      x1={ox + wallW / 2}
+                      y1={oz - w.dimensions.width / 2}
+                      x2={ox + wallW / 2}
+                      y2={oz + w.dimensions.width / 2}
+                      offset={-0.5}
+                      label={`${w.dimensions.width.toFixed(1)}m`}
+                    />
+                  )}
+                </g>
+
+                {/* Wall type label */}
+                <text
+                  x={ox}
+                  y={isHorizontal ? oz - 0.25 : oz}
+                  fontSize={0.18}
+                  fontWeight={500}
+                  fontFamily="system-ui, sans-serif"
+                  fill="#999"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  pointerEvents="none"
+                >
+                  {t(`building.name.${w.type}`)}
+                </text>
               </g>
             );
           })}

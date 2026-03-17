@@ -3,7 +3,7 @@
 import { useRef, useMemo, useCallback } from 'react';
 import { Mesh } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
-import { useConfigStore } from '@/store/useConfigStore';
+import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { ROOF_COVERINGS, TRIM_COLORS, BEAM_H } from '@/lib/constants';
 import { useRoofTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
@@ -16,12 +16,14 @@ export default function Roof() {
 
   const buildingId = useBuildingId();
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
+  const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const roof = useConfigStore((s) => s.roof);
   const connections = useConfigStore((s) => s.connections);
   const selectedElement = useConfigStore((s) => s.selectedElement);
   const selectElement = useConfigStore((s) => s.selectElement);
 
-  const { width, depth, height } = building?.dimensions ?? { width: 8, depth: 4, height: 3 };
+  const { width, depth } = building?.dimensions ?? { width: 8, depth: 4 };
+  const height = building ? getEffectiveHeight(building, defaultHeight) : 3;
   const roofPitch = roof.pitch;
   const covering = ROOF_COVERINGS.find((c) => c.id === roof.coveringId);
   const color = covering?.color ?? '#cccccc';
