@@ -393,8 +393,10 @@ export default function SchematicView() {
             const isSelected = w.id === selectedBuildingId;
 
             // Coordinate mapping for SchematicWalls/SchematicOpenings:
-            // These components use getWallGeometries() which produces 'front' as a horizontal wall
-            // and 'left' as a vertical wall. For horizontal muur we use 'front' as-is.
+            // These components use getWallGeometries() which positions walls at the building edge
+            // (e.g. 'front' at cy + depth/2, 'left' at cx - width/2). For a standalone wall we
+            // want the rendered line centered on the entity position, so we compensate with an
+            // offset of -depth/2 (horizontal) or +width/2 (vertical).
             // For vertical muur we swap width↔depth and remap 'front' config → 'left' wallId
             // so the wall renders vertically with correct door/window placement.
             const schematicDims = isHorizontal
@@ -403,6 +405,9 @@ export default function SchematicView() {
             const schematicWalls = isHorizontal
               ? w.walls
               : { left: w.walls['front'] };
+            // Offset to center the wall line on the entity position
+            const wallOffsetX = isHorizontal ? ox : ox + w.dimensions.depth / 2;
+            const wallOffsetY = isHorizontal ? oz - w.dimensions.depth / 2 : oz;
 
             // Visual dimensions after orientation
             const wallW = isHorizontal ? w.dimensions.width : w.dimensions.depth;
@@ -435,8 +440,8 @@ export default function SchematicView() {
                     walls={schematicWalls}
                     selectedElement={selectedElement}
                     buildingId={w.id}
-                    offsetX={ox}
-                    offsetY={oz}
+                    offsetX={wallOffsetX}
+                    offsetY={wallOffsetY}
                   />
                 </g>
 
@@ -445,8 +450,8 @@ export default function SchematicView() {
                   <SchematicOpenings
                     dimensions={schematicDims}
                     walls={schematicWalls}
-                    offsetX={ox}
-                    offsetY={oz}
+                    offsetX={wallOffsetX}
+                    offsetY={wallOffsetY}
                   />
                 </g>
 
