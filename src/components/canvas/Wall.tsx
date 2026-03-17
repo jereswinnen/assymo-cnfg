@@ -51,14 +51,16 @@ export default function Wall({ wallId }: WallProps) {
   const isSelected =
     selectedElement?.type === 'wall' && selectedElement.id === wallId && selectedElement.buildingId === buildingId;
 
+  const isMuur = building?.type === 'muur';
+
   const { size, position, rotation } = useMemo(() => {
     const t = WALL_THICKNESS;
-    const inset = 0.01;
+    const inset = isMuur ? 0 : 0.01;
     switch (wallId) {
       case 'front':
         return {
           size: [width - inset * 2, height, t] as [number, number, number],
-          position: [0, height / 2, depth / 2 - inset] as [number, number, number],
+          position: [0, height / 2, isMuur ? 0 : depth / 2 - inset] as [number, number, number],
           rotation: [0, 0, 0] as [number, number, number],
         };
       case 'back':
@@ -80,7 +82,7 @@ export default function Wall({ wallId }: WallProps) {
           rotation: [0, 0, 0] as [number, number, number],
         };
     }
-  }, [wallId, width, depth, height]);
+  }, [wallId, width, depth, height, isMuur]);
 
   const hasOpenings = wallCfg.hasDoor || (wallCfg.hasWindow && wallCfg.windowCount > 0);
   const ds = wallCfg.doorSize ?? 'enkel';
