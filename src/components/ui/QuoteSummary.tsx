@@ -7,7 +7,8 @@ import { t } from '@/lib/i18n';
 export default function QuoteSummary() {
   const buildings = useConfigStore((s) => s.buildings);
   const roof = useConfigStore((s) => s.roof);
-  const { lineItems, total } = calculateTotalQuote(buildings, roof);
+  const defaultHeight = useConfigStore((s) => s.defaultHeight);
+  const { lineItems, total } = calculateTotalQuote(buildings, roof, defaultHeight);
 
   return (
     <div className="space-y-3">
