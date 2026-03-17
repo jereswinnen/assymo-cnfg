@@ -8,6 +8,7 @@ const nl: Record<string, string> = {
   'buildingType.overkapping': 'Overkapping',
   'buildingType.berging': 'Berging',
   'buildingType.paal': 'Paal',
+  'buildingType.muur': 'Muur',
   'buildingType.overkapping.desc': 'Open carport met palen',
   'buildingType.berging.desc': 'Gesloten berging met wanden',
 
@@ -43,6 +44,12 @@ const nl: Record<string, string> = {
   'dim.depth': 'Diepte',
   'dim.height': 'Hoogte',
   'dim.roofPitch': 'Dakhelling',
+  'dim.orientation': 'Oriëntatie',
+  'dim.orientation.horizontal': 'Horizontaal',
+  'dim.orientation.vertical': 'Verticaal',
+  'dim.height.default': 'Standaard',
+  'dim.height.override': 'Aangepast',
+  'dim.height.reset': 'Reset naar standaard',
 
   // Walls
   'wall.front': 'Voorkant',
@@ -106,6 +113,7 @@ const nl: Record<string, string> = {
   'quote.posts': 'Staanders',
   'quote.braces': 'Schoren',
   'quote.pole': 'Paal',
+  'quote.wall': 'Muur',
   'quote.roof': 'Dak',
 
   // Floor
@@ -118,15 +126,18 @@ const nl: Record<string, string> = {
 
   // Walls section
   'walls.disabled': 'Overkapping heeft geen wanden',
+  'walls.disabled.muur': 'Configureer de wand hieronder',
 
   // Building manager
   'building.add.berging': 'Gebouw toevoegen',
   'building.add.overkapping': 'Overkapping toevoegen',
   'building.add.paal': 'Paal toevoegen',
+  'building.add.muur': 'Muur toevoegen',
   'building.delete': 'Verwijderen',
   'building.name.berging': 'Gebouw',
   'building.name.overkapping': 'Overkapping',
   'building.name.paal': 'Paal',
+  'building.name.muur': 'Muur',
   'connection.open': 'Open doorgang',
   'connection.closed': 'Gesloten',
 
