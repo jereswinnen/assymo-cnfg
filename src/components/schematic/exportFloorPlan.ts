@@ -27,7 +27,7 @@ function doorMaterialLabel(id: string): string {
   return DOOR_MATERIALS.find((m) => m.id === id)?.label ?? id;
 }
 
-function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig): string {
+function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHeight: number): string {
   const rows: string[] = [];
 
   const row = (label: string, value: string) =>
@@ -36,29 +36,45 @@ function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig): string {
   // Per-building specs
   for (let i = 0; i < buildings.length; i++) {
     const b = buildings[i];
+    const effectiveH = b.heightOverride ?? defaultHeight;
     const typeName = t(`building.name.${b.type}`);
     rows.push(`<tr><td colspan="2" style="padding:12px 0 6px;font-weight:600;font-size:14px;border-bottom:1px solid #eee">${typeName} ${i + 1}</td></tr>`);
-    rows.push(row(t('dim.width'), `${b.dimensions.width.toFixed(1)} m`));
-    rows.push(row(t('dim.depth'), `${b.dimensions.depth.toFixed(1)} m`));
-    rows.push(row(t('dim.height'), `${b.dimensions.height.toFixed(1)} m`));
-    rows.push(row(t('floor.material'), floorMaterialLabel(b.floor.materialId)));
 
-    const wallIds = getAvailableWallIds(b.type);
-    const activeWallIds = wallIds.filter((id) => b.walls[id]);
-    for (const id of activeWallIds) {
-      const w = b.walls[id];
-      if (!w) continue;
-      const parts: string[] = [wallMaterialLabel(w.materialId)];
-      if (w.hasDoor) {
-        const size = t(`surface.doorSize.${w.doorSize}`);
-        const mat = doorMaterialLabel(w.doorMaterialId);
-        const withWindow = w.doorHasWindow ? `, ${t('surface.doorHasWindow').toLowerCase()}` : '';
-        parts.push(`${t('surface.door')}: ${size} (${mat}${withWindow})`);
+    if (b.type === 'paal') {
+      // Poles: show only height
+      rows.push(row(t('dim.height'), `${effectiveH.toFixed(1)} m`));
+    } else if (b.type === 'muur') {
+      // Walls: show width and height (no depth), add orientation
+      rows.push(row(t('dim.width'), `${b.dimensions.width.toFixed(1)} m`));
+      rows.push(row(t('dim.height'), `${effectiveH.toFixed(1)} m`));
+      const orientationLabel = b.orientation === 'horizontal'
+        ? t('dim.orientation.horizontal')
+        : t('dim.orientation.vertical');
+      rows.push(row(t('dim.orientation'), orientationLabel));
+    } else {
+      // Normal buildings: show width, depth, height
+      rows.push(row(t('dim.width'), `${b.dimensions.width.toFixed(1)} m`));
+      rows.push(row(t('dim.depth'), `${b.dimensions.depth.toFixed(1)} m`));
+      rows.push(row(t('dim.height'), `${effectiveH.toFixed(1)} m`));
+      rows.push(row(t('floor.material'), floorMaterialLabel(b.floor.materialId)));
+
+      const wallIds = getAvailableWallIds(b.type);
+      const activeWallIds = wallIds.filter((id) => b.walls[id]);
+      for (const id of activeWallIds) {
+        const w = b.walls[id];
+        if (!w) continue;
+        const parts: string[] = [wallMaterialLabel(w.materialId)];
+        if (w.hasDoor) {
+          const size = t(`surface.doorSize.${w.doorSize}`);
+          const mat = doorMaterialLabel(w.doorMaterialId);
+          const withWindow = w.doorHasWindow ? `, ${t('surface.doorHasWindow').toLowerCase()}` : '';
+          parts.push(`${t('surface.door')}: ${size} (${mat}${withWindow})`);
+        }
+        if (w.hasWindow && w.windowCount > 0) {
+          parts.push(`${w.windowCount}× ${t('surface.windows').toLowerCase()}`);
+        }
+        rows.push(row(t(`wall.${id}`), parts.join(' · ')));
       }
-      if (w.hasWindow && w.windowCount > 0) {
-        parts.push(`${w.windowCount}× ${t('surface.windows').toLowerCase()}`);
-      }
-      rows.push(row(t(`wall.${id}`), parts.join(' · ')));
     }
   }
 
@@ -71,7 +87,7 @@ function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig): string {
   }
 
   // Quote
-  const { lineItems, total } = calculateTotalQuote(buildings, roof);
+  const { lineItems, total } = calculateTotalQuote(buildings, roof, defaultHeight);
   rows.push(`<tr><td colspan="2" style="padding:12px 0 6px;font-weight:600;font-size:14px;border-bottom:1px solid #eee">${t('section.6')}</td></tr>`);
   for (const item of lineItems) {
     rows.push(row(item.label, `€${item.total.toFixed(0)}`));
@@ -81,13 +97,13 @@ function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig): string {
   return rows.join('\n');
 }
 
-export function exportFloorPlan(buildings: BuildingEntity[], connections: SnapConnection[], roof: RoofConfig) {
+export function exportFloorPlan(buildings: BuildingEntity[], connections: SnapConnection[], roof: RoofConfig, defaultHeight: number = 3) {
   const svgEl = document.querySelector('.schematic-svg');
   if (!svgEl) return;
   const svgMarkup = svgEl.outerHTML;
 
-  const specRows = buildSpecRows(buildings, roof);
-  const configCode = encodeState(buildings, connections, roof);
+  const specRows = buildSpecRows(buildings, roof, defaultHeight);
+  const configCode = encodeState(buildings, connections, roof, defaultHeight);
   const title = `${t('app.title')} — ${t('schematic.title')}`;
   const date = new Date().toLocaleDateString('nl-NL', {
     year: 'numeric',

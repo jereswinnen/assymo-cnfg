@@ -23,6 +23,7 @@ function ViewToggle({
   const buildings = useConfigStore((s) => s.buildings);
   const connections = useConfigStore((s) => s.connections);
   const roof = useConfigStore((s) => s.roof);
+  const defaultHeight = useConfigStore((s) => s.defaultHeight);
 
   return (
     <div className="flex items-center gap-2">
@@ -61,7 +62,7 @@ function ViewToggle({
 
       {viewMode === 'plan' && (
         <button
-          onClick={() => exportFloorPlan(buildings, connections, roof)}
+          onClick={() => exportFloorPlan(buildings, connections, roof, defaultHeight)}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-background/80 backdrop-blur-xl shadow-md ring-1 ring-black/[0.08] text-foreground/70 hover:text-foreground hover:bg-background/90 transition-all"
         >
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
