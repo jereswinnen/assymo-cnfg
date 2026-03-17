@@ -297,13 +297,17 @@ export function detectWallSnap(
       }
       continue;
     }
-    // Building corners
+    // Building corners + edge midpoints
     const [cx, cz] = b.position;
     const hw = b.dimensions.width / 2;
     const hd = b.dimensions.depth / 2;
     targets.push(
+      // 4 corners
       [cx - hw, cz - hd], [cx + hw, cz - hd],
       [cx - hw, cz + hd], [cx + hw, cz + hd],
+      // 4 edge midpoints
+      [cx, cz - hd], [cx, cz + hd],
+      [cx - hw, cz], [cx + hw, cz],
     );
   }
 
