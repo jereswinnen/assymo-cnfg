@@ -389,33 +389,56 @@ export default function SchematicView() {
           {walls.map((w) => {
             const [ox, oz] = w.position;
             const isHorizontal = w.orientation === 'horizontal';
-            const wallW = isHorizontal ? w.dimensions.width : w.dimensions.depth;
-            const wallD = isHorizontal ? w.dimensions.depth : w.dimensions.width;
-            const hw = wallW / 2;
-            const hd = wallD / 2;
             const isSelected = w.id === selectedBuildingId;
 
-            // Wall material color
-            const wallCfg = w.walls['front'];
-            const materialColor = wallCfg?.materialId === 'brick' ? '#8B4513'
-              : wallCfg?.materialId === 'render' ? '#F5F5DC'
-              : wallCfg?.materialId === 'metal' ? '#708090'
-              : wallCfg?.materialId === 'glass' ? '#B8D4E3'
-              : '#c4956a'; // wood default
+            // For horizontal muur: use dimensions as-is, 'front' wall config renders horizontally
+            // For vertical muur: swap width/depth and map 'front' config to 'left' for vertical rendering
+            const schematicDims = isHorizontal
+              ? w.dimensions
+              : { width: w.dimensions.depth, depth: w.dimensions.width, height: w.dimensions.height };
+            const schematicWalls = isHorizontal
+              ? w.walls
+              : { left: w.walls['front'] };
+
+            // Invisible hit target covers the full wall area for drag
+            const wallW = isHorizontal ? w.dimensions.width : w.dimensions.depth;
+            const wallD = isHorizontal ? w.dimensions.depth : w.dimensions.width;
 
             return (
               <g key={w.id}>
+                {/* Hit target for drag */}
                 <rect
-                  x={ox - hw}
-                  y={oz - hd}
+                  x={ox - wallW / 2}
+                  y={oz - wallD / 2}
                   width={wallW}
                   height={wallD}
-                  fill={materialColor}
-                  stroke={isSelected ? '#3b82f6' : '#666'}
-                  strokeWidth={isSelected ? 0.04 : 0.02}
+                  fill="transparent"
+                  stroke="none"
                   style={{ cursor: 'grab' }}
                   onPointerDown={(e) => onBuildingPointerDown(e, w.id)}
                 />
+
+                {/* Wall segments with door/window gaps */}
+                <g pointerEvents="none">
+                  <SchematicWalls
+                    dimensions={schematicDims}
+                    walls={schematicWalls}
+                    selectedElement={selectedElement}
+                    buildingId={w.id}
+                    offsetX={ox}
+                    offsetY={oz}
+                  />
+                </g>
+
+                {/* Door and window symbols */}
+                <g pointerEvents="none">
+                  <SchematicOpenings
+                    dimensions={schematicDims}
+                    walls={schematicWalls}
+                    offsetX={ox}
+                    offsetY={oz}
+                  />
+                </g>
               </g>
             );
           })}
