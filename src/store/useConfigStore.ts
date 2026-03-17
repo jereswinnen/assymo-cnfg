@@ -11,6 +11,7 @@ import type {
   WallSide,
   WallConfig,
   SnapConnection,
+  Orientation,
 } from '@/types/building';
 import {
   DEFAULT_DIMENSIONS,
@@ -18,8 +19,14 @@ import {
   DEFAULT_FLOOR,
   DEFAULT_WALL,
   POLE_DIMENSIONS,
+  WALL_DIMENSIONS,
   getDefaultWalls,
 } from '@/lib/constants';
+
+/** Derive effective height from override or global default */
+export function getEffectiveHeight(building: BuildingEntity, defaultHeight: number): number {
+  return building.heightOverride ?? defaultHeight;
+}
 
 interface ConfigState {
   buildings: BuildingEntity[];
@@ -31,6 +38,7 @@ interface ConfigState {
   activeAccordionSection: number;
   draggedBuildingId: string | null;
   cameraTargetWallId: WallId | null;
+  defaultHeight: number;
 
   // Building CRUD
   addBuilding: (type: BuildingType) => string;
@@ -59,6 +67,10 @@ interface ConfigState {
   setAccordionSection: (n: number) => void;
   setDraggedBuildingId: (id: string | null) => void;
 
+  setDefaultHeight: (height: number) => void;
+  setHeightOverride: (id: string, override: number | null) => void;
+  setOrientation: (id: string, orientation: Orientation) => void;
+
   // Reset & load
   resetConfig: () => void;
   loadState: (buildings: BuildingEntity[], connections: SnapConnection[], roof: RoofConfig) => void;
@@ -70,14 +82,22 @@ interface ConfigState {
 }
 
 function createBuilding(type: BuildingType, position: [number, number]): BuildingEntity {
+  const dimensions = type === 'paal'
+    ? { ...POLE_DIMENSIONS }
+    : type === 'muur'
+    ? { ...WALL_DIMENSIONS }
+    : { ...DEFAULT_DIMENSIONS };
+
   return {
     id: crypto.randomUUID(),
     type,
     position,
-    dimensions: type === 'paal' ? { ...POLE_DIMENSIONS } : { ...DEFAULT_DIMENSIONS },
+    dimensions,
     walls: getDefaultWalls(type),
     hasCornerBraces: type === 'overkapping',
     floor: { ...DEFAULT_FLOOR },
+    orientation: 'horizontal',
+    heightOverride: null,
   };
 }
 
@@ -97,6 +117,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   activeAccordionSection: 2,
   draggedBuildingId: null,
   cameraTargetWallId: null,
+  defaultHeight: 3,
 
   addBuilding: (type) => {
     const b = createBuilding(type, [0, 0]);
@@ -116,10 +137,10 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   removeBuilding: (id) =>
     set((state) => {
       const target = state.buildings.find(b => b.id === id);
-      // Always keep at least one non-pole building
-      const nonPoleCount = state.buildings.filter(b => b.type !== 'paal').length;
+      // Always keep at least one structural building
+      const structuralCount = state.buildings.filter(b => b.type !== 'paal' && b.type !== 'muur').length;
       if (!target) return state;
-      if (target.type !== 'paal' && nonPoleCount <= 1) return state;
+      if (target.type !== 'paal' && target.type !== 'muur' && structuralCount <= 1) return state;
       const buildings = state.buildings.filter(b => b.id !== id);
       const connections = state.connections.filter(
         c => c.buildingAId !== id && c.buildingBId !== id,
@@ -225,6 +246,22 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
   setDraggedBuildingId: (id) => set({ draggedBuildingId: id }),
 
+  setDefaultHeight: (height) => set({ defaultHeight: height }),
+
+  setHeightOverride: (id, override) =>
+    set((state) => ({
+      buildings: state.buildings.map(b =>
+        b.id === id ? { ...b, heightOverride: override } : b,
+      ),
+    })),
+
+  setOrientation: (id, orientation) =>
+    set((state) => ({
+      buildings: state.buildings.map(b =>
+        b.id === id ? { ...b, orientation } : b,
+      ),
+    })),
+
   resetConfig: () => {
     const initial = makeInitialBuilding();
     set({
@@ -236,18 +273,31 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       activeAccordionSection: 1,
       draggedBuildingId: null,
       cameraTargetWallId: null,
+      defaultHeight: 3,
     });
   },
 
-  loadState: (buildings, connections, roof) =>
+  loadState: (buildings, connections, roof) => {
+    // Migration: add orientation and heightOverride for legacy configs
+    const migrated = buildings.map(b => ({
+      ...b,
+      orientation: (b as any).orientation ?? ('horizontal' as Orientation),
+      heightOverride: (b as any).heightOverride ?? null,
+    }));
+    // Derive defaultHeight from first structural building
+    const structural = migrated.find(b => b.type !== 'paal' && b.type !== 'muur');
+    const defaultHeight = structural?.dimensions.height ?? 3;
+
     set({
-      buildings,
+      buildings: migrated,
       connections,
       roof,
-      selectedBuildingId: buildings[0]?.id ?? null,
+      defaultHeight,
+      selectedBuildingId: migrated[0]?.id ?? null,
       selectedElement: null,
       activeAccordionSection: 1,
-    }),
+    });
+  },
 
   getSelectedBuilding: () => {
     const { buildings, selectedBuildingId } = get();
