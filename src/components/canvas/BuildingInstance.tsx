@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { BoxGeometry } from 'three';
 import { BuildingProvider } from '@/lib/BuildingContext';
-import { useConfigStore } from '@/store/useConfigStore';
+import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import Building from './Building';
 
 interface BuildingInstanceProps {
@@ -13,6 +13,7 @@ interface BuildingInstanceProps {
 export default function BuildingInstance({ buildingId }: BuildingInstanceProps) {
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
   const selectedBuildingId = useConfigStore((s) => s.selectedBuildingId);
+  const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const selectBuilding = useConfigStore((s) => s.selectBuilding);
   const setAccordionSection = useConfigStore((s) => s.setAccordionSection);
 
@@ -35,9 +36,9 @@ export default function BuildingInstance({ buildingId }: BuildingInstanceProps) 
         <Building />
         {isSelected && (
           <SelectionOutline
-            width={building.dimensions.width}
-            depth={building.dimensions.depth}
-            height={building.dimensions.height}
+            width={building.type === 'muur' && building.orientation === 'vertical' ? building.dimensions.depth : building.dimensions.width}
+            depth={building.type === 'muur' && building.orientation === 'vertical' ? building.dimensions.width : building.dimensions.depth}
+            height={getEffectiveHeight(building, defaultHeight)}
             isPole={building.type === 'paal'}
           />
         )}
