@@ -78,11 +78,13 @@ export default function BuildingManager() {
                 <span className="block text-[11px] text-muted-foreground tabular-nums">
                   {b.type === 'paal'
                     ? `${b.dimensions.height.toFixed(1)} m`
+                    : b.type === 'muur'
+                    ? `${b.dimensions.width.toFixed(1)} × ${b.dimensions.height.toFixed(1)} m`
                     : `${b.dimensions.width.toFixed(1)} × ${b.dimensions.depth.toFixed(1)} × ${b.dimensions.height.toFixed(1)} m`
                   }
                 </span>
               </div>
-              {(b.type === 'paal' || buildings.filter(x => x.type !== 'paal').length > 1) && (
+              {(b.type === 'paal' || b.type === 'muur' || buildings.filter(x => x.type !== 'paal' && x.type !== 'muur').length > 1) && (
                 <button
                   onClick={(e) => { e.stopPropagation(); removeBuilding(b.id); }}
                   className="text-xs text-muted-foreground hover:text-destructive transition-colors px-1"
@@ -96,7 +98,7 @@ export default function BuildingManager() {
       </div>
 
       {/* Add buttons */}
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="grid grid-cols-2 gap-1.5">
         <button
           onClick={() => addBuilding('berging')}
           className="rounded-lg border border-dashed border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
@@ -114,6 +116,12 @@ export default function BuildingManager() {
           className="rounded-lg border border-dashed border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
         >
           + {t('building.add.paal')}
+        </button>
+        <button
+          onClick={() => addBuilding('muur')}
+          className="rounded-lg border border-dashed border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
+        >
+          + {t('building.add.muur')}
         </button>
       </div>
 
@@ -139,7 +147,7 @@ export default function BuildingManager() {
       </div>
 
       {/* Corner braces toggle for selected building */}
-      {selectedBuilding && selectedBuilding.type !== 'paal' && (
+      {selectedBuilding && selectedBuilding.type !== 'paal' && selectedBuilding.type !== 'muur' && (
         <div className="flex items-start gap-3 rounded-lg border border-border p-3">
           <svg viewBox="0 0 24 24" className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" fill="none" stroke="currentColor" strokeWidth={2}>
             <line x1="4" y1="4" x2="4" y2="20" />
@@ -194,6 +202,15 @@ function BuildingIcon({ type, isSelected }: { type: BuildingType; isSelected: bo
       <svg viewBox="0 0 48 48" className={cls} fill="none" stroke="currentColor" strokeWidth={3}>
         <line x1="24" y1="8" x2="24" y2="40" />
         <line x1="18" y1="40" x2="30" y2="40" />
+      </svg>
+    );
+  }
+  if (type === 'muur') {
+    return (
+      <svg viewBox="0 0 48 48" className={cls} fill="none" stroke="currentColor" strokeWidth={2.5}>
+        <rect x="6" y="16" width="36" height="3" rx="1" />
+        <line x1="6" y1="22" x2="6" y2="36" />
+        <line x1="42" y1="22" x2="42" y2="36" />
       </svg>
     );
   }
