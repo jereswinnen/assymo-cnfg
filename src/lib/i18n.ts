@@ -148,6 +148,19 @@ const nl: Record<string, string> = {
   'schematic.depth': 'Diepte',
   'export.button': 'Exporteren',
 
+  // Sidebar
+  'sidebar.tab.objects': 'Objecten',
+  'sidebar.tab.configure': 'Configureren',
+  'sidebar.catalog.dragHint': 'Sleep naar canvas',
+  'sidebar.catalog.switchTo2D': 'Schakel naar 2D om toe te voegen',
+  'sidebar.placed': 'Geplaatst',
+  'sidebar.emptyState': 'Selecteer een object om te configureren',
+  'sidebar.section.dimensions': 'Afmetingen',
+  'sidebar.section.structure': 'Structuur',
+  'sidebar.section.walls': 'Wanden & Openingen',
+  'sidebar.section.quote': 'Offerte',
+  'sidebar.connections': 'Verbindingen',
+
   // Config code
   'code.title': 'Configuratiecode',
   'code.currentLabel': 'Uw configuratiecode',
