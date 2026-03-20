@@ -35,13 +35,16 @@ interface ConfigState {
 
   selectedBuildingId: string | null;
   selectedElement: SelectedElement;
-  activeAccordionSection: number;
   draggedBuildingId: string | null;
   cameraTargetWallId: WallId | null;
   defaultHeight: number;
+  sidebarTab: 'objects' | 'configure';
+  sidebarCollapsed: boolean;
+  activeConfigSection: 'dimensions' | 'structure' | 'walls' | 'quote' | null;
+  viewMode: 'plan' | '3d';
 
   // Building CRUD
-  addBuilding: (type: BuildingType) => string;
+  addBuilding: (type: BuildingType, position?: [number, number]) => string;
   removeBuilding: (id: string) => void;
   selectBuilding: (id: string | null) => void;
 
@@ -64,8 +67,12 @@ interface ConfigState {
   selectElement: (element: SelectedElement) => void;
   clearSelection: () => void;
   clearCameraTarget: () => void;
-  setAccordionSection: (n: number) => void;
   setDraggedBuildingId: (id: string | null) => void;
+
+  setSidebarTab: (tab: 'objects' | 'configure') => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+  setActiveConfigSection: (section: 'dimensions' | 'structure' | 'walls' | 'quote' | null) => void;
+  setViewMode: (mode: 'plan' | '3d') => void;
 
   setDefaultHeight: (height: number) => void;
   setHeightOverride: (id: string, override: number | null) => void;
@@ -114,22 +121,28 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
   selectedBuildingId: initialBuilding.id,
   selectedElement: null,
-  activeAccordionSection: 2,
   draggedBuildingId: null,
   cameraTargetWallId: null,
   defaultHeight: 3,
+  sidebarTab: 'objects',
+  sidebarCollapsed: false,
+  activeConfigSection: 'dimensions',
+  viewMode: 'plan',
 
-  addBuilding: (type) => {
-    const b = createBuilding(type, [0, 0]);
-    // Offset from existing buildings
-    const existing = get().buildings;
-    if (existing.length > 0) {
-      const maxX = Math.max(...existing.map(e => e.position[0] + e.dimensions.width / 2));
-      b.position = [maxX + b.dimensions.width / 2 + 2, 0];
+  addBuilding: (type, position) => {
+    const b = createBuilding(type, position ?? [0, 0]);
+    if (!position) {
+      const existing = get().buildings;
+      if (existing.length > 0) {
+        const maxX = Math.max(...existing.map(e => e.position[0] + e.dimensions.width / 2));
+        b.position = [maxX + b.dimensions.width / 2 + 2, 0];
+      }
     }
     set((state) => ({
       buildings: [...state.buildings, b],
       selectedBuildingId: b.id,
+      sidebarTab: 'configure' as const,
+      sidebarCollapsed: false,
     }));
     return b.id;
   },
@@ -146,15 +159,18 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         c => c.buildingAId !== id && c.buildingBId !== id,
       );
       const selectedBuildingId =
-        state.selectedBuildingId === id ? (buildings[0]?.id ?? null) : state.selectedBuildingId;
+        state.selectedBuildingId === id ? null : state.selectedBuildingId;
       const selectedElement =
-        state.selectedElement?.type === 'wall' && state.selectedElement.buildingId === id
-          ? null
-          : state.selectedElement;
-      return { buildings, connections, selectedBuildingId, selectedElement };
+        state.selectedBuildingId === id ? null : state.selectedElement;
+      const sidebarTab =
+        state.selectedBuildingId === id ? 'objects' as const : state.sidebarTab;
+      return { buildings, connections, selectedBuildingId, selectedElement, sidebarTab };
     }),
 
-  selectBuilding: (id) => set({ selectedBuildingId: id }),
+  selectBuilding: (id) => set({
+    selectedBuildingId: id,
+    ...(id ? { sidebarTab: 'configure' as const, sidebarCollapsed: false } : {}),
+  }),
 
   updateBuildingDimensions: (id, dims) =>
     set((state) => ({
@@ -232,8 +248,10 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       selectedElement: element,
       selectedBuildingId:
         element?.type === 'wall' ? element.buildingId : state.selectedBuildingId,
-      activeAccordionSection:
-        element?.type === 'wall' ? 4 : element?.type === 'roof' ? 3 : state.activeAccordionSection,
+      activeConfigSection:
+        element?.type === 'wall' ? 'walls' : element?.type === 'roof' ? 'structure' : state.activeConfigSection,
+      sidebarTab: 'configure' as const,
+      sidebarCollapsed: false,
       cameraTargetWallId:
         element?.type === 'wall' ? element.id : state.cameraTargetWallId,
     })),
@@ -242,9 +260,12 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
   clearCameraTarget: () => set({ cameraTargetWallId: null }),
 
-  setAccordionSection: (n) => set({ activeAccordionSection: n }),
-
   setDraggedBuildingId: (id) => set({ draggedBuildingId: id }),
+
+  setSidebarTab: (tab) => set({ sidebarTab: tab }),
+  setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+  setActiveConfigSection: (section) => set({ activeConfigSection: section }),
+  setViewMode: (mode) => set({ viewMode: mode }),
 
   setDefaultHeight: (height) => set({ defaultHeight: height }),
 
@@ -270,10 +291,13 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       roof: { ...DEFAULT_ROOF },
       selectedBuildingId: null,
       selectedElement: null,
-      activeAccordionSection: 1,
       draggedBuildingId: null,
       cameraTargetWallId: null,
       defaultHeight: 3,
+      activeConfigSection: 'dimensions',
+      sidebarTab: 'objects',
+      sidebarCollapsed: false,
+      viewMode: 'plan',
     });
   },
 
@@ -295,7 +319,8 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       defaultHeight,
       selectedBuildingId: migrated[0]?.id ?? null,
       selectedElement: null,
-      activeAccordionSection: 1,
+      activeConfigSection: 'dimensions',
+      sidebarTab: 'objects',
     });
   },
 

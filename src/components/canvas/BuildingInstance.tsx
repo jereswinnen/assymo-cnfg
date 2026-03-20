@@ -15,13 +15,11 @@ export default function BuildingInstance({ buildingId }: BuildingInstanceProps) 
   const selectedBuildingId = useConfigStore((s) => s.selectedBuildingId);
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const selectBuilding = useConfigStore((s) => s.selectBuilding);
-  const setAccordionSection = useConfigStore((s) => s.setAccordionSection);
 
   const handleClick = useCallback((e: { stopPropagation: () => void }) => {
     e.stopPropagation();
     selectBuilding(buildingId);
-    setAccordionSection(2);
-  }, [buildingId, selectBuilding, setAccordionSection]);
+  }, [buildingId, selectBuilding]);
 
   if (!building) return null;
 
