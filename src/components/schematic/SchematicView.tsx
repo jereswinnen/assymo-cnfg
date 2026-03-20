@@ -8,7 +8,7 @@ import SchematicPosts from './SchematicPosts';
 import SchematicWalls from './SchematicWalls';
 import SchematicOpenings from './SchematicOpenings';
 import DimensionLine from './DimensionLine';
-import type { WallSide, SnapConnection, BuildingEntity } from '@/types/building';
+import type { BuildingType, WallSide, SnapConnection, BuildingEntity } from '@/types/building';
 
 function getConnectedSides(buildingId: string, connections: SnapConnection[]): Set<WallSide> {
   const sides = new Set<WallSide>();
@@ -83,8 +83,8 @@ export default function SchematicView() {
   const updateBuildingPosition = useConfigStore((s) => s.updateBuildingPosition);
   const setConnections = useConfigStore((s) => s.setConnections);
   const setDraggedBuildingId = useConfigStore((s) => s.setDraggedBuildingId);
-  const setAccordionSection = useConfigStore((s) => s.setAccordionSection);
   const setOrientation = useConfigStore((s) => s.setOrientation);
+  const addBuilding = useConfigStore((s) => s.addBuilding);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
@@ -95,6 +95,9 @@ export default function SchematicView() {
 
   // Freeze viewBox during drag to prevent coordinate system shifts
   const [frozenViewBox, setFrozenViewBox] = useState<string | null>(null);
+
+  // Ghost preview for drag-and-drop from sidebar
+  const [dragGhost, setDragGhost] = useState<{ x: number; y: number } | null>(null);
 
   const normalBuildings = buildings.filter(b => b.type !== 'paal' && b.type !== 'muur');
   const walls = buildings.filter(b => b.type === 'muur');
@@ -203,24 +206,79 @@ export default function SchematicView() {
     } else if (dragBuildingId.current) {
       // Click (no drag) — select building
       selectBuilding(dragBuildingId.current);
-      setAccordionSection(2);
     }
     dragging.current = false;
     dragBuildingId.current = null;
     dragStartWorld.current = null;
     pointerDownScreen.current = null;
     setFrozenViewBox(null);
-  }, [selectBuilding, setAccordionSection, setDraggedBuildingId]);
+  }, [selectBuilding, setDraggedBuildingId]);
 
   const onSvgPointerDown = useCallback((e: React.PointerEvent) => {
     // Click on empty space — deselect
     if (e.target === svgRef.current) {
-      selectBuilding(buildings[0]?.id ?? null);
+      selectBuilding(null);
     }
-  }, [selectBuilding, buildings]);
+  }, [selectBuilding]);
+
+  // --- HTML drag-and-drop handlers (sidebar catalog → canvas) ---
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes('application/building-type')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    setDragGhost({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  const onDragLeave = useCallback(() => {
+    setDragGhost(null);
+  }, []);
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    setDragGhost(null);
+    const type = e.dataTransfer.getData('application/building-type') as BuildingType;
+    if (!type) return;
+    e.preventDefault();
+
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const [wx, wz] = clientToWorld(svg, e.clientX, e.clientY);
+    const newId = addBuilding(type, [wx, wz]);
+
+    // Run snap detection on the newly placed building
+    const allBuildings = useConfigStore.getState().buildings;
+    const building = allBuildings.find(b => b.id === newId);
+    if (!building) return;
+
+    if (building.type === 'paal') {
+      const snapped = detectPoleSnap(building.position, allBuildings.filter(b => b.id !== newId));
+      updateBuildingPosition(newId, snapped);
+    } else if (building.type === 'muur') {
+      const snapped = detectWallSnap(
+        building.position,
+        building.dimensions.width,
+        building.orientation,
+        allBuildings.filter(b => b.id !== newId),
+      );
+      updateBuildingPosition(newId, snapped);
+    } else {
+      const others = allBuildings.filter(b => b.id !== newId && b.type !== 'paal' && b.type !== 'muur');
+      const { snappedPosition, newConnections } = detectSnap(building, others);
+      updateBuildingPosition(newId, snappedPosition);
+      setConnections(newConnections);
+    }
+
+    selectBuilding(newId);
+  }, [addBuilding, updateBuildingPosition, setConnections, selectBuilding]);
 
   return (
-    <div className="flex flex-col h-full p-6">
+    <div
+      className="flex flex-col h-full p-6 relative"
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
       <div className="flex-1 min-h-0 flex items-center justify-center">
         <svg
           ref={svgRef}
@@ -255,7 +313,10 @@ export default function SchematicView() {
             const isSelected = b.id === selectedBuildingId;
 
             return (
-              <g key={b.id}>
+              <g
+                key={b.id}
+                className={isSelected ? 'schematic-selected' : undefined}
+              >
                 {/* Invisible hit target for drag — covers the full building rect */}
                 <rect
                   x={ox - hw}
@@ -416,7 +477,10 @@ export default function SchematicView() {
             const hitH = Math.max(wallD, 0.5);
 
             return (
-              <g key={w.id}>
+              <g
+                key={w.id}
+                className={isSelected ? 'schematic-selected' : undefined}
+              >
                 {/* Enlarged invisible hit target for drag + double-click to rotate */}
                 <rect
                   x={ox - wallW / 2}
@@ -501,18 +565,22 @@ export default function SchematicView() {
             const s = 0.18;
             const isSelected = p.id === selectedBuildingId;
             return (
-              <rect
+              <g
                 key={p.id}
-                x={p.position[0] - s / 2}
-                y={p.position[1] - s / 2}
-                width={s}
-                height={s}
-                fill="#8B6914"
-                stroke={isSelected ? '#3b82f6' : '#666'}
-                strokeWidth={isSelected ? 0.04 : 0.02}
-                style={{ cursor: 'grab' }}
-                onPointerDown={(e) => onBuildingPointerDown(e, p.id)}
-              />
+                className={isSelected ? 'schematic-selected' : undefined}
+              >
+                <rect
+                  x={p.position[0] - s / 2}
+                  y={p.position[1] - s / 2}
+                  width={s}
+                  height={s}
+                  fill="#8B6914"
+                  stroke={isSelected ? '#3b82f6' : '#666'}
+                  strokeWidth={isSelected ? 0.04 : 0.02}
+                  style={{ cursor: 'grab' }}
+                  onPointerDown={(e) => onBuildingPointerDown(e, p.id)}
+                />
+              </g>
             );
           })}
 
@@ -558,6 +626,22 @@ export default function SchematicView() {
           )}
         </svg>
       </div>
+
+      {/* Ghost preview during drag-and-drop from sidebar */}
+      {dragGhost && (
+        <div
+          className="pointer-events-none fixed"
+          style={{
+            left: dragGhost.x - 40,
+            top: dragGhost.y - 30,
+            width: 80,
+            height: 60,
+            border: '2px dashed #3b82f6',
+            borderRadius: 6,
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          }}
+        />
+      )}
     </div>
   );
 }
