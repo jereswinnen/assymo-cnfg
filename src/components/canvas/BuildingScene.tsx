@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Environment, ContactShadows, SoftShadows } from '@react-three/drei';
+import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
 import { EffectComposer, SSAO, Bloom } from '@react-three/postprocessing';
 import { Vector3, BackSide, ShaderMaterial, ACESFilmicToneMapping } from 'three';
 import { BlendFunction } from 'postprocessing';
@@ -191,7 +191,6 @@ export default function BuildingScene() {
       style={{ background: '#6a9fd8' }}
     >
       <RendererConfig />
-      <SoftShadows size={10} samples={16} focus={0.5} />
 
       {/* HDRI environment for lighting and reflections only */}
       <Environment preset="park" background={false} />
