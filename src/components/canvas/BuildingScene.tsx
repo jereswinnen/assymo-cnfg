@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
+import { OrbitControls, Environment } from '@react-three/drei';
 import { Vector3, BackSide, ShaderMaterial, ACESFilmicToneMapping } from 'three';
 import BuildingInstance from './BuildingInstance';
 import Ground from './Ground';
@@ -67,7 +67,7 @@ function SkyGradient() {
 
   return (
     <mesh scale={[500, 500, 500]} material={material}>
-      <sphereGeometry args={[1, 128, 128]} />
+      <sphereGeometry args={[1, 32, 32]} />
     </mesh>
   );
 }
@@ -150,8 +150,6 @@ function CameraAnimator() {
 export default function BuildingScene() {
   const clearSelection = useConfigStore((s) => s.clearSelection);
   const buildings = useConfigStore((s) => s.buildings);
-  const qualityTier = useConfigStore((s) => s.qualityTier);
-  const shadowMapSize = qualityTier === 'high' ? 4096 : 2048;
 
   return (
     <Canvas
@@ -165,13 +163,13 @@ export default function BuildingScene() {
       {/* HDRI environment for lighting and reflections only */}
       <Environment preset="park" background={false} />
 
-      {/* Sun light with soft shadows */}
+      {/* Sun light with shadows */}
       <directionalLight
         position={[10, 15, 10]}
         intensity={0.8}
         castShadow
-        shadow-mapSize-width={shadowMapSize}
-        shadow-mapSize-height={shadowMapSize}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
         shadow-camera-far={50}
         shadow-camera-left={-20}
         shadow-camera-right={20}
@@ -187,16 +185,6 @@ export default function BuildingScene() {
       ))}
 
       <Ground />
-
-      {/* Soft contact shadows at the building base */}
-      <ContactShadows
-        position={[0, 0.01, 0]}
-        opacity={0.4}
-        blur={2.5}
-        far={4}
-        width={30}
-        height={30}
-      />
 
       <CameraAnimator />
     </Canvas>
