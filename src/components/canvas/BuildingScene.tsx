@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Environment } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import { Vector3, BackSide, ShaderMaterial, ACESFilmicToneMapping } from 'three';
 import BuildingInstance from './BuildingInstance';
 import Ground from './Ground';
@@ -72,7 +72,6 @@ function SkyGradient() {
   );
 }
 
-/** Configures renderer tone mapping inside the Canvas */
 function RendererConfig() {
   const { gl } = useThree();
   useEffect(() => {
@@ -97,7 +96,6 @@ function CameraAnimator() {
   useEffect(() => {
     if (wallId && WALL_CAMERA_POSITIONS[wallId]) {
       const base = WALL_CAMERA_POSITIONS[wallId];
-      // Offset camera by selected building position
       const building = buildings.find(b => b.id === selectedBuildingId);
       const offset = building ? building.position : [0, 0];
       targetPos.current = new Vector3(base[0] + offset[0], base[1], base[2] + offset[1]);
@@ -160,23 +158,21 @@ export default function BuildingScene() {
     >
       <RendererConfig />
 
-      {/* HDRI environment for lighting and reflections only */}
-      <Environment preset="park" background={false} />
-
-      {/* Sun light with shadows */}
+      <ambientLight intensity={0.5} />
       <directionalLight
         position={[10, 15, 10]}
-        intensity={0.8}
+        intensity={1.0}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
         shadow-camera-far={50}
-        shadow-camera-left={-20}
-        shadow-camera-right={20}
-        shadow-camera-top={20}
-        shadow-camera-bottom={-20}
+        shadow-camera-left={-15}
+        shadow-camera-right={15}
+        shadow-camera-top={15}
+        shadow-camera-bottom={-15}
         shadow-bias={-0.0005}
       />
+      <directionalLight position={[-5, 5, -5]} intensity={0.3} />
 
       <SkyGradient />
 
