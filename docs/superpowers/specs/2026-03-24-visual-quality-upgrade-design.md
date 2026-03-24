@@ -108,7 +108,39 @@ Tune `envMapIntensity` per material so the HDRI reflections match physical expec
 
 **Singleton material note:** `frameMat` and `glassMat` in `DoorMesh.tsx` are module-level singletons shared across all doors and windows. Set `envMapIntensity` on these once (frame: 0.8, glass: 1.5). Since all doors/windows share the same reflection intensity, singleton mutation is fine here.
 
-**Wall textures note:** Current wall textures are diffuse-only (no normal/roughness maps). The HDRI reflections on walls will be limited by the flat `metalness: 0.1, roughness: 0.7` values. This is acceptable — walls still benefit from ambient light color variation. Adding wall normal maps is a future enhancement, out of scope for this spec.
+### 8. Upgrade Wall & Roof Textures to Full PBR
+
+Current wall textures (`brick.jpg`, `wood.jpg`, `plaster.jpg`, `metal.jpg`) and roof textures (`tiles.jpg`, `thatch.jpg`) are diffuse-only — no normal or roughness maps. Without these, the HDRI reflections hit flat surfaces and the materials still look like painted cardboard. Adding normal + roughness maps is what makes brick look bumpy, wood show grain, and metal feel real.
+
+**Texture sourcing:** Download free CC0 PBR texture sets from [ambientCG](https://ambientcg.com) or [Poly Haven](https://polyhaven.com/textures). Each material needs three files:
+- `{material}_color.jpg` — diffuse/albedo (already have these, may replace with higher quality)
+- `{material}_normal.jpg` — surface detail bumps
+- `{material}_roughness.jpg` — per-pixel roughness variation
+
+**New texture files in `/public/textures/`:**
+
+| Material | Color | Normal | Roughness |
+|---|---|---|---|
+| brick | `brick_color.jpg` | `brick_normal.jpg` | `brick_roughness.jpg` |
+| wood (walls) | `wood_color.jpg` | `wood_normal.jpg` | `wood_roughness.jpg` |
+| plaster | `plaster_color.jpg` | `plaster_normal.jpg` | `plaster_roughness.jpg` |
+| metal (walls) | `metal_color.jpg` | `metal_normal.jpg` | `metal_roughness.jpg` |
+| dakpannen (roof tiles) | `roof_tiles_color.jpg` | `roof_tiles_normal.jpg` | `roof_tiles_roughness.jpg` |
+| riet (thatch) | `thatch_color.jpg` | `thatch_normal.jpg` | `thatch_roughness.jpg` |
+
+**Code changes in `src/lib/textures.ts`:**
+- Convert `WALL_TEXTURE_MAP` from `Record<string, string>` to `Record<string, { color, normal, roughness }>` — same structure as the existing `FLOOR_TEXTURE_MAP`
+- Convert `ROOF_TEXTURE_MAP` similarly
+- Update `useWallTexture` to return a `WallPBR` type (like the existing `FloorPBR`: `{ map, normalMap, roughnessMap }`) instead of a single `Texture | null`
+- Update `useRoofTexture` to return a `RoofPBR` type similarly
+- Update `useDoorTexture` to return PBR maps for wood doors
+
+**Consuming components:**
+- `Wall.tsx` — apply `normalMap` and `roughnessMap` from the updated hook, remove hardcoded `roughness: 0.7`
+- `Roof.tsx` — apply normal/roughness maps from updated hook
+- `DoorMesh.tsx` — apply normal/roughness maps for wood door panels
+
+The existing `loadTexture` caching and UV repeat system handles this naturally — we're just loading more textures per material through the same pipeline.
 
 ## Scene Graph (After)
 
@@ -137,13 +169,15 @@ Use `detect-gpu` library at app startup (outside the Canvas) to determine GPU ti
 ## Files Modified
 
 - `src/components/canvas/BuildingScene.tsx` — environment, post-processing, renderer config, soft shadows, contact shadows, remove fill light
-- `src/components/canvas/Wall.tsx` — remove `<Edges>` and `polygonOffset` props, add `envMapIntensity`, add `castShadow`/`receiveShadow`
+- `src/components/canvas/Wall.tsx` — remove `<Edges>` and `polygonOffset` props, add `envMapIntensity`, add `castShadow`/`receiveShadow`, apply PBR normal/roughness maps
 - `src/components/canvas/Ground.tsx` — replace RoundedBox with large plane at y=-0.001
-- `src/components/canvas/Roof.tsx` — add `envMapIntensity`, add `castShadow`
-- `src/components/canvas/DoorMesh.tsx` — set `envMapIntensity` on singleton `frameMat` and `glassMat`
+- `src/components/canvas/Roof.tsx` — add `envMapIntensity`, add `castShadow`, apply PBR normal/roughness maps
+- `src/components/canvas/DoorMesh.tsx` — set `envMapIntensity` on singleton `frameMat` and `glassMat`, apply PBR maps to wood door panels
 - `src/components/canvas/WindowMesh.tsx` — add `envMapIntensity` to any inline materials
 - `src/components/canvas/TimberFrame.tsx` — add `envMapIntensity`, add `castShadow`
 - `src/components/canvas/Floor.tsx` — add `envMapIntensity`, add `receiveShadow`
 - `src/components/canvas/BuildingInstance.tsx` — add `envMapIntensity` to selection outline material if applicable
 - `src/store/useConfigStore.ts` — add `qualityTier` state from detect-gpu
+- `src/lib/textures.ts` — upgrade `WALL_TEXTURE_MAP` and `ROOF_TEXTURE_MAP` to PBR format, update hooks to return `{ map, normalMap, roughnessMap }`
 - `package.json` — add `@react-three/postprocessing`, `postprocessing`, and `detect-gpu`
+- `/public/textures/` — add 12 new texture files (normal + roughness for 6 materials)
