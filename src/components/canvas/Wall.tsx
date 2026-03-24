@@ -2,7 +2,6 @@
 
 import { useRef, useMemo, useEffect, useCallback } from 'react';
 import { Mesh } from 'three';
-import { Edges } from '@react-three/drei';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { WALL_MATERIALS, WALL_THICKNESS, computeOpeningPositions, getWallLength } from '@/lib/constants';
@@ -17,6 +16,14 @@ import type { WallId, WallConfig } from '@/types/building';
 const MULLION_SPACING = 1.2;
 const TRANSOM_H = 1.3;
 const GLASS_FRAME = 0.05;
+
+const WALL_ENV_MAP_INTENSITY: Record<string, number> = {
+  wood: 0.3,
+  brick: 0.4,
+  render: 0.5,
+  metal: 1.0,
+  glass: 1.5,
+};
 
 interface WallProps {
   wallId: WallId;
@@ -132,12 +139,16 @@ export default function Wall({ wallId }: WallProps) {
     );
   }
 
+  const envMapIntensity = WALL_ENV_MAP_INTENSITY[materialId] ?? 0.4;
+
   return (
     <group>
       <mesh
         ref={meshRef}
         position={position}
         rotation={rotation}
+        castShadow
+        receiveShadow
         {...pointerHandlers}
       >
         {wallGeo ? (
@@ -147,16 +158,15 @@ export default function Wall({ wallId }: WallProps) {
         )}
         <meshStandardMaterial
           color={texture ? '#ffffff' : color}
-          map={texture ?? undefined}
+          map={texture?.map ?? undefined}
+          normalMap={texture?.normalMap ?? undefined}
+          roughnessMap={texture?.roughnessMap ?? undefined}
           metalness={0.1}
-          roughness={0.7}
+          roughness={texture?.roughnessMap ? 1 : 0.7}
+          envMapIntensity={envMapIntensity}
           emissive={isSelected ? '#3b82f6' : hovered ? '#60a5fa' : '#000000'}
           emissiveIntensity={isSelected ? 0.35 : hovered ? 0.15 : 0}
-          polygonOffset
-          polygonOffsetFactor={1}
-          polygonOffsetUnits={1}
         />
-        <Edges color={isSelected ? '#2563eb' : '#333333'} threshold={15} />
       </mesh>
 
       <WallOpenings
@@ -284,6 +294,7 @@ function GlassWallMesh({
           roughness={0.05}
           transparent
           opacity={0.3}
+          envMapIntensity={1.5}
           emissive={isSelected ? '#3b82f6' : hovered ? '#60a5fa' : '#000000'}
           emissiveIntensity={isSelected ? 0.35 : hovered ? 0.15 : 0}
         />

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useEffect } from 'react';
-import { MeshStandardMaterial, TextureLoader, RepeatWrapping, SRGBColorSpace } from 'three';
+import { MeshStandardMaterial, TextureLoader, RepeatWrapping, SRGBColorSpace, LinearSRGBColorSpace } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { POST_SIZE, BEAM_H, DECK_T, POST_SPACING } from '@/lib/constants';
@@ -41,16 +41,40 @@ export default function TimberFrame() {
   }, [connections, buildingId]);
 
   const timberMat = useMemo(() => {
-    const tex = new TextureLoader().load('/textures/wood.jpg');
-    tex.wrapS = RepeatWrapping;
-    tex.wrapT = RepeatWrapping;
-    tex.colorSpace = SRGBColorSpace;
-    tex.repeat.set(2, 2);
-    return new MeshStandardMaterial({ map: tex, color: '#ffffff', metalness: 0.05, roughness: 0.8 });
+    const loader = new TextureLoader();
+    const colorTex = loader.load('/textures/wood_color.jpg');
+    colorTex.wrapS = RepeatWrapping;
+    colorTex.wrapT = RepeatWrapping;
+    colorTex.colorSpace = SRGBColorSpace;
+    colorTex.repeat.set(2, 2);
+
+    const normalTex = loader.load('/textures/wood_normal.jpg');
+    normalTex.wrapS = RepeatWrapping;
+    normalTex.wrapT = RepeatWrapping;
+    normalTex.colorSpace = LinearSRGBColorSpace;
+    normalTex.repeat.set(2, 2);
+
+    const roughTex = loader.load('/textures/wood_roughness.jpg');
+    roughTex.wrapS = RepeatWrapping;
+    roughTex.wrapT = RepeatWrapping;
+    roughTex.colorSpace = LinearSRGBColorSpace;
+    roughTex.repeat.set(2, 2);
+
+    return new MeshStandardMaterial({
+      map: colorTex,
+      normalMap: normalTex,
+      roughnessMap: roughTex,
+      color: '#ffffff',
+      metalness: 0.05,
+      roughness: 1,
+      envMapIntensity: 0.2,
+    });
   }, []);
 
   useEffect(() => () => {
     timberMat.map?.dispose();
+    timberMat.normalMap?.dispose();
+    timberMat.roughnessMap?.dispose();
     timberMat.dispose();
   }, [timberMat]);
 
@@ -136,7 +160,7 @@ export default function TimberFrame() {
   return (
     <group>
       {elements.map((b, i) => (
-        <mesh key={i} position={b.pos} rotation={b.rot ?? [0, 0, 0]} material={timberMat}>
+        <mesh key={i} position={b.pos} rotation={b.rot ?? [0, 0, 0]} material={timberMat} castShadow>
           <boxGeometry args={b.size} />
         </mesh>
       ))}

@@ -46,9 +46,12 @@ export default function Roof() {
 
   const materialProps = {
     color: roofTexture ? '#ffffff' : color,
-    map: roofTexture ?? undefined,
+    map: roofTexture?.map ?? undefined,
+    normalMap: roofTexture?.normalMap ?? undefined,
+    roughnessMap: roofTexture?.roughnessMap ?? undefined,
     metalness: roofTexture ? 0.3 : 0.1,
-    roughness: roofTexture ? 0.5 : 0.85,
+    roughness: roofTexture?.roughnessMap ? 1 : 0.85,
+    envMapIntensity: 0.8,
     emissive: isSelected ? '#3b82f6' : hovered ? '#60a5fa' : '#000000',
     emissiveIntensity: isSelected ? 0.35 : hovered ? 0.15 : 0,
   };
@@ -122,6 +125,7 @@ function FlatRoof({ width, depth, height, connectedSides, trimColor, materialPro
       <mesh
         ref={meshRef}
         position={[0, epdmY, 0]}
+        castShadow
         {...pointerHandlers}
       >
         <boxGeometry args={[width, EPDM_THICKNESS, depth]} />
@@ -169,6 +173,7 @@ function PitchedRoof({ width, depth, height, roofPitch, materialProps, pointerHa
           key={i}
           position={panel.position}
           rotation={panel.rotation}
+          castShadow
           {...pointerHandlers}
         >
           <boxGeometry args={[roofSlantLength, ROOF_EDGE, depth]} />

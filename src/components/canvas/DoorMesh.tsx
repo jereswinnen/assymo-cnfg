@@ -25,8 +25,8 @@ function getHandleMat(matId: DoorMaterialId): MeshStandardMaterial {
   return matId === 'wood' ? HANDLE_DARK : HANDLE_LIGHT;
 }
 
-export const frameMat = new MeshStandardMaterial({ color: '#2A2A2A', metalness: 0.4, roughness: 0.3 });
-export const glassMat = new MeshStandardMaterial({ color: '#B8D4E3', metalness: 0.1, roughness: 0.05, transparent: true, opacity: 0.3 });
+export const frameMat = new MeshStandardMaterial({ color: '#2A2A2A', metalness: 0.4, roughness: 0.3, envMapIntensity: 0.8 });
+export const glassMat = new MeshStandardMaterial({ color: '#B8D4E3', metalness: 0.1, roughness: 0.05, transparent: true, opacity: 0.3, envMapIntensity: 1.5 });
 
 const SWING_SPEED = 5; // lerp speed factor
 
@@ -133,7 +133,7 @@ export default function DoorMesh({ x, height, swing, doorSize, doorHasWindow, do
             ) : (
               <boxGeometry args={[panelW, dh, DOOR_DEPTH]} />
             )}
-            <meshStandardMaterial color={panelColor} map={doorTex ?? undefined} metalness={mc.metalness} roughness={mc.roughness} emissive={mc.emissive} emissiveIntensity={mc.emissiveIntensity} />
+            <meshStandardMaterial color={panelColor} map={doorTex?.map ?? undefined} normalMap={doorTex?.normalMap ?? undefined} roughnessMap={doorTex?.roughnessMap ?? undefined} metalness={mc.metalness} roughness={doorTex?.roughnessMap ? 1 : mc.roughness} envMapIntensity={doorMaterialId === 'wood' ? 0.3 : 1.0} emissive={mc.emissive} emissiveIntensity={mc.emissiveIntensity} />
           </mesh>
           {doorHasWindow && <DoorGlass cx={panelW / 2} panelW={panelW} dh={dh} />}
           <mesh position={[panelW - 0.12, 0, DOOR_DEPTH / 2 + 0.01]} material={hMat}>
@@ -148,7 +148,7 @@ export default function DoorMesh({ x, height, swing, doorSize, doorHasWindow, do
             ) : (
               <boxGeometry args={[panelW, dh, DOOR_DEPTH]} />
             )}
-            <meshStandardMaterial color={panelColor} map={doorTex ?? undefined} metalness={mc.metalness} roughness={mc.roughness} emissive={mc.emissive} emissiveIntensity={mc.emissiveIntensity} />
+            <meshStandardMaterial color={panelColor} map={doorTex?.map ?? undefined} normalMap={doorTex?.normalMap ?? undefined} roughnessMap={doorTex?.roughnessMap ?? undefined} metalness={mc.metalness} roughness={doorTex?.roughnessMap ? 1 : mc.roughness} envMapIntensity={doorMaterialId === 'wood' ? 0.3 : 1.0} emissive={mc.emissive} emissiveIntensity={mc.emissiveIntensity} />
           </mesh>
           {doorHasWindow && <DoorGlass cx={-panelW / 2} panelW={panelW} dh={dh} />}
           <mesh position={[-panelW + 0.12, 0, DOOR_DEPTH / 2 + 0.01]} material={hMat}>
@@ -182,7 +182,7 @@ export default function DoorMesh({ x, height, swing, doorSize, doorHasWindow, do
           ) : (
             <boxGeometry args={[panelW, dh, DOOR_DEPTH]} />
           )}
-          <meshStandardMaterial color={panelColor} map={doorTex ?? undefined} metalness={mc.metalness} roughness={mc.roughness} emissive={mc.emissive} emissiveIntensity={mc.emissiveIntensity} />
+          <meshStandardMaterial color={panelColor} map={doorTex?.map ?? undefined} normalMap={doorTex?.normalMap ?? undefined} roughnessMap={doorTex?.roughnessMap ?? undefined} metalness={mc.metalness} roughness={doorTex?.roughnessMap ? 1 : mc.roughness} envMapIntensity={doorMaterialId === 'wood' ? 0.3 : 1.0} emissive={mc.emissive} emissiveIntensity={mc.emissiveIntensity} />
         </mesh>
         {doorHasWindow && <DoorGlass cx={panelW / 2} panelW={panelW} dh={dh} />}
         {/* Handle */}

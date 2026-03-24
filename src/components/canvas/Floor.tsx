@@ -18,7 +18,7 @@ export default function Floor() {
   if (materialId === 'geen' || !material) return null;
 
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} receiveShadow>
       <planeGeometry args={[width, depth]} />
       <meshStandardMaterial
         color={pbr ? '#ffffff' : material.color}
@@ -27,6 +27,7 @@ export default function Floor() {
         roughnessMap={pbr?.roughnessMap ?? undefined}
         metalness={0}
         roughness={pbr ? 1 : 0.8}
+        envMapIntensity={0.4}
       />
     </mesh>
   );

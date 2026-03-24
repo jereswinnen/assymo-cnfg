@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getGPUTier } from 'detect-gpu';
 import type {
   BuildingEntity,
   BuildingDimensions,
@@ -42,6 +43,7 @@ interface ConfigState {
   sidebarCollapsed: boolean;
   activeConfigSection: 'dimensions' | 'structure' | 'walls' | 'quote' | null;
   viewMode: 'plan' | '3d';
+  qualityTier: 'high' | 'low';
 
   // Building CRUD
   addBuilding: (type: BuildingType, position?: [number, number]) => string;
@@ -128,6 +130,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   sidebarCollapsed: false,
   activeConfigSection: 'dimensions',
   viewMode: 'plan',
+  qualityTier: 'high',
 
   addBuilding: (type, position) => {
     const b = createBuilding(type, position ?? [0, 0]);
@@ -348,3 +351,12 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     );
   },
 }));
+
+// Detect GPU tier at startup and update store
+if (typeof window !== 'undefined') {
+  getGPUTier().then((result) => {
+    // Tier 0-2 = low, tier 3 = high
+    const tier = (result.tier ?? 0) >= 3 ? 'high' : 'low';
+    useConfigStore.setState({ qualityTier: tier });
+  });
+}

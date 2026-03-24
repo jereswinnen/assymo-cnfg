@@ -1,9 +1,11 @@
 'use client';
 
 import { useRef, useEffect, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
-import { Vector3, BackSide, ShaderMaterial } from 'three';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, Environment, ContactShadows, SoftShadows } from '@react-three/drei';
+import { EffectComposer, SSAO, Bloom } from '@react-three/postprocessing';
+import { Vector3, BackSide, ShaderMaterial, ACESFilmicToneMapping } from 'three';
+import { BlendFunction } from 'postprocessing';
 import BuildingInstance from './BuildingInstance';
 import Ground from './Ground';
 import { useConfigStore } from '@/store/useConfigStore';
@@ -72,6 +74,16 @@ function SkyGradient() {
   );
 }
 
+/** Configures renderer tone mapping inside the Canvas */
+function RendererConfig() {
+  const { gl } = useThree();
+  useEffect(() => {
+    gl.toneMapping = ACESFilmicToneMapping;
+    gl.toneMappingExposure = 1.0;
+  }, [gl]);
+  return null;
+}
+
 function CameraAnimator() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
@@ -130,16 +142,46 @@ function CameraAnimator() {
       target={[0, 0, 0]}
       maxPolarAngle={Math.PI / 2 - 0.05}
       minDistance={5}
-      maxDistance={40}
+      maxDistance={60}
       enablePan={true}
       enabled={!draggedBuildingId}
     />
   );
 }
 
+function PostProcessing() {
+  const qualityTier = useConfigStore((s) => s.qualityTier);
+  if (qualityTier === 'low') return null;
+
+  return (
+    <EffectComposer>
+      <SSAO
+        blendFunction={BlendFunction.MULTIPLY}
+        samples={16}
+        radius={0.05}
+        intensity={1.5}
+        luminanceInfluence={0.5}
+        worldDistanceThreshold={10}
+        worldDistanceFalloff={2}
+        worldProximityThreshold={0.5}
+        worldProximityFalloff={0.3}
+      />
+      <Bloom
+        intensity={0.15}
+        luminanceThreshold={0.9}
+        luminanceSmoothing={0.025}
+        mipmapBlur
+      />
+    </EffectComposer>
+  );
+}
+
 export default function BuildingScene() {
   const clearSelection = useConfigStore((s) => s.clearSelection);
   const buildings = useConfigStore((s) => s.buildings);
+  const qualityTier = useConfigStore((s) => s.qualityTier);
+
+  const shadowMapSize = qualityTier === 'high' ? 4096 : 2048;
 
   return (
     <Canvas
@@ -148,20 +190,26 @@ export default function BuildingScene() {
       onPointerMissed={() => clearSelection()}
       style={{ background: '#6a9fd8' }}
     >
-      <ambientLight intensity={0.7} />
+      <RendererConfig />
+      <SoftShadows size={10} samples={16} focus={0.5} />
+
+      {/* HDRI environment for lighting and reflections only */}
+      <Environment preset="park" background={false} />
+
+      {/* Sun light with soft shadows */}
       <directionalLight
         position={[10, 15, 10]}
-        intensity={1.2}
+        intensity={0.8}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={shadowMapSize}
+        shadow-mapSize-height={shadowMapSize}
         shadow-camera-far={50}
-        shadow-camera-left={-15}
-        shadow-camera-right={15}
-        shadow-camera-top={15}
-        shadow-camera-bottom={-15}
+        shadow-camera-left={-20}
+        shadow-camera-right={20}
+        shadow-camera-top={20}
+        shadow-camera-bottom={-20}
+        shadow-bias={-0.0005}
       />
-      <directionalLight position={[-5, 5, -5]} intensity={0.3} />
 
       <SkyGradient />
 
@@ -171,7 +219,18 @@ export default function BuildingScene() {
 
       <Ground />
 
+      {/* Soft contact shadows at the building base */}
+      <ContactShadows
+        position={[0, 0.01, 0]}
+        opacity={0.4}
+        blur={2.5}
+        far={4}
+        width={30}
+        height={30}
+      />
+
       <CameraAnimator />
+      <PostProcessing />
     </Canvas>
   );
 }
