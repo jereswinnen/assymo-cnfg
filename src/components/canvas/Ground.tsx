@@ -35,7 +35,7 @@ export default function Ground() {
       <planeGeometry args={[GROUND_SIZE, GROUND_SIZE]} />
       <meshStandardMaterial
         map={grassColor}
-        color="#88cc77"
+        color="#aaddaa"
         metalness={0}
         roughness={0.95}
         envMapIntensity={0}

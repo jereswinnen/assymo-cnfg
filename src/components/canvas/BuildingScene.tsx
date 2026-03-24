@@ -76,7 +76,7 @@ function RendererConfig() {
   const { gl } = useThree();
   useEffect(() => {
     gl.toneMapping = ACESFilmicToneMapping;
-    gl.toneMappingExposure = 1.0;
+    gl.toneMappingExposure = 1.6;
   }, [gl]);
   return null;
 }
@@ -158,7 +158,7 @@ export default function BuildingScene() {
     >
       <RendererConfig />
 
-      <ambientLight intensity={0.5} />
+      <ambientLight intensity={0.8} />
       <directionalLight
         position={[10, 15, 10]}
         intensity={1.0}
