@@ -158,13 +158,8 @@ function PostProcessing() {
       <SSAO
         blendFunction={BlendFunction.MULTIPLY}
         samples={16}
-        radius={0.05}
-        intensity={1.5}
-        luminanceInfluence={0.5}
-        worldDistanceThreshold={10}
-        worldDistanceFalloff={2}
-        worldProximityThreshold={0.5}
-        worldProximityFalloff={0.3}
+        radius={0.1}
+        intensity={2}
       />
       <Bloom
         intensity={0.15}

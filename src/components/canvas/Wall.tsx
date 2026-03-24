@@ -25,6 +25,11 @@ const WALL_ENV_MAP_INTENSITY: Record<string, number> = {
   glass: 1.5,
 };
 
+// Tint colors applied when PBR textures are present (white = no tint)
+const WALL_TEXTURE_TINT: Record<string, string> = {
+  wood: '#C4955A',
+};
+
 interface WallProps {
   wallId: WallId;
 }
@@ -157,7 +162,7 @@ export default function Wall({ wallId }: WallProps) {
           <boxGeometry args={size} />
         )}
         <meshStandardMaterial
-          color={texture ? '#ffffff' : color}
+          color={texture ? (WALL_TEXTURE_TINT[materialId] ?? '#ffffff') : color}
           map={texture?.map ?? undefined}
           normalMap={texture?.normalMap ?? undefined}
           roughnessMap={texture?.roughnessMap ?? undefined}

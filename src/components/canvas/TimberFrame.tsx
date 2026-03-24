@@ -64,7 +64,7 @@ export default function TimberFrame() {
       map: colorTex,
       normalMap: normalTex,
       roughnessMap: roughTex,
-      color: '#ffffff',
+      color: '#C4955A',
       metalness: 0.05,
       roughness: 1,
       envMapIntensity: 0.2,
