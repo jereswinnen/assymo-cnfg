@@ -3,9 +3,7 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
-import { EffectComposer, SSAO, Bloom } from '@react-three/postprocessing';
 import { Vector3, BackSide, ShaderMaterial, ACESFilmicToneMapping } from 'three';
-import { BlendFunction } from 'postprocessing';
 import BuildingInstance from './BuildingInstance';
 import Ground from './Ground';
 import { useConfigStore } from '@/store/useConfigStore';
@@ -149,33 +147,10 @@ function CameraAnimator() {
   );
 }
 
-function PostProcessing() {
-  const qualityTier = useConfigStore((s) => s.qualityTier);
-  if (qualityTier === 'low') return null;
-
-  return (
-    <EffectComposer>
-      <SSAO
-        blendFunction={BlendFunction.MULTIPLY}
-        samples={16}
-        radius={0.1}
-        intensity={2}
-      />
-      <Bloom
-        intensity={0.15}
-        luminanceThreshold={0.9}
-        luminanceSmoothing={0.025}
-        mipmapBlur
-      />
-    </EffectComposer>
-  );
-}
-
 export default function BuildingScene() {
   const clearSelection = useConfigStore((s) => s.clearSelection);
   const buildings = useConfigStore((s) => s.buildings);
   const qualityTier = useConfigStore((s) => s.qualityTier);
-
   const shadowMapSize = qualityTier === 'high' ? 4096 : 2048;
 
   return (
@@ -224,7 +199,6 @@ export default function BuildingScene() {
       />
 
       <CameraAnimator />
-      <PostProcessing />
     </Canvas>
   );
 }
