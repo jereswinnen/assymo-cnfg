@@ -1,17 +1,17 @@
 'use client';
 
 import { useMemo, useEffect } from 'react';
-import { TextureLoader, RepeatWrapping, SRGBColorSpace, LinearSRGBColorSpace, Texture } from 'three';
+import { TextureLoader, RepeatWrapping, SRGBColorSpace, Texture } from 'three';
 
 const GROUND_SIZE = 200;
-const GRASS_TILE = 4;
+const GRASS_TILE = 8;
 
 function useRepeatingTexture(path: string, repeatX: number, repeatY: number, srgb: boolean): Texture {
   const tex = useMemo(() => {
     const t = new TextureLoader().load(path);
     t.wrapS = RepeatWrapping;
     t.wrapT = RepeatWrapping;
-    t.colorSpace = srgb ? SRGBColorSpace : LinearSRGBColorSpace;
+    t.colorSpace = srgb ? SRGBColorSpace : SRGBColorSpace;
     t.repeat.set(repeatX, repeatY);
     return t;
   }, [path, repeatX, repeatY, srgb]);
@@ -25,8 +25,6 @@ export default function Ground() {
   const repeat = GROUND_SIZE / GRASS_TILE;
 
   const grassColor = useRepeatingTexture('/textures/Grass_Color.jpg', repeat, repeat, true);
-  const grassNormal = useRepeatingTexture('/textures/Grass_NormalGL.jpg', repeat, repeat, false);
-  const grassRoughness = useRepeatingTexture('/textures/Grass_Roughness.jpg', repeat, repeat, false);
 
   return (
     <mesh
@@ -37,10 +35,10 @@ export default function Ground() {
       <planeGeometry args={[GROUND_SIZE, GROUND_SIZE]} />
       <meshStandardMaterial
         map={grassColor}
-        normalMap={grassNormal}
-        roughnessMap={grassRoughness}
+        color="#88cc77"
         metalness={0}
-        envMapIntensity={0.3}
+        roughness={0.95}
+        envMapIntensity={0}
       />
     </mesh>
   );
