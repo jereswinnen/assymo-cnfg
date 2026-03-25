@@ -70,7 +70,7 @@ const FLOOR_TILE_SIZE: Record<string, [number, number]> = {
 // How many meters each texture tile covers (controls repeat density)
 const WALL_TILE_SIZE: Record<string, [number, number]> = {
   wood: [1.5, 1.5],
-  brick: [5, 3.5],
+  brick: [3, 2],
   render: [3, 3],
   metal: [1.5, 2],
 };
