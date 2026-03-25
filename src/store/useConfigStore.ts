@@ -41,7 +41,7 @@ interface ConfigState {
   sidebarTab: 'objects' | 'configure';
   sidebarCollapsed: boolean;
   activeConfigSection: 'dimensions' | 'structure' | 'walls' | 'quote' | null;
-  viewMode: 'plan' | '3d';
+  viewMode: 'plan' | '3d' | 'split';
   qualityTier: 'high' | 'low';
 
   // Building CRUD
@@ -73,7 +73,7 @@ interface ConfigState {
   setSidebarTab: (tab: 'objects' | 'configure') => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   setActiveConfigSection: (section: 'dimensions' | 'structure' | 'walls' | 'quote' | null) => void;
-  setViewMode: (mode: 'plan' | '3d') => void;
+  setViewMode: (mode: 'plan' | '3d' | 'split') => void;
 
   setDefaultHeight: (height: number) => void;
   setHeightOverride: (id: string, override: number | null) => void;

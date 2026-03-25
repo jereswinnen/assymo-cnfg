@@ -32,6 +32,20 @@ function ViewToggle() {
         2D
       </button>
       <button
+        onClick={() => setViewMode('split')}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+          viewMode === 'split'
+            ? 'bg-foreground text-background shadow-sm'
+            : 'text-foreground/60 hover:text-foreground/80'
+        }`}
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="1" y="1" width="14" height="14" rx="1" />
+          <line x1="8" y1="1" x2="8" y2="15" />
+        </svg>
+        Split
+      </button>
+      <button
         onClick={() => setViewMode('3d')}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
           viewMode === '3d'
@@ -55,24 +69,43 @@ export default function Home() {
 
   return (
     <div className="relative h-dvh flex">
-      {/* Canvas area */}
-      <div className="flex-1 relative">
-        {viewMode === '3d' && (
-          <div className="absolute inset-0">
-            <BuildingScene />
+      {/* Split mode: 2D left + 3D right */}
+      {viewMode === 'split' ? (
+        <>
+          <div className="w-1/2 relative border-r border-black/10">
+            <div className="absolute inset-0 bg-white">
+              <SchematicView />
+            </div>
+            <div className="absolute top-3 left-3 z-20">
+              <ViewToggle />
+            </div>
           </div>
-        )}
-
-        {viewMode === 'plan' && (
-          <div className="absolute inset-0 bg-white">
-            <SchematicView />
+          <div className="flex-1 relative">
+            <div className="absolute inset-0">
+              <BuildingScene />
+            </div>
           </div>
-        )}
+        </>
+      ) : (
+        /* Single mode: 2D or 3D */
+        <div className="flex-1 relative">
+          {viewMode === '3d' && (
+            <div className="absolute inset-0">
+              <BuildingScene />
+            </div>
+          )}
 
-        <div className="absolute top-3 left-3 z-20">
-          <ViewToggle />
+          {viewMode === 'plan' && (
+            <div className="absolute inset-0 bg-white">
+              <SchematicView />
+            </div>
+          )}
+
+          <div className="absolute top-3 left-3 z-20">
+            <ViewToggle />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Sidebar */}
       <Sidebar />
