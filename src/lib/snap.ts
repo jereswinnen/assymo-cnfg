@@ -14,14 +14,14 @@ interface Edge {
 }
 
 export function getBuildingEdges(b: BuildingEntity): Edge[] {
-  const [cx, cz] = b.position;
-  const hw = b.dimensions.width / 2;
-  const hd = b.dimensions.depth / 2;
+  const [lx, tz] = b.position;
+  const w = b.dimensions.width;
+  const d = b.dimensions.depth;
   return [
-    { axis: 'x', value: cx + hw, perpStart: cz - hd, perpEnd: cz + hd, side: 'right' },
-    { axis: 'x', value: cx - hw, perpStart: cz - hd, perpEnd: cz + hd, side: 'left' },
-    { axis: 'z', value: cz + hd, perpStart: cx - hw, perpEnd: cx + hw, side: 'back' },
-    { axis: 'z', value: cz - hd, perpStart: cx - hw, perpEnd: cx + hw, side: 'front' },
+    { axis: 'x', value: lx + w, perpStart: tz, perpEnd: tz + d, side: 'right' },
+    { axis: 'x', value: lx,     perpStart: tz, perpEnd: tz + d, side: 'left' },
+    { axis: 'z', value: tz + d, perpStart: lx, perpEnd: lx + w, side: 'back' },
+    { axis: 'z', value: tz,     perpStart: lx, perpEnd: lx + w, side: 'front' },
   ];
 }
 
@@ -104,7 +104,9 @@ export function detectSnap(
       // Primary snap was on X axis, try to align Z (front/back)
       for (const other of others) {
         if (other.id !== conn.buildingBId) continue;
-        const dz = other.position[1] - nz;
+        const otherCenterZ = other.position[1] + other.dimensions.depth / 2;
+        const draggedCenterZ = nz + dragged.dimensions.depth / 2;
+        const dz = otherCenterZ - draggedCenterZ;
         if (Math.abs(dz) < SNAP_ALIGN_THRESHOLD) {
           nz += dz;
         }
@@ -113,7 +115,9 @@ export function detectSnap(
       // Primary snap was on Z axis, try to align X (left/right)
       for (const other of others) {
         if (other.id !== conn.buildingBId) continue;
-        const dx = other.position[0] - nx;
+        const otherCenterX = other.position[0] + other.dimensions.width / 2;
+        const draggedCenterX = nx + dragged.dimensions.width / 2;
+        const dx = otherCenterX - draggedCenterX;
         if (Math.abs(dx) < SNAP_ALIGN_THRESHOLD) {
           nx += dx;
         }
@@ -142,15 +146,15 @@ export function detectPoleSnap(
   for (const b of buildings) {
     if (b.type === 'paal') continue;
 
-    const [cx, cz] = b.position;
-    const hw = b.dimensions.width / 2;
-    const hd = b.dimensions.depth / 2;
+    const [lx, tz] = b.position;
+    const w = b.dimensions.width;
+    const d = b.dimensions.depth;
 
     const edges: { fixed: 'x' | 'z'; val: number; min: number; max: number }[] = [
-      { fixed: 'z', val: cz - hd, min: cx - hw, max: cx + hw },
-      { fixed: 'z', val: cz + hd, min: cx - hw, max: cx + hw },
-      { fixed: 'x', val: cx - hw, min: cz - hd, max: cz + hd },
-      { fixed: 'x', val: cx + hw, min: cz - hd, max: cz + hd },
+      { fixed: 'z', val: tz,     min: lx, max: lx + w },
+      { fixed: 'z', val: tz + d, min: lx, max: lx + w },
+      { fixed: 'x', val: lx,     min: tz, max: tz + d },
+      { fixed: 'x', val: lx + w, min: tz, max: tz + d },
     ];
 
     for (const e of edges) {
@@ -183,17 +187,17 @@ export function detectPoleSnap(
   for (const b of buildings) {
     if (b.type === 'paal') continue;
 
-    const [cx, cz] = b.position;
-    const hw = b.dimensions.width / 2;
-    const hd = b.dimensions.depth / 2;
+    const [lx, tz] = b.position;
+    const w = b.dimensions.width;
+    const d = b.dimensions.depth;
+    const cx = lx + w / 2;
+    const cz = tz + d / 2;
 
     const targets: [number, number][] = [
-      // 4 corners
-      [cx - hw, cz - hd], [cx + hw, cz - hd],
-      [cx - hw, cz + hd], [cx + hw, cz + hd],
-      // 4 edge midpoints
-      [cx, cz - hd], [cx, cz + hd],
-      [cx - hw, cz], [cx + hw, cz],
+      [lx, tz], [lx + w, tz],
+      [lx, tz + d], [lx + w, tz + d],
+      [cx, tz], [cx, tz + d],
+      [lx, cz], [lx + w, cz],
     ];
 
     for (const [tx, tz] of targets) {
@@ -230,15 +234,15 @@ export function detectWallSnap(
   for (const b of buildings) {
     if (b.type === 'paal' || b.type === 'muur') continue;
 
-    const [cx, cz] = b.position;
-    const hw = b.dimensions.width / 2;
-    const hd = b.dimensions.depth / 2;
+    const [lx, tz] = b.position;
+    const w = b.dimensions.width;
+    const d = b.dimensions.depth;
 
     if (orientation === 'horizontal') {
       // Wall runs along X — snap Z to top/bottom edges of buildings
       const edges = [
-        { z: cz - hd, xMin: cx - hw, xMax: cx + hw },
-        { z: cz + hd, xMin: cx - hw, xMax: cx + hw },
+        { z: tz,     xMin: lx, xMax: lx + w },
+        { z: tz + d, xMin: lx, xMax: lx + w },
       ];
       for (const e of edges) {
         const dist = Math.abs(wz - e.z);
@@ -253,8 +257,8 @@ export function detectWallSnap(
     } else {
       // Wall runs along Z — snap X to left/right edges of buildings
       const edges = [
-        { x: cx - hw, zMin: cz - hd, zMax: cz + hd },
-        { x: cx + hw, zMin: cz - hd, zMax: cz + hd },
+        { x: lx,     zMin: tz, zMax: tz + d },
+        { x: lx + w, zMin: tz, zMax: tz + d },
       ];
       for (const e of edges) {
         const dist = Math.abs(wx - e.x);
@@ -283,31 +287,32 @@ export function detectWallSnap(
 
   for (const b of buildings) {
     if (b.type === 'paal') {
-      targets.push([...b.position]);
+      targets.push([b.position[0] + b.dimensions.width / 2, b.position[1] + b.dimensions.depth / 2]);
       continue;
     }
     if (b.type === 'muur') {
-      const oHalfLong = b.dimensions.width / 2;
       if (b.orientation === 'horizontal') {
-        targets.push([b.position[0] - oHalfLong, b.position[1]]);
-        targets.push([b.position[0] + oHalfLong, b.position[1]]);
+        const cy = b.position[1] + b.dimensions.depth / 2;
+        targets.push([b.position[0], cy]);
+        targets.push([b.position[0] + b.dimensions.width, cy]);
       } else {
-        targets.push([b.position[0], b.position[1] - oHalfLong]);
-        targets.push([b.position[0], b.position[1] + oHalfLong]);
+        const cx = b.position[0] + b.dimensions.depth / 2;
+        targets.push([cx, b.position[1]]);
+        targets.push([cx, b.position[1] + b.dimensions.width]);
       }
       continue;
     }
     // Building corners + edge midpoints
-    const [cx, cz] = b.position;
-    const hw = b.dimensions.width / 2;
-    const hd = b.dimensions.depth / 2;
+    const [lx, tz] = b.position;
+    const w = b.dimensions.width;
+    const d = b.dimensions.depth;
+    const cx = lx + w / 2;
+    const cz = tz + d / 2;
     targets.push(
-      // 4 corners
-      [cx - hw, cz - hd], [cx + hw, cz - hd],
-      [cx - hw, cz + hd], [cx + hw, cz + hd],
-      // 4 edge midpoints
-      [cx, cz - hd], [cx, cz + hd],
-      [cx - hw, cz], [cx + hw, cz],
+      [lx, tz], [lx + w, tz],
+      [lx, tz + d], [lx + w, tz + d],
+      [cx, tz], [cx, tz + d],
+      [lx, cz], [lx + w, cz],
     );
   }
 
