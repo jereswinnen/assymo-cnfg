@@ -70,7 +70,8 @@ export interface TrimColor {
 export interface BuildingEntity {
   id: string;
   type: BuildingType;
-  position: [number, number]; // [x, z]
+  /** Top-left corner in world coords [x, z] — left edge, front edge (min X, min Z) */
+  position: [number, number];
   dimensions: BuildingDimensions;
   walls: Record<string, WallConfig>;
   hasCornerBraces: boolean;

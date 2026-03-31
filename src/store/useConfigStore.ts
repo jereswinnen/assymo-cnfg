@@ -110,7 +110,7 @@ function createBuilding(type: BuildingType, position: [number, number]): Buildin
 }
 
 function makeInitialBuilding(): BuildingEntity {
-  return createBuilding('berging', [0, 0]);
+  return createBuilding('berging', [-2, -2]);
 }
 
 const initialBuilding = makeInitialBuilding();
@@ -136,8 +136,8 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     if (!position) {
       const existing = get().buildings;
       if (existing.length > 0) {
-        const maxX = Math.max(...existing.map(e => e.position[0] + e.dimensions.width / 2));
-        b.position = [maxX + b.dimensions.width / 2 + 2, 0];
+        const maxX = Math.max(...existing.map(e => e.position[0] + e.dimensions.width));
+        b.position = [maxX + 2, 0];
       }
     }
     set((state) => ({
@@ -309,6 +309,11 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       ...b,
       orientation: (b as any).orientation ?? ('horizontal' as Orientation),
       heightOverride: (b as any).heightOverride ?? null,
+      // Convert center-based position to top-left
+      position: [
+        b.position[0] - b.dimensions.width / 2,
+        b.position[1] - b.dimensions.depth / 2,
+      ] as [number, number],
     }));
     // Derive defaultHeight from first structural building
     const structural = migrated.find(b => b.type !== 'paal' && b.type !== 'muur');
