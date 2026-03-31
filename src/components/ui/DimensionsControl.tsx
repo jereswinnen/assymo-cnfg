@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
 import { getEffectiveHeight } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
@@ -22,6 +23,26 @@ interface SliderRowProps {
 }
 
 function SliderRow({ label, value, min, max, step, unit, onChange, badge, onReset }: SliderRowProps) {
+  const [editing, setEditing] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const decimals = step < 1 ? 1 : 0;
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.select();
+    }
+  }, [editing]);
+
+  const commitValue = () => {
+    setEditing(false);
+    const parsed = parseFloat(inputValue.replace(',', '.'));
+    if (isNaN(parsed)) return;
+    const clamped = Math.min(max, Math.max(min, parsed));
+    const stepped = step > 0 ? Math.round(clamped / step) * step : clamped;
+    onChange(stepped);
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center">
@@ -34,9 +55,34 @@ function SliderRow({ label, value, min, max, step, unit, onChange, badge, onRese
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground tabular-nums">
-            {value.toFixed(step < 1 ? 1 : 0)} {unit}
-          </span>
+          {editing ? (
+            <div className="flex items-center gap-1">
+              <input
+                ref={inputRef}
+                type="text"
+                inputMode="decimal"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onBlur={commitValue}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') commitValue();
+                  if (e.key === 'Escape') setEditing(false);
+                }}
+                className="w-14 text-sm text-right tabular-nums bg-muted border border-border rounded px-1.5 py-0.5 outline-none focus:ring-1 focus:ring-primary"
+              />
+              <span className="text-sm text-muted-foreground">{unit}</span>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setInputValue(value.toFixed(decimals));
+                setEditing(true);
+              }}
+              className="text-sm text-muted-foreground tabular-nums hover:text-primary hover:underline transition-colors cursor-text"
+            >
+              {value.toFixed(decimals)} {unit}
+            </button>
+          )}
           {onReset && (
             <button
               onClick={onReset}
