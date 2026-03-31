@@ -2,7 +2,8 @@
 
 import { useRef, useMemo, useState, useCallback } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
-import { detectSnap, detectPoleSnap, detectWallSnap } from '@/lib/snap';
+import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/lib/snap';
+import { getConstraints } from '@/lib/constants';
 import { t } from '@/lib/i18n';
 import SchematicPosts from './SchematicPosts';
 import SchematicWalls from './SchematicWalls';
@@ -74,6 +75,63 @@ function clientToWorld(
   return [svgPt.x, svgPt.y];
 }
 
+function ResizeHandles({
+  building,
+  onResizePointerDown,
+}: {
+  building: BuildingEntity;
+  onResizePointerDown: (e: React.PointerEvent, buildingId: string, edge: 'left' | 'right' | 'top' | 'bottom') => void;
+}) {
+  const [ox, oz] = building.position;
+  const { width, depth } = building.dimensions;
+  const r = 0.12;
+  const isMuur = building.type === 'muur';
+  const isVertMuur = isMuur && building.orientation === 'vertical';
+
+  const handles: { cx: number; cy: number; edge: 'left' | 'right' | 'top' | 'bottom'; cursor: string }[] = [];
+
+  if (isMuur) {
+    if (isVertMuur) {
+      const visualW = building.dimensions.depth;
+      const visualD = building.dimensions.width;
+      handles.push(
+        { cx: ox + visualW / 2, cy: oz, edge: 'top', cursor: 'ns-resize' },
+        { cx: ox + visualW / 2, cy: oz + visualD, edge: 'bottom', cursor: 'ns-resize' },
+      );
+    } else {
+      handles.push(
+        { cx: ox, cy: oz + depth / 2, edge: 'left', cursor: 'ew-resize' },
+        { cx: ox + width, cy: oz + depth / 2, edge: 'right', cursor: 'ew-resize' },
+      );
+    }
+  } else {
+    handles.push(
+      { cx: ox, cy: oz + depth / 2, edge: 'left', cursor: 'ew-resize' },
+      { cx: ox + width, cy: oz + depth / 2, edge: 'right', cursor: 'ew-resize' },
+      { cx: ox + width / 2, cy: oz, edge: 'top', cursor: 'ns-resize' },
+      { cx: ox + width / 2, cy: oz + depth, edge: 'bottom', cursor: 'ns-resize' },
+    );
+  }
+
+  return (
+    <g>
+      {handles.map((h) => (
+        <circle
+          key={h.edge}
+          cx={h.cx}
+          cy={h.cy}
+          r={r}
+          fill="#3b82f6"
+          stroke="white"
+          strokeWidth={0.03}
+          style={{ cursor: h.cursor }}
+          onPointerDown={(e) => onResizePointerDown(e, building.id, h.edge)}
+        />
+      ))}
+    </g>
+  );
+}
+
 export default function SchematicView() {
   const buildings = useConfigStore((s) => s.buildings);
   const connections = useConfigStore((s) => s.connections);
@@ -85,6 +143,7 @@ export default function SchematicView() {
   const setDraggedBuildingId = useConfigStore((s) => s.setDraggedBuildingId);
   const setOrientation = useConfigStore((s) => s.setOrientation);
   const addBuilding = useConfigStore((s) => s.addBuilding);
+  const updateBuildingDimensions = useConfigStore((s) => s.updateBuildingDimensions);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
@@ -92,6 +151,14 @@ export default function SchematicView() {
   const dragStartWorld = useRef<[number, number] | null>(null);
   const dragStartPos = useRef<[number, number]>([0, 0]);
   const pointerDownScreen = useRef<{ x: number; y: number } | null>(null);
+
+  // Resize state
+  const resizing = useRef(false);
+  const resizeBuildingId = useRef<string | null>(null);
+  const resizeEdge = useRef<'left' | 'right' | 'top' | 'bottom' | null>(null);
+  const resizeStartWorld = useRef<[number, number] | null>(null);
+  const resizeStartDims = useRef<{ width: number; depth: number }>({ width: 0, depth: 0 });
+  const resizeStartPos = useRef<[number, number]>([0, 0]);
 
   // Freeze viewBox during drag to prevent coordinate system shifts
   const [frozenViewBox, setFrozenViewBox] = useState<string | null>(null);
@@ -150,7 +217,106 @@ export default function SchematicView() {
     setFrozenViewBox(computedViewBox);
   }, [computedViewBox]);
 
+  const onResizePointerDown = useCallback((
+    e: React.PointerEvent,
+    buildingId: string,
+    edge: 'left' | 'right' | 'top' | 'bottom',
+  ) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const building = useConfigStore.getState().buildings.find(b => b.id === buildingId);
+    if (!building) return;
+
+    pointerDownScreen.current = { x: e.clientX, y: e.clientY };
+    resizeStartWorld.current = clientToWorld(svg, e.clientX, e.clientY);
+    resizeStartDims.current = { width: building.dimensions.width, depth: building.dimensions.depth };
+    resizeStartPos.current = [...building.position];
+    resizeBuildingId.current = buildingId;
+    resizeEdge.current = edge;
+
+    setFrozenViewBox(computedViewBox);
+  }, [computedViewBox]);
+
   const onPointerMove = useCallback((e: React.PointerEvent) => {
+    // --- Resize handling ---
+    if (resizeBuildingId.current && resizeEdge.current && resizeStartWorld.current) {
+      const down = pointerDownScreen.current;
+      if (down && !resizing.current) {
+        const dx = e.clientX - down.x;
+        const dy = e.clientY - down.y;
+        if (dx * dx + dy * dy < 25) return;
+        resizing.current = true;
+      }
+      if (!resizing.current) return;
+
+      const svg = svgRef.current;
+      if (!svg) return;
+
+      const [wx, wz] = clientToWorld(svg, e.clientX, e.clientY);
+      const edge = resizeEdge.current;
+      const startPos = resizeStartPos.current;
+      const startDims = resizeStartDims.current;
+      const buildingId = resizeBuildingId.current;
+
+      const allBuildings = useConfigStore.getState().buildings;
+      const building = allBuildings.find(b => b.id === buildingId);
+      if (!building) return;
+
+      const constraints = getConstraints(building.type);
+      const isMuur = building.type === 'muur';
+      const isVertMuur = isMuur && building.orientation === 'vertical';
+      const others = allBuildings.filter(b => b.id !== buildingId && b.type !== 'paal' && b.type !== 'muur');
+
+      // For vertical muur, top/bottom edges control width (wall length), not depth
+      if (isVertMuur) {
+        if (edge === 'bottom') {
+          const candidateBottom = detectResizeSnap(wz, 'z', 'back', startPos[0], startPos[0] + startDims.depth, others);
+          const newLen = Math.max(constraints.width.min, Math.min(constraints.width.max, candidateBottom - startPos[1]));
+          updateBuildingDimensions(buildingId, { width: newLen });
+          return;
+        } else if (edge === 'top') {
+          const candidateTop = detectResizeSnap(wz, 'z', 'front', startPos[0], startPos[0] + startDims.depth, others);
+          const bottomEdge = startPos[1] + startDims.width;
+          const newLen = Math.max(constraints.width.min, Math.min(constraints.width.max, bottomEdge - candidateTop));
+          updateBuildingDimensions(buildingId, { width: newLen });
+          updateBuildingPosition(buildingId, [startPos[0], bottomEdge - newLen]);
+          return;
+        }
+      }
+
+      let newWidth = startDims.width;
+      let newDepth = startDims.depth;
+      let newPosX = startPos[0];
+      let newPosZ = startPos[1];
+
+      if (edge === 'right') {
+        const candidateRight = detectResizeSnap(wx, 'x', 'right', startPos[1], startPos[1] + startDims.depth, others);
+        newWidth = Math.max(constraints.width.min, Math.min(constraints.width.max, candidateRight - startPos[0]));
+      } else if (edge === 'left') {
+        const candidateLeft = detectResizeSnap(wx, 'x', 'left', startPos[1], startPos[1] + startDims.depth, others);
+        const rightEdge = startPos[0] + startDims.width;
+        newWidth = Math.max(constraints.width.min, Math.min(constraints.width.max, rightEdge - candidateLeft));
+        newPosX = rightEdge - newWidth;
+      } else if (edge === 'bottom') {
+        const candidateBottom = detectResizeSnap(wz, 'z', 'back', startPos[0], startPos[0] + startDims.width, others);
+        newDepth = Math.max(constraints.depth.min, Math.min(constraints.depth.max, candidateBottom - startPos[1]));
+      } else if (edge === 'top') {
+        const candidateTop = detectResizeSnap(wz, 'z', 'front', startPos[0], startPos[0] + startDims.width, others);
+        const bottomEdge = startPos[1] + startDims.depth;
+        newDepth = Math.max(constraints.depth.min, Math.min(constraints.depth.max, bottomEdge - candidateTop));
+        newPosZ = bottomEdge - newDepth;
+      }
+
+      updateBuildingDimensions(buildingId, { width: newWidth, depth: newDepth });
+      updateBuildingPosition(buildingId, [newPosX, newPosZ]);
+      return;
+    }
+
+    // --- Existing move handling ---
     if (!dragBuildingId.current || !dragStartWorld.current) return;
 
     const down = pointerDownScreen.current;
@@ -196,13 +362,27 @@ export default function SchematicView() {
       updateBuildingPosition(building.id, snappedPosition);
       setConnections(newConnections);
     }
-  }, [updateBuildingPosition, setConnections, setDraggedBuildingId]);
+  }, [updateBuildingPosition, updateBuildingDimensions, setConnections, setDraggedBuildingId]);
 
   const onPointerUp = useCallback(() => {
+    // --- Resize cleanup ---
+    if (resizeBuildingId.current) {
+      if (!resizing.current) {
+        selectBuilding(resizeBuildingId.current);
+      }
+      resizing.current = false;
+      resizeBuildingId.current = null;
+      resizeEdge.current = null;
+      resizeStartWorld.current = null;
+      pointerDownScreen.current = null;
+      setFrozenViewBox(null);
+      return;
+    }
+
+    // --- Existing move cleanup ---
     if (dragging.current) {
       setDraggedBuildingId(null);
     } else if (dragBuildingId.current) {
-      // Click (no drag) — select building
       selectBuilding(dragBuildingId.current);
     }
     dragging.current = false;
@@ -597,6 +777,18 @@ export default function SchematicView() {
               pointerEvents="none"
             />
           ))}
+
+          {/* Resize handles on selected building */}
+          {selectedBuildingId && (() => {
+            const selected = buildings.find(b => b.id === selectedBuildingId);
+            if (!selected || selected.type === 'paal') return null;
+            return (
+              <ResizeHandles
+                building={selected}
+                onResizePointerDown={onResizePointerDown}
+              />
+            );
+          })()}
 
           {/* Depth dimension — outside rightmost edge (negative offset = push right) */}
           <g pointerEvents="none">
