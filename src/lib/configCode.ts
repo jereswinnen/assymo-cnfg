@@ -254,13 +254,20 @@ export function encodeState(
 
     if (b.type === 'paal') {
       // Poles: position only (height from override/default)
-      w.writeSigned(clamp(Math.round(b.position[0] / 0.5), -64, 63), 7);
-      w.writeSigned(clamp(Math.round(b.position[1] / 0.5), -64, 63), 7);
+      const poleCx = b.position[0] + b.dimensions.width / 2;
+      const poleCz = b.position[1] + b.dimensions.depth / 2;
+      w.writeSigned(clamp(Math.round(poleCx / 0.5), -64, 63), 7);
+      w.writeSigned(clamp(Math.round(poleCz / 0.5), -64, 63), 7);
     } else if (b.type === 'muur') {
       // Muur: width + position + wall flag + wall data
       w.write(clamp(Math.round((b.dimensions.width - 1) / 0.5), 0, 31), 5);
-      w.writeSigned(clamp(Math.round(b.position[0] / 0.5), -64, 63), 7);
-      w.writeSigned(clamp(Math.round(b.position[1] / 0.5), -64, 63), 7);
+      const isVertMuur = b.orientation === 'vertical';
+      const muurVisualW = isVertMuur ? b.dimensions.depth : b.dimensions.width;
+      const muurVisualD = isVertMuur ? b.dimensions.width : b.dimensions.depth;
+      const muurCx = b.position[0] + muurVisualW / 2;
+      const muurCz = b.position[1] + muurVisualD / 2;
+      w.writeSigned(clamp(Math.round(muurCx / 0.5), -64, 63), 7);
+      w.writeSigned(clamp(Math.round(muurCz / 0.5), -64, 63), 7);
 
       // Single wall (front)
       const hasFrontWall = !!b.walls['front'];
@@ -274,9 +281,11 @@ export function encodeState(
       w.write(clamp(Math.round((b.dimensions.depth - 3) / 0.5), 0, 34), 6);
       w.write(clamp(Math.round((b.dimensions.height - 2) / 0.25), 0, 16), 5);
 
-      // Position: signed, scaled by 0.5m
-      w.writeSigned(clamp(Math.round(b.position[0] / 0.5), -64, 63), 7);
-      w.writeSigned(clamp(Math.round(b.position[1] / 0.5), -64, 63), 7);
+      // Position: signed, scaled by 0.5m (convert top-left to center for encoding)
+      const cx = b.position[0] + b.dimensions.width / 2;
+      const cz = b.position[1] + b.dimensions.depth / 2;
+      w.writeSigned(clamp(Math.round(cx / 0.5), -64, 63), 7);
+      w.writeSigned(clamp(Math.round(cz / 0.5), -64, 63), 7);
 
       w.write(indexOf(FLOOR_IDS, b.floor.materialId), 2);
       w.write(b.hasCornerBraces ? 1 : 0, 1);
@@ -382,7 +391,7 @@ export function decodeState(code: string): {
       buildings.push({
         id: crypto.randomUUID(),
         type: 'paal',
-        position: [posX, posZ],
+        position: [posX - 0.15 / 2, posZ - 0.15 / 2],
         dimensions: { width: 0.15, depth: 0.15, height },
         walls: {},
         hasCornerBraces: false,
@@ -405,10 +414,13 @@ export function decodeState(code: string): {
         walls['front'] = decodeWall(r);
       }
 
+      const isVert = orientation === 'vertical';
+      const visualW = isVert ? 0.2 : width;
+      const visualD = isVert ? width : 0.2;
       buildings.push({
         id: crypto.randomUUID(),
         type: 'muur',
-        position: [posX, posZ],
+        position: [posX - visualW / 2, posZ - visualD / 2],
         dimensions: { width, depth: 0.2, height },
         walls,
         hasCornerBraces: false,
@@ -437,7 +449,7 @@ export function decodeState(code: string): {
     buildings.push({
       id: crypto.randomUUID(),
       type,
-      position: [posX, posZ],
+      position: [posX - width / 2, posZ - depth / 2],
       dimensions: { width, depth, height },
       walls: Object.keys(walls).length > 0 ? walls : getDefaultWalls(type),
       hasCornerBraces,

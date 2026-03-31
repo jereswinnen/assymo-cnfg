@@ -25,10 +25,18 @@ export default function BuildingInstance({ buildingId }: BuildingInstanceProps) 
 
   const isSelected = selectedBuildingId === buildingId;
 
+  const isVertMuur = building.type === 'muur' && building.orientation === 'vertical';
+  const bw = isVertMuur ? building.dimensions.depth : building.dimensions.width;
+  const bd = isVertMuur ? building.dimensions.width : building.dimensions.depth;
+
   return (
     <BuildingProvider value={buildingId}>
       <group
-        position={[building.position[0], 0, building.position[1]]}
+        position={[
+          building.position[0] + bw / 2,
+          0,
+          building.position[1] + bd / 2,
+        ]}
         onClick={handleClick}
       >
         <Building />

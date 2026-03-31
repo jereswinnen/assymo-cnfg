@@ -97,7 +97,9 @@ function CameraAnimator() {
     if (wallId && WALL_CAMERA_POSITIONS[wallId]) {
       const base = WALL_CAMERA_POSITIONS[wallId];
       const building = buildings.find(b => b.id === selectedBuildingId);
-      const offset = building ? building.position : [0, 0];
+      const offset = building
+        ? [building.position[0] + building.dimensions.width / 2, building.position[1] + building.dimensions.depth / 2]
+        : [0, 0];
       targetPos.current = new Vector3(base[0] + offset[0], base[1], base[2] + offset[1]);
       animating.current = true;
     }
