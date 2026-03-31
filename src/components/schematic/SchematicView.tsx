@@ -32,14 +32,14 @@ function getConnectionEdges(
     const b = byId.get(c.buildingBId);
     if (!a || !b) continue;
 
-    const aLeft = a.position[0] - a.dimensions.width / 2;
-    const aRight = a.position[0] + a.dimensions.width / 2;
-    const aTop = a.position[1] - a.dimensions.depth / 2;
-    const aBottom = a.position[1] + a.dimensions.depth / 2;
-    const bLeft = b.position[0] - b.dimensions.width / 2;
-    const bRight = b.position[0] + b.dimensions.width / 2;
-    const bTop = b.position[1] - b.dimensions.depth / 2;
-    const bBottom = b.position[1] + b.dimensions.depth / 2;
+    const aLeft = a.position[0];
+    const aRight = a.position[0] + a.dimensions.width;
+    const aTop = a.position[1];
+    const aBottom = a.position[1] + a.dimensions.depth;
+    const bLeft = b.position[0];
+    const bRight = b.position[0] + b.dimensions.width;
+    const bTop = b.position[1];
+    const bBottom = b.position[1] + b.dimensions.depth;
 
     if (c.sideA === 'right' || c.sideA === 'left') {
       const ex = c.sideA === 'right' ? aRight : aLeft;
@@ -106,17 +106,15 @@ export default function SchematicView() {
   // Compute bounding box of all buildings (including poles)
   let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
   for (const b of buildings) {
-    const [cx, cz] = b.position;
+    const [lx, lz] = b.position;
     const isVertMuur = b.type === 'muur' && b.orientation === 'vertical';
     const bw = isVertMuur ? b.dimensions.depth : b.dimensions.width;
     const bd = isVertMuur ? b.dimensions.width : b.dimensions.depth;
-    const hw = bw / 2;
-    const hd = bd / 2;
     const pad2 = b.type === 'paal' ? 0.3 : 0;
-    minX = Math.min(minX, cx - hw - pad2);
-    maxX = Math.max(maxX, cx + hw + pad2);
-    minZ = Math.min(minZ, cz - hd - pad2);
-    maxZ = Math.max(maxZ, cz + hd + pad2);
+    minX = Math.min(minX, lx - pad2);
+    maxX = Math.max(maxX, lx + bw + pad2);
+    minZ = Math.min(minZ, lz - pad2);
+    maxZ = Math.max(maxZ, lz + bd + pad2);
   }
 
   const totalW = maxX - minX;
@@ -306,8 +304,6 @@ export default function SchematicView() {
           {normalBuildings.map((b) => {
             const [ox, oz] = b.position;
             const { width, depth } = b.dimensions;
-            const hw = width / 2;
-            const hd = depth / 2;
             const connected = getConnectedSides(b.id, connections);
             const hasWalls = Object.keys(b.walls).length > 0;
             const isSelected = b.id === selectedBuildingId;
@@ -319,8 +315,8 @@ export default function SchematicView() {
               >
                 {/* Invisible hit target for drag — covers the full building rect */}
                 <rect
-                  x={ox - hw}
-                  y={oz - hd}
+                  x={ox}
+                  y={oz}
                   width={width}
                   height={depth}
                   fill="transparent"
@@ -331,8 +327,8 @@ export default function SchematicView() {
 
                 {/* Building fill */}
                 <rect
-                  x={ox - hw}
-                  y={oz - hd}
+                  x={ox}
+                  y={oz}
                   width={width}
                   height={depth}
                   fill={b.type === 'berging' ? '#f0ebe4' : 'url(#hatch-overkapping)'}
@@ -342,8 +338,8 @@ export default function SchematicView() {
 
                 {/* Building outline */}
                 <rect
-                  x={ox - hw}
-                  y={oz - hd}
+                  x={ox}
+                  y={oz}
                   width={width}
                   height={depth}
                   fill="none"
@@ -355,7 +351,7 @@ export default function SchematicView() {
 
                 {/* Posts */}
                 <g pointerEvents="none">
-                  <SchematicPosts width={width} depth={depth} offsetX={ox} offsetY={oz} />
+                  <SchematicPosts width={width} depth={depth} offsetX={ox + width / 2} offsetY={oz + depth / 2} />
                 </g>
 
                 {/* Walls */}
@@ -365,8 +361,8 @@ export default function SchematicView() {
                     walls={b.walls}
                     selectedElement={selectedElement}
                     buildingId={b.id}
-                    offsetX={ox}
-                    offsetY={oz}
+                    offsetX={ox + width / 2}
+                    offsetY={oz + depth / 2}
                   />
                 </g>
 
@@ -375,18 +371,18 @@ export default function SchematicView() {
                   <SchematicOpenings
                     dimensions={b.dimensions}
                     walls={b.walls}
-                    offsetX={ox}
-                    offsetY={oz}
+                    offsetX={ox + width / 2}
+                    offsetY={oz + depth / 2}
                   />
                 </g>
 
                 {/* Per-building width dimension */}
                 <g pointerEvents="none">
                   <DimensionLine
-                    x1={ox - hw}
-                    y1={oz + hd}
-                    x2={ox + hw}
-                    y2={oz + hd}
+                    x1={ox}
+                    y1={oz + depth}
+                    x2={ox + width}
+                    y2={oz + depth}
                     offset={showTotalDimension ? 1.0 : 0.8}
                     label={`${width.toFixed(1)}m`}
                   />
@@ -394,8 +390,8 @@ export default function SchematicView() {
 
                 {/* Building type label */}
                 <text
-                  x={ox}
-                  y={oz}
+                  x={ox + width / 2}
+                  y={oz + depth / 2}
                   fontSize={0.24}
                   fontWeight={500}
                   fontFamily="system-ui, sans-serif"
@@ -418,25 +414,25 @@ export default function SchematicView() {
                     pointerEvents="none"
                   >
                     {!connected.has('front') && (
-                      <text x={ox} y={oz + hd + 0.3}>{t('wall.front')}</text>
+                      <text x={ox + width / 2} y={oz + depth + 0.3}>{t('wall.front')}</text>
                     )}
                     {!connected.has('back') && (
-                      <text x={ox} y={oz - hd - 0.3}>{t('wall.back')}</text>
+                      <text x={ox + width / 2} y={oz - 0.3}>{t('wall.back')}</text>
                     )}
                     {!connected.has('left') && (
                       <text
-                        x={ox - hw - 0.3}
-                        y={oz}
-                        transform={`rotate(-90, ${ox - hw - 0.3}, ${oz})`}
+                        x={ox - 0.3}
+                        y={oz + depth / 2}
+                        transform={`rotate(-90, ${ox - 0.3}, ${oz + depth / 2})`}
                       >
                         {t('wall.left')}
                       </text>
                     )}
                     {!connected.has('right') && (
                       <text
-                        x={ox + hw + 0.3}
-                        y={oz}
-                        transform={`rotate(90, ${ox + hw + 0.3}, ${oz})`}
+                        x={ox + width + 0.3}
+                        y={oz + depth / 2}
+                        transform={`rotate(90, ${ox + width + 0.3}, ${oz + depth / 2})`}
                       >
                         {t('wall.right')}
                       </text>
@@ -466,15 +462,16 @@ export default function SchematicView() {
             const schematicWalls = isHorizontal
               ? w.walls
               : { left: w.walls['front'] };
-            // Offset to center the wall line on the entity position
-            const wallOffsetX = isHorizontal ? ox : ox + w.dimensions.depth / 2;
-            const wallOffsetY = isHorizontal ? oz - w.dimensions.depth / 2 : oz;
+            // Offset: child components expect center-based offsets
+            const wallOffsetX = isHorizontal ? ox + w.dimensions.width / 2 : ox + w.dimensions.depth;
+            const wallOffsetY = isHorizontal ? oz : oz + w.dimensions.width / 2;
 
             // Visual dimensions after orientation
             const wallW = isHorizontal ? w.dimensions.width : w.dimensions.depth;
             const wallD = isHorizontal ? w.dimensions.depth : w.dimensions.width;
             // Enlarged hit target (0.5m min) so thin walls are easy to click/drag
             const hitH = Math.max(wallD, 0.5);
+            const hitOffsetY = (hitH - wallD) / 2;
 
             return (
               <g
@@ -483,8 +480,8 @@ export default function SchematicView() {
               >
                 {/* Enlarged invisible hit target for drag + double-click to rotate */}
                 <rect
-                  x={ox - wallW / 2}
-                  y={oz - hitH / 2}
+                  x={ox}
+                  y={oz - hitOffsetY}
                   width={wallW}
                   height={hitH}
                   fill="transparent"
@@ -523,19 +520,19 @@ export default function SchematicView() {
                 <g pointerEvents="none">
                   {isHorizontal ? (
                     <DimensionLine
-                      x1={ox - w.dimensions.width / 2}
+                      x1={ox}
                       y1={oz + wallD / 2}
-                      x2={ox + w.dimensions.width / 2}
+                      x2={ox + w.dimensions.width}
                       y2={oz + wallD / 2}
                       offset={0.5}
                       label={`${w.dimensions.width.toFixed(1)}m`}
                     />
                   ) : (
                     <DimensionLine
-                      x1={ox + wallW / 2}
-                      y1={oz - w.dimensions.width / 2}
-                      x2={ox + wallW / 2}
-                      y2={oz + w.dimensions.width / 2}
+                      x1={ox + wallW}
+                      y1={oz}
+                      x2={ox + wallW}
+                      y2={oz + w.dimensions.width}
                       offset={-0.5}
                       label={`${w.dimensions.width.toFixed(1)}m`}
                     />
@@ -544,8 +541,8 @@ export default function SchematicView() {
 
                 {/* Wall type label */}
                 <text
-                  x={ox}
-                  y={isHorizontal ? oz - 0.25 : oz}
+                  x={ox + wallW / 2}
+                  y={isHorizontal ? oz + wallD / 2 - 0.25 : oz + wallD / 2}
                   fontSize={0.18}
                   fontWeight={500}
                   fontFamily="system-ui, sans-serif"
@@ -563,6 +560,8 @@ export default function SchematicView() {
           {/* Poles as small filled squares — rendered after buildings so they're on top */}
           {poles.map((p) => {
             const s = 0.18;
+            const cx = p.position[0] + p.dimensions.width / 2;
+            const cz = p.position[1] + p.dimensions.depth / 2;
             const isSelected = p.id === selectedBuildingId;
             return (
               <g
@@ -570,8 +569,8 @@ export default function SchematicView() {
                 className={isSelected ? 'schematic-selected' : undefined}
               >
                 <rect
-                  x={p.position[0] - s / 2}
-                  y={p.position[1] - s / 2}
+                  x={cx - s / 2}
+                  y={cz - s / 2}
                   width={s}
                   height={s}
                   fill="#8B6914"
