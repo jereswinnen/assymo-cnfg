@@ -96,31 +96,66 @@ export function detectSnap(
     nx += snapDx;
     nz += snapDz;
 
-    // Secondary alignment on perpendicular axis
+    // Secondary alignment on perpendicular axis — snap to edges, center, or corners
     const conn = connections[0];
     const primaryEdge = dragEdges.find(e => e.side === conn.sideA)!;
 
     if (primaryEdge.axis === 'x') {
-      // Primary snap was on X axis, try to align Z (front/back)
+      // Primary snap was on X axis, try to align Z
       for (const other of others) {
         if (other.id !== conn.buildingBId) continue;
-        const otherCenterZ = other.position[1] + other.dimensions.depth / 2;
-        const draggedCenterZ = nz + dragged.dimensions.depth / 2;
-        const dz = otherCenterZ - draggedCenterZ;
-        if (Math.abs(dz) < SNAP_ALIGN_THRESHOLD) {
-          nz += dz;
+        const otherTop = other.position[1];
+        const otherBottom = other.position[1] + other.dimensions.depth;
+        const otherCenter = otherTop + other.dimensions.depth / 2;
+        const draggedTop = nz;
+        const draggedBottom = nz + dragged.dimensions.depth;
+        const draggedCenter = nz + dragged.dimensions.depth / 2;
+
+        // Try all alignment targets: top-top, bottom-bottom, top-bottom, bottom-top, center-center
+        const candidates = [
+          otherTop - draggedTop,           // align tops
+          otherBottom - draggedBottom,      // align bottoms
+          otherTop - draggedBottom,         // dragged bottom to other top
+          otherBottom - draggedTop,         // dragged top to other bottom
+          otherCenter - draggedCenter,      // align centers
+        ];
+        let bestAlign = SNAP_ALIGN_THRESHOLD;
+        let bestDz = 0;
+        for (const dz of candidates) {
+          if (Math.abs(dz) < bestAlign) {
+            bestAlign = Math.abs(dz);
+            bestDz = dz;
+          }
         }
+        if (bestDz !== 0) nz += bestDz;
       }
     } else {
-      // Primary snap was on Z axis, try to align X (left/right)
+      // Primary snap was on Z axis, try to align X
       for (const other of others) {
         if (other.id !== conn.buildingBId) continue;
-        const otherCenterX = other.position[0] + other.dimensions.width / 2;
-        const draggedCenterX = nx + dragged.dimensions.width / 2;
-        const dx = otherCenterX - draggedCenterX;
-        if (Math.abs(dx) < SNAP_ALIGN_THRESHOLD) {
-          nx += dx;
+        const otherLeft = other.position[0];
+        const otherRight = other.position[0] + other.dimensions.width;
+        const otherCenter = otherLeft + other.dimensions.width / 2;
+        const draggedLeft = nx;
+        const draggedRight = nx + dragged.dimensions.width;
+        const draggedCenter = nx + dragged.dimensions.width / 2;
+
+        const candidates = [
+          otherLeft - draggedLeft,          // align lefts
+          otherRight - draggedRight,        // align rights
+          otherLeft - draggedRight,         // dragged right to other left
+          otherRight - draggedLeft,         // dragged left to other right
+          otherCenter - draggedCenter,      // align centers
+        ];
+        let bestAlign = SNAP_ALIGN_THRESHOLD;
+        let bestDx = 0;
+        for (const dx of candidates) {
+          if (Math.abs(dx) < bestAlign) {
+            bestAlign = Math.abs(dx);
+            bestDx = dx;
+          }
         }
+        if (bestDx !== 0) nx += bestDx;
       }
     }
   }
@@ -349,25 +384,37 @@ export function detectResizeSnap(
   let bestDist = SNAP_THRESHOLD;
   let snapped = edgeValue;
 
-  const opposingSide: WallSide =
-    edgeSide === 'left' ? 'right' :
-    edgeSide === 'right' ? 'left' :
-    edgeSide === 'front' ? 'back' : 'front';
-
   for (const other of otherBuildings) {
     const otherEdges = getBuildingEdges(other);
 
     for (const oe of otherEdges) {
       if (oe.axis !== edgeAxis) continue;
-      if (oe.side !== opposingSide) continue;
 
       const dist = Math.abs(edgeValue - oe.value);
       if (dist >= bestDist) continue;
 
-      if (!rangesOverlap(perpStart, perpEnd, oe.perpStart, oe.perpEnd)) continue;
+      // For opposing edges, require perpendicular overlap (abutting)
+      // For same-axis edges (corners), just check proximity
+      const isOpposing =
+        (edgeSide === 'left' && oe.side === 'right') ||
+        (edgeSide === 'right' && oe.side === 'left') ||
+        (edgeSide === 'front' && oe.side === 'back') ||
+        (edgeSide === 'back' && oe.side === 'front');
+
+      if (isOpposing && !rangesOverlap(perpStart, perpEnd, oe.perpStart, oe.perpEnd)) continue;
 
       bestDist = dist;
       snapped = oe.value;
+    }
+
+    // Also snap to center of other building on this axis
+    const centerVal = edgeAxis === 'x'
+      ? other.position[0] + other.dimensions.width / 2
+      : other.position[1] + other.dimensions.depth / 2;
+    const centerDist = Math.abs(edgeValue - centerVal);
+    if (centerDist < bestDist) {
+      bestDist = centerDist;
+      snapped = centerVal;
     }
   }
 

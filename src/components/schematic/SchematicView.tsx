@@ -564,7 +564,19 @@ export default function SchematicView() {
                     x2={ox + width}
                     y2={oz + depth}
                     offset={showTotalDimension ? 1.0 : 0.8}
-                    label={`${width.toFixed(1)}m`}
+                    label={`${t('dim.width')}: ${width.toFixed(1)}m`}
+                  />
+                </g>
+
+                {/* Per-building length dimension */}
+                <g pointerEvents="none">
+                  <DimensionLine
+                    x1={ox + width}
+                    y1={oz}
+                    x2={ox + width}
+                    y2={oz + depth}
+                    offset={-0.8}
+                    label={`${t('dim.depth')}: ${depth.toFixed(1)}m`}
                   />
                 </g>
 
@@ -790,17 +802,19 @@ export default function SchematicView() {
             );
           })()}
 
-          {/* Depth dimension — outside rightmost edge (negative offset = push right) */}
-          <g pointerEvents="none">
-            <DimensionLine
-              x1={maxX}
-              y1={minZ}
-              x2={maxX}
-              y2={maxZ}
-              offset={showTotalDimension ? -2.0 : -1.0}
-              label={`${totalD.toFixed(1)}m`}
-            />
-          </g>
+          {/* Total depth dimension — only when multiple connected buildings */}
+          {showTotalDimension && (
+            <g pointerEvents="none">
+              <DimensionLine
+                x1={maxX}
+                y1={minZ}
+                x2={maxX}
+                y2={maxZ}
+                offset={-2.0}
+                label={`${t('dim.depth')}: ${totalD.toFixed(1)}m`}
+              />
+            </g>
+          )}
 
           {/* Total width dimension spanning all buildings */}
           {showTotalDimension && (
@@ -811,7 +825,7 @@ export default function SchematicView() {
                 x2={maxX}
                 y2={maxZ}
                 offset={1.8}
-                label={`${totalW.toFixed(1)}m`}
+                label={`${t('dim.width')}: ${totalW.toFixed(1)}m`}
               />
             </g>
           )}

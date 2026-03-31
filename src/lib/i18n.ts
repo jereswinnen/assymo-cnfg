@@ -41,7 +41,7 @@ const nl: Record<string, string> = {
 
   // Dimensions
   'dim.width': 'Breedte',
-  'dim.depth': 'Diepte',
+  'dim.depth': 'Lengte',
   'dim.height': 'Hoogte',
   'dim.roofPitch': 'Dakhelling',
   'dim.orientation': 'Oriëntatie',
