@@ -245,12 +245,12 @@ export function detectWallSnap(
         { z: tz + d, xMin: lx, xMax: lx + w },
       ];
       for (const e of edges) {
-        const dist = Math.abs(wz - e.z);
-        const wallLeft = wx - halfLong;
-        const wallRight = wx + halfLong;
+        const dist = Math.abs((wz + halfShort) - e.z);
+        const wallLeft = wx;
+        const wallRight = wx + wallWidth;
         if (dist < bestDist && wallRight > e.xMin - SNAP_THRESHOLD && wallLeft < e.xMax + SNAP_THRESHOLD) {
           bestDist = dist;
-          snapZ = e.z;
+          snapZ = e.z - halfShort;
           snapX = wx;
         }
       }
@@ -261,12 +261,12 @@ export function detectWallSnap(
         { x: lx + w, zMin: tz, zMax: tz + d },
       ];
       for (const e of edges) {
-        const dist = Math.abs(wx - e.x);
-        const wallTop = wz - halfLong;
-        const wallBottom = wz + halfLong;
+        const dist = Math.abs((wx + halfShort) - e.x);
+        const wallTop = wz;
+        const wallBottom = wz + wallWidth;
         if (dist < bestDist && wallBottom > e.zMin - SNAP_THRESHOLD && wallTop < e.zMax + SNAP_THRESHOLD) {
           bestDist = dist;
-          snapX = e.x;
+          snapX = e.x - halfShort;
           snapZ = wz;
         }
       }
@@ -274,9 +274,10 @@ export function detectWallSnap(
   }
 
   // Pass 2: endpoint detent — wall endpoints snap to corners, poles, other wall endpoints
+  // wallEndpoints are the visual line endpoints (center of wall thickness)
   const wallEndpoints: [number, number][] = orientation === 'horizontal'
-    ? [[snapX - halfLong, snapZ], [snapX + halfLong, snapZ]]
-    : [[snapX, snapZ - halfLong], [snapX, snapZ + halfLong]];
+    ? [[snapX, snapZ + halfShort], [snapX + wallWidth, snapZ + halfShort]]
+    : [[snapX + halfShort, snapZ], [snapX + halfShort, snapZ + wallWidth]];
 
   let detentDist = POLE_DETENT_THRESHOLD;
   let detentDx = 0;

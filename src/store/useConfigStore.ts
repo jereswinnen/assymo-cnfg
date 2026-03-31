@@ -309,11 +309,6 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       ...b,
       orientation: (b as any).orientation ?? ('horizontal' as Orientation),
       heightOverride: (b as any).heightOverride ?? null,
-      // Convert center-based position to top-left
-      position: [
-        b.position[0] - b.dimensions.width / 2,
-        b.position[1] - b.dimensions.depth / 2,
-      ] as [number, number],
     }));
     // Derive defaultHeight from first structural building
     const structural = migrated.find(b => b.type !== 'paal' && b.type !== 'muur');

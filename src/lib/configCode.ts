@@ -161,8 +161,8 @@ function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
 }
 
-// ─── Encode (Version 4: muur, orientation, heightOverride, defaultHeight) ──
-const VERSION = 4;
+// ─── Encode (Version 5: new dimension ranges, top-left positions) ──
+const VERSION = 5;
 
 function encodeWall(w: BitWriter, wall: WallConfig) {
   w.write(indexOf(MATERIAL_IDS, wall.materialId), 3);
@@ -214,10 +214,10 @@ export function encodeState(
 ): string {
   const w = new BitWriter();
 
-  // Header: version 4 uses escape code 0 in 2-bit field, then 2-bit extension
-  // v4 = write(0,2) + write(0,2)  →  decoder reads 2 bits, if 0 reads 2 more → 4+ext
+  // Header: version 5 uses escape code 0 in 2-bit field, then 2-bit extension
+  // v5 = write(0,2) + write(1,2)  →  decoder reads 2 bits, if 0 reads 2 more → 4+ext
   w.write(0, 2); // escape: extended version
-  w.write(0, 2); // extension bits: 4 + 0 = version 4
+  w.write(1, 2); // extension bits: 4 + 1 = version 5
 
   // Shared roof (same as v3)
   w.write(roof.type === 'pitched' ? 1 : 0, 1);
@@ -232,8 +232,8 @@ export function encodeState(
   }
   w.write(roof.hasSkylight ? 1 : 0, 1);
 
-  // Default height: 5 bits, encodes 2.0–6.0 in 0.25 steps
-  w.write(clamp(Math.round((defaultHeight - 2) / 0.25), 0, 16), 5);
+  // Default height: 4 bits, encodes 2.2–3.0 in 0.1 steps (v5)
+  w.write(clamp(Math.round((defaultHeight - 2.2) / 0.1), 0, 8), 4);
 
   // Building count
   w.write(clamp(buildings.length, 1, 8) - 1, 3);
@@ -246,28 +246,21 @@ export function encodeState(
     const hasOverride = b.heightOverride != null;
     w.write(hasOverride ? 1 : 0, 1);
     if (hasOverride) {
-      w.write(clamp(Math.round((b.heightOverride! - 2) / 0.25), 0, 16), 5);
+      w.write(clamp(Math.round((b.heightOverride! - 2.2) / 0.1), 0, 8), 4);
     }
 
     // Orientation (all types): 0=horizontal, 1=vertical
     w.write(indexOf(ORIENTATIONS, b.orientation ?? 'horizontal'), 1);
 
     if (b.type === 'paal') {
-      // Poles: position only (height from override/default)
-      const poleCx = b.position[0] + b.dimensions.width / 2;
-      const poleCz = b.position[1] + b.dimensions.depth / 2;
-      w.writeSigned(clamp(Math.round(poleCx / 0.5), -64, 63), 7);
-      w.writeSigned(clamp(Math.round(poleCz / 0.5), -64, 63), 7);
+      // Poles: position only (height from override/default), top-left stored directly
+      w.writeSigned(clamp(Math.round(b.position[0] / 0.5), -64, 63), 7);
+      w.writeSigned(clamp(Math.round(b.position[1] / 0.5), -64, 63), 7);
     } else if (b.type === 'muur') {
-      // Muur: width + position + wall flag + wall data
+      // Muur: width + position + wall flag + wall data, top-left stored directly
       w.write(clamp(Math.round((b.dimensions.width - 1) / 0.5), 0, 31), 5);
-      const isVertMuur = b.orientation === 'vertical';
-      const muurVisualW = isVertMuur ? b.dimensions.depth : b.dimensions.width;
-      const muurVisualD = isVertMuur ? b.dimensions.width : b.dimensions.depth;
-      const muurCx = b.position[0] + muurVisualW / 2;
-      const muurCz = b.position[1] + muurVisualD / 2;
-      w.writeSigned(clamp(Math.round(muurCx / 0.5), -64, 63), 7);
-      w.writeSigned(clamp(Math.round(muurCz / 0.5), -64, 63), 7);
+      w.writeSigned(clamp(Math.round(b.position[0] / 0.5), -64, 63), 7);
+      w.writeSigned(clamp(Math.round(b.position[1] / 0.5), -64, 63), 7);
 
       // Single wall (front)
       const hasFrontWall = !!b.walls['front'];
@@ -276,16 +269,14 @@ export function encodeState(
         encodeWall(w, b.walls['front']);
       }
     } else {
-      // overkapping / berging
-      w.write(clamp(Math.round((b.dimensions.width - 3) / 0.5), 0, 24), 5);
-      w.write(clamp(Math.round((b.dimensions.depth - 3) / 0.5), 0, 34), 6);
-      w.write(clamp(Math.round((b.dimensions.height - 2) / 0.25), 0, 16), 5);
+      // overkapping / berging: v5 uses new ranges and top-left positions
+      w.write(clamp(Math.round((b.dimensions.width - 1) / 0.1), 0, 50), 6);
+      w.write(clamp(Math.round((b.dimensions.depth - 1) / 0.1), 0, 390), 9);
+      w.write(clamp(Math.round((b.dimensions.height - 2.2) / 0.1), 0, 8), 4);
 
-      // Position: signed, scaled by 0.5m (convert top-left to center for encoding)
-      const cx = b.position[0] + b.dimensions.width / 2;
-      const cz = b.position[1] + b.dimensions.depth / 2;
-      w.writeSigned(clamp(Math.round(cx / 0.5), -64, 63), 7);
-      w.writeSigned(clamp(Math.round(cz / 0.5), -64, 63), 7);
+      // Position: top-left, signed, scaled by 0.5m
+      w.writeSigned(clamp(Math.round(b.position[0] / 0.5), -64, 63), 7);
+      w.writeSigned(clamp(Math.round(b.position[1] / 0.5), -64, 63), 7);
 
       w.write(indexOf(FLOOR_IDS, b.floor.materialId), 2);
       w.write(b.hasCornerBraces ? 1 : 0, 1);
@@ -334,10 +325,11 @@ export function decodeState(code: string): {
     // Extended version: 4 + next 2 bits
     version = 4 + r.read(2);
   }
-  if (version !== 2 && version !== 3 && version !== 4) throw new Error('Unsupported version');
+  if (version !== 2 && version !== 3 && version !== 4 && version !== 5) throw new Error('Unsupported version');
 
   const isV3 = version === 3;
   const isV4 = version === 4;
+  const isV5 = version === 5;
 
   // Shared roof
   const isPitched = r.read(1) === 1;
@@ -354,36 +346,42 @@ export function decodeState(code: string): {
     insulation, insulationThickness, hasSkylight,
   };
 
-  // Default height (v4 only)
-  const defaultHeight = isV4 ? clamp(r.read(5) * 0.25 + 2, 2, 6) : 3;
+  // Default height (v4: 5 bits, v5: 4 bits)
+  const defaultHeight = isV5
+    ? clamp(r.read(4) * 0.1 + 2.2, 2.2, 3)
+    : isV4
+    ? clamp(r.read(5) * 0.25 + 2, 2, 6)
+    : 3;
 
   // Buildings
   const buildingCount = r.read(3) + 1;
   const buildings: BuildingEntity[] = [];
 
   for (let bi = 0; bi < buildingCount; bi++) {
-    const typeBits = (isV3 || isV4) ? 2 : 1;
+    const typeBits = (isV3 || isV4 || isV5) ? 2 : 1;
     const typeIdx = r.read(typeBits);
     const type = BUILDING_TYPES[clamp(typeIdx, 0, BUILDING_TYPES.length - 1)];
 
-    // V4: per-building heightOverride and orientation
+    // V4/V5: per-building heightOverride and orientation
     let heightOverride: number | null = null;
     let orientation: Orientation = 'horizontal';
-    if (isV4) {
+    if (isV4 || isV5) {
       const hasOverride = r.read(1) === 1;
       if (hasOverride) {
-        heightOverride = clamp(r.read(5) * 0.25 + 2, 2, 6);
+        heightOverride = isV5
+          ? clamp(r.read(4) * 0.1 + 2.2, 2.2, 3)
+          : clamp(r.read(5) * 0.25 + 2, 2, 6);
       }
       orientation = ORIENTATIONS[clamp(r.read(1), 0, 1)];
     }
 
-    if ((isV3 || isV4) && type === 'paal') {
+    if ((isV3 || isV4 || isV5) && type === 'paal') {
       let height: number;
       if (isV3) {
         // v3: height encoded inline for paal
         height = clamp(r.read(5) * 0.25 + 2, 2, 6);
       } else {
-        // v4: height comes from override or default
+        // v4/v5: height comes from override or default
         height = heightOverride ?? defaultHeight;
       }
       const posX = r.readSigned(7) * 0.5;
@@ -391,7 +389,8 @@ export function decodeState(code: string): {
       buildings.push({
         id: crypto.randomUUID(),
         type: 'paal',
-        position: [posX - 0.15 / 2, posZ - 0.15 / 2],
+        // v5: position is top-left directly; v4 and earlier: was encoded as center
+        position: isV5 ? [posX, posZ] : [posX - 0.15 / 2, posZ - 0.15 / 2],
         dimensions: { width: 0.15, depth: 0.15, height },
         walls: {},
         hasCornerBraces: false,
@@ -402,7 +401,7 @@ export function decodeState(code: string): {
       continue;
     }
 
-    if (isV4 && type === 'muur') {
+    if ((isV4 || isV5) && type === 'muur') {
       const width = clamp(r.read(5) * 0.5 + 1, 1, 16.5);
       const posX = r.readSigned(7) * 0.5;
       const posZ = r.readSigned(7) * 0.5;
@@ -420,7 +419,8 @@ export function decodeState(code: string): {
       buildings.push({
         id: crypto.randomUUID(),
         type: 'muur',
-        position: [posX - visualW / 2, posZ - visualD / 2],
+        // v5: position is top-left directly; v4: was encoded as center
+        position: isV5 ? [posX, posZ] : [posX - visualW / 2, posZ - visualD / 2],
         dimensions: { width, depth: 0.2, height },
         walls,
         hasCornerBraces: false,
@@ -431,9 +431,15 @@ export function decodeState(code: string): {
       continue;
     }
 
-    const width = clamp(r.read(5) * 0.5 + 3, 3, 15);
-    const depth = clamp(r.read(6) * 0.5 + 3, 3, 20);
-    const height = clamp(r.read(5) * 0.25 + 2, 2, 6);
+    const width = isV5
+      ? clamp(r.read(6) * 0.1 + 1, 1, 7)
+      : clamp(r.read(5) * 0.5 + 3, 3, 15);
+    const depth = isV5
+      ? clamp(r.read(9) * 0.1 + 1, 1, 40)
+      : clamp(r.read(6) * 0.5 + 3, 3, 20);
+    const height = isV5
+      ? clamp(r.read(4) * 0.1 + 2.2, 2.2, 3)
+      : clamp(r.read(5) * 0.25 + 2, 2, 6);
     const posX = r.readSigned(7) * 0.5;
     const posZ = r.readSigned(7) * 0.5;
     const floorMaterialId = FLOOR_IDS[clamp(r.read(2), 0, 3)];
@@ -449,7 +455,8 @@ export function decodeState(code: string): {
     buildings.push({
       id: crypto.randomUUID(),
       type,
-      position: [posX - width / 2, posZ - depth / 2],
+      // v5: position is top-left directly; v4 and earlier: was encoded as center
+      position: isV5 ? [posX, posZ] : [posX - width / 2, posZ - depth / 2],
       dimensions: { width, depth, height },
       walls: Object.keys(walls).length > 0 ? walls : getDefaultWalls(type),
       hasCornerBraces,
