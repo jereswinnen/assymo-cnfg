@@ -335,3 +335,40 @@ export function detectWallSnap(
 
   return [snapX, snapZ];
 }
+
+/** Snap a single dragged edge to opposing edges of other buildings */
+export function detectResizeSnap(
+  edgeValue: number,
+  edgeAxis: 'x' | 'z',
+  edgeSide: WallSide,
+  perpStart: number,
+  perpEnd: number,
+  otherBuildings: BuildingEntity[],
+): number {
+  let bestDist = SNAP_THRESHOLD;
+  let snapped = edgeValue;
+
+  const opposingSide: WallSide =
+    edgeSide === 'left' ? 'right' :
+    edgeSide === 'right' ? 'left' :
+    edgeSide === 'front' ? 'back' : 'front';
+
+  for (const other of otherBuildings) {
+    const otherEdges = getBuildingEdges(other);
+
+    for (const oe of otherEdges) {
+      if (oe.axis !== edgeAxis) continue;
+      if (oe.side !== opposingSide) continue;
+
+      const dist = Math.abs(edgeValue - oe.value);
+      if (dist >= bestDist) continue;
+
+      if (!rangesOverlap(perpStart, perpEnd, oe.perpStart, oe.perpEnd)) continue;
+
+      bestDist = dist;
+      snapped = oe.value;
+    }
+  }
+
+  return snapped;
+}
