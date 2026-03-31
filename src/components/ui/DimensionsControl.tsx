@@ -3,6 +3,7 @@
 import { useConfigStore } from '@/store/useConfigStore';
 import { getEffectiveHeight } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
+import { getConstraints } from '@/lib/constants';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -87,27 +88,17 @@ export default function DimensionsControl() {
   const isStructural = !isPole && !isMuur;
   const effectiveHeight = getEffectiveHeight(building, defaultHeight);
   const hasHeightOverride = building.heightOverride !== null;
+  const constraints = getConstraints(building.type);
 
   return (
     <div className="space-y-4">
-      {isStructural && (
+      {(isStructural || isMuur) && (
         <SliderRow
           label={t('dim.width')}
           value={dimensions.width}
-          min={3}
-          max={15}
-          step={0.5}
-          unit="m"
-          onChange={(v) => updateBuildingDimensions(selectedBuildingId, { width: v })}
-        />
-      )}
-      {isMuur && (
-        <SliderRow
-          label={t('dim.width')}
-          value={dimensions.width}
-          min={1}
-          max={10}
-          step={0.5}
+          min={constraints.width.min}
+          max={constraints.width.max}
+          step={constraints.width.step}
           unit="m"
           onChange={(v) => updateBuildingDimensions(selectedBuildingId, { width: v })}
         />
@@ -117,9 +108,9 @@ export default function DimensionsControl() {
         <SliderRow
           label={t('dim.depth')}
           value={dimensions.depth}
-          min={3}
-          max={20}
-          step={0.5}
+          min={constraints.depth.min}
+          max={constraints.depth.max}
+          step={constraints.depth.step}
           unit="m"
           onChange={(v) => updateBuildingDimensions(selectedBuildingId, { depth: v })}
         />
@@ -129,9 +120,9 @@ export default function DimensionsControl() {
         <SliderRow
           label={t('dim.height')}
           value={effectiveHeight}
-          min={2}
-          max={6}
-          step={0.25}
+          min={constraints.height.min}
+          max={constraints.height.max}
+          step={constraints.height.step}
           unit="m"
           onChange={(v) => setDefaultHeight(v)}
         />
@@ -139,9 +130,9 @@ export default function DimensionsControl() {
         <SliderRow
           label={t('dim.height')}
           value={effectiveHeight}
-          min={2}
-          max={6}
-          step={0.25}
+          min={constraints.height.min}
+          max={constraints.height.max}
+          step={constraints.height.step}
           unit="m"
           onChange={(v) => setHeightOverride(selectedBuildingId, v)}
           badge={hasHeightOverride ? t('dim.height.override') : t('dim.height.default')}

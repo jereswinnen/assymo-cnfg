@@ -48,7 +48,7 @@ export const FINISHES = ['Mat', 'Satijn', 'Glans'] as const;
 export const DEFAULT_DIMENSIONS: BuildingDimensions = {
   width: 4,
   depth: 4,
-  height: 3,
+  height: 2.6,
 };
 
 // Door materials
@@ -189,15 +189,68 @@ export const WIN_W = 1.2;
 export const POLE_DIMENSIONS: BuildingDimensions = {
   width: POST_SIZE,
   depth: POST_SIZE,
-  height: 3,
+  height: 2.6,
 };
 
 // Standalone wall dimensions
 export const WALL_DIMENSIONS: BuildingDimensions = {
   width: POST_SPACING, // 3m
   depth: POST_SIZE,    // 0.15m
-  height: 3,
+  height: 2.6,
 };
+
+// ─── Dimension constraints per building type ────────────────────────
+export interface DimensionConstraint {
+  min: number;
+  max: number;
+  step: number;
+}
+
+export interface DimensionConstraints {
+  width: DimensionConstraint;
+  depth: DimensionConstraint;
+  height: DimensionConstraint;
+}
+
+export const DIMENSION_CONSTRAINTS: Record<string, DimensionConstraints> = {
+  structural: {
+    width:  { min: 1,    max: 6,   step: 0.1 },
+    depth:  { min: 1,    max: 40,  step: 0.1 },
+    height: { min: 2.2,  max: 3,   step: 0.1 },
+  },
+  muur: {
+    width:  { min: 1,    max: 10,  step: 0.5 },
+    depth:  { min: 0.15, max: 0.15, step: 0 },
+    height: { min: 2.2,  max: 3,   step: 0.1 },
+  },
+  paal: {
+    width:  { min: 0.15, max: 0.15, step: 0 },
+    depth:  { min: 0.15, max: 0.15, step: 0 },
+    height: { min: 2.2,  max: 3,   step: 0.1 },
+  },
+};
+
+export function getConstraints(type: BuildingType): DimensionConstraints {
+  if (type === 'muur') return DIMENSION_CONSTRAINTS.muur;
+  if (type === 'paal') return DIMENSION_CONSTRAINTS.paal;
+  return DIMENSION_CONSTRAINTS.structural;
+}
+
+// ─── Width categories (future-ready) ────────────────────────────────
+export interface WidthCategory {
+  id: number;
+  label: string;
+  maxWidth: number;
+}
+
+export const WIDTH_CATEGORIES: WidthCategory[] = [
+  { id: 1, label: 'Categorie 1', maxWidth: 4 },
+  { id: 2, label: 'Categorie 2', maxWidth: 6 },
+];
+
+export function getWidthCategory(width: number): WidthCategory | null {
+  return WIDTH_CATEGORIES.find(c => width <= c.maxWidth) ?? null;
+}
 
 // Snap thresholds
 export const SNAP_THRESHOLD = 0.5;
