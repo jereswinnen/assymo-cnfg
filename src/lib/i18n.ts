@@ -40,8 +40,8 @@ const nl: Record<string, string> = {
   'section.6': 'Offerte',
 
   // Dimensions
-  'dim.width': 'Breedte',
-  'dim.depth': 'Lengte',
+  'dim.width': 'Lengte',
+  'dim.depth': 'Breedte',
   'dim.height': 'Hoogte',
   'dim.roofPitch': 'Dakhelling',
   'dim.orientation': 'Oriëntatie',

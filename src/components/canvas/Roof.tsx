@@ -151,20 +151,20 @@ interface PitchedRoofProps {
 
 function PitchedRoof({ width, depth, height, roofPitch, materialProps, pointerHandlers }: PitchedRoofProps) {
   const pitchRad = (roofPitch * Math.PI) / 180;
-  const halfWidth = width / 2;
-  const roofRise = Math.tan(pitchRad) * halfWidth;
-  const roofSlantLength = halfWidth / Math.cos(pitchRad);
+  const halfSpan = depth / 2;
+  const roofRise = Math.tan(pitchRad) * halfSpan;
+  const roofSlantLength = halfSpan / Math.cos(pitchRad);
 
   const panels = useMemo(() => {
     const ridgeY = height + roofRise;
     const centerY = (height + ridgeY) / 2;
-    const centerX = halfWidth / 2;
+    const centerZ = halfSpan / 2;
 
     return [
-      { position: [-centerX, centerY, 0] as [number, number, number], rotation: [0, 0, pitchRad] as [number, number, number] },
-      { position: [centerX, centerY, 0] as [number, number, number], rotation: [0, 0, -pitchRad] as [number, number, number] },
+      { position: [0, centerY, -centerZ] as [number, number, number], rotation: [pitchRad, 0, 0] as [number, number, number] },
+      { position: [0, centerY, centerZ] as [number, number, number], rotation: [-pitchRad, 0, 0] as [number, number, number] },
     ];
-  }, [height, roofRise, halfWidth, pitchRad]);
+  }, [height, roofRise, halfSpan, pitchRad]);
 
   return (
     <group>
@@ -176,7 +176,7 @@ function PitchedRoof({ width, depth, height, roofPitch, materialProps, pointerHa
           castShadow
           {...pointerHandlers}
         >
-          <boxGeometry args={[roofSlantLength, ROOF_EDGE, depth]} />
+          <boxGeometry args={[width, ROOF_EDGE, roofSlantLength]} />
           <meshStandardMaterial key={materialProps.map ? 'textured' : 'flat'} {...materialProps} />
             </mesh>
       ))}

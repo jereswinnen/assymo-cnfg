@@ -45,10 +45,10 @@ export function roofTotalArea(
   if (roofType === 'flat') {
     return width * depth;
   }
-  const halfWidth = width / 2;
+  const halfSpan = depth / 2;
   const cosP = Math.cos(degToRad(roofPitch));
   if (cosP === 0) return 0;
-  const panelArea = depth * (halfWidth / cosP);
+  const panelArea = width * (halfSpan / cosP);
   return 2 * panelArea;
 }
 

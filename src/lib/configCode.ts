@@ -270,8 +270,8 @@ export function encodeState(
       }
     } else {
       // overkapping / berging: v5 uses new ranges and top-left positions
-      w.write(clamp(Math.round((b.dimensions.width - 1) / 0.1), 0, 50), 6);
-      w.write(clamp(Math.round((b.dimensions.depth - 1) / 0.1), 0, 390), 9);
+      w.write(clamp(Math.round((b.dimensions.width - 1) / 0.1), 0, 390), 9);
+      w.write(clamp(Math.round((b.dimensions.depth - 1) / 0.1), 0, 50), 6);
       w.write(clamp(Math.round((b.dimensions.height - 2.2) / 0.1), 0, 8), 4);
 
       // Position: top-left, signed, scaled by 0.5m
@@ -432,10 +432,10 @@ export function decodeState(code: string): {
     }
 
     const width = isV5
-      ? clamp(r.read(6) * 0.1 + 1, 1, 7)
+      ? clamp(r.read(9) * 0.1 + 1, 1, 40)
       : clamp(r.read(5) * 0.5 + 3, 3, 15);
     const depth = isV5
-      ? clamp(r.read(9) * 0.1 + 1, 1, 40)
+      ? clamp(r.read(6) * 0.1 + 1, 1, 7)
       : clamp(r.read(6) * 0.5 + 3, 3, 20);
     const height = isV5
       ? clamp(r.read(4) * 0.1 + 2.2, 2.2, 3)

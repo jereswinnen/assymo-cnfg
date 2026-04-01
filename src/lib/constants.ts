@@ -214,8 +214,8 @@ export interface DimensionConstraints {
 
 export const DIMENSION_CONSTRAINTS: Record<string, DimensionConstraints> = {
   structural: {
-    width:  { min: 1,    max: 6,   step: 0.1 },
-    depth:  { min: 1,    max: 40,  step: 0.1 },
+    width:  { min: 1,    max: 40,  step: 0.1 },
+    depth:  { min: 1,    max: 6,   step: 0.1 },
     height: { min: 2.2,  max: 3,   step: 0.1 },
   },
   muur: {
