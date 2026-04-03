@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo, useState, useCallback } from 'react';
+import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
 import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/lib/snap';
 import { getConstraints } from '@/lib/constants';
@@ -163,6 +163,7 @@ export default function SchematicView() {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
   const dragBuildingId = useRef<string | null>(null);
+  const shiftOnDown = useRef(false);
   const dragStartWorld = useRef<[number, number] | null>(null);
   const dragStartPos = useRef<[number, number]>([0, 0]);
   const pointerDownScreen = useRef<{ x: number; y: number } | null>(null);
@@ -234,6 +235,7 @@ export default function SchematicView() {
   const onBuildingPointerDown = useCallback((e: React.PointerEvent, buildingId: string) => {
     if (e.button !== 0) return;
     e.stopPropagation();
+    shiftOnDown.current = e.shiftKey;
 
     const svg = svgRef.current;
     if (!svg) return;
@@ -462,7 +464,11 @@ export default function SchematicView() {
     if (dragging.current) {
       setDraggedBuildingId(null);
     } else if (dragBuildingId.current) {
-      selectBuilding(dragBuildingId.current);
+      if (shiftOnDown.current) {
+        useConfigStore.getState().toggleBuildingSelection(dragBuildingId.current);
+      } else {
+        selectBuilding(dragBuildingId.current);
+      }
     }
     dragging.current = false;
     dragBuildingId.current = null;
@@ -470,6 +476,16 @@ export default function SchematicView() {
     pointerDownScreen.current = null;
     setFrozenViewBox(null);
   }, [selectBuilding, setDraggedBuildingId, selectRect]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        useConfigStore.getState().selectBuildings([]);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const onSvgPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.target !== svgRef.current) return;
