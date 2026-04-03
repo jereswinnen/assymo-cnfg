@@ -1,0 +1,63 @@
+<h2>Visual Upgrade: Approach A Overview</h2>
+<p class="subtitle">Six changes that transform the scene from "Minecraft" to professional configurator</p>
+
+<div class="options">
+  <div class="option" data-choice="1">
+    <div class="letter">1</div>
+    <div class="content">
+      <h3>HDRI Environment Map</h3>
+      <p>Replace flat ambient light with a real sky environment. Adds natural light bounce from all directions, realistic reflections on glass and metal surfaces. Using <code>@react-three/drei</code>'s <code>Environment</code> component with a free outdoor HDRI from Poly Haven.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="2">
+    <div class="content">
+      <div class="letter">2</div>
+      <h3>Post-Processing Pipeline</h3>
+      <p>Add <code>@react-three/postprocessing</code> with three effects:<br>
+      <strong>SSAO</strong> — soft shadows in corners and where surfaces meet (kills the flat look)<br>
+      <strong>Tone Mapping</strong> — ACESFilmic for cinematic color response<br>
+      <strong>Bloom</strong> — subtle glow on glass and bright surfaces</p>
+    </div>
+  </div>
+  <div class="option" data-choice="3">
+    <div class="content">
+      <div class="letter">3</div>
+      <h3>Remove Hard Edge Lines</h3>
+      <p>Delete all <code>&lt;Edges&gt;</code> components from walls. These black wireframe lines are the single biggest "game engine" tell. Selection feedback will use emissive glow only (already works).</p>
+    </div>
+  </div>
+  <div class="option" data-choice="4">
+    <div class="content">
+      <div class="letter">4</div>
+      <h3>Ground Plane Overhaul</h3>
+      <p>Replace the 25×25 floating box with a much larger ground plane (100×100) that fades softly into the sky at the edges. Add soft contact shadows beneath buildings using Drei's <code>ContactShadows</code>.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="5">
+    <div class="content">
+      <div class="letter">5</div>
+      <h3>Renderer & Shadow Tuning</h3>
+      <p>Enable ACESFilmic tone mapping on the WebGL renderer, bump shadow map to 4096×4096, add shadow bias tuning to eliminate shadow acne. Soft shadow edges via <code>SoftShadows</code> from Drei.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="6">
+    <div class="content">
+      <div class="letter">6</div>
+      <h3>Material Refinement</h3>
+      <p>Tune <code>envMapIntensity</code> per material type so wood stays matte while glass and metal pick up environment reflections. Adjust roughness/metalness values to better respond to the new HDRI lighting.</p>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 2rem; padding: 1.5rem; background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+  <h3 style="margin-top:0">New Dependencies</h3>
+  <ul style="margin:0.5rem 0">
+    <li><code>@react-three/postprocessing</code> — post-processing effects (SSAO, bloom, tone mapping)</li>
+    <li><code>postprocessing</code> — peer dependency for the above</li>
+  </ul>
+  <p style="margin-bottom:0; opacity: 0.7; font-size: 0.9em;">No other new deps needed — <code>Environment</code>, <code>ContactShadows</code>, <code>SoftShadows</code> are all already in <code>@react-three/drei</code>.</p>
+</div>
+
+<div style="margin-top: 1.5rem; padding: 1rem; background: rgba(59,130,246,0.1); border-radius: 8px; border: 1px solid rgba(59,130,246,0.2);">
+  <p style="margin:0; font-size: 0.9em;">💡 <strong>Mobile strategy:</strong> Detect GPU tier at startup. Desktop gets full SSAO + bloom + 4096 shadows. Mobile gets contact shadows only + 2048 shadows, skipping the expensive post-processing pass.</p>
+</div>

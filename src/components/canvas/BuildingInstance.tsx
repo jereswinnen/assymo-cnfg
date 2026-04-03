@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { BoxGeometry } from 'three';
 import { BuildingProvider } from '@/lib/BuildingContext';
-import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
+import { useConfigStore, getEffectiveHeight, selectSingleBuildingId } from '@/store/useConfigStore';
 import Building from './Building';
 
 interface BuildingInstanceProps {
@@ -12,7 +12,7 @@ interface BuildingInstanceProps {
 
 export default function BuildingInstance({ buildingId }: BuildingInstanceProps) {
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
-  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null);
+  const selectedBuildingId = useConfigStore(selectSingleBuildingId);
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const selectBuilding = useConfigStore((s) => s.selectBuilding);
 

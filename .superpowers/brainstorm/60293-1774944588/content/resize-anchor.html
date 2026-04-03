@@ -1,0 +1,111 @@
+<h2>Resize Anchor Point</h2>
+<p class="subtitle">When you resize a wall/building (e.g. increase width), which side should stay fixed?</p>
+
+<div class="cards">
+  <div class="card" data-choice="left-anchor" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 24px;">
+      <svg viewBox="0 0 400 160" style="width:100%;height:120px;">
+        <!-- Original building -->
+        <rect x="50" y="60" width="120" height="60" fill="#3b82f6" opacity="0.3" stroke="#3b82f6" stroke-dasharray="4"/>
+        <text x="110" y="95" text-anchor="middle" fill="#3b82f6" font-size="11">Original</text>
+
+        <!-- Resized building - anchored left -->
+        <rect x="50" y="40" width="200" height="100" fill="#3b82f6" opacity="0.15" stroke="#3b82f6" stroke-width="2"/>
+        <text x="150" y="95" text-anchor="middle" fill="#1e40af" font-size="11" font-weight="bold">Resized</text>
+
+        <!-- Anchor indicator -->
+        <line x1="50" y1="30" x2="50" y2="150" stroke="#ef4444" stroke-width="2" stroke-dasharray="4"/>
+        <text x="50" y="25" text-anchor="middle" fill="#ef4444" font-size="10" font-weight="bold">FIXED</text>
+
+        <!-- Arrow showing growth direction -->
+        <line x1="170" y1="145" x2="250" y2="145" stroke="#22c55e" stroke-width="2" marker-end="url(#arrowG)"/>
+        <text x="210" y="158" text-anchor="middle" fill="#22c55e" font-size="10">grows right</text>
+
+        <defs>
+          <marker id="arrowG" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L8,3 L0,6" fill="#22c55e"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>A. Left side fixed</h3>
+      <p>The left edge stays in place, building grows to the right. Like a ruler starting from the left.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="right-anchor" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 24px;">
+      <svg viewBox="0 0 400 160" style="width:100%;height:120px;">
+        <!-- Original building -->
+        <rect x="230" y="60" width="120" height="60" fill="#3b82f6" opacity="0.3" stroke="#3b82f6" stroke-dasharray="4"/>
+        <text x="290" y="95" text-anchor="middle" fill="#3b82f6" font-size="11">Original</text>
+
+        <!-- Resized building - anchored right -->
+        <rect x="150" y="40" width="200" height="100" fill="#3b82f6" opacity="0.15" stroke="#3b82f6" stroke-width="2"/>
+        <text x="250" y="95" text-anchor="middle" fill="#1e40af" font-size="11" font-weight="bold">Resized</text>
+
+        <!-- Anchor indicator -->
+        <line x1="350" y1="30" x2="350" y2="150" stroke="#ef4444" stroke-width="2" stroke-dasharray="4"/>
+        <text x="350" y="25" text-anchor="middle" fill="#ef4444" font-size="10" font-weight="bold">FIXED</text>
+
+        <!-- Arrow showing growth direction -->
+        <line x1="230" y1="145" x2="150" y2="145" stroke="#22c55e" stroke-width="2" marker-end="url(#arrowG2)"/>
+        <text x="190" y="158" text-anchor="middle" fill="#22c55e" font-size="10">grows left</text>
+
+        <defs>
+          <marker id="arrowG2" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
+            <path d="M8,0 L0,3 L8,6" fill="#22c55e"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>B. Right side fixed</h3>
+      <p>The right edge stays in place, building grows to the left.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="dragged-edge" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 24px;">
+      <svg viewBox="0 0 400 160" style="width:100%;height:120px;">
+        <!-- Original building -->
+        <rect x="140" y="50" width="120" height="70" fill="#3b82f6" opacity="0.3" stroke="#3b82f6" stroke-dasharray="4"/>
+        <text x="200" y="90" text-anchor="middle" fill="#3b82f6" font-size="11">Original</text>
+
+        <!-- Left handle -->
+        <rect x="134" y="70" width="12" height="30" rx="3" fill="#f59e0b" stroke="#d97706" stroke-width="1"/>
+
+        <!-- Right handle -->
+        <rect x="254" y="70" width="12" height="30" rx="3" fill="#f59e0b" stroke="#d97706" stroke-width="1"/>
+
+        <!-- Left drag arrow -->
+        <line x1="134" y1="130" x2="90" y2="130" stroke="#22c55e" stroke-width="2" marker-end="url(#arrowG3)"/>
+        <text x="112" y="145" text-anchor="middle" fill="#22c55e" font-size="9">drag left</text>
+
+        <!-- Right drag arrow -->
+        <line x1="266" y1="130" x2="310" y2="130" stroke="#22c55e" stroke-width="2" marker-end="url(#arrowG4)"/>
+        <text x="288" y="145" text-anchor="middle" fill="#22c55e" font-size="9">drag right</text>
+
+        <text x="200" y="40" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="bold">Opposite edge stays fixed</text>
+
+        <defs>
+          <marker id="arrowG3" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto">
+            <path d="M8,0 L0,3 L8,6" fill="#22c55e"/>
+          </marker>
+          <marker id="arrowG4" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L8,3 L0,6" fill="#22c55e"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>C. Dynamic — depends on which edge you drag</h3>
+      <p>Drag the right edge to grow right (left stays fixed). Drag the left edge to grow left (right stays fixed). Most intuitive for direct manipulation.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <p class="subtitle">Note: Option C ties into your second request (drag-to-resize). Options A and B apply to slider-based resizing.</p>
+</div>

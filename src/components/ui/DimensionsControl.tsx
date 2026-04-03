@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useConfigStore } from '@/store/useConfigStore';
-import { getEffectiveHeight } from '@/store/useConfigStore';
+import { useConfigStore, getEffectiveHeight, selectSingleBuildingId } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
 import { getConstraints } from '@/lib/constants';
 import { Slider } from '@/components/ui/slider';
@@ -106,9 +105,9 @@ function SliderRow({ label, value, min, max, step, unit, onChange, badge, onRese
 }
 
 export default function DimensionsControl() {
-  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null);
+  const selectedBuildingId = useConfigStore(selectSingleBuildingId);
   const building = useConfigStore((s) => {
-    const sid = s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null;
+    const sid = selectSingleBuildingId(s);
     if (!sid) return null;
     return s.buildings.find(b => b.id === sid) ?? null;
   });

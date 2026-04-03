@@ -391,6 +391,10 @@ export const useConfigStore = create<ConfigState>()(
   ),
 );
 
+/** Selector: returns the single selected building ID, or null if 0 or 2+ are selected */
+export const selectSingleBuildingId = (s: ConfigState) =>
+  s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null;
+
 // Detect GPU tier at startup and update store
 if (typeof window !== 'undefined') {
   import('detect-gpu').then(({ getGPUTier }) =>

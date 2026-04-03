@@ -6,7 +6,7 @@ import { OrbitControls } from '@react-three/drei';
 import { Vector3, BackSide, ShaderMaterial, ACESFilmicToneMapping } from 'three';
 import BuildingInstance from './BuildingInstance';
 import Ground from './Ground';
-import { useConfigStore } from '@/store/useConfigStore';
+import { useConfigStore, selectSingleBuildingId } from '@/store/useConfigStore';
 import type { WallId } from '@/types/building';
 
 const WALL_CAMERA_POSITIONS: Record<WallId, [number, number, number]> = {
@@ -90,7 +90,7 @@ function CameraAnimator() {
   const wallId = useConfigStore((s) => s.cameraTargetWallId);
   const clearTarget = useConfigStore((s) => s.clearCameraTarget);
   const draggedBuildingId = useConfigStore((s) => s.draggedBuildingId);
-  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null);
+  const selectedBuildingId = useConfigStore(selectSingleBuildingId);
   const buildings = useConfigStore((s) => s.buildings);
 
   useEffect(() => {

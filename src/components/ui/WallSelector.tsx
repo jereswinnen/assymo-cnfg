@@ -1,13 +1,13 @@
 'use client';
 
-import { useConfigStore } from '@/store/useConfigStore';
+import { useConfigStore, selectSingleBuildingId } from '@/store/useConfigStore';
 import { getAvailableWallIds } from '@/lib/constants';
 import { t } from '@/lib/i18n';
 import type { WallId } from '@/types/building';
 
 export default function WallSelector() {
   const selectedBuilding = useConfigStore((s) => {
-    const sid = s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null;
+    const sid = selectSingleBuildingId(s);
     if (!sid) return null;
     return s.buildings.find(b => b.id === sid) ?? null;
   });

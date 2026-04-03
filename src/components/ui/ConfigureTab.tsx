@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
+import { useConfigStore, getEffectiveHeight, selectSingleBuildingId } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
 import { ChevronDown } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -68,7 +68,7 @@ function WallsContent({ buildingType, buildingId }: { buildingType: BuildingType
 function ConnectionToggles() {
   const buildings = useConfigStore((s) => s.buildings);
   const connections = useConfigStore((s) => s.connections);
-  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null);
+  const selectedBuildingId = useConfigStore(selectSingleBuildingId);
   const toggleConnectionOpen = useConfigStore((s) => s.toggleConnectionOpen);
 
   const selectedConnections = connections.filter(
@@ -103,7 +103,7 @@ function ConnectionToggles() {
 
 function CornerBracesToggle() {
   const selectedBuilding = useConfigStore((s) => {
-    const sid = s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null;
+    const sid = selectSingleBuildingId(s);
     const b = s.buildings.find(b => b.id === sid);
     return b ?? null;
   });
@@ -138,7 +138,7 @@ function CornerBracesToggle() {
 export default function ConfigureTab() {
   const buildings = useConfigStore((s) => s.buildings);
   const selectedBuilding = useConfigStore((s) => {
-    const sid = s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null;
+    const sid = selectSingleBuildingId(s);
     const b = s.buildings.find(b => b.id === sid);
     return b ?? null;
   });

@@ -1,14 +1,14 @@
 'use client';
 
-import { useConfigStore } from '@/store/useConfigStore';
+import { useConfigStore, selectSingleBuildingId } from '@/store/useConfigStore';
 import { FLOOR_MATERIALS } from '@/lib/constants';
 import { t } from '@/lib/i18n';
 import SectionLabel from '@/components/ui/SectionLabel';
 
 export default function FloorConfigSection() {
-  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null);
+  const selectedBuildingId = useConfigStore(selectSingleBuildingId);
   const floorMaterialId = useConfigStore((s) => {
-    const sid = s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null;
+    const sid = selectSingleBuildingId(s);
     if (!sid) return null;
     const b = s.buildings.find(b => b.id === sid);
     return b?.floor.materialId ?? null;

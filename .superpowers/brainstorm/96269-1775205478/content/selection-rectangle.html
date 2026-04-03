@@ -1,0 +1,79 @@
+<h2>Selection Rectangle Style</h2>
+<p class="subtitle">How should the drag-to-select rectangle look on the 2D schematic?</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 24px; background: #1a1a2e;">
+      <svg viewBox="0 0 300 200" width="100%" height="160">
+        <!-- Grid dots -->
+        <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+          <circle cx="15" cy="15" r="1" fill="#333"/>
+        </pattern>
+        <rect width="300" height="200" fill="url(#grid)"/>
+        <!-- Buildings -->
+        <rect x="40" y="30" width="80" height="60" fill="none" stroke="#666" stroke-width="1.5"/>
+        <rect x="180" y="80" width="60" height="80" fill="none" stroke="#666" stroke-width="1.5"/>
+        <rect x="80" y="120" width="70" height="50" fill="none" stroke="#666" stroke-width="1.5"/>
+        <!-- Selection rectangle - classic blue -->
+        <rect x="25" y="15" width="145" height="170" fill="rgba(59,130,246,0.08)" stroke="rgba(59,130,246,0.6)" stroke-width="1.5" stroke-dasharray="6 3"/>
+        <!-- Selected highlight -->
+        <rect x="40" y="30" width="80" height="60" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" stroke-width="2"/>
+        <rect x="80" y="120" width="70" height="50" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" stroke-width="2"/>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>A — Classic Blue Dashed</h3>
+      <p>Semi-transparent blue fill, dashed blue border. Standard OS-style selection. Selected buildings get a blue highlight.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 24px; background: #1a1a2e;">
+      <svg viewBox="0 0 300 200" width="100%" height="160">
+        <pattern id="grid2" width="30" height="30" patternUnits="userSpaceOnUse">
+          <circle cx="15" cy="15" r="1" fill="#333"/>
+        </pattern>
+        <rect width="300" height="200" fill="url(#grid2)"/>
+        <!-- Buildings -->
+        <rect x="40" y="30" width="80" height="60" fill="none" stroke="#666" stroke-width="1.5"/>
+        <rect x="180" y="80" width="60" height="80" fill="none" stroke="#666" stroke-width="1.5"/>
+        <rect x="80" y="120" width="70" height="50" fill="none" stroke="#666" stroke-width="1.5"/>
+        <!-- Selection rectangle - solid thin -->
+        <rect x="25" y="15" width="145" height="170" fill="rgba(59,130,246,0.05)" stroke="#3b82f6" stroke-width="1"/>
+        <!-- Selected highlight -->
+        <rect x="40" y="30" width="80" height="60" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" stroke-width="2"/>
+        <rect x="80" y="120" width="70" height="50" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" stroke-width="2"/>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>B — Minimal Solid</h3>
+      <p>Thin solid blue border, barely-there fill. Cleaner, more modern look. Stays out of the way.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 24px; background: #1a1a2e;">
+      <svg viewBox="0 0 300 200" width="100%" height="160">
+        <pattern id="grid3" width="30" height="30" patternUnits="userSpaceOnUse">
+          <circle cx="15" cy="15" r="1" fill="#333"/>
+        </pattern>
+        <rect width="300" height="200" fill="url(#grid3)"/>
+        <!-- Buildings -->
+        <rect x="40" y="30" width="80" height="60" fill="none" stroke="#666" stroke-width="1.5"/>
+        <rect x="180" y="80" width="60" height="80" fill="none" stroke="#666" stroke-width="1.5"/>
+        <rect x="80" y="120" width="70" height="50" fill="none" stroke="#666" stroke-width="1.5"/>
+        <!-- Selection rectangle - marching ants style -->
+        <rect x="25" y="15" width="145" height="170" fill="rgba(255,255,255,0.03)" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="4 4">
+          <animate attributeName="stroke-dashoffset" from="0" to="8" dur="0.4s" repeatCount="indefinite"/>
+        </rect>
+        <!-- Selected highlight -->
+        <rect x="40" y="30" width="80" height="60" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" stroke-width="2"/>
+        <rect x="80" y="120" width="70" height="50" fill="rgba(59,130,246,0.15)" stroke="#3b82f6" stroke-width="2"/>
+      </svg>
+    </div>
+    <div class="card-body">
+      <h3>C — Marching Ants</h3>
+      <p>Animated dashed border (like Photoshop). Very clear what's being selected, more "tool-like" feel.</p>
+    </div>
+  </div>
+</div>

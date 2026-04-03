@@ -1,0 +1,5 @@
+{"type":"server-started","port":59175,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:59175","screen_dir":"/Users/jeremy/Projects/assymo-cnfg/.superpowers/brainstorm/85760-1773996116"}
+{"type":"screen-added","file":"/Users/jeremy/Projects/assymo-cnfg/.superpowers/brainstorm/85760-1773996116/sidebar-layout.html"}
+{"type":"screen-added","file":"/Users/jeremy/Projects/assymo-cnfg/.superpowers/brainstorm/85760-1773996116/final-design.html"}
+{"type":"screen-added","file":"/Users/jeremy/Projects/assymo-cnfg/.superpowers/brainstorm/85760-1773996116/waiting.html"}
+{"type":"server-stopped","reason":"idle timeout"}

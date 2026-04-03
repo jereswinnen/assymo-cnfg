@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
-import { useConfigStore } from '@/store/useConfigStore';
+import { useConfigStore, selectSingleBuildingId } from '@/store/useConfigStore';
 import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/lib/snap';
 import { getConstraints } from '@/lib/constants';
 import { t } from '@/lib/i18n';
@@ -151,7 +151,7 @@ export default function SchematicView() {
   const connections = useConfigStore((s) => s.connections);
   const selectedElement = useConfigStore((s) => s.selectedElement);
   const selectedBuildingIds = useConfigStore((s) => s.selectedBuildingIds);
-  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null);
+  const selectedBuildingId = useConfigStore(selectSingleBuildingId);
   const selectBuilding = useConfigStore((s) => s.selectBuilding);
   const updateBuildingPosition = useConfigStore((s) => s.updateBuildingPosition);
   const setConnections = useConfigStore((s) => s.setConnections);
@@ -181,6 +181,7 @@ export default function SchematicView() {
   // Selection rectangle state
   const selectRectAnchor = useRef<[number, number] | null>(null);
   const [selectRect, setSelectRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const selectRectRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
 
   // Freeze viewBox during drag to prevent coordinate system shifts
   const [frozenViewBox, setFrozenViewBox] = useState<string | null>(null);
@@ -309,7 +310,9 @@ export default function SchematicView() {
       const ry = Math.min(az, wz);
       const rw = Math.abs(wx - ax);
       const rh = Math.abs(wz - az);
-      setSelectRect({ x: rx, y: ry, w: rw, h: rh });
+      const rect = { x: rx, y: ry, w: rw, h: rh };
+      selectRectRef.current = rect;
+      setSelectRect(rect);
       return;
     }
 
@@ -321,6 +324,7 @@ export default function SchematicView() {
         const dy = e.clientY - down.y;
         if (dx * dx + dy * dy < 25) return;
         resizing.current = true;
+        useConfigStore.temporal.getState().pause();
       }
       if (!resizing.current) return;
 
@@ -397,6 +401,7 @@ export default function SchematicView() {
       if (dx * dx + dy * dy < 25) return; // 5px dead zone
       dragging.current = true;
       setDraggedBuildingId(dragBuildingId.current);
+      useConfigStore.temporal.getState().pause();
     }
     if (!dragging.current) return;
 
@@ -480,8 +485,9 @@ export default function SchematicView() {
   const onPointerUp = useCallback(() => {
     // --- Selection rectangle commit ---
     if (selectRectAnchor.current) {
-      if (selectRect) {
-        const { x, y, w, h } = selectRect;
+      const rect = selectRectRef.current;
+      if (rect) {
+        const { x, y, w, h } = rect;
         const allBuildings = useConfigStore.getState().buildings;
         const hits = allBuildings.filter(b => {
           const [bx, by, bw, bh] = getBuildingAABB(b);
@@ -497,6 +503,7 @@ export default function SchematicView() {
         useConfigStore.getState().selectBuildings([]);
       }
       selectRectAnchor.current = null;
+      selectRectRef.current = null;
       pointerDownScreen.current = null;
       setSelectRect(null);
       setFrozenViewBox(null);
@@ -505,7 +512,9 @@ export default function SchematicView() {
 
     // --- Resize cleanup ---
     if (resizeBuildingId.current) {
-      if (!resizing.current) {
+      if (resizing.current) {
+        useConfigStore.temporal.getState().resume();
+      } else {
         selectBuilding(resizeBuildingId.current);
       }
       resizing.current = false;
@@ -519,6 +528,7 @@ export default function SchematicView() {
 
     // --- Existing move cleanup ---
     if (dragging.current) {
+      useConfigStore.temporal.getState().resume();
       setDraggedBuildingId(null);
 
       // Re-evaluate snap connections after group move
@@ -555,7 +565,7 @@ export default function SchematicView() {
     dragStartWorld.current = null;
     pointerDownScreen.current = null;
     setFrozenViewBox(null);
-  }, [selectBuilding, setDraggedBuildingId, setConnections, selectRect]);
+  }, [selectBuilding, setDraggedBuildingId, setConnections]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
