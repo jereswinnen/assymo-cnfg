@@ -25,6 +25,7 @@ export default function Sidebar() {
   const setSidebarTab = useConfigStore((s) => s.setSidebarTab);
   const sidebarCollapsed = useConfigStore((s) => s.sidebarCollapsed);
   const setSidebarCollapsed = useConfigStore((s) => s.setSidebarCollapsed);
+  const selectedCount = useConfigStore((s) => s.selectedBuildingIds.length);
   const isDesktop = useIsDesktop();
 
   // Keyboard shortcuts: [ to toggle sidebar, Delete/Backspace to remove selected building
@@ -104,7 +105,15 @@ export default function Sidebar() {
 
         {/* Tab content */}
         <div className="flex-1 overflow-y-auto">
-          {sidebarTab === 'objects' ? <ObjectsTab /> : <ConfigureTab />}
+          {sidebarTab === 'objects' ? (
+            <ObjectsTab />
+          ) : selectedCount > 1 ? (
+            <div className="p-4 text-sm text-muted-foreground text-center">
+              {selectedCount} objecten geselecteerd
+            </div>
+          ) : (
+            <ConfigureTab />
+          )}
         </div>
       </div>
     </>
