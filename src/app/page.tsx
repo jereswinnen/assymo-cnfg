@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import Sidebar from '@/components/ui/Sidebar';
 import SchematicView from '@/components/schematic/SchematicView';
 import { useConfigStore } from '@/store/useConfigStore';
+import { useUndoRedo } from '@/hooks/useUndoRedo';
 
 const BuildingScene = dynamic(
   () => import('@/components/canvas/BuildingScene'),
@@ -65,6 +66,7 @@ function ViewToggle() {
 }
 
 export default function Home() {
+  useUndoRedo();
   const viewMode = useConfigStore((s) => s.viewMode);
 
   return (
