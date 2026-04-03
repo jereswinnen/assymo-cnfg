@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { temporal } from 'zundo';
 import type {
   BuildingEntity,
   BuildingDimensions,
@@ -122,7 +123,9 @@ function makeInitialBuilding(): BuildingEntity {
 
 const initialBuilding = makeInitialBuilding();
 
-export const useConfigStore = create<ConfigState>((set, get) => ({
+export const useConfigStore = create<ConfigState>()(
+  temporal(
+    (set, get) => ({
   buildings: [initialBuilding],
   connections: [],
   roof: { ...DEFAULT_ROOF },
@@ -377,7 +380,16 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
           (c.buildingBId === buildingId && c.sideB === wallSide)),
     );
   },
-}));
+    }),
+    {
+      partialize: (state) => ({
+        buildings: state.buildings,
+        connections: state.connections,
+        roof: state.roof,
+      }),
+    },
+  ),
+);
 
 // Detect GPU tier at startup and update store
 if (typeof window !== 'undefined') {
