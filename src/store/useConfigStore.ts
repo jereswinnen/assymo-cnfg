@@ -33,7 +33,7 @@ interface ConfigState {
   connections: SnapConnection[];
   roof: RoofConfig;
 
-  selectedBuildingId: string | null;
+  selectedBuildingIds: string[];
   selectedElement: SelectedElement;
   draggedBuildingId: string | null;
   cameraTargetWallId: WallId | null;
@@ -48,6 +48,13 @@ interface ConfigState {
   addBuilding: (type: BuildingType, position?: [number, number]) => string;
   removeBuilding: (id: string) => void;
   selectBuilding: (id: string | null) => void;
+
+  // Multi-select
+  selectBuildings: (ids: string[]) => void;
+  toggleBuildingSelection: (id: string) => void;
+
+  // Batch position update (for group move — single undo step)
+  updateBuildingPositions: (updates: { id: string; position: [number, number] }[]) => void;
 
   // Per-building mutations
   updateBuildingDimensions: (id: string, dims: Partial<BuildingDimensions>) => void;
@@ -120,7 +127,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   connections: [],
   roof: { ...DEFAULT_ROOF },
 
-  selectedBuildingId: initialBuilding.id,
+  selectedBuildingIds: [initialBuilding.id],
   selectedElement: null,
   draggedBuildingId: null,
   cameraTargetWallId: null,
@@ -142,7 +149,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     }
     set((state) => ({
       buildings: [...state.buildings, b],
-      selectedBuildingId: b.id,
+      selectedBuildingIds: [b.id],
       sidebarTab: 'configure' as const,
       sidebarCollapsed: false,
     }));
@@ -160,19 +167,40 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       const connections = state.connections.filter(
         c => c.buildingAId !== id && c.buildingBId !== id,
       );
-      const selectedBuildingId =
-        state.selectedBuildingId === id ? null : state.selectedBuildingId;
+      const wasSelected = state.selectedBuildingIds.includes(id);
+      const selectedBuildingIds = state.selectedBuildingIds.filter(i => i !== id);
       const selectedElement =
-        state.selectedBuildingId === id ? null : state.selectedElement;
+        wasSelected && selectedBuildingIds.length === 0 ? null : state.selectedElement;
       const sidebarTab =
-        state.selectedBuildingId === id ? 'objects' as const : state.sidebarTab;
-      return { buildings, connections, selectedBuildingId, selectedElement, sidebarTab };
+        wasSelected && selectedBuildingIds.length === 0 ? 'objects' as const : state.sidebarTab;
+      return { buildings, connections, selectedBuildingIds, selectedElement, sidebarTab };
     }),
 
   selectBuilding: (id) => set({
-    selectedBuildingId: id,
+    selectedBuildingIds: id ? [id] : [],
     ...(id ? { sidebarTab: 'configure' as const, sidebarCollapsed: false } : {}),
   }),
+
+  selectBuildings: (ids) => set({ selectedBuildingIds: ids }),
+
+  toggleBuildingSelection: (id) =>
+    set((state) => {
+      const ids = state.selectedBuildingIds;
+      const exists = ids.includes(id);
+      return {
+        selectedBuildingIds: exists
+          ? ids.filter(i => i !== id)
+          : [...ids, id],
+      };
+    }),
+
+  updateBuildingPositions: (updates) =>
+    set((state) => ({
+      buildings: state.buildings.map(b => {
+        const u = updates.find(u => u.id === b.id);
+        return u ? { ...b, position: u.position } : b;
+      }),
+    })),
 
   updateBuildingDimensions: (id, dims) =>
     set((state) => ({
@@ -248,8 +276,8 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   selectElement: (element) =>
     set((state) => ({
       selectedElement: element,
-      selectedBuildingId:
-        element?.type === 'wall' ? element.buildingId : state.selectedBuildingId,
+      selectedBuildingIds:
+        element?.type === 'wall' ? [element.buildingId] : state.selectedBuildingIds,
       activeConfigSection:
         element?.type === 'wall' ? 'walls' : element?.type === 'roof' ? 'structure' : state.activeConfigSection,
       sidebarTab: 'configure' as const,
@@ -291,7 +319,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       buildings: [initial],
       connections: [],
       roof: { ...DEFAULT_ROOF },
-      selectedBuildingId: null,
+      selectedBuildingIds: [],
       selectedElement: null,
       draggedBuildingId: null,
       cameraTargetWallId: null,
@@ -319,7 +347,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       connections,
       roof,
       defaultHeight,
-      selectedBuildingId: migrated[0]?.id ?? null,
+      selectedBuildingIds: migrated[0] ? [migrated[0].id] : [],
       selectedElement: null,
       activeConfigSection: 'dimensions',
       sidebarTab: 'objects',
@@ -327,9 +355,9 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   },
 
   getSelectedBuilding: () => {
-    const { buildings, selectedBuildingId } = get();
-    if (!selectedBuildingId) return null;
-    return buildings.find(b => b.id === selectedBuildingId) ?? null;
+    const { buildings, selectedBuildingIds } = get();
+    if (selectedBuildingIds.length !== 1) return null;
+    return buildings.find(b => b.id === selectedBuildingIds[0]) ?? null;
   },
 
   getSelectedWallConfig: () => {
