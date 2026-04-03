@@ -1,5 +1,0 @@
-{"type":"server-started","port":62322,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:62322","screen_dir":"/Users/jeremy/Projects/assymo-cnfg/.superpowers/brainstorm/96269-1775205478/content","state_dir":"/Users/jeremy/Projects/assymo-cnfg/.superpowers/brainstorm/96269-1775205478/state"}
-{"type":"screen-added","file":"/Users/jeremy/Projects/assymo-cnfg/.superpowers/brainstorm/96269-1775205478/content/selection-rectangle.html"}
-{"source":"user-event","type":"click","text":"C — Marching Ants\n      Animated dashed border (like Photoshop). Very clear what's being selected, more \"tool-like\" feel.","choice":"c","id":null,"timestamp":1775205767155}
-{"type":"screen-added","file":"/Users/jeremy/Projects/assymo-cnfg/.superpowers/brainstorm/96269-1775205478/content/waiting.html"}
-{"type":"server-stopped","reason":"idle timeout"}

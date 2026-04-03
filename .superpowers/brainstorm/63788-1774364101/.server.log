@@ -1,6 +1,0 @@
-{"type":"server-started","port":63475,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:63475","screen_dir":"/Users/jeremy/Projects/assymo-cnfg/.superpowers/brainstorm/63788-1774364101"}
-{"type":"screen-added","file":"/Users/jeremy/Projects/assymo-cnfg/.superpowers/brainstorm/63788-1774364101/visual-upgrade-overview.html"}
-{"source":"user-event","type":"click","text":"1\n    \n      HDRI Environment Map\n      Replace flat ambient light with a real sky environment. Adds natural light bounce from all directions, realistic reflections on glass and metal surfaces. Using @react-three/drei's Environment component with a free outdoor HDRI from Poly Haven.","choice":"1","id":null,"timestamp":1774364355003}
-{"source":"user-event","type":"click","text":"2\n      Post-Processing Pipeline\n      Add @react-three/postprocessing with three effects:\n      SSAO — soft shadows in corners and where surfaces meet (kills the flat look)\n      Tone Mapping — ACESFilmic for cinematic color response\n      Bloom — subtle glow on glass and bright surfaces","choice":"2","id":null,"timestamp":1774364356203}
-{"type":"screen-added","file":"/Users/jeremy/Projects/assymo-cnfg/.superpowers/brainstorm/63788-1774364101/waiting.html"}
-{"type":"server-stopped","reason":"idle timeout"}
