@@ -61,6 +61,20 @@ function getConnectionEdges(
   return edges;
 }
 
+function rectsOverlap(
+  ax: number, ay: number, aw: number, ah: number,
+  bx: number, by: number, bw: number, bh: number,
+): boolean {
+  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+}
+
+function getBuildingAABB(b: BuildingEntity): [number, number, number, number] {
+  const isVertMuur = b.type === 'muur' && b.orientation === 'vertical';
+  const w = isVertMuur ? b.dimensions.depth : b.dimensions.width;
+  const d = isVertMuur ? b.dimensions.width : b.dimensions.depth;
+  return [b.position[0], b.position[1], w, d];
+}
+
 function clientToWorld(
   svgEl: SVGSVGElement,
   clientX: number,
@@ -161,8 +175,25 @@ export default function SchematicView() {
   const resizeStartDims = useRef<{ width: number; depth: number }>({ width: 0, depth: 0 });
   const resizeStartPos = useRef<[number, number]>([0, 0]);
 
+  // Selection rectangle state
+  const selectRectAnchor = useRef<[number, number] | null>(null);
+  const [selectRect, setSelectRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+
   // Freeze viewBox during drag to prevent coordinate system shifts
   const [frozenViewBox, setFrozenViewBox] = useState<string | null>(null);
+
+  const previewSelectedIds = useMemo(() => {
+    if (!selectRect) return new Set<string>();
+    const { x, y, w, h } = selectRect;
+    return new Set(
+      buildings
+        .filter(b => {
+          const [bx, by, bw, bh] = getBuildingAABB(b);
+          return rectsOverlap(x, y, w, h, bx, by, bw, bh);
+        })
+        .map(b => b.id),
+    );
+  }, [selectRect, buildings]);
 
   // Ghost preview for drag-and-drop from sidebar
   const [dragGhost, setDragGhost] = useState<{ x: number; y: number } | null>(null);
@@ -243,6 +274,28 @@ export default function SchematicView() {
   }, [computedViewBox]);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
+    // --- Selection rectangle handling ---
+    if (selectRectAnchor.current) {
+      const down = pointerDownScreen.current;
+      if (down) {
+        const dx = e.clientX - down.x;
+        const dy = e.clientY - down.y;
+        if (dx * dx + dy * dy < 25) return; // 5px dead zone
+      }
+
+      const svg = svgRef.current;
+      if (!svg) return;
+
+      const [wx, wz] = clientToWorld(svg, e.clientX, e.clientY);
+      const [ax, az] = selectRectAnchor.current;
+      const rx = Math.min(ax, wx);
+      const ry = Math.min(az, wz);
+      const rw = Math.abs(wx - ax);
+      const rh = Math.abs(wz - az);
+      setSelectRect({ x: rx, y: ry, w: rw, h: rh });
+      return;
+    }
+
     // --- Resize handling ---
     if (resizeBuildingId.current && resizeEdge.current && resizeStartWorld.current) {
       const down = pointerDownScreen.current;
@@ -366,6 +419,31 @@ export default function SchematicView() {
   }, [updateBuildingPosition, updateBuildingDimensions, setConnections, setDraggedBuildingId]);
 
   const onPointerUp = useCallback(() => {
+    // --- Selection rectangle commit ---
+    if (selectRectAnchor.current) {
+      if (selectRect) {
+        const { x, y, w, h } = selectRect;
+        const allBuildings = useConfigStore.getState().buildings;
+        const hits = allBuildings.filter(b => {
+          const [bx, by, bw, bh] = getBuildingAABB(b);
+          return rectsOverlap(x, y, w, h, bx, by, bw, bh);
+        });
+        if (hits.length > 0) {
+          useConfigStore.getState().selectBuildings(hits.map(b => b.id));
+        } else {
+          useConfigStore.getState().selectBuildings([]);
+        }
+      } else {
+        // Click on empty space (no drag) — deselect
+        useConfigStore.getState().selectBuildings([]);
+      }
+      selectRectAnchor.current = null;
+      pointerDownScreen.current = null;
+      setSelectRect(null);
+      setFrozenViewBox(null);
+      return;
+    }
+
     // --- Resize cleanup ---
     if (resizeBuildingId.current) {
       if (!resizing.current) {
@@ -391,14 +469,19 @@ export default function SchematicView() {
     dragStartWorld.current = null;
     pointerDownScreen.current = null;
     setFrozenViewBox(null);
-  }, [selectBuilding, setDraggedBuildingId]);
+  }, [selectBuilding, setDraggedBuildingId, selectRect]);
 
   const onSvgPointerDown = useCallback((e: React.PointerEvent) => {
-    // Click on empty space — deselect
-    if (e.target === svgRef.current) {
-      selectBuilding(null);
-    }
-  }, [selectBuilding]);
+    if (e.target !== svgRef.current) return;
+    if (e.button !== 0) return;
+
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    pointerDownScreen.current = { x: e.clientX, y: e.clientY };
+    selectRectAnchor.current = clientToWorld(svg, e.clientX, e.clientY);
+    setFrozenViewBox(computedViewBox);
+  }, [computedViewBox]);
 
   // --- HTML drag-and-drop handlers (sidebar catalog → canvas) ---
 
@@ -487,7 +570,7 @@ export default function SchematicView() {
             const { width, depth } = b.dimensions;
             const connected = getConnectedSides(b.id, connections);
             const hasWalls = Object.keys(b.walls).length > 0;
-            const isSelected = b.id === selectedBuildingId;
+            const isSelected = selectedBuildingIds.includes(b.id) || previewSelectedIds.has(b.id);
 
             return (
               <g
@@ -640,7 +723,7 @@ export default function SchematicView() {
           {walls.map((w) => {
             const [ox, oz] = w.position;
             const isHorizontal = w.orientation === 'horizontal';
-            const isSelected = w.id === selectedBuildingId;
+            const isSelected = selectedBuildingIds.includes(w.id) || previewSelectedIds.has(w.id);
 
             // Coordinate mapping for SchematicWalls/SchematicOpenings:
             // These components use getWallGeometries() which positions walls at the building edge
@@ -755,7 +838,7 @@ export default function SchematicView() {
             const s = 0.18;
             const cx = p.position[0] + p.dimensions.width / 2;
             const cz = p.position[1] + p.dimensions.depth / 2;
-            const isSelected = p.id === selectedBuildingId;
+            const isSelected = selectedBuildingIds.includes(p.id) || previewSelectedIds.has(p.id);
             return (
               <g
                 key={p.id}
@@ -802,6 +885,29 @@ export default function SchematicView() {
               />
             );
           })()}
+
+          {/* Selection rectangle — marching ants */}
+          {selectRect && (
+            <rect
+              x={selectRect.x}
+              y={selectRect.y}
+              width={selectRect.w}
+              height={selectRect.h}
+              fill="rgba(255,255,255,0.03)"
+              stroke="#3b82f6"
+              strokeWidth={0.04}
+              strokeDasharray="0.12 0.12"
+              pointerEvents="none"
+            >
+              <animate
+                attributeName="stroke-dashoffset"
+                from="0"
+                to="0.24"
+                dur="0.4s"
+                repeatCount="indefinite"
+              />
+            </rect>
+          )}
 
           {/* Total depth dimension — only when multiple connected buildings */}
           {showTotalDimension && (
