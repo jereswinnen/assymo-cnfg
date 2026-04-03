@@ -37,9 +37,10 @@ export default function Sidebar() {
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         const state = useConfigStore.getState();
-        if (state.selectedBuildingId) {
+        const sid = state.selectedBuildingIds.length === 1 ? state.selectedBuildingIds[0] : null;
+        if (sid) {
           e.preventDefault();
-          state.removeBuilding(state.selectedBuildingId);
+          state.removeBuilding(sid);
         }
       }
     };

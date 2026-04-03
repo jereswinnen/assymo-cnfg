@@ -90,7 +90,7 @@ function CameraAnimator() {
   const wallId = useConfigStore((s) => s.cameraTargetWallId);
   const clearTarget = useConfigStore((s) => s.clearCameraTarget);
   const draggedBuildingId = useConfigStore((s) => s.draggedBuildingId);
-  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingId);
+  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null);
   const buildings = useConfigStore((s) => s.buildings);
 
   useEffect(() => {

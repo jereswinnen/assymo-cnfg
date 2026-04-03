@@ -16,7 +16,7 @@ const CATALOG_ITEMS: { type: BuildingType; icon: string }[] = [
 
 export default function ObjectsTab() {
   const buildings = useConfigStore((s) => s.buildings);
-  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingId);
+  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null);
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const addBuilding = useConfigStore((s) => s.addBuilding);
   const removeBuilding = useConfigStore((s) => s.removeBuilding);

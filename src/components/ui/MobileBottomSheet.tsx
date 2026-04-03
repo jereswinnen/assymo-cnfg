@@ -10,7 +10,7 @@ export default function MobileBottomSheet() {
   const [expanded, setExpanded] = useState(false);
   const sidebarTab = useConfigStore((s) => s.sidebarTab);
   const setSidebarTab = useConfigStore((s) => s.setSidebarTab);
-  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingId);
+  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null);
 
   const touchStartY = useRef<number | null>(null);
 

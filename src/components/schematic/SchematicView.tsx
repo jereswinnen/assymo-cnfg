@@ -136,7 +136,8 @@ export default function SchematicView() {
   const buildings = useConfigStore((s) => s.buildings);
   const connections = useConfigStore((s) => s.connections);
   const selectedElement = useConfigStore((s) => s.selectedElement);
-  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingId);
+  const selectedBuildingIds = useConfigStore((s) => s.selectedBuildingIds);
+  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null);
   const selectBuilding = useConfigStore((s) => s.selectBuilding);
   const updateBuildingPosition = useConfigStore((s) => s.updateBuildingPosition);
   const setConnections = useConfigStore((s) => s.setConnections);

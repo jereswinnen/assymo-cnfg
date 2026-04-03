@@ -106,10 +106,11 @@ function SliderRow({ label, value, min, max, step, unit, onChange, badge, onRese
 }
 
 export default function DimensionsControl() {
-  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingId);
+  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null);
   const building = useConfigStore((s) => {
-    if (!s.selectedBuildingId) return null;
-    return s.buildings.find(b => b.id === s.selectedBuildingId) ?? null;
+    const sid = s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null;
+    if (!sid) return null;
+    return s.buildings.find(b => b.id === sid) ?? null;
   });
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const roofType = useConfigStore((s) => s.roof.type);

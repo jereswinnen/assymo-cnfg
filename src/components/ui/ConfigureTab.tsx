@@ -68,7 +68,7 @@ function WallsContent({ buildingType, buildingId }: { buildingType: BuildingType
 function ConnectionToggles() {
   const buildings = useConfigStore((s) => s.buildings);
   const connections = useConfigStore((s) => s.connections);
-  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingId);
+  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null);
   const toggleConnectionOpen = useConfigStore((s) => s.toggleConnectionOpen);
 
   const selectedConnections = connections.filter(
@@ -103,7 +103,8 @@ function ConnectionToggles() {
 
 function CornerBracesToggle() {
   const selectedBuilding = useConfigStore((s) => {
-    const b = s.buildings.find(b => b.id === s.selectedBuildingId);
+    const sid = s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null;
+    const b = s.buildings.find(b => b.id === sid);
     return b ?? null;
   });
   const toggleBuildingBraces = useConfigStore((s) => s.toggleBuildingBraces);
@@ -137,7 +138,8 @@ function CornerBracesToggle() {
 export default function ConfigureTab() {
   const buildings = useConfigStore((s) => s.buildings);
   const selectedBuilding = useConfigStore((s) => {
-    const b = s.buildings.find(b => b.id === s.selectedBuildingId);
+    const sid = s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null;
+    const b = s.buildings.find(b => b.id === sid);
     return b ?? null;
   });
   const defaultHeight = useConfigStore((s) => s.defaultHeight);

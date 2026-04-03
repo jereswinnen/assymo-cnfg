@@ -7,8 +7,9 @@ import type { WallId } from '@/types/building';
 
 export default function WallSelector() {
   const selectedBuilding = useConfigStore((s) => {
-    if (!s.selectedBuildingId) return null;
-    return s.buildings.find(b => b.id === s.selectedBuildingId) ?? null;
+    const sid = s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null;
+    if (!sid) return null;
+    return s.buildings.find(b => b.id === sid) ?? null;
   });
   const selectedElement = useConfigStore((s) => s.selectedElement);
   const selectElement = useConfigStore((s) => s.selectElement);

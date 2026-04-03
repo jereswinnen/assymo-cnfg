@@ -6,10 +6,11 @@ import { t } from '@/lib/i18n';
 import SectionLabel from '@/components/ui/SectionLabel';
 
 export default function FloorConfigSection() {
-  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingId);
+  const selectedBuildingId = useConfigStore((s) => s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null);
   const floorMaterialId = useConfigStore((s) => {
-    if (!s.selectedBuildingId) return null;
-    const b = s.buildings.find(b => b.id === s.selectedBuildingId);
+    const sid = s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null;
+    if (!sid) return null;
+    const b = s.buildings.find(b => b.id === sid);
     return b?.floor.materialId ?? null;
   });
   const updateBuildingFloor = useConfigStore((s) => s.updateBuildingFloor);
