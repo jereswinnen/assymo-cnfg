@@ -176,6 +176,8 @@ export default function SchematicView() {
   const resizeStartDims = useRef<{ width: number; depth: number }>({ width: 0, depth: 0 });
   const resizeStartPos = useRef<[number, number]>([0, 0]);
 
+  const groupDragStartPositions = useRef<Map<string, [number, number]>>(new Map());
+
   // Selection rectangle state
   const selectRectAnchor = useRef<[number, number] | null>(null);
   const [selectRect, setSelectRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
@@ -249,6 +251,19 @@ export default function SchematicView() {
     dragBuildingId.current = buildingId;
 
     setFrozenViewBox(computedViewBox);
+
+    // Capture start positions for all selected buildings (for group drag)
+    const state = useConfigStore.getState();
+    if (state.selectedBuildingIds.includes(buildingId) && state.selectedBuildingIds.length > 1) {
+      const posMap = new Map<string, [number, number]>();
+      for (const id of state.selectedBuildingIds) {
+        const b = state.buildings.find(b => b.id === id);
+        if (b) posMap.set(id, [...b.position]);
+      }
+      groupDragStartPositions.current = posMap;
+    } else {
+      groupDragStartPositions.current = new Map();
+    }
   }, [computedViewBox]);
 
   const onResizePointerDown = useCallback((
@@ -391,32 +406,74 @@ export default function SchematicView() {
     const [wx, wz] = clientToWorld(svg, e.clientX, e.clientY);
     const dx = wx - dragStartWorld.current[0];
     const dz = wz - dragStartWorld.current[1];
-    const newPos: [number, number] = [
-      dragStartPos.current[0] + dx,
-      dragStartPos.current[1] + dz,
-    ];
 
     const allBuildings = useConfigStore.getState().buildings;
     const building = allBuildings.find(b => b.id === dragBuildingId.current);
     if (!building) return;
 
-    if (building.type === 'paal') {
-      const snapped = detectPoleSnap(newPos, allBuildings.filter(b => b.id !== building.id));
-      updateBuildingPosition(building.id, snapped);
-    } else if (building.type === 'muur') {
-      const snapped = detectWallSnap(
-        newPos,
-        building.dimensions.width,
-        building.orientation,
-        allBuildings.filter(b => b.id !== building.id),
-      );
-      updateBuildingPosition(building.id, snapped);
+    // Group drag: move all selected buildings
+    if (groupDragStartPositions.current.size > 1) {
+      const draggedStartPos = groupDragStartPositions.current.get(dragBuildingId.current!);
+      if (!draggedStartPos) return;
+
+      const newDraggedPos: [number, number] = [draggedStartPos[0] + dx, draggedStartPos[1] + dz];
+
+      // Snap only the dragged building
+      let snappedDx = dx;
+      let snappedDz = dz;
+
+      if (building.type === 'paal') {
+        const snapped = detectPoleSnap(newDraggedPos, allBuildings.filter(b => !groupDragStartPositions.current.has(b.id)));
+        snappedDx = snapped[0] - draggedStartPos[0];
+        snappedDz = snapped[1] - draggedStartPos[1];
+      } else if (building.type === 'muur') {
+        const snapped = detectWallSnap(
+          newDraggedPos,
+          building.dimensions.width,
+          building.orientation,
+          allBuildings.filter(b => !groupDragStartPositions.current.has(b.id)),
+        );
+        snappedDx = snapped[0] - draggedStartPos[0];
+        snappedDz = snapped[1] - draggedStartPos[1];
+      } else {
+        const others = allBuildings.filter(b => !groupDragStartPositions.current.has(b.id) && b.type !== 'paal' && b.type !== 'muur');
+        const tempBuilding = { ...building, position: newDraggedPos };
+        const { snappedPosition } = detectSnap(tempBuilding, others);
+        snappedDx = snappedPosition[0] - draggedStartPos[0];
+        snappedDz = snappedPosition[1] - draggedStartPos[1];
+      }
+
+      // Apply snapped delta to all selected buildings
+      const updates: { id: string; position: [number, number] }[] = [];
+      for (const [id, startPos] of groupDragStartPositions.current) {
+        updates.push({ id, position: [startPos[0] + snappedDx, startPos[1] + snappedDz] });
+      }
+      useConfigStore.getState().updateBuildingPositions(updates);
     } else {
-      const others = allBuildings.filter(b => b.id !== building.id && b.type !== 'paal' && b.type !== 'muur');
-      const tempBuilding = { ...building, position: newPos };
-      const { snappedPosition, newConnections } = detectSnap(tempBuilding, others);
-      updateBuildingPosition(building.id, snappedPosition);
-      setConnections(newConnections);
+      // Single building drag (existing behavior)
+      const newPos: [number, number] = [
+        dragStartPos.current[0] + dx,
+        dragStartPos.current[1] + dz,
+      ];
+
+      if (building.type === 'paal') {
+        const snapped = detectPoleSnap(newPos, allBuildings.filter(b => b.id !== building.id));
+        updateBuildingPosition(building.id, snapped);
+      } else if (building.type === 'muur') {
+        const snapped = detectWallSnap(
+          newPos,
+          building.dimensions.width,
+          building.orientation,
+          allBuildings.filter(b => b.id !== building.id),
+        );
+        updateBuildingPosition(building.id, snapped);
+      } else {
+        const others = allBuildings.filter(b => b.id !== building.id && b.type !== 'paal' && b.type !== 'muur');
+        const tempBuilding = { ...building, position: newPos };
+        const { snappedPosition, newConnections } = detectSnap(tempBuilding, others);
+        updateBuildingPosition(building.id, snappedPosition);
+        setConnections(newConnections);
+      }
     }
   }, [updateBuildingPosition, updateBuildingDimensions, setConnections, setDraggedBuildingId]);
 
@@ -463,6 +520,29 @@ export default function SchematicView() {
     // --- Existing move cleanup ---
     if (dragging.current) {
       setDraggedBuildingId(null);
+
+      // Re-evaluate snap connections after group move
+      if (groupDragStartPositions.current.size > 1) {
+        const allBuildings = useConfigStore.getState().buildings;
+        // Rebuild all connections by checking each non-pole/non-muur building
+        let allConnections: SnapConnection[] = [];
+        const structuralBuildings = allBuildings.filter(b => b.type !== 'paal' && b.type !== 'muur');
+        for (const building of structuralBuildings) {
+          const others = structuralBuildings.filter(b => b.id !== building.id);
+          const { newConnections } = detectSnap(building, others);
+          // Merge without duplicates
+          for (const nc of newConnections) {
+            const exists = allConnections.some(
+              c => (c.buildingAId === nc.buildingAId && c.sideA === nc.sideA && c.buildingBId === nc.buildingBId && c.sideB === nc.sideB) ||
+                   (c.buildingAId === nc.buildingBId && c.sideA === nc.sideB && c.buildingBId === nc.buildingAId && c.sideB === nc.sideA),
+            );
+            if (!exists) allConnections.push(nc);
+          }
+        }
+        setConnections(allConnections);
+      }
+
+      groupDragStartPositions.current = new Map();
     } else if (dragBuildingId.current) {
       if (shiftOnDown.current) {
         useConfigStore.getState().toggleBuildingSelection(dragBuildingId.current);
@@ -475,7 +555,7 @@ export default function SchematicView() {
     dragStartWorld.current = null;
     pointerDownScreen.current = null;
     setFrozenViewBox(null);
-  }, [selectBuilding, setDraggedBuildingId, selectRect]);
+  }, [selectBuilding, setDraggedBuildingId, setConnections, selectRect]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -891,7 +971,7 @@ export default function SchematicView() {
           ))}
 
           {/* Resize handles on selected building */}
-          {selectedBuildingId && (() => {
+          {selectedBuildingId && selectedBuildingIds.length === 1 && (() => {
             const selected = buildings.find(b => b.id === selectedBuildingId);
             if (!selected || selected.type === 'paal') return null;
             return (
