@@ -3,7 +3,7 @@
 import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { useConfigStore, selectSingleBuildingId } from '@/store/useConfigStore';
 import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/lib/snap';
-import { getConstraints } from '@/lib/constants';
+import { getConstraints, DOOR_W, DOUBLE_DOOR_W } from '@/lib/constants';
 import { t } from '@/lib/i18n';
 import SchematicPosts from './SchematicPosts';
 import SchematicWalls from './SchematicWalls';
@@ -676,6 +676,15 @@ export default function SchematicView() {
             const { width, depth } = b.dimensions;
             const connected = getConnectedSides(b.id, connections);
             const hasWalls = Object.keys(b.walls).length > 0;
+
+            // Compute outward door arc extent for dimension line clearance
+            const outwardArcR = (side: WallSide) => {
+              const w = b.walls[side];
+              if (!w?.hasDoor || w.doorSwing !== 'naar_buiten') return 0;
+              return w.doorSize === 'dubbel' ? DOUBLE_DOOR_W / 2 : DOOR_W;
+            };
+            const rightArc = outwardArcR('right');
+            const frontArc = outwardArcR('front');
             const isSelected = selectedBuildingIds.includes(b.id) || previewSelectedIds.has(b.id);
 
             return (
@@ -736,16 +745,6 @@ export default function SchematicView() {
                   />
                 </g>
 
-                {/* Door and window symbols */}
-                <g pointerEvents="none">
-                  <SchematicOpenings
-                    dimensions={b.dimensions}
-                    walls={b.walls}
-                    offsetX={ox + width / 2}
-                    offsetY={oz + depth / 2}
-                  />
-                </g>
-
                 {/* Per-building width dimension */}
                 <g pointerEvents="none">
                   <DimensionLine
@@ -753,7 +752,7 @@ export default function SchematicView() {
                     y1={oz + depth}
                     x2={ox + width}
                     y2={oz + depth}
-                    offset={showTotalDimension ? 1.0 : 0.8}
+                    offset={Math.max(showTotalDimension ? 1.0 : 0.8, frontArc + 0.5)}
                     label={`${t('dim.width')}: ${width.toFixed(1)}m`}
                   />
                 </g>
@@ -765,8 +764,19 @@ export default function SchematicView() {
                     y1={oz}
                     x2={ox + width}
                     y2={oz + depth}
-                    offset={-0.8}
+                    offset={Math.min(-0.8, -(rightArc + 0.5))}
                     label={`${t('dim.depth')}: ${depth.toFixed(1)}m`}
+                  />
+                </g>
+
+                {/* Door and window symbols — rendered after dimensions so
+                    naar_buiten arcs aren't clipped by dimension label backgrounds */}
+                <g pointerEvents="none">
+                  <SchematicOpenings
+                    dimensions={b.dimensions}
+                    walls={b.walls}
+                    offsetX={ox + width / 2}
+                    offsetY={oz + depth / 2}
                   />
                 </g>
 
@@ -796,29 +806,35 @@ export default function SchematicView() {
                     pointerEvents="none"
                   >
                     {!connected.has('front') && (
-                      <text x={ox + width / 2} y={oz + depth + 0.3}>{t('wall.front')}</text>
+                      <text x={ox + width / 2} y={oz + depth + Math.max(0.3, frontArc + 0.15)}>{t('wall.front')}</text>
                     )}
                     {!connected.has('back') && (
-                      <text x={ox + width / 2} y={oz - 0.3}>{t('wall.back')}</text>
+                      <text x={ox + width / 2} y={oz - Math.max(0.3, outwardArcR('back') + 0.15)}>{t('wall.back')}</text>
                     )}
-                    {!connected.has('left') && (
-                      <text
-                        x={ox - 0.3}
-                        y={oz + depth / 2}
-                        transform={`rotate(-90, ${ox - 0.3}, ${oz + depth / 2})`}
-                      >
-                        {t('wall.left')}
-                      </text>
-                    )}
-                    {!connected.has('right') && (
-                      <text
-                        x={ox + width + 0.3}
-                        y={oz + depth / 2}
-                        transform={`rotate(90, ${ox + width + 0.3}, ${oz + depth / 2})`}
-                      >
-                        {t('wall.right')}
-                      </text>
-                    )}
+                    {!connected.has('left') && (() => {
+                      const lx = ox - Math.max(0.3, outwardArcR('left') + 0.15);
+                      return (
+                        <text
+                          x={lx}
+                          y={oz + depth / 2}
+                          transform={`rotate(-90, ${lx}, ${oz + depth / 2})`}
+                        >
+                          {t('wall.left')}
+                        </text>
+                      );
+                    })()}
+                    {!connected.has('right') && (() => {
+                      const rx = ox + width + Math.max(0.3, rightArc + 0.15);
+                      return (
+                        <text
+                          x={rx}
+                          y={oz + depth / 2}
+                          transform={`rotate(90, ${rx}, ${oz + depth / 2})`}
+                        >
+                          {t('wall.right')}
+                        </text>
+                      );
+                    })()}
                   </g>
                 )}
               </g>
@@ -888,16 +904,6 @@ export default function SchematicView() {
                   />
                 </g>
 
-                {/* Door and window symbols */}
-                <g pointerEvents="none">
-                  <SchematicOpenings
-                    dimensions={schematicDims}
-                    walls={schematicWalls}
-                    offsetX={wallOffsetX}
-                    offsetY={wallOffsetY}
-                  />
-                </g>
-
                 {/* Dimension line showing wall length */}
                 <g pointerEvents="none">
                   {isHorizontal ? (
@@ -919,6 +925,16 @@ export default function SchematicView() {
                       label={`${w.dimensions.width.toFixed(1)}m`}
                     />
                   )}
+                </g>
+
+                {/* Door and window symbols — after dimensions so arcs aren't clipped */}
+                <g pointerEvents="none">
+                  <SchematicOpenings
+                    dimensions={schematicDims}
+                    walls={schematicWalls}
+                    offsetX={wallOffsetX}
+                    offsetY={wallOffsetY}
+                  />
                 </g>
 
                 {/* Wall type label */}

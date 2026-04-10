@@ -132,7 +132,7 @@ function SingleDoorArc({
     const sweepY = swingSign * inward[1] * r;
     const openX = hingeX;
     const openY = doorCY + sweepY;
-    const sweep = sweepY > 0 ? 1 : 0;
+    const sweep = (freeX - hingeX) * sweepY > 0 ? 1 : 0;
 
     return (
       <g stroke="#555" fill="none">
@@ -149,7 +149,7 @@ function SingleDoorArc({
   const sweepX = swingSign * inward[0] * r;
   const openX = doorCX + sweepX;
   const openY = hingeY;
-  const sweep = sweepX > 0 ? 1 : 0;
+  const sweep = (freeY - hingeY) * sweepX < 0 ? 1 : 0;
 
   return (
     <g stroke="#555" fill="none">
@@ -188,7 +188,7 @@ function DoubleDoorArcs({
   const doorCX = cx;
   const doorCY = cy + localDoorX;
   const sweepX = swingSign * inward[0] * r;
-  const sweep = sweepX > 0 ? 1 : 0;
+  const sweep = sweepX > 0 ? 0 : 1;
   const tHinge = doorCY - halfW;
   const bHinge = doorCY + halfW;
 

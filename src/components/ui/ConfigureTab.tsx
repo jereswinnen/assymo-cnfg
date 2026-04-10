@@ -10,8 +10,6 @@ import RoofConfigSection from './RoofConfigSection';
 import FloorConfigSection from './FloorConfigSection';
 import WallSelector from './WallSelector';
 import SurfaceProperties from './SurfaceProperties';
-import DoorConfig from './DoorConfig';
-import WindowConfig from './WindowConfig';
 import QuoteSummary from './QuoteSummary';
 import type { BuildingType } from '@/types/building';
 
@@ -39,18 +37,11 @@ function MuurWallAutoSelect({ buildingId }: { buildingId: string }) {
 }
 
 function WallsContent({ buildingType, buildingId }: { buildingType: BuildingType; buildingId: string }) {
-  const selectedElement = useConfigStore((s) => s.selectedElement);
-  const wallId = selectedElement?.type === 'wall' && selectedElement.buildingId === buildingId
-    ? selectedElement.id
-    : null;
-
   if (buildingType === 'muur') {
     return (
       <div className="space-y-4">
         <MuurWallAutoSelect buildingId={buildingId} />
         <SurfaceProperties />
-        {wallId && <DoorConfig wallId={wallId} buildingId={buildingId} />}
-        {wallId && <WindowConfig wallId={wallId} buildingId={buildingId} />}
       </div>
     );
   }
@@ -59,8 +50,6 @@ function WallsContent({ buildingType, buildingId }: { buildingType: BuildingType
     <div className="space-y-4">
       <WallSelector />
       <SurfaceProperties />
-      {wallId && <DoorConfig wallId={wallId} buildingId={buildingId} />}
-      {wallId && <WindowConfig wallId={wallId} buildingId={buildingId} />}
     </div>
   );
 }
