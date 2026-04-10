@@ -472,7 +472,17 @@ export default function SchematicView() {
         ? (wx - cx) * flipSign
         : (wz - cy) * flipSign;
 
-      const rawFraction = xToFraction(length, localOffset);
+      let fraction = xToFraction(length, localOffset);
+
+      // Snap to preset positions (links=0, midden=0.5, rechts=1)
+      const SNAP_THRESHOLD = 0.03; // ~3% of wall length
+      const presets = [0.0, 0.5, 1.0];
+      for (const preset of presets) {
+        if (Math.abs(fraction - preset) < SNAP_THRESHOLD) {
+          fraction = preset;
+          break;
+        }
+      }
 
       // Build other openings array (exclude the one being dragged)
       const state = useConfigStore.getState();
@@ -511,7 +521,7 @@ export default function SchematicView() {
         ? ((wallCfg.doorSize ?? 'enkel') === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W)
         : WIN_W;
 
-      const clampedFraction = clampOpeningPosition(length, openingWidth, rawFraction, otherOpenings);
+      const clampedFraction = clampOpeningPosition(length, openingWidth, fraction, otherOpenings);
 
       setOpeningDragPreview({
         buildingId: draggingOpening.current.buildingId,
@@ -520,6 +530,26 @@ export default function SchematicView() {
         windowIndex: draggingOpening.current.windowIndex,
         fraction: clampedFraction,
       });
+
+      // Live-update store for 3D view
+      if (draggingOpening.current.type === 'door') {
+        useConfigStore.getState().updateBuildingWall(
+          draggingOpening.current.buildingId,
+          wallConfigKey as WallId,
+          { doorPosition: clampedFraction },
+        );
+      } else if (draggingOpening.current.type === 'window' && draggingOpening.current.windowIndex !== undefined) {
+        const newWindows = [...(wallCfg.windows ?? [])];
+        newWindows[draggingOpening.current.windowIndex] = {
+          ...newWindows[draggingOpening.current.windowIndex],
+          position: clampedFraction,
+        };
+        useConfigStore.getState().updateBuildingWall(
+          draggingOpening.current.buildingId,
+          wallConfigKey as WallId,
+          { windows: newWindows },
+        );
+      }
       return;
     }
 

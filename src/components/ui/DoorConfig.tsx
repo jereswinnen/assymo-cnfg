@@ -1,7 +1,7 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
-import { DOOR_MATERIALS } from '@/lib/constants';
+import { DOOR_MATERIALS, clampOpeningPosition, DOOR_W, DOUBLE_DOOR_W, getWallLength, WIN_W } from '@/lib/constants';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -19,9 +19,17 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
     const b = s.buildings.find(b => b.id === buildingId);
     return b?.walls[wallId] ?? null;
   });
+  const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
   const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
 
-  if (!wallCfg) return null;
+  if (!wallCfg || !building) return null;
+
+  const dimensions = building.dimensions;
+  const wallLength = getWallLength(wallId, dimensions);
+  const dw = wallCfg.doorSize === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W;
+  const otherOpenings = (wallCfg.windows ?? []).map(w => ({ position: w.position, width: WIN_W }));
+  const linksPos = clampOpeningPosition(wallLength, dw, 0.0, otherOpenings);
+  const rechtsPos = clampOpeningPosition(wallLength, dw, 1.0, otherOpenings);
 
   function handleChange(field: string, value: unknown) {
     updateBuildingWall(buildingId, wallId, { [field]: value });
@@ -96,15 +104,15 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
             <ToggleGroup
               type="single"
               value={
-                Math.abs(wallCfg.doorPosition - 0.0) < 0.01 ? 'links'
-                  : Math.abs(wallCfg.doorPosition - 1.0) < 0.01 ? 'rechts'
+                Math.abs(wallCfg.doorPosition - linksPos) < 0.01 ? 'links'
+                  : Math.abs(wallCfg.doorPosition - rechtsPos) < 0.01 ? 'rechts'
                   : Math.abs(wallCfg.doorPosition - 0.5) < 0.01 ? 'midden'
                   : ''
               }
               onValueChange={(v) => {
-                if (!v) return;
-                const pos = v === 'links' ? 0.0 : v === 'rechts' ? 1.0 : 0.5;
-                handleChange('doorPosition', pos);
+                if (v === 'links') handleChange('doorPosition', linksPos);
+                else if (v === 'midden') handleChange('doorPosition', 0.5);
+                else if (v === 'rechts') handleChange('doorPosition', rechtsPos);
               }}
               className="w-full"
               variant="outline"

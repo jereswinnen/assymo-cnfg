@@ -80,12 +80,12 @@ export default function SchematicOpenings({
                     <rect
                       x={isH
                         ? g.cx + (isDoorDragged ? fractionToX(g.length, wallPreview!.fraction) * g.flipSign : localDoorX) - dw / 2
-                        : g.cx - 0.15}
+                        : g.cx - 0.25}
                       y={isH
-                        ? g.cy - 0.15
+                        ? g.cy - 0.25
                         : g.cy + (isDoorDragged ? fractionToX(g.length, wallPreview!.fraction) * g.flipSign : localDoorX) - dw / 2}
-                      width={isH ? dw : 0.3}
-                      height={isH ? 0.3 : dw}
+                      width={isH ? dw : 0.5}
+                      height={isH ? 0.5 : dw}
                       fill="transparent"
                       stroke="none"
                       cursor="grab"
@@ -133,12 +133,12 @@ export default function SchematicOpenings({
                     <rect
                       x={isH
                         ? g.cx + (isWindowDragged ? fractionToX(g.length, wallPreview!.fraction) * g.flipSign : localWinX) - WIN_W / 2
-                        : g.cx - 0.15}
+                        : g.cx - 0.25}
                       y={isH
-                        ? g.cy - 0.15
+                        ? g.cy - 0.25
                         : g.cy + (isWindowDragged ? fractionToX(g.length, wallPreview!.fraction) * g.flipSign : localWinX) - WIN_W / 2}
-                      width={isH ? WIN_W : 0.3}
-                      height={isH ? 0.3 : WIN_W}
+                      width={isH ? WIN_W : 0.5}
+                      height={isH ? 0.5 : WIN_W}
                       fill="transparent"
                       stroke="none"
                       cursor="grab"
