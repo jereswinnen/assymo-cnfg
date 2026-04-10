@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import Sidebar from '@/components/ui/Sidebar';
 import SchematicView from '@/components/schematic/SchematicView';
 import { useConfigStore } from '@/store/useConfigStore';
+import { t } from '@/lib/i18n';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 
 const BuildingScene = dynamic(
@@ -25,7 +26,7 @@ function ViewToggle() {
           onClick={() => selectElement(null)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-foreground text-background shadow-sm"
         >
-          Plattegrond
+          {t('view.back')}
         </button>
       )}
       <button

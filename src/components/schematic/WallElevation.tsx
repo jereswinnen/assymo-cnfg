@@ -9,6 +9,7 @@ import {
   clampOpeningPosition, EDGE_CLEARANCE, SNAP_INCREMENT,
   WIN_MIN_SIZE,
 } from '@/lib/constants';
+import { t } from '@/lib/i18n';
 import type { WallId } from '@/types/building';
 
 interface WallElevationProps {
@@ -328,6 +329,14 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
         style={{ cursor: 'default' }}
         onPointerDown={() => setSelectedOpening(null)}
       />
+
+      {/* Elevation title */}
+      <text
+        x={wallLength / 2} y={-0.45}
+        textAnchor="middle" fontSize={0.22} fill="#555" fontFamily="system-ui" fontWeight={600}
+      >
+        {t('view.elevation')} — {t(`wall.${wallId}`)}
+      </text>
 
       {/* Wall width dimension label */}
       <text

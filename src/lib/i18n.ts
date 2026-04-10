@@ -143,6 +143,8 @@ const nl: Record<string, string> = {
 
   // Schematic
   'view.floorplan': 'Plattegrond',
+  'view.elevation': 'Muur-weergave',
+  'view.back': 'Terug',
   'schematic.title': 'Plattegrond',
   'schematic.width': 'Breedte',
   'schematic.depth': 'Diepte',
