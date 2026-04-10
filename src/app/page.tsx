@@ -14,13 +14,27 @@ const BuildingScene = dynamic(
 function ViewToggle() {
   const viewMode = useConfigStore((s) => s.viewMode);
   const setViewMode = useConfigStore((s) => s.setViewMode);
+  const selectedElement = useConfigStore((s) => s.selectedElement);
+  const selectElement = useConfigStore((s) => s.selectElement);
+  const isElevationMode = selectedElement?.type === 'wall';
 
   return (
     <div className="flex gap-1 bg-background/80 backdrop-blur-xl rounded-xl shadow-md ring-1 ring-black/[0.08] p-1">
+      {isElevationMode && (
+        <button
+          onClick={() => selectElement(null)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-foreground text-background shadow-sm"
+        >
+          Plattegrond
+        </button>
+      )}
       <button
-        onClick={() => setViewMode('plan')}
+        onClick={() => {
+          if (isElevationMode) selectElement(null);
+          setViewMode('plan');
+        }}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-          viewMode === 'plan'
+          viewMode === 'plan' && !isElevationMode
             ? 'bg-foreground text-background shadow-sm'
             : 'text-foreground/60 hover:text-foreground/80'
         }`}
@@ -33,7 +47,10 @@ function ViewToggle() {
         2D
       </button>
       <button
-        onClick={() => setViewMode('split')}
+        onClick={() => {
+          if (isElevationMode) selectElement(null);
+          setViewMode('split');
+        }}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
           viewMode === 'split'
             ? 'bg-foreground text-background shadow-sm'
@@ -47,7 +64,10 @@ function ViewToggle() {
         Split
       </button>
       <button
-        onClick={() => setViewMode('3d')}
+        onClick={() => {
+          if (isElevationMode) selectElement(null);
+          setViewMode('3d');
+        }}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
           viewMode === '3d'
             ? 'bg-foreground text-background shadow-sm'

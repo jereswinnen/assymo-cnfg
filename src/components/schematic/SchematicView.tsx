@@ -1,9 +1,9 @@
 'use client';
 
 import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
-import { useConfigStore, selectSingleBuildingId } from '@/store/useConfigStore';
+import { useConfigStore, selectSingleBuildingId, getEffectiveHeight } from '@/store/useConfigStore';
 import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/lib/snap';
-import { getConstraints, DOOR_W, DOUBLE_DOOR_W, WIN_W, xToFraction, clampOpeningPosition, fractionToX } from '@/lib/constants';
+import { getConstraints, DOOR_W, DOUBLE_DOOR_W, WIN_W, xToFraction, clampOpeningPosition, fractionToX, getWallLength } from '@/lib/constants';
 import { t } from '@/lib/i18n';
 import SchematicPosts from './SchematicPosts';
 import SchematicWalls, { getWallGeometries } from './SchematicWalls';
@@ -150,6 +150,8 @@ export default function SchematicView() {
   const buildings = useConfigStore((s) => s.buildings);
   const connections = useConfigStore((s) => s.connections);
   const selectedElement = useConfigStore((s) => s.selectedElement);
+  const defaultHeight = useConfigStore((s) => s.defaultHeight);
+  const isElevationMode = selectedElement?.type === 'wall';
   const selectedBuildingIds = useConfigStore((s) => s.selectedBuildingIds);
   const selectedBuildingId = useConfigStore(selectSingleBuildingId);
   const selectBuilding = useConfigStore((s) => s.selectBuilding);
@@ -244,6 +246,16 @@ export default function SchematicView() {
   const pad = showTotalDimension ? 2.8 : 2.0;
   const computedViewBox = `${minX - pad} ${minZ - pad} ${totalW + 2 * pad} ${totalD + 2 * pad}`;
   const activeViewBox = frozenViewBox ?? computedViewBox;
+
+  const elevationViewBox = useMemo(() => {
+    if (!isElevationMode || selectedElement?.type !== 'wall') return '';
+    const building = buildings.find(b => b.id === selectedElement.buildingId);
+    if (!building) return '';
+    const wallLength = getWallLength(selectedElement.id, building.dimensions);
+    const wallHeight = getEffectiveHeight(building, defaultHeight);
+    const pad = 0.8;
+    return `${-pad} ${-pad} ${wallLength + 2 * pad} ${wallHeight + 2 * pad}`;
+  }, [isElevationMode, selectedElement, buildings, defaultHeight]);
 
   const connectionEdges = useMemo(
     () => getConnectionEdges(buildings, connections),
@@ -349,6 +361,7 @@ export default function SchematicView() {
   }, [buildings, computedViewBox]);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (isElevationMode) return;
     // --- Selection rectangle handling ---
     if (selectRectAnchor.current) {
       const down = pointerDownScreen.current;
@@ -642,7 +655,7 @@ export default function SchematicView() {
         setConnections(newConnections);
       }
     }
-  }, [updateBuildingPosition, updateBuildingDimensions, setConnections, setDraggedBuildingId]);
+  }, [isElevationMode, updateBuildingPosition, updateBuildingDimensions, setConnections, setDraggedBuildingId]);
 
   const onPointerUp = useCallback(() => {
     // --- Selection rectangle commit ---
@@ -762,14 +775,19 @@ export default function SchematicView() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        useConfigStore.getState().selectBuildings([]);
+        if (isElevationMode) {
+          useConfigStore.getState().selectElement(null);
+        } else {
+          useConfigStore.getState().selectBuildings([]);
+        }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [isElevationMode]);
 
   const onSvgPointerDown = useCallback((e: React.PointerEvent) => {
+    if (isElevationMode) return;
     if (e.target !== svgRef.current) return;
     if (e.button !== 0) return;
 
@@ -779,7 +797,7 @@ export default function SchematicView() {
     pointerDownScreen.current = { x: e.clientX, y: e.clientY };
     selectRectAnchor.current = clientToWorld(svg, e.clientX, e.clientY);
     setFrozenViewBox(computedViewBox);
-  }, [computedViewBox]);
+  }, [isElevationMode, computedViewBox]);
 
   // --- HTML drag-and-drop handlers (sidebar catalog → canvas) ---
 
@@ -846,7 +864,7 @@ export default function SchematicView() {
       <div className="flex-1 min-h-0 flex items-center justify-center">
         <svg
           ref={svgRef}
-          viewBox={activeViewBox}
+          viewBox={isElevationMode ? elevationViewBox : activeViewBox}
           className="schematic-svg w-full h-full select-none"
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
@@ -854,6 +872,8 @@ export default function SchematicView() {
           onPointerDown={onSvgPointerDown}
           style={{ cursor: (dragging.current || draggingOpening.current) ? 'grabbing' : undefined }}
         >
+          {!isElevationMode && (
+          <>
           {/* Defs: diagonal hatch for overkapping */}
           <defs>
             <pattern
@@ -1262,6 +1282,23 @@ export default function SchematicView() {
               />
             </g>
           )}
+          </>
+          )}
+
+          {isElevationMode && selectedElement?.type === 'wall' && (() => {
+            const building = buildings.find(b => b.id === selectedElement.buildingId);
+            if (!building) return null;
+            const wallLength = getWallLength(selectedElement.id, building.dimensions);
+            const wallHeight = getEffectiveHeight(building, defaultHeight);
+            return (
+              <g>
+                <rect x={0} y={0} width={wallLength} height={wallHeight} fill="#f5f0e8" fillOpacity={0.15} stroke="#888" strokeWidth={0.03} rx={0.02} />
+                <text x={wallLength / 2} y={wallHeight / 2} textAnchor="middle" dominantBaseline="central" fontSize={0.3} fill="#888" fontFamily="system-ui">
+                  {selectedElement.id}
+                </text>
+              </g>
+            );
+          })()}
         </svg>
       </div>
 
