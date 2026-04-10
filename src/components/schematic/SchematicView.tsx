@@ -832,6 +832,10 @@ export default function SchematicView() {
     selectBuilding(newId);
   }, [addBuilding, updateBuildingPosition, setConnections, selectBuilding]);
 
+  const onWallClick = useCallback((wallId: WallId, buildingId: string) => {
+    useConfigStore.getState().selectElement({ type: 'wall', id: wallId, buildingId });
+  }, []);
+
   return (
     <div
       className="flex flex-col h-full p-6 relative"
@@ -934,6 +938,7 @@ export default function SchematicView() {
                     buildingId={b.id}
                     offsetX={ox + width / 2}
                     offsetY={oz + depth / 2}
+                    onWallClick={onWallClick}
                   />
                 </g>
 
@@ -1096,6 +1101,7 @@ export default function SchematicView() {
                     buildingId={w.id}
                     offsetX={wallOffsetX}
                     offsetY={wallOffsetY}
+                    onWallClick={onWallClick}
                   />
                 </g>
 
