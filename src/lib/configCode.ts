@@ -177,7 +177,11 @@ function encodeWall(w: BitWriter, wall: WallConfig) {
   const winCount = (wall.windows ?? []).length;
   w.write(Math.min(winCount, 7), 3);
   for (let i = 0; i < Math.min(winCount, 7); i++) {
-    w.write(Math.round((wall.windows![i].position) * 100), 7);
+    const win = wall.windows![i];
+    w.write(Math.round(win.position * 100), 7);           // 0-100 → 0.0-1.0
+    w.write(Math.round((win.width ?? 1.2) * 10), 7);      // 0-100 → 0.0-10.0m
+    w.write(Math.round((win.height ?? 1.0) * 10), 7);     // 0-100 → 0.0-10.0m
+    w.write(Math.round((win.sillHeight ?? 1.2) * 10), 7); // 0-100 → 0.0-10.0m
   }
 }
 
@@ -203,9 +207,9 @@ function decodeWall(r: BitReader): WallConfig {
     windows.push({
       id: crypto.randomUUID(),
       position: r.read(7) / 100,
-      width: WIN_W_DEFAULT,
-      height: WIN_H_DEFAULT,
-      sillHeight: WIN_SILL_DEFAULT,
+      width: r.read(7) / 10,
+      height: r.read(7) / 10,
+      sillHeight: r.read(7) / 10,
     });
   }
 
