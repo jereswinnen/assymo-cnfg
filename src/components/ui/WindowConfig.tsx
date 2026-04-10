@@ -2,11 +2,12 @@
 
 import { useConfigStore } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
-import { WIN_W, WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT, getWallLength, findBestNewPosition, DOOR_W, DOUBLE_DOOR_W } from '@/lib/constants';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import SectionLabel from '@/components/ui/SectionLabel';
+import {
+  WIN_W, WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT,
+  getWallLength, findBestNewPosition, DOOR_W, DOUBLE_DOOR_W,
+  EDGE_CLEARANCE, OPENING_GAP,
+} from '@/lib/constants';
+import { Plus, X } from 'lucide-react';
 import type { WallId, WallWindow } from '@/types/building';
 
 interface WindowConfigProps {
@@ -28,77 +29,87 @@ export default function WindowConfig({ wallId, buildingId }: WindowConfigProps) 
   const hasWindows = windows.length > 0;
   const wallLength = getWallLength(wallId, building.dimensions);
 
-  function handleChange(field: string, value: unknown) {
-    updateBuildingWall(buildingId, wallId, { [field]: value });
-  }
+  const usableLen = wallLength - 2 * EDGE_CLEARANCE;
+  const maxWindows = Math.max(0, Math.floor(usableLen / (WIN_W + OPENING_GAP)));
 
-  function setWindowCount(count: number) {
-    const current = wallCfg!.windows ?? [];
-    if (count <= 0) {
-      handleChange('windows', []);
-      return;
-    }
-    if (count < current.length) {
-      handleChange('windows', current.slice(0, count));
-      return;
-    }
-    // Add windows with auto-positioned placement
-    const newWindows = [...current];
-    const existingOpenings: { position: number; width: number }[] = current.map(w => ({
+  function addWindow() {
+    const existingOpenings: { position: number; width: number }[] = windows.map(w => ({
       position: w.position,
-      width: WIN_W,
+      width: w.width ?? WIN_W,
     }));
     if (wallCfg!.hasDoor) {
       const dw = wallCfg!.doorSize === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W;
       existingOpenings.push({ position: wallCfg!.doorPosition ?? 0.5, width: dw });
     }
-    for (let i = current.length; i < count; i++) {
-      const pos = findBestNewPosition(wallLength, WIN_W, existingOpenings);
-      const win: WallWindow = {
-        id: crypto.randomUUID(),
-        position: pos,
-        width: WIN_W_DEFAULT,
-        height: WIN_H_DEFAULT,
-        sillHeight: WIN_SILL_DEFAULT,
-      };
-      newWindows.push(win);
-      existingOpenings.push({ position: pos, width: WIN_W });
-    }
-    handleChange('windows', newWindows);
+    const pos = findBestNewPosition(wallLength, WIN_W, existingOpenings);
+    const win: WallWindow = {
+      id: crypto.randomUUID(),
+      position: pos,
+      width: WIN_W_DEFAULT,
+      height: WIN_H_DEFAULT,
+      sillHeight: WIN_SILL_DEFAULT,
+    };
+    updateBuildingWall(buildingId, wallId, { windows: [...windows, win] });
+  }
+
+  function removeWindow(id: string) {
+    updateBuildingWall(buildingId, wallId, {
+      windows: windows.filter(w => w.id !== id),
+    });
   }
 
   return (
-    <div className={`rounded-lg transition-all ${hasWindows ? 'bg-muted/40 p-3 ring-1 ring-border/50' : ''}`}>
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id="wall-windows"
-          checked={hasWindows}
-          onCheckedChange={(checked) => {
-            if (checked) {
-              setWindowCount(1);
-            } else {
-              handleChange('windows', []);
-            }
-          }}
-        />
-        <Label htmlFor="wall-windows" className="cursor-pointer font-medium">
-          {t('surface.windows')}
-        </Label>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="font-medium text-sm">{t('surface.windows')}</span>
+        {windows.length < maxWindows && (
+          <button
+            onClick={addWindow}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Toevoegen
+          </button>
+        )}
       </div>
       {hasWindows && (
-        <div className="mt-3 space-y-2">
-          <div className="flex justify-between items-center">
-            <SectionLabel>{t('surface.windowCount')}</SectionLabel>
-            <span className="text-sm font-semibold tabular-nums">{windows.length}</span>
-          </div>
-          <Slider
-            min={1}
-            max={6}
-            step={1}
-            value={[windows.length]}
-            onValueChange={([v]) => setWindowCount(v)}
-          />
+        <div className="space-y-1">
+          {windows.map((win, i) => {
+            const w = win.width ?? WIN_W_DEFAULT;
+            const h = win.height ?? WIN_H_DEFAULT;
+            return (
+              <div
+                key={win.id}
+                className="flex items-center justify-between rounded-lg border border-border/50 bg-background px-3 py-2"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-4 rounded-sm border border-sky-300 bg-sky-50" />
+                  <span className="text-sm">Raam {i + 1}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {(w * 100).toFixed(0)} × {(h * 100).toFixed(0)}
+                  </span>
+                  <button
+                    onClick={() => removeWindow(win.id)}
+                    className="text-muted-foreground/50 hover:text-destructive transition-colors p-0.5 -mr-1"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
+      )}
+      {!hasWindows && (
+        <button
+          onClick={addWindow}
+          className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-border/70 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Raam toevoegen
+        </button>
       )}
     </div>
   );
