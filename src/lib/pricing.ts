@@ -16,7 +16,8 @@ import {
   WINDOW_FLAT_FEE,
   SKYLIGHT_FLAT_FEE,
   DOOR_AREA_CUTOUT,
-  WINDOW_AREA_CUTOUT,
+  WIN_W_DEFAULT,
+  WIN_H_DEFAULT,
   POST_PRICE,
   POST_SPACING,
   BRACE_PRICE,
@@ -63,7 +64,9 @@ export function wallNetArea(wallId: WallId, building: BuildingEntity, wallCfg: W
     const doorW = wallCfg.doorSize === 'dubbel' ? DOUBLE_DOOR_W : DOOR_AREA_CUTOUT / 2.1;
     area -= doorW * 2.1;
   }
-  area -= WINDOW_AREA_CUTOUT * (wallCfg.windows ?? []).length;
+  for (const win of wallCfg.windows ?? []) {
+    area -= (win.width ?? WIN_W_DEFAULT) * (win.height ?? WIN_H_DEFAULT);
+  }
   return Math.max(0, area);
 }
 

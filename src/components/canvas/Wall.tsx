@@ -7,7 +7,9 @@ import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { WALL_MATERIALS, WALL_THICKNESS, resolveOpeningPositions, getWallLength } from '@/lib/constants';
 import { useWallTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
+import { WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT } from '@/lib/constants';
 import { createWallWithOpeningsGeo, FRAME_D } from './wallGeometry';
+import type { WindowHole } from './wallGeometry';
 import { frameMat } from './DoorMesh';
 import DoorMesh from './DoorMesh';
 import WindowMesh from './WindowMesh';
@@ -108,6 +110,20 @@ export default function Wall({ wallId }: WallProps) {
     [wallLength, wallCfg.hasDoor, wallCfg.doorPosition, wallCfg.windows],
   );
 
+  const windowHoles: WindowHole[] = useMemo(
+    () =>
+      computedWindowXs.map((wx, i) => {
+        const win = (wallCfg.windows ?? [])[i];
+        return {
+          x: wx,
+          width: win?.width ?? WIN_W_DEFAULT,
+          height: win?.height ?? WIN_H_DEFAULT,
+          sillHeight: win?.sillHeight ?? WIN_SILL_DEFAULT,
+        };
+      }),
+    [computedWindowXs, wallCfg.windows],
+  );
+
   const wallGeo = useMemo(() => {
     if (!hasOpenings) return null;
     return createWallWithOpeningsGeo(
@@ -117,9 +133,9 @@ export default function Wall({ wallId }: WallProps) {
       wallId,
       wallCfg.hasDoor ? computedDoorX : null,
       ds,
-      computedWindowXs,
+      windowHoles,
     );
-  }, [hasOpenings, wallLength, height, wallId, wallCfg.hasDoor, computedDoorX, ds, computedWindowXs]);
+  }, [hasOpenings, wallLength, height, wallId, wallCfg.hasDoor, computedDoorX, ds, windowHoles]);
 
   useEffect(() => {
     return () => { wallGeo?.dispose(); };
@@ -237,9 +253,18 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg }: Ope
           doorMaterialId={wallCfg.doorMaterialId ?? 'wood'}
         />
       )}
-      {windowXs.map((wx, i) => (
-        <WindowMesh key={i} x={wx} />
-      ))}
+      {windowXs.map((wx, i) => {
+        const win = (wallCfg.windows ?? [])[i];
+        return (
+          <WindowMesh
+            key={i}
+            x={wx}
+            width={win?.width}
+            height={win?.height}
+            sillHeight={win?.sillHeight}
+          />
+        );
+      })}
     </group>
   );
 }
