@@ -183,6 +183,25 @@ export const DECK_T = 0.04;
 export const DOOR_W = 0.9;
 export const WIN_W = 1.2;
 
+export const WIN_W_DEFAULT = 1.2;
+export const WIN_H_DEFAULT = 1.0;
+export const WIN_SILL_DEFAULT = 1.2;
+export const WIN_MIN_SIZE = 0.3;
+export const SNAP_INCREMENT = 0.1;
+
+export interface WindowPreset {
+  id: string;
+  label: string;
+  width: number;
+  height: number;
+}
+
+export const WINDOW_PRESETS: WindowPreset[] = [
+  { id: 'standard', label: '120 × 100', width: 1.2, height: 1.0 },
+  { id: 'small', label: '80 × 80', width: 0.8, height: 0.8 },
+  { id: 'large', label: '150 × 120', width: 1.5, height: 1.2 },
+];
+
 // Clearance constants
 export const EDGE_CLEARANCE = 0.5;
 export const OPENING_GAP = 0.3;

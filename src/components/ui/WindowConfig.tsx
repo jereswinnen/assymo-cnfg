@@ -2,7 +2,7 @@
 
 import { useConfigStore } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
-import { WIN_W, getWallLength, findBestNewPosition, DOOR_W, DOUBLE_DOOR_W } from '@/lib/constants';
+import { WIN_W, WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT, getWallLength, findBestNewPosition, DOOR_W, DOUBLE_DOOR_W } from '@/lib/constants';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -54,7 +54,13 @@ export default function WindowConfig({ wallId, buildingId }: WindowConfigProps) 
     }
     for (let i = current.length; i < count; i++) {
       const pos = findBestNewPosition(wallLength, WIN_W, existingOpenings);
-      const win: WallWindow = { id: crypto.randomUUID(), position: pos };
+      const win: WallWindow = {
+        id: crypto.randomUUID(),
+        position: pos,
+        width: WIN_W_DEFAULT,
+        height: WIN_H_DEFAULT,
+        sillHeight: WIN_SILL_DEFAULT,
+      };
       newWindows.push(win);
       existingOpenings.push({ position: pos, width: WIN_W });
     }

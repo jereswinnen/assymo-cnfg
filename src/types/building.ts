@@ -26,7 +26,10 @@ export type DoorSwing = 'dicht' | 'naar_binnen' | 'naar_buiten';
 
 export interface WallWindow {
   id: string;
-  position: number; // 0.0–1.0 fraction of usable wall length
+  position: number;    // 0.0–1.0 horizontal fraction of usable wall length
+  width: number;       // meters
+  height: number;      // meters
+  sillHeight: number;  // meters from ground to bottom of window
 }
 
 export interface WallConfig {

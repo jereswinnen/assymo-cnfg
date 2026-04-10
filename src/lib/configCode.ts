@@ -16,7 +16,7 @@ import type {
   WallWindow,
   SnapConnection,
 } from '@/types/building';
-import { DEFAULT_FLOOR, getDefaultWalls } from '@/lib/constants';
+import { DEFAULT_FLOOR, getDefaultWalls, WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT } from '@/lib/constants';
 
 // ─── Base58 (Bitcoin-style, no 0/O/I/l) ─────────────────────────────
 const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -200,7 +200,13 @@ function decodeWall(r: BitReader): WallConfig {
   const windowCount = clamp(r.read(3), 0, 7);
   const windows: WallWindow[] = [];
   for (let i = 0; i < windowCount; i++) {
-    windows.push({ id: crypto.randomUUID(), position: r.read(7) / 100 });
+    windows.push({
+      id: crypto.randomUUID(),
+      position: r.read(7) / 100,
+      width: WIN_W_DEFAULT,
+      height: WIN_H_DEFAULT,
+      sillHeight: WIN_SILL_DEFAULT,
+    });
   }
 
   return {
