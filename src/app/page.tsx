@@ -22,16 +22,18 @@ function ViewToggle() {
   return (
     <div className="flex items-center gap-2">
       {isElevationMode && (
-        <button
-          onClick={() => selectElement(null)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-background/80 backdrop-blur-xl rounded-xl shadow-md ring-1 ring-black/[0.08] text-sm font-medium text-foreground/70 hover:text-foreground transition-all"
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="8" x2="4" y2="8" />
-            <polyline points="8 4 4 8 8 12" />
-          </svg>
-          {t('view.backToFloorplan')}
-        </button>
+        <div className="bg-background/80 backdrop-blur-xl rounded-xl shadow-md ring-1 ring-black/[0.08] p-1">
+          <button
+            onClick={() => selectElement(null)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-foreground/60 hover:text-foreground/80 transition-all"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="8" x2="4" y2="8" />
+              <polyline points="8 4 4 8 8 12" />
+            </svg>
+            {t('view.backToFloorplan')}
+          </button>
+        </div>
       )}
       <div className="flex gap-1 bg-background/80 backdrop-blur-xl rounded-xl shadow-md ring-1 ring-black/[0.08] p-1">
         <button
