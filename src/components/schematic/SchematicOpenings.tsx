@@ -4,6 +4,7 @@ import {
   DOOR_W,
   WIN_W,
   resolveOpeningPositions,
+  fractionToX,
 } from '@/lib/constants';
 import type { WallConfig, DoorSwing, BuildingDimensions } from '@/types/building';
 import { getWallGeometries } from './SchematicWalls';
@@ -16,6 +17,18 @@ interface SchematicOpeningsProps {
   walls: Record<string, WallConfig>;
   offsetX: number;
   offsetY: number;
+  buildingId?: string;
+  onOpeningPointerDown?: (
+    e: React.PointerEvent,
+    info: { buildingId: string; wallId: string; type: 'door' | 'window'; windowIndex?: number },
+  ) => void;
+  dragPreview?: {
+    buildingId: string;
+    wallId: string;
+    type: 'door' | 'window';
+    windowIndex?: number;
+    fraction: number;
+  } | null;
 }
 
 export default function SchematicOpenings({
@@ -23,8 +36,14 @@ export default function SchematicOpenings({
   walls,
   offsetX,
   offsetY,
+  buildingId,
+  onOpeningPointerDown,
+  dragPreview,
 }: SchematicOpeningsProps) {
   const geoms = getWallGeometries(dimensions, offsetX, offsetY);
+
+  // Check if this building has an active drag preview
+  const hasPreview = dragPreview && dragPreview.buildingId === buildingId;
 
   return (
     <g>
@@ -33,31 +52,116 @@ export default function SchematicOpenings({
         if (!cfg) return null;
 
         const ds = cfg.doorSize ?? 'enkel';
+        const dw = ds === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W;
         const { doorX, windowXs } = resolveOpeningPositions(
           g.length,
           cfg.hasDoor ? (cfg.doorPosition ?? 0.5) : null,
           cfg.windows ?? [],
         );
 
+        const isH = g.orientation === 'h';
+        const wallPreview = hasPreview && dragPreview!.wallId === g.wallId ? dragPreview! : null;
+
+        // Determine if the door is being dragged
+        const isDoorDragged = wallPreview?.type === 'door';
+
         return (
           <g key={g.wallId}>
-            {cfg.hasDoor && (
-              <DoorSymbol
-                geom={g}
-                localDoorX={doorX! * g.flipSign}
-                doorWidth={ds === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W}
-                isDouble={ds === 'dubbel'}
-                swing={cfg.doorSwing ?? 'dicht'}
-              />
-            )}
+            {/* Door */}
+            {cfg.hasDoor && (() => {
+              const localDoorX = doorX! * g.flipSign;
+              // If door is being dragged, render original at reduced opacity
+              const doorOpacity = isDoorDragged ? 0.3 : 1;
 
-            {windowXs.map((wx, i) => (
-              <WindowSymbol
-                key={i}
-                geom={g}
-                localWinX={wx * g.flipSign}
-              />
-            ))}
+              return (
+                <>
+                  {/* Hit target for door */}
+                  {buildingId && onOpeningPointerDown && (
+                    <rect
+                      x={isH
+                        ? g.cx + (isDoorDragged ? fractionToX(g.length, wallPreview!.fraction) * g.flipSign : localDoorX) - dw / 2
+                        : g.cx - 0.15}
+                      y={isH
+                        ? g.cy - 0.15
+                        : g.cy + (isDoorDragged ? fractionToX(g.length, wallPreview!.fraction) * g.flipSign : localDoorX) - dw / 2}
+                      width={isH ? dw : 0.3}
+                      height={isH ? 0.3 : dw}
+                      fill="transparent"
+                      stroke="none"
+                      cursor="grab"
+                      onPointerDown={(e) => onOpeningPointerDown(e, { buildingId, wallId: g.wallId, type: 'door' })}
+                    />
+                  )}
+
+                  {/* Original door (faded when dragging) */}
+                  <g opacity={doorOpacity}>
+                    <DoorSymbol
+                      geom={g}
+                      localDoorX={localDoorX}
+                      doorWidth={dw}
+                      isDouble={ds === 'dubbel'}
+                      swing={cfg.doorSwing ?? 'dicht'}
+                    />
+                  </g>
+
+                  {/* Ghost preview for door */}
+                  {isDoorDragged && (
+                    <g stroke="#3b82f6">
+                      <DoorSymbol
+                        geom={g}
+                        localDoorX={fractionToX(g.length, wallPreview!.fraction) * g.flipSign}
+                        doorWidth={dw}
+                        isDouble={ds === 'dubbel'}
+                        swing={cfg.doorSwing ?? 'dicht'}
+                      />
+                    </g>
+                  )}
+                </>
+              );
+            })()}
+
+            {/* Windows */}
+            {windowXs.map((wx, i) => {
+              const localWinX = wx * g.flipSign;
+              const isWindowDragged = wallPreview?.type === 'window' && wallPreview.windowIndex === i;
+              const winOpacity = isWindowDragged ? 0.3 : 1;
+
+              return (
+                <g key={i}>
+                  {/* Hit target for window */}
+                  {buildingId && onOpeningPointerDown && (
+                    <rect
+                      x={isH
+                        ? g.cx + (isWindowDragged ? fractionToX(g.length, wallPreview!.fraction) * g.flipSign : localWinX) - WIN_W / 2
+                        : g.cx - 0.15}
+                      y={isH
+                        ? g.cy - 0.15
+                        : g.cy + (isWindowDragged ? fractionToX(g.length, wallPreview!.fraction) * g.flipSign : localWinX) - WIN_W / 2}
+                      width={isH ? WIN_W : 0.3}
+                      height={isH ? 0.3 : WIN_W}
+                      fill="transparent"
+                      stroke="none"
+                      cursor="grab"
+                      onPointerDown={(e) => onOpeningPointerDown(e, { buildingId, wallId: g.wallId, type: 'window', windowIndex: i })}
+                    />
+                  )}
+
+                  {/* Original window (faded when dragging) */}
+                  <g opacity={winOpacity}>
+                    <WindowSymbol geom={g} localWinX={localWinX} />
+                  </g>
+
+                  {/* Ghost preview for window */}
+                  {isWindowDragged && (
+                    <WindowSymbol
+                      geom={g}
+                      localWinX={fractionToX(g.length, wallPreview!.fraction) * g.flipSign}
+                      previewColor="#3b82f6"
+                    />
+                  )}
+                </g>
+              );
+            })}
           </g>
         );
       })}
@@ -200,16 +304,17 @@ function DoubleDoorArcs({
   );
 }
 
-function WindowSymbol({ geom, localWinX }: { geom: WallGeom; localWinX: number }) {
+function WindowSymbol({ geom, localWinX, previewColor }: { geom: WallGeom; localWinX: number; previewColor?: string }) {
   const halfW = WIN_W / 2;
   const halfT = T / 2;
   const { cx, cy, orientation } = geom;
+  const strokeColor = previewColor ?? '#5BA3D9';
 
   if (orientation === 'h') {
     const winCX = cx + localWinX;
     const offsets = [-halfT * 0.7, 0, halfT * 0.7];
     return (
-      <g stroke="#5BA3D9" strokeWidth={0.02}>
+      <g stroke={strokeColor} strokeWidth={0.02}>
         {offsets.map((off, i) => (
           <line key={i} x1={winCX - halfW} y1={cy + off} x2={winCX + halfW} y2={cy + off} />
         ))}
@@ -220,7 +325,7 @@ function WindowSymbol({ geom, localWinX }: { geom: WallGeom; localWinX: number }
   const winCY = cy + localWinX;
   const offsets = [-halfT * 0.7, 0, halfT * 0.7];
   return (
-    <g stroke="#5BA3D9" strokeWidth={0.02}>
+    <g stroke={strokeColor} strokeWidth={0.02}>
       {offsets.map((off, i) => (
         <line key={i} x1={cx + off} y1={winCY - halfW} x2={cx + off} y2={winCY + halfW} />
       ))}

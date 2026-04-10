@@ -3,13 +3,13 @@
 import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { useConfigStore, selectSingleBuildingId } from '@/store/useConfigStore';
 import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/lib/snap';
-import { getConstraints, DOOR_W, DOUBLE_DOOR_W } from '@/lib/constants';
+import { getConstraints, DOOR_W, DOUBLE_DOOR_W, WIN_W, xToFraction, clampOpeningPosition, fractionToX } from '@/lib/constants';
 import { t } from '@/lib/i18n';
 import SchematicPosts from './SchematicPosts';
-import SchematicWalls from './SchematicWalls';
+import SchematicWalls, { getWallGeometries } from './SchematicWalls';
 import SchematicOpenings from './SchematicOpenings';
 import DimensionLine from './DimensionLine';
-import type { BuildingType, WallSide, SnapConnection, BuildingEntity } from '@/types/building';
+import type { BuildingType, WallSide, WallId, SnapConnection, BuildingEntity } from '@/types/building';
 
 function getConnectedSides(buildingId: string, connections: SnapConnection[]): Set<WallSide> {
   const sides = new Set<WallSide>();
@@ -159,6 +159,7 @@ export default function SchematicView() {
   const setOrientation = useConfigStore((s) => s.setOrientation);
   const addBuilding = useConfigStore((s) => s.addBuilding);
   const updateBuildingDimensions = useConfigStore((s) => s.updateBuildingDimensions);
+  const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
@@ -175,6 +176,22 @@ export default function SchematicView() {
   const resizeStartWorld = useRef<[number, number] | null>(null);
   const resizeStartDims = useRef<{ width: number; depth: number }>({ width: 0, depth: 0 });
   const resizeStartPos = useRef<[number, number]>([0, 0]);
+
+  // Opening drag state
+  const draggingOpening = useRef<{
+    buildingId: string;
+    wallId: string;
+    type: 'door' | 'window';
+    windowIndex?: number;
+    wallGeom: { cx: number; cy: number; orientation: 'h' | 'v'; length: number; flipSign: number };
+  } | null>(null);
+  const [openingDragPreview, setOpeningDragPreview] = useState<{
+    buildingId: string;
+    wallId: string;
+    type: 'door' | 'window';
+    windowIndex?: number;
+    fraction: number;
+  } | null>(null);
 
   const groupDragStartPositions = useRef<Map<string, [number, number]>>(new Map());
 
@@ -291,6 +308,46 @@ export default function SchematicView() {
     setFrozenViewBox(computedViewBox);
   }, [computedViewBox]);
 
+  const onOpeningPointerDown = useCallback((
+    e: React.PointerEvent,
+    info: { buildingId: string; wallId: string; type: 'door' | 'window'; windowIndex?: number },
+  ) => {
+    e.stopPropagation();
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const building = buildings.find(b => b.id === info.buildingId);
+    if (!building) return;
+
+    const [bx, bz] = building.position;
+    const { width, depth } = building.dimensions;
+
+    // For standalone walls, replicate the dimension/offset logic from the render section
+    const isMuur = building.type === 'muur';
+    const isHorizontal = building.orientation !== 'vertical';
+    const schematicDims = isMuur && !isHorizontal
+      ? { width: building.dimensions.depth, depth: building.dimensions.width, height: building.dimensions.height }
+      : building.dimensions;
+    const gOffsetX = isMuur
+      ? (isHorizontal ? bx + width / 2 : bx + building.dimensions.depth)
+      : bx + width / 2;
+    const gOffsetY = isMuur
+      ? (isHorizontal ? bz : bz + width / 2)
+      : bz + depth / 2;
+
+    const geoms = getWallGeometries(schematicDims, gOffsetX, gOffsetY);
+    // For vertical muur, the wall config key 'front' is mapped to wallId 'left'
+    const wallGeom = geoms.find(g => g.wallId === info.wallId);
+    if (!wallGeom) return;
+
+    pointerDownScreen.current = { x: e.clientX, y: e.clientY };
+    draggingOpening.current = {
+      ...info,
+      wallGeom: { cx: wallGeom.cx, cy: wallGeom.cy, orientation: wallGeom.orientation, length: wallGeom.length, flipSign: wallGeom.flipSign },
+    };
+    setFrozenViewBox(computedViewBox);
+  }, [buildings, computedViewBox]);
+
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     // --- Selection rectangle handling ---
     if (selectRectAnchor.current) {
@@ -388,6 +445,81 @@ export default function SchematicView() {
 
       updateBuildingDimensions(buildingId, { width: newWidth, depth: newDepth });
       updateBuildingPosition(buildingId, [newPosX, newPosZ]);
+      return;
+    }
+
+    // --- Opening drag handling ---
+    if (draggingOpening.current) {
+      const down = pointerDownScreen.current;
+      if (down) {
+        const dx = e.clientX - down.x;
+        const dy = e.clientY - down.y;
+        if (dx * dx + dy * dy < 25) return; // 5px dead zone
+      }
+
+      if (!openingDragPreview) {
+        useConfigStore.temporal.getState().pause();
+      }
+
+      const svg = svgRef.current;
+      if (!svg) return;
+
+      const [wx, wz] = clientToWorld(svg, e.clientX, e.clientY);
+      const { cx, cy, orientation, length, flipSign } = draggingOpening.current.wallGeom;
+
+      // Project pointer onto wall axis
+      const localOffset = orientation === 'h'
+        ? (wx - cx) * flipSign
+        : (wz - cy) * flipSign;
+
+      const rawFraction = xToFraction(length, localOffset);
+
+      // Build other openings array (exclude the one being dragged)
+      const state = useConfigStore.getState();
+      const building = state.buildings.find(b => b.id === draggingOpening.current!.buildingId);
+      if (!building) return;
+
+      // Resolve the correct wall config key
+      const isMuur = building.type === 'muur';
+      const isVertMuur = isMuur && building.orientation === 'vertical';
+      // For vertical muur, wallId 'left' maps to config key 'front'
+      const wallConfigKey = isVertMuur && draggingOpening.current.wallId === 'left'
+        ? 'front'
+        : draggingOpening.current.wallId;
+      const wallCfg = building.walls[wallConfigKey];
+      if (!wallCfg) return;
+
+      const otherOpenings: { position: number; width: number }[] = [];
+
+      // Add door as other opening (unless we're dragging the door)
+      if (wallCfg.hasDoor && draggingOpening.current.type !== 'door') {
+        const ds = wallCfg.doorSize ?? 'enkel';
+        otherOpenings.push({
+          position: wallCfg.doorPosition ?? 0.5,
+          width: ds === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W,
+        });
+      }
+
+      // Add windows as other openings (excluding the one being dragged)
+      const wins = wallCfg.windows ?? [];
+      for (let i = 0; i < wins.length; i++) {
+        if (draggingOpening.current.type === 'window' && draggingOpening.current.windowIndex === i) continue;
+        otherOpenings.push({ position: wins[i].position, width: WIN_W });
+      }
+
+      const openingWidth = draggingOpening.current.type === 'door'
+        ? ((wallCfg.doorSize ?? 'enkel') === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W)
+        : WIN_W;
+
+      const clampedFraction = clampOpeningPosition(length, openingWidth, rawFraction, otherOpenings);
+
+      setOpeningDragPreview({
+        buildingId: draggingOpening.current.buildingId,
+        wallId: draggingOpening.current.wallId,
+        type: draggingOpening.current.type,
+        windowIndex: draggingOpening.current.windowIndex,
+        fraction: clampedFraction,
+      });
       return;
     }
 
@@ -510,6 +642,36 @@ export default function SchematicView() {
       return;
     }
 
+    // --- Opening drag cleanup ---
+    if (draggingOpening.current) {
+      if (openingDragPreview) {
+        const { buildingId, wallId, type, windowIndex, fraction } = openingDragPreview;
+
+        // For vertical muur, wallId 'left' maps to config key 'front'
+        const building = useConfigStore.getState().buildings.find(b => b.id === buildingId);
+        const isMuur = building?.type === 'muur';
+        const isVertMuur = isMuur && building?.orientation === 'vertical';
+        const wallConfigKey = isVertMuur && wallId === 'left' ? 'front' : wallId;
+
+        if (type === 'door') {
+          updateBuildingWall(buildingId, wallConfigKey as WallId, { doorPosition: fraction });
+        } else if (type === 'window' && windowIndex !== undefined) {
+          const wallCfg = building?.walls[wallConfigKey];
+          if (wallCfg) {
+            const newWindows = [...(wallCfg.windows ?? [])];
+            newWindows[windowIndex] = { ...newWindows[windowIndex], position: fraction };
+            updateBuildingWall(buildingId, wallConfigKey as WallId, { windows: newWindows });
+          }
+        }
+        useConfigStore.temporal.getState().resume();
+      }
+      draggingOpening.current = null;
+      setOpeningDragPreview(null);
+      pointerDownScreen.current = null;
+      setFrozenViewBox(null);
+      return;
+    }
+
     // --- Resize cleanup ---
     if (resizeBuildingId.current) {
       if (resizing.current) {
@@ -565,7 +727,7 @@ export default function SchematicView() {
     dragStartWorld.current = null;
     pointerDownScreen.current = null;
     setFrozenViewBox(null);
-  }, [selectBuilding, setDraggedBuildingId, setConnections]);
+  }, [selectBuilding, setDraggedBuildingId, setConnections, updateBuildingWall, openingDragPreview]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -656,7 +818,7 @@ export default function SchematicView() {
           onPointerUp={onPointerUp}
           onPointerLeave={onPointerUp}
           onPointerDown={onSvgPointerDown}
-          style={{ cursor: dragging.current ? 'grabbing' : undefined }}
+          style={{ cursor: (dragging.current || draggingOpening.current) ? 'grabbing' : undefined }}
         >
           {/* Defs: diagonal hatch for overkapping */}
           <defs>
@@ -771,12 +933,15 @@ export default function SchematicView() {
 
                 {/* Door and window symbols — rendered after dimensions so
                     naar_buiten arcs aren't clipped by dimension label backgrounds */}
-                <g pointerEvents="none">
+                <g>
                   <SchematicOpenings
                     dimensions={b.dimensions}
                     walls={b.walls}
                     offsetX={ox + width / 2}
                     offsetY={oz + depth / 2}
+                    buildingId={b.id}
+                    onOpeningPointerDown={onOpeningPointerDown}
+                    dragPreview={openingDragPreview}
                   />
                 </g>
 
@@ -928,12 +1093,15 @@ export default function SchematicView() {
                 </g>
 
                 {/* Door and window symbols — after dimensions so arcs aren't clipped */}
-                <g pointerEvents="none">
+                <g>
                   <SchematicOpenings
                     dimensions={schematicDims}
                     walls={schematicWalls}
                     offsetX={wallOffsetX}
                     offsetY={wallOffsetY}
+                    buildingId={w.id}
+                    onOpeningPointerDown={onOpeningPointerDown}
+                    dragPreview={openingDragPreview}
                   />
                 </g>
 
