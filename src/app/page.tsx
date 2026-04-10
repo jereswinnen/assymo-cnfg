@@ -20,68 +20,74 @@ function ViewToggle() {
   const isElevationMode = selectedElement?.type === 'wall';
 
   return (
-    <div className="flex gap-1 bg-background/80 backdrop-blur-xl rounded-xl shadow-md ring-1 ring-black/[0.08] p-1">
+    <div className="flex items-center gap-2">
       {isElevationMode && (
         <button
           onClick={() => selectElement(null)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-foreground text-background shadow-sm"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-background/80 backdrop-blur-xl rounded-xl shadow-md ring-1 ring-black/[0.08] text-sm font-medium text-foreground/70 hover:text-foreground transition-all"
         >
-          {t('view.back')}
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="8" x2="4" y2="8" />
+            <polyline points="8 4 4 8 8 12" />
+          </svg>
+          {t('view.backToFloorplan')}
         </button>
       )}
-      <button
-        onClick={() => {
-          if (isElevationMode) selectElement(null);
-          setViewMode('plan');
-        }}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-          viewMode === 'plan' && !isElevationMode
-            ? 'bg-foreground text-background shadow-sm'
-            : 'text-foreground/60 hover:text-foreground/80'
-        }`}
-      >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="1" y="1" width="14" height="14" rx="1" />
-          <line x1="6" y1="1" x2="6" y2="15" />
-          <line x1="6" y1="8" x2="15" y2="8" />
-        </svg>
-        2D
-      </button>
-      <button
-        onClick={() => {
-          if (isElevationMode) selectElement(null);
-          setViewMode('split');
-        }}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-          viewMode === 'split'
-            ? 'bg-foreground text-background shadow-sm'
-            : 'text-foreground/60 hover:text-foreground/80'
-        }`}
-      >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="1" y="1" width="14" height="14" rx="1" />
-          <line x1="8" y1="1" x2="8" y2="15" />
-        </svg>
-        Split
-      </button>
-      <button
-        onClick={() => {
-          if (isElevationMode) selectElement(null);
-          setViewMode('3d');
-        }}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-          viewMode === '3d'
-            ? 'bg-foreground text-background shadow-sm'
-            : 'text-foreground/60 hover:text-foreground/80'
-        }`}
-      >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 1L14.5 4.75V11.25L8 15L1.5 11.25V4.75L8 1Z" />
-          <path d="M8 15V8" />
-          <path d="M14.5 4.75L8 8L1.5 4.75" />
-        </svg>
-        3D
-      </button>
+      <div className="flex gap-1 bg-background/80 backdrop-blur-xl rounded-xl shadow-md ring-1 ring-black/[0.08] p-1">
+        <button
+          onClick={() => {
+            if (isElevationMode) selectElement(null);
+            setViewMode('plan');
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            viewMode === 'plan' && !isElevationMode
+              ? 'bg-foreground text-background shadow-sm'
+              : 'text-foreground/60 hover:text-foreground/80'
+          }`}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="1" y="1" width="14" height="14" rx="1" />
+            <line x1="6" y1="1" x2="6" y2="15" />
+            <line x1="6" y1="8" x2="15" y2="8" />
+          </svg>
+          2D
+        </button>
+        <button
+          onClick={() => {
+            if (isElevationMode) selectElement(null);
+            setViewMode('split');
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            viewMode === 'split'
+              ? 'bg-foreground text-background shadow-sm'
+              : 'text-foreground/60 hover:text-foreground/80'
+          }`}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="1" y="1" width="14" height="14" rx="1" />
+            <line x1="8" y1="1" x2="8" y2="15" />
+          </svg>
+          Split
+        </button>
+        <button
+          onClick={() => {
+            if (isElevationMode) selectElement(null);
+            setViewMode('3d');
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+            viewMode === '3d'
+              ? 'bg-foreground text-background shadow-sm'
+              : 'text-foreground/60 hover:text-foreground/80'
+          }`}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 1L14.5 4.75V11.25L8 15L1.5 11.25V4.75L8 1Z" />
+            <path d="M8 15V8" />
+            <path d="M14.5 4.75L8 8L1.5 4.75" />
+          </svg>
+          3D
+        </button>
+      </div>
     </div>
   );
 }
