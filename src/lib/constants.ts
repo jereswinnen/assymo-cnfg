@@ -374,7 +374,6 @@ export function xToFraction(wallLength: number, x: number): number {
 export function resolveOpeningPositions(
   wallLength: number,
   doorPosition: number | null,
-  doorSize: DoorSize,
   windows: { position: number }[],
 ): { doorX: number | null; windowXs: number[] } {
   const doorX = doorPosition !== null
@@ -399,23 +398,28 @@ export function clampOpeningPosition(
   const maxFrac = 1 - halfW / usableLen;
   let frac = Math.max(minFrac, Math.min(maxFrac, proposedFraction));
 
+  // Push away from other openings (iterate until stable)
   const others = otherOpenings
     .map(o => ({ frac: o.position, halfW: o.width / 2 }))
     .sort((a, b) => a.frac - b.frac);
 
-  for (const o of others) {
-    const minGapFrac = (halfW + o.halfW + OPENING_GAP) / usableLen;
-    const dist = frac - o.frac;
-    if (Math.abs(dist) < minGapFrac) {
-      if (dist >= 0) {
-        frac = Math.max(frac, o.frac + minGapFrac);
-      } else {
-        frac = Math.min(frac, o.frac - minGapFrac);
+  for (let iter = 0; iter < 10; iter++) {
+    let moved = false;
+    for (const o of others) {
+      const minGapFrac = (halfW + o.halfW + OPENING_GAP) / usableLen;
+      const dist = frac - o.frac;
+      if (Math.abs(dist) < minGapFrac) {
+        const newFrac = dist >= 0 ? o.frac + minGapFrac : o.frac - minGapFrac;
+        if (newFrac !== frac) {
+          frac = newFrac;
+          moved = true;
+        }
       }
     }
+    frac = Math.max(minFrac, Math.min(maxFrac, frac));
+    if (!moved) break;
   }
 
-  frac = Math.max(minFrac, Math.min(maxFrac, frac));
   return frac;
 }
 
