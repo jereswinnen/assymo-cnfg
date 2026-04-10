@@ -95,8 +95,17 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
             <SectionLabel>{t('surface.doorPosition')}</SectionLabel>
             <ToggleGroup
               type="single"
-              value={wallCfg.doorPosition}
-              onValueChange={(v) => { if (v) handleChange('doorPosition', v); }}
+              value={
+                Math.abs(wallCfg.doorPosition - 0.0) < 0.01 ? 'links'
+                  : Math.abs(wallCfg.doorPosition - 1.0) < 0.01 ? 'rechts'
+                  : Math.abs(wallCfg.doorPosition - 0.5) < 0.01 ? 'midden'
+                  : ''
+              }
+              onValueChange={(v) => {
+                if (!v) return;
+                const pos = v === 'links' ? 0.0 : v === 'rechts' ? 1.0 : 0.5;
+                handleChange('doorPosition', pos);
+              }}
               className="w-full"
               variant="outline"
               size="sm"

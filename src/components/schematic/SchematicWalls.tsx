@@ -4,7 +4,7 @@ import {
   DOUBLE_DOOR_W,
   DOOR_W,
   WIN_W,
-  computeOpeningPositions,
+  resolveOpeningPositions,
   getWallLength,
 } from '@/lib/constants';
 import type {
@@ -127,12 +127,10 @@ function SolidWall({
   const strokeColor = isSelected ? '#2563eb' : '#444';
 
   const ds = cfg.doorSize ?? 'enkel';
-  const { doorX, windowXs } = computeOpeningPositions(
+  const { doorX, windowXs } = resolveOpeningPositions(
     length,
-    cfg.hasDoor,
-    cfg.doorPosition ?? 'midden',
-    ds,
-    cfg.hasWindow ? cfg.windowCount : 0,
+    cfg.hasDoor ? (cfg.doorPosition ?? 0.5) : null,
+    cfg.windows ?? [],
   );
 
   type Opening = { localOffset: number; halfWidth: number };
@@ -140,7 +138,7 @@ function SolidWall({
 
   if (cfg.hasDoor) {
     const dw = ds === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W;
-    openings.push({ localOffset: doorX * flipSign, halfWidth: dw / 2 });
+    openings.push({ localOffset: doorX! * flipSign, halfWidth: dw / 2 });
   }
   for (const wx of windowXs) {
     openings.push({ localOffset: wx * flipSign, halfWidth: WIN_W / 2 });

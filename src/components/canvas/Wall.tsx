@@ -4,7 +4,7 @@ import { useRef, useMemo, useEffect, useCallback } from 'react';
 import { Mesh } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
-import { WALL_MATERIALS, WALL_THICKNESS, computeOpeningPositions, getWallLength } from '@/lib/constants';
+import { WALL_MATERIALS, WALL_THICKNESS, resolveOpeningPositions, getWallLength } from '@/lib/constants';
 import { useWallTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
 import { createWallWithOpeningsGeo, FRAME_D } from './wallGeometry';
@@ -96,18 +96,16 @@ export default function Wall({ wallId }: WallProps) {
     }
   }, [wallId, width, depth, height, isMuur]);
 
-  const hasOpenings = wallCfg.hasDoor || (wallCfg.hasWindow && wallCfg.windowCount > 0);
+  const hasOpenings = wallCfg.hasDoor || (wallCfg.windows ?? []).length > 0;
   const ds = wallCfg.doorSize ?? 'enkel';
   const { doorX: computedDoorX, windowXs: computedWindowXs } = useMemo(
     () =>
-      computeOpeningPositions(
+      resolveOpeningPositions(
         wallLength,
-        wallCfg.hasDoor,
-        wallCfg.doorPosition ?? 'midden',
-        ds,
-        wallCfg.hasWindow ? wallCfg.windowCount : 0,
+        wallCfg.hasDoor ? (wallCfg.doorPosition ?? 0.5) : null,
+        wallCfg.windows ?? [],
       ),
-    [wallLength, wallCfg.hasDoor, wallCfg.doorPosition, ds, wallCfg.hasWindow, wallCfg.windowCount],
+    [wallLength, wallCfg.hasDoor, wallCfg.doorPosition, wallCfg.windows],
   );
 
   const wallGeo = useMemo(() => {
@@ -194,7 +192,7 @@ interface OpeningsProps {
 }
 
 function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg }: OpeningsProps) {
-  if (!wallCfg.hasDoor && !(wallCfg.hasWindow && wallCfg.windowCount > 0)) return null;
+  if (!wallCfg.hasDoor && (wallCfg.windows ?? []).length === 0) return null;
 
   const t = WALL_THICKNESS;
   const outOffset = t / 2 + 0.01;
@@ -221,19 +219,17 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg }: Ope
   }
 
   const ds = wallCfg.doorSize ?? 'enkel';
-  const { doorX, windowXs } = computeOpeningPositions(
+  const { doorX, windowXs } = resolveOpeningPositions(
     wallLength,
-    wallCfg.hasDoor,
-    wallCfg.doorPosition ?? 'midden',
-    ds,
-    wallCfg.windowCount,
+    wallCfg.hasDoor ? (wallCfg.doorPosition ?? 0.5) : null,
+    wallCfg.windows ?? [],
   );
 
   return (
     <group position={groupPos} rotation={groupRot}>
       {wallCfg.hasDoor && (
         <DoorMesh
-          x={doorX}
+          x={doorX!}
           height={height}
           swing={wallCfg.doorSwing ?? 'dicht'}
           doorSize={ds}

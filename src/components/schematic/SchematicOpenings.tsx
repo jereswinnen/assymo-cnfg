@@ -3,7 +3,7 @@ import {
   DOUBLE_DOOR_W,
   DOOR_W,
   WIN_W,
-  computeOpeningPositions,
+  resolveOpeningPositions,
 } from '@/lib/constants';
 import type { WallConfig, DoorSwing, BuildingDimensions } from '@/types/building';
 import { getWallGeometries } from './SchematicWalls';
@@ -33,12 +33,10 @@ export default function SchematicOpenings({
         if (!cfg) return null;
 
         const ds = cfg.doorSize ?? 'enkel';
-        const { doorX, windowXs } = computeOpeningPositions(
+        const { doorX, windowXs } = resolveOpeningPositions(
           g.length,
-          cfg.hasDoor,
-          cfg.doorPosition ?? 'midden',
-          ds,
-          cfg.hasWindow ? cfg.windowCount : 0,
+          cfg.hasDoor ? (cfg.doorPosition ?? 0.5) : null,
+          cfg.windows ?? [],
         );
 
         return (
@@ -46,7 +44,7 @@ export default function SchematicOpenings({
             {cfg.hasDoor && (
               <DoorSymbol
                 geom={g}
-                localDoorX={doorX * g.flipSign}
+                localDoorX={doorX! * g.flipSign}
                 doorWidth={ds === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W}
                 isDouble={ds === 'dubbel'}
                 swing={cfg.doorSwing ?? 'dicht'}

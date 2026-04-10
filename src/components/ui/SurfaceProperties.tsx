@@ -54,8 +54,7 @@ export default function SurfaceProperties() {
                   handleChange('materialId', m.id);
                   if (m.id === 'glass') {
                     handleChange('hasDoor', false);
-                    handleChange('hasWindow', false);
-                    handleChange('windowCount', 0);
+                    handleChange('windows', []);
                   }
                 }}
                 className={`flex flex-col items-center gap-1.5 rounded-lg border p-2 transition-all ${

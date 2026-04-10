@@ -63,7 +63,7 @@ export function wallNetArea(wallId: WallId, building: BuildingEntity, wallCfg: W
     const doorW = wallCfg.doorSize === 'dubbel' ? DOUBLE_DOOR_W : DOOR_AREA_CUTOUT / 2.1;
     area -= doorW * 2.1;
   }
-  if (wallCfg.hasWindow) area -= WINDOW_AREA_CUTOUT * wallCfg.windowCount;
+  area -= WINDOW_AREA_CUTOUT * (wallCfg.windows ?? []).length;
   return Math.max(0, area);
 }
 
@@ -102,7 +102,7 @@ function wallLineItem(wallId: WallId, building: BuildingEntity, effectiveHeight:
     if (wallCfg.doorHasWindow) extrasCost += DOOR_WINDOW_SURCHARGE;
     extrasCost += findSurcharge(wallCfg.doorMaterialId);
   }
-  if (wallCfg.hasWindow) extrasCost += WINDOW_FLAT_FEE * wallCfg.windowCount;
+  extrasCost += WINDOW_FLAT_FEE * (wallCfg.windows ?? []).length;
 
   return {
     label: t(WALL_LABELS[wallId] ?? wallId),

@@ -70,8 +70,8 @@ function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHei
           const withWindow = w.doorHasWindow ? `, ${t('surface.doorHasWindow').toLowerCase()}` : '';
           parts.push(`${t('surface.door')}: ${size} (${mat}${withWindow})`);
         }
-        if (w.hasWindow && w.windowCount > 0) {
-          parts.push(`${w.windowCount}× ${t('surface.windows').toLowerCase()}`);
+        if ((w.windows ?? []).length > 0) {
+          parts.push(`${w.windows.length}× ${t('surface.windows').toLowerCase()}`);
         }
         rows.push(row(t(`wall.${id}`), parts.join(' · ')));
       }

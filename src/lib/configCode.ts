@@ -12,8 +12,8 @@ import type {
   WallSide,
   DoorMaterialId,
   DoorSize,
-  DoorPosition,
   DoorSwing,
+  WallWindow,
   SnapConnection,
 } from '@/types/building';
 import { DEFAULT_FLOOR, getDefaultWalls } from '@/lib/constants';
@@ -149,7 +149,6 @@ const MATERIAL_IDS = ['wood', 'brick', 'render', 'metal', 'glass'];
 const FINISH_IDS = ['Mat', 'Satijn', 'Glans'];
 const DOOR_MATERIAL_IDS: DoorMaterialId[] = ['wood', 'aluminium', 'pvc', 'staal'];
 const DOOR_SIZES: DoorSize[] = ['enkel', 'dubbel'];
-const DOOR_POSITIONS: DoorPosition[] = ['links', 'midden', 'rechts'];
 const DOOR_SWINGS: DoorSwing[] = ['dicht', 'naar_binnen', 'naar_buiten'];
 
 function indexOf<T>(arr: T[], val: T): number {
@@ -172,12 +171,13 @@ function encodeWall(w: BitWriter, wall: WallConfig) {
     w.write(indexOf(DOOR_MATERIAL_IDS, wall.doorMaterialId), 2);
     w.write(indexOf(DOOR_SIZES, wall.doorSize), 1);
     w.write(wall.doorHasWindow ? 1 : 0, 1);
-    w.write(indexOf(DOOR_POSITIONS, wall.doorPosition), 2);
+    w.write(Math.round((wall.doorPosition ?? 0.5) * 100), 7);
     w.write(indexOf(DOOR_SWINGS, wall.doorSwing), 2);
   }
-  w.write(wall.hasWindow ? 1 : 0, 1);
-  if (wall.hasWindow) {
-    w.write(clamp(wall.windowCount, 0, 7), 3);
+  const winCount = (wall.windows ?? []).length;
+  w.write(Math.min(winCount, 7), 3);
+  for (let i = 0; i < Math.min(winCount, 7); i++) {
+    w.write(Math.round((wall.windows![i].position) * 100), 7);
   }
 }
 
@@ -188,21 +188,24 @@ function decodeWall(r: BitReader): WallConfig {
   let doorMaterialId: DoorMaterialId = 'wood';
   let doorSize: DoorSize = 'enkel';
   let doorHasWindow = false;
-  let doorPosition: DoorPosition = 'midden';
+  let doorPosition = 0.5;
   let doorSwing: DoorSwing = 'dicht';
   if (hasDoor) {
     doorMaterialId = DOOR_MATERIAL_IDS[clamp(r.read(2), 0, 3)];
     doorSize = DOOR_SIZES[clamp(r.read(1), 0, 1)];
     doorHasWindow = r.read(1) === 1;
-    doorPosition = DOOR_POSITIONS[clamp(r.read(2), 0, 2)];
+    doorPosition = r.read(7) / 100;
     doorSwing = DOOR_SWINGS[clamp(r.read(2), 0, 2)];
   }
-  const hasWindow = r.read(1) === 1;
-  const windowCount = hasWindow ? clamp(r.read(3), 0, 7) : 0;
+  const windowCount = clamp(r.read(3), 0, 7);
+  const windows: WallWindow[] = [];
+  for (let i = 0; i < windowCount; i++) {
+    windows.push({ id: crypto.randomUUID(), position: r.read(7) / 100 });
+  }
 
   return {
     materialId, finish, hasDoor, doorMaterialId, doorSize,
-    doorHasWindow, doorPosition, doorSwing, hasWindow, windowCount,
+    doorHasWindow, doorPosition, doorSwing, windows,
   };
 }
 
