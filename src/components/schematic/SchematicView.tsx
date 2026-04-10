@@ -9,6 +9,7 @@ import SchematicPosts from './SchematicPosts';
 import SchematicWalls, { getWallGeometries } from './SchematicWalls';
 import SchematicOpenings from './SchematicOpenings';
 import DimensionLine from './DimensionLine';
+import WallElevation from './WallElevation';
 import type { BuildingType, WallSide, WallId, SnapConnection, BuildingEntity } from '@/types/building';
 
 function getConnectedSides(buildingId: string, connections: SnapConnection[]): Set<WallSide> {
@@ -1285,20 +1286,12 @@ export default function SchematicView() {
           </>
           )}
 
-          {isElevationMode && selectedElement?.type === 'wall' && (() => {
-            const building = buildings.find(b => b.id === selectedElement.buildingId);
-            if (!building) return null;
-            const wallLength = getWallLength(selectedElement.id, building.dimensions);
-            const wallHeight = getEffectiveHeight(building, defaultHeight);
-            return (
-              <g>
-                <rect x={0} y={0} width={wallLength} height={wallHeight} fill="#f5f0e8" fillOpacity={0.15} stroke="#888" strokeWidth={0.03} rx={0.02} />
-                <text x={wallLength / 2} y={wallHeight / 2} textAnchor="middle" dominantBaseline="central" fontSize={0.3} fill="#888" fontFamily="system-ui">
-                  {selectedElement.id}
-                </text>
-              </g>
-            );
-          })()}
+          {isElevationMode && selectedElement?.type === 'wall' && (
+            <WallElevation
+              buildingId={selectedElement.buildingId}
+              wallId={selectedElement.id}
+            />
+          )}
         </svg>
       </div>
 
