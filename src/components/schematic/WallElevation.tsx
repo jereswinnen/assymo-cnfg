@@ -7,6 +7,7 @@ import {
   WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT,
   getWallLength, fractionToX, xToFraction,
   clampOpeningPosition, EDGE_CLEARANCE, SNAP_INCREMENT,
+  WIN_MIN_SIZE,
 } from '@/lib/constants';
 import type { WallId } from '@/types/building';
 
@@ -31,6 +32,16 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
     type: 'door' | 'window';
     windowId?: string;
     startPointerSvg: [number, number];
+    startPosition: number;
+    startSillHeight: number;
+  } | null>(null);
+
+  const resizing = useRef<{
+    windowId: string;
+    edge: string;
+    startPointerSvg: [number, number];
+    startWidth: number;
+    startHeight: number;
     startPosition: number;
     startSillHeight: number;
   } | null>(null);
@@ -115,6 +126,136 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
     window.removeEventListener('pointerup', onPointerUp);
   }, [onPointerMove]);
 
+  const onResizeMove = useCallback((e: PointerEvent) => {
+    const r = resizing.current;
+    if (!r || !building) return;
+
+    const wallCfg = building.walls[wallId];
+    if (!wallCfg) return;
+
+    const wallLength = getWallLength(wallId, building.dimensions);
+    const wallHeight = getEffectiveHeight(building, defaultHeight);
+    const windows = wallCfg.windows ?? [];
+    const [svgX, svgY] = clientToSvg(e.clientX, e.clientY);
+    const deltaX = svgX - r.startPointerSvg[0];
+    const deltaY = svgY - r.startPointerSvg[1];
+
+    let newWidth = r.startWidth;
+    let newHeight = r.startHeight;
+    let newSill = r.startSillHeight;
+    let newPosition = r.startPosition;
+
+    const edge = r.edge;
+
+    // Horizontal: east edge
+    if (edge.includes('e')) {
+      newWidth = Math.round((r.startWidth + deltaX) / SNAP_INCREMENT) * SNAP_INCREMENT;
+      newWidth = Math.max(WIN_MIN_SIZE, newWidth);
+      // Compute left edge X (stays fixed)
+      const startCenterX = wallLength / 2 + fractionToX(wallLength, r.startPosition);
+      const leftEdge = startCenterX - r.startWidth / 2;
+      // Clamp: right edge <= wallLength
+      const maxW = wallLength - leftEdge;
+      newWidth = Math.min(newWidth, maxW);
+      newWidth = Math.max(WIN_MIN_SIZE, newWidth);
+      // Recompute center and position fraction
+      const newCenterX = leftEdge + newWidth / 2;
+      newPosition = xToFraction(wallLength, newCenterX - wallLength / 2);
+    }
+
+    // Horizontal: west edge
+    if (edge.includes('w')) {
+      newWidth = Math.round((r.startWidth - deltaX) / SNAP_INCREMENT) * SNAP_INCREMENT;
+      newWidth = Math.max(WIN_MIN_SIZE, newWidth);
+      // Compute right edge X (stays fixed)
+      const startCenterX = wallLength / 2 + fractionToX(wallLength, r.startPosition);
+      const rightEdge = startCenterX + r.startWidth / 2;
+      // Clamp: left edge >= 0
+      const maxW = rightEdge;
+      newWidth = Math.min(newWidth, maxW);
+      newWidth = Math.max(WIN_MIN_SIZE, newWidth);
+      // Recompute center and position fraction
+      const newCenterX = rightEdge - newWidth / 2;
+      newPosition = xToFraction(wallLength, newCenterX - wallLength / 2);
+    }
+
+    // Vertical: north (top) edge
+    if (edge.includes('n')) {
+      newHeight = Math.round((r.startHeight - deltaY) / SNAP_INCREMENT) * SNAP_INCREMENT;
+      newHeight = Math.max(WIN_MIN_SIZE, newHeight);
+      // Sill stays the same (bottom edge fixed), but top must stay >= 0
+      const maxH = wallHeight - r.startSillHeight;
+      newHeight = Math.min(newHeight, maxH);
+      newHeight = Math.max(WIN_MIN_SIZE, newHeight);
+      // Sill doesn't change for north drag
+    }
+
+    // Vertical: south (bottom) edge
+    if (edge.includes('s')) {
+      newHeight = Math.round((r.startHeight + deltaY) / SNAP_INCREMENT) * SNAP_INCREMENT;
+      newHeight = Math.max(WIN_MIN_SIZE, newHeight);
+      newSill = Math.round((r.startSillHeight - deltaY) / SNAP_INCREMENT) * SNAP_INCREMENT;
+      newSill = Math.max(0, newSill);
+      // Ensure top doesn't go above wall
+      if (wallHeight - newSill - newHeight < 0) {
+        newHeight = wallHeight - newSill;
+      }
+      newHeight = Math.max(WIN_MIN_SIZE, newHeight);
+      if (newSill < 0) newSill = 0;
+    }
+
+    // Clamp position via clampOpeningPosition
+    const otherOpenings: { position: number; width: number }[] = [];
+    if (wallCfg.hasDoor) {
+      const dw = wallCfg.doorSize === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W;
+      otherOpenings.push({ position: wallCfg.doorPosition ?? 0.5, width: dw });
+    }
+    windows.forEach(w => {
+      if (w.id === r.windowId) return;
+      otherOpenings.push({ position: w.position, width: w.width ?? WIN_W_DEFAULT });
+    });
+    newPosition = clampOpeningPosition(wallLength, newWidth, newPosition, otherOpenings);
+
+    const updatedWindows = windows.map(w =>
+      w.id === r.windowId
+        ? { ...w, width: newWidth, height: newHeight, sillHeight: newSill, position: newPosition }
+        : w
+    );
+    updateBuildingWall(buildingId, wallId, { windows: updatedWindows });
+  }, [building, wallId, defaultHeight, buildingId, clientToSvg, updateBuildingWall]);
+
+  const onResizeUp = useCallback(() => {
+    resizing.current = null;
+    useConfigStore.temporal.getState().resume();
+    window.removeEventListener('pointermove', onResizeMove);
+    window.removeEventListener('pointerup', onResizeUp);
+  }, [onResizeMove]);
+
+  const startResize = useCallback((
+    e: React.PointerEvent,
+    edge: string,
+    windowId: string,
+    width: number,
+    height: number,
+    position: number,
+    sillHeight: number,
+  ) => {
+    e.stopPropagation();
+    const [sx, sy] = clientToSvg(e.clientX, e.clientY);
+    resizing.current = {
+      windowId,
+      edge,
+      startPointerSvg: [sx, sy],
+      startWidth: width,
+      startHeight: height,
+      startPosition: position,
+      startSillHeight: sillHeight,
+    };
+    useConfigStore.temporal.getState().pause();
+    window.addEventListener('pointermove', onResizeMove);
+    window.addEventListener('pointerup', onResizeUp);
+  }, [clientToSvg, onResizeMove, onResizeUp]);
+
   const startDrag = useCallback((
     e: React.PointerEvent,
     type: 'door' | 'window',
@@ -142,8 +283,10 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
     return () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointermove', onResizeMove);
+      window.removeEventListener('pointerup', onResizeUp);
     };
-  }, [onPointerMove, onPointerUp]);
+  }, [onPointerMove, onPointerUp, onResizeMove, onResizeUp]);
 
   if (!building) return null;
 
@@ -301,6 +444,52 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
             >
               {w.toFixed(1)} x {h.toFixed(1)}m
             </text>
+
+            {/* Resize handles (windows only, when selected) */}
+            {isSelected && (() => {
+              const hx = winX - w / 2; // left edge X
+              const hy = winTop;       // top edge Y
+              const hs = 0.08;         // handle size
+              const handles = [
+                { id: 'nw', cx: hx,         cy: hy,         cursor: 'nwse-resize' },
+                { id: 'ne', cx: hx + w,     cy: hy,         cursor: 'nesw-resize' },
+                { id: 'sw', cx: hx,         cy: hy + h,     cursor: 'nesw-resize' },
+                { id: 'se', cx: hx + w,     cy: hy + h,     cursor: 'nwse-resize' },
+                { id: 'n',  cx: hx + w / 2, cy: hy,         cursor: 'ns-resize' },
+                { id: 's',  cx: hx + w / 2, cy: hy + h,     cursor: 'ns-resize' },
+                { id: 'w',  cx: hx,         cy: hy + h / 2, cursor: 'ew-resize' },
+                { id: 'e',  cx: hx + w,     cy: hy + h / 2, cursor: 'ew-resize' },
+              ];
+              return handles.map(handle => (
+                <rect
+                  key={handle.id}
+                  x={handle.cx - hs / 2}
+                  y={handle.cy - hs / 2}
+                  width={hs}
+                  height={hs}
+                  fill="white"
+                  stroke="#3b82f6"
+                  strokeWidth={0.02}
+                  rx={0.015}
+                  style={{ cursor: handle.cursor }}
+                  onPointerDown={(e) =>
+                    startResize(e, handle.id, win.id, w, h, win.position, sill)
+                  }
+                />
+              ));
+            })()}
+
+            {/* Dimension label during resize */}
+            {resizing.current?.windowId === win.id && (
+              <text
+                x={winX}
+                y={winTop - 0.15}
+                textAnchor="middle" fontSize={0.14}
+                fill="#3b82f6" fontFamily="system-ui" fontWeight={600}
+              >
+                {w.toFixed(1)} x {h.toFixed(1)}m
+              </text>
+            )}
           </g>
         );
       })}
