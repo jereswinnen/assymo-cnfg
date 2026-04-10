@@ -125,6 +125,7 @@ export default function SchematicOpenings({
               const localWinX = wx * g.flipSign;
               const isWindowDragged = wallPreview?.type === 'window' && wallPreview.windowIndex === i;
               const winOpacity = isWindowDragged ? 0.3 : 1;
+              const winWidth = (cfg.windows ?? [])[i]?.width ?? WIN_W;
 
               return (
                 <g key={i}>
@@ -132,13 +133,13 @@ export default function SchematicOpenings({
                   {buildingId && onOpeningPointerDown && (
                     <rect
                       x={isH
-                        ? g.cx + (isWindowDragged ? fractionToX(g.length, wallPreview!.fraction) * g.flipSign : localWinX) - WIN_W / 2
+                        ? g.cx + (isWindowDragged ? fractionToX(g.length, wallPreview!.fraction) * g.flipSign : localWinX) - winWidth / 2
                         : g.cx - 0.25}
                       y={isH
                         ? g.cy - 0.25
-                        : g.cy + (isWindowDragged ? fractionToX(g.length, wallPreview!.fraction) * g.flipSign : localWinX) - WIN_W / 2}
-                      width={isH ? WIN_W : 0.5}
-                      height={isH ? 0.5 : WIN_W}
+                        : g.cy + (isWindowDragged ? fractionToX(g.length, wallPreview!.fraction) * g.flipSign : localWinX) - winWidth / 2}
+                      width={isH ? winWidth : 0.5}
+                      height={isH ? 0.5 : winWidth}
                       fill="transparent"
                       stroke="none"
                       cursor="grab"
@@ -148,7 +149,7 @@ export default function SchematicOpenings({
 
                   {/* Original window (faded when dragging) */}
                   <g opacity={winOpacity}>
-                    <WindowSymbol geom={g} localWinX={localWinX} />
+                    <WindowSymbol geom={g} localWinX={localWinX} winWidth={winWidth} />
                   </g>
 
                   {/* Ghost preview for window */}
@@ -156,6 +157,7 @@ export default function SchematicOpenings({
                     <WindowSymbol
                       geom={g}
                       localWinX={fractionToX(g.length, wallPreview!.fraction) * g.flipSign}
+                      winWidth={winWidth}
                       previewColor="#3b82f6"
                     />
                   )}
@@ -304,8 +306,8 @@ function DoubleDoorArcs({
   );
 }
 
-function WindowSymbol({ geom, localWinX, previewColor }: { geom: WallGeom; localWinX: number; previewColor?: string }) {
-  const halfW = WIN_W / 2;
+function WindowSymbol({ geom, localWinX, winWidth = WIN_W, previewColor }: { geom: WallGeom; localWinX: number; winWidth?: number; previewColor?: string }) {
+  const halfW = winWidth / 2;
   const halfT = T / 2;
   const { cx, cy, orientation } = geom;
   const strokeColor = previewColor ?? '#5BA3D9';

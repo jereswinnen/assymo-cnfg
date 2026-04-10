@@ -74,6 +74,7 @@ interface SchematicWallsProps {
   buildingId: string;
   offsetX: number;
   offsetY: number;
+  onWallClick?: (wallId: WallId, buildingId: string) => void;
 }
 
 export default function SchematicWalls({
@@ -83,6 +84,7 @@ export default function SchematicWalls({
   buildingId,
   offsetX,
   offsetY,
+  onWallClick,
 }: SchematicWallsProps) {
   const geoms = getWallGeometries(dimensions, offsetX, offsetY);
 
@@ -103,6 +105,7 @@ export default function SchematicWalls({
             geom={g}
             cfg={cfg}
             isSelected={isSelected}
+            onWallClick={onWallClick ? () => onWallClick(g.wallId, buildingId) : undefined}
           />
         );
       })}
@@ -114,10 +117,12 @@ function SolidWall({
   geom,
   cfg,
   isSelected,
+  onWallClick,
 }: {
   geom: WallGeom;
   cfg: WallConfig;
   isSelected: boolean;
+  onWallClick?: () => void;
 }) {
   const { cx, cy, orientation, length, flipSign } = geom;
   const isH = orientation === 'h';
@@ -176,6 +181,9 @@ function SolidWall({
         fillOpacity={fillOpacity}
         stroke={strokeColor}
         strokeWidth={0.02}
+        cursor={onWallClick ? 'pointer' : undefined}
+        pointerEvents={onWallClick ? 'auto' : 'none'}
+        onClick={(e) => { e.stopPropagation(); onWallClick?.(); }}
       />
     );
   }
@@ -201,6 +209,9 @@ function SolidWall({
             fillOpacity={fillOpacity}
             stroke={strokeColor}
             strokeWidth={0.02}
+            cursor={onWallClick ? 'pointer' : undefined}
+            pointerEvents={onWallClick ? 'auto' : 'none'}
+            onClick={(e) => { e.stopPropagation(); onWallClick?.(); }}
           />
         );
       })}

@@ -16,6 +16,13 @@ export function doorWidth(doorSize: DoorSize): number {
   return doorSize === 'dubbel' ? DOUBLE_W : DOOR_W;
 }
 
+export interface WindowHole {
+  x: number;
+  width: number;
+  height: number;
+  sillHeight: number;
+}
+
 /** Create an ExtrudeGeometry with rectangular holes for doors and/or windows.
  *  The geometry is centered at origin (same bounding box as a BoxGeometry of equal size)
  *  so it can be positioned identically to the box it replaces. */
@@ -26,7 +33,7 @@ export function createWallWithOpeningsGeo(
   wallId: WallId,
   doorX: number | null,
   doorSize: DoorSize,
-  windowXs: number[],
+  windowHoles: WindowHole[],
 ): ExtrudeGeometry {
   const hw = wallLength / 2;
   const hh = wallHeight / 2;
@@ -53,17 +60,19 @@ export function createWallWithOpeningsGeo(
   }
 
   // Window holes
-  for (const wx of windowXs) {
-    const ww = WIN_W / 2;
-    const winBottom = -hh + WIN_SILL;
-    const winTop = winBottom + WIN_H;
-    const hole = new Path();
-    hole.moveTo(wx - ww, winBottom);
-    hole.lineTo(wx + ww, winBottom);
-    hole.lineTo(wx + ww, winTop);
-    hole.lineTo(wx - ww, winTop);
-    hole.closePath();
-    shape.holes.push(hole);
+  for (const win of windowHoles) {
+    const ww = win.width / 2;
+    const winBottom = -hh + win.sillHeight;
+    const winTop = winBottom + win.height;
+    if (winTop > winBottom && ww > 0) {
+      const hole = new Path();
+      hole.moveTo(win.x - ww, winBottom);
+      hole.lineTo(win.x + ww, winBottom);
+      hole.lineTo(win.x + ww, winTop);
+      hole.lineTo(win.x - ww, winTop);
+      hole.closePath();
+      shape.holes.push(hole);
+    }
   }
 
   const geo = new ExtrudeGeometry(shape, {
