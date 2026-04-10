@@ -59,23 +59,29 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
     return [svgPt.x, svgPt.y];
   }, []);
 
+  // Use refs for latest callback values to avoid stale closures in window listeners
+  const latestRef = useRef({ building, wallId, defaultHeight, buildingId, clientToSvg, updateBuildingWall });
+  latestRef.current = { building, wallId, defaultHeight, buildingId, clientToSvg, updateBuildingWall };
+
   const onPointerMove = useCallback((e: PointerEvent) => {
     const d = dragging.current;
-    if (!d || !building) return;
+    const { building: b, wallId: wId, defaultHeight: dh, buildingId: bId, clientToSvg: toSvg, updateBuildingWall: update } = latestRef.current;
+    if (!d || !b) return;
 
-    const wallCfg = building.walls[wallId];
+    const wallCfg = b.walls[wId];
     if (!wallCfg) return;
 
-    const wallLength = getWallLength(wallId, building.dimensions);
-    const wallHeight = getEffectiveHeight(building, defaultHeight);
-    const [svgX, svgY] = clientToSvg(e.clientX, e.clientY);
+    const wallLength = getWallLength(wId, b.dimensions);
+    const wallHeight = getEffectiveHeight(b, dh);
+    const [svgX, svgY] = toSvg(e.clientX, e.clientY);
     const deltaX = svgX - d.startPointerSvg[0];
     const deltaY = svgY - d.startPointerSvg[1];
     const usableLen = wallLength - 2 * EDGE_CLEARANCE;
 
     const deltaFrac = usableLen > 0 ? deltaX / usableLen : 0;
     const rawFrac = d.startPosition + deltaFrac;
-    const snappedFrac = Math.round(rawFrac / (SNAP_INCREMENT / usableLen)) * (SNAP_INCREMENT / usableLen);
+    const snapStep = usableLen > 0 ? SNAP_INCREMENT / usableLen : 0.1;
+    const snappedFrac = Math.round(rawFrac / snapStep) * snapStep;
 
     const windows = wallCfg.windows ?? [];
 
@@ -86,7 +92,7 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
         width: w.width ?? WIN_W_DEFAULT,
       }));
       const newFrac = clampOpeningPosition(wallLength, doorW, snappedFrac, otherOpenings);
-      updateBuildingWall(buildingId, wallId, { doorPosition: newFrac });
+      update(bId, wId, { doorPosition: newFrac });
     } else if (d.type === 'window' && d.windowId) {
       const win = windows.find(w => w.id === d.windowId);
       if (!win) return;
@@ -116,9 +122,9 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
           ? { ...w, position: newFrac, sillHeight: clampedSill }
           : w
       );
-      updateBuildingWall(buildingId, wallId, { windows: updatedWindows });
+      update(bId, wId, { windows: updatedWindows });
     }
-  }, [building, wallId, defaultHeight, buildingId, clientToSvg, updateBuildingWall]);
+  }, []); // stable — reads from latestRef
 
   const onPointerUp = useCallback(() => {
     dragging.current = null;
@@ -129,15 +135,16 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
 
   const onResizeMove = useCallback((e: PointerEvent) => {
     const r = resizing.current;
-    if (!r || !building) return;
+    const { building: b, wallId: wId, defaultHeight: dh, buildingId: bId, clientToSvg: toSvg, updateBuildingWall: update } = latestRef.current;
+    if (!r || !b) return;
 
-    const wallCfg = building.walls[wallId];
+    const wallCfg = b.walls[wId];
     if (!wallCfg) return;
 
-    const wallLength = getWallLength(wallId, building.dimensions);
-    const wallHeight = getEffectiveHeight(building, defaultHeight);
+    const wallLength = getWallLength(wId, b.dimensions);
+    const wallHeight = getEffectiveHeight(b, dh);
     const windows = wallCfg.windows ?? [];
-    const [svgX, svgY] = clientToSvg(e.clientX, e.clientY);
+    const [svgX, svgY] = toSvg(e.clientX, e.clientY);
     const deltaX = svgX - r.startPointerSvg[0];
     const deltaY = svgY - r.startPointerSvg[1];
 
@@ -148,64 +155,47 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
 
     const edge = r.edge;
 
-    // Horizontal: east edge
     if (edge.includes('e')) {
       newWidth = Math.round((r.startWidth + deltaX) / SNAP_INCREMENT) * SNAP_INCREMENT;
       newWidth = Math.max(WIN_MIN_SIZE, newWidth);
-      // Compute left edge X (stays fixed)
       const startCenterX = wallLength / 2 + fractionToX(wallLength, r.startPosition);
       const leftEdge = startCenterX - r.startWidth / 2;
-      // Clamp: right edge <= wallLength
-      const maxW = wallLength - leftEdge;
-      newWidth = Math.min(newWidth, maxW);
+      newWidth = Math.min(newWidth, wallLength - leftEdge);
       newWidth = Math.max(WIN_MIN_SIZE, newWidth);
-      // Recompute center and position fraction
       const newCenterX = leftEdge + newWidth / 2;
       newPosition = xToFraction(wallLength, newCenterX - wallLength / 2);
     }
 
-    // Horizontal: west edge
     if (edge.includes('w')) {
       newWidth = Math.round((r.startWidth - deltaX) / SNAP_INCREMENT) * SNAP_INCREMENT;
       newWidth = Math.max(WIN_MIN_SIZE, newWidth);
-      // Compute right edge X (stays fixed)
       const startCenterX = wallLength / 2 + fractionToX(wallLength, r.startPosition);
       const rightEdge = startCenterX + r.startWidth / 2;
-      // Clamp: left edge >= 0
-      const maxW = rightEdge;
-      newWidth = Math.min(newWidth, maxW);
+      newWidth = Math.min(newWidth, rightEdge);
       newWidth = Math.max(WIN_MIN_SIZE, newWidth);
-      // Recompute center and position fraction
       const newCenterX = rightEdge - newWidth / 2;
       newPosition = xToFraction(wallLength, newCenterX - wallLength / 2);
     }
 
-    // Vertical: north (top) edge
     if (edge.includes('n')) {
       newHeight = Math.round((r.startHeight - deltaY) / SNAP_INCREMENT) * SNAP_INCREMENT;
       newHeight = Math.max(WIN_MIN_SIZE, newHeight);
-      // Sill stays the same (bottom edge fixed), but top must stay >= 0
       const maxH = wallHeight - r.startSillHeight;
       newHeight = Math.min(newHeight, maxH);
       newHeight = Math.max(WIN_MIN_SIZE, newHeight);
-      // Sill doesn't change for north drag
     }
 
-    // Vertical: south (bottom) edge
     if (edge.includes('s')) {
       newHeight = Math.round((r.startHeight + deltaY) / SNAP_INCREMENT) * SNAP_INCREMENT;
       newHeight = Math.max(WIN_MIN_SIZE, newHeight);
       newSill = Math.round((r.startSillHeight - deltaY) / SNAP_INCREMENT) * SNAP_INCREMENT;
       newSill = Math.max(0, newSill);
-      // Ensure top doesn't go above wall
       if (wallHeight - newSill - newHeight < 0) {
         newHeight = wallHeight - newSill;
       }
       newHeight = Math.max(WIN_MIN_SIZE, newHeight);
-      if (newSill < 0) newSill = 0;
     }
 
-    // Clamp position via clampOpeningPosition
     const otherOpenings: { position: number; width: number }[] = [];
     if (wallCfg.hasDoor) {
       const dw = wallCfg.doorSize === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W;
@@ -222,8 +212,8 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
         ? { ...w, width: newWidth, height: newHeight, sillHeight: newSill, position: newPosition }
         : w
     );
-    updateBuildingWall(buildingId, wallId, { windows: updatedWindows });
-  }, [building, wallId, defaultHeight, buildingId, clientToSvg, updateBuildingWall]);
+    update(bId, wId, { windows: updatedWindows });
+  }, []); // stable — reads from latestRef
 
   const onResizeUp = useCallback(() => {
     resizing.current = null;
@@ -242,7 +232,7 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
     sillHeight: number,
   ) => {
     e.stopPropagation();
-    const [sx, sy] = clientToSvg(e.clientX, e.clientY);
+    const [sx, sy] = latestRef.current.clientToSvg(e.clientX, e.clientY);
     resizing.current = {
       windowId,
       edge,
@@ -255,7 +245,7 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
     useConfigStore.temporal.getState().pause();
     window.addEventListener('pointermove', onResizeMove);
     window.addEventListener('pointerup', onResizeUp);
-  }, [clientToSvg, onResizeMove, onResizeUp]);
+  }, [onResizeMove, onResizeUp]);
 
   const startDrag = useCallback((
     e: React.PointerEvent,
@@ -265,7 +255,7 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
     windowId?: string,
   ) => {
     e.stopPropagation();
-    const [sx, sy] = clientToSvg(e.clientX, e.clientY);
+    const [sx, sy] = latestRef.current.clientToSvg(e.clientX, e.clientY);
     dragging.current = {
       type,
       windowId,
@@ -277,9 +267,9 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
     useConfigStore.temporal.getState().pause();
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
-  }, [clientToSvg, onPointerMove, onPointerUp]);
+  }, [onPointerMove, onPointerUp]);
 
-  // Cleanup listeners on unmount
+  // Cleanup listeners on unmount only
   useEffect(() => {
     return () => {
       window.removeEventListener('pointermove', onPointerMove);
@@ -287,7 +277,7 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
       window.removeEventListener('pointermove', onResizeMove);
       window.removeEventListener('pointerup', onResizeUp);
     };
-  }, [onPointerMove, onPointerUp, onResizeMove, onResizeUp]);
+  }, []);
 
   if (!building) return null;
 
@@ -370,23 +360,64 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
             width={doorW} height={doorH}
             fill="transparent"
           />
-          {/* Door panel */}
-          <rect
-            x={doorX - doorW / 2}
-            y={wallHeight - doorH}
-            width={doorW} height={doorH}
-            fill="#d4a574" fillOpacity={0.3}
-            stroke={isDoorSelected ? '#3b82f6' : '#8B6914'}
-            strokeWidth={isDoorSelected ? 0.04 : 0.025}
-            rx={0.01}
-          />
-          {/* Door handle */}
-          <rect
-            x={doorX + doorW / 2 - 0.15}
-            y={wallHeight - doorH / 2 - 0.07}
-            width={0.06} height={0.15}
-            fill="#8B6914" rx={0.01}
-          />
+          {wallCfg.doorSize === 'dubbel' ? (
+            <>
+              {/* Left panel */}
+              <rect
+                x={doorX - doorW / 2}
+                y={wallHeight - doorH}
+                width={doorW / 2} height={doorH}
+                fill="#d4a574" fillOpacity={0.3}
+                stroke={isDoorSelected ? '#3b82f6' : '#8B6914'}
+                strokeWidth={isDoorSelected ? 0.04 : 0.025}
+                rx={0.01}
+              />
+              {/* Left handle */}
+              <rect
+                x={doorX - 0.09}
+                y={wallHeight - doorH / 2 - 0.07}
+                width={0.06} height={0.15}
+                fill="#8B6914" rx={0.01}
+              />
+              {/* Right panel */}
+              <rect
+                x={doorX}
+                y={wallHeight - doorH}
+                width={doorW / 2} height={doorH}
+                fill="#d4a574" fillOpacity={0.3}
+                stroke={isDoorSelected ? '#3b82f6' : '#8B6914'}
+                strokeWidth={isDoorSelected ? 0.04 : 0.025}
+                rx={0.01}
+              />
+              {/* Right handle */}
+              <rect
+                x={doorX + 0.03}
+                y={wallHeight - doorH / 2 - 0.07}
+                width={0.06} height={0.15}
+                fill="#8B6914" rx={0.01}
+              />
+            </>
+          ) : (
+            <>
+              {/* Single door panel */}
+              <rect
+                x={doorX - doorW / 2}
+                y={wallHeight - doorH}
+                width={doorW} height={doorH}
+                fill="#d4a574" fillOpacity={0.3}
+                stroke={isDoorSelected ? '#3b82f6' : '#8B6914'}
+                strokeWidth={isDoorSelected ? 0.04 : 0.025}
+                rx={0.01}
+              />
+              {/* Door handle */}
+              <rect
+                x={doorX + doorW / 2 - 0.15}
+                y={wallHeight - doorH / 2 - 0.07}
+                width={0.06} height={0.15}
+                fill="#8B6914" rx={0.01}
+              />
+            </>
+          )}
           {/* Door dimension label */}
           <text
             x={doorX} y={wallHeight + 0.2}
