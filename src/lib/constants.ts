@@ -10,7 +10,6 @@ import type {
   BuildingType,
   WallId,
   DoorSize,
-  DoorPosition,
   DoorMaterialId,
 } from '@/types/building';
 
@@ -82,10 +81,9 @@ export const DEFAULT_WALL: WallConfig = {
   doorMaterialId: 'wood',
   doorSize: 'enkel',
   doorHasWindow: false,
-  doorPosition: 'midden',
+  doorPosition: 0.5,
   doorSwing: 'dicht',
-  hasWindow: false,
-  windowCount: 0,
+  windows: [],
 };
 
 // Default roof config
@@ -185,6 +183,10 @@ export const DECK_T = 0.04;
 export const DOOR_W = 0.9;
 export const WIN_W = 1.2;
 
+// Clearance constants
+export const EDGE_CLEARANCE = 0.5;
+export const OPENING_GAP = 0.3;
+
 // Pole dimensions (single post)
 export const POLE_DIMENSIONS: BuildingDimensions = {
   width: POST_SIZE,
@@ -256,11 +258,13 @@ export function getWidthCategory(width: number): WidthCategory | null {
 export const SNAP_THRESHOLD = 0.5;
 export const SNAP_ALIGN_THRESHOLD = 0.3;
 
+/** @deprecated Will be removed in Task 2 */
 function doorWidth(doorSize: DoorSize): number {
   return doorSize === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W;
 }
 
-export function computeDoorX(wallLength: number, doorPosition: DoorPosition, doorSize: DoorSize): number {
+/** @deprecated Will be removed in Task 2 */
+export function computeDoorX(wallLength: number, doorPosition: string, doorSize: DoorSize): number {
   const margin = 0.5;
   const dw = doorWidth(doorSize);
   const usableHalf = wallLength / 2 - margin - dw / 2;
@@ -275,10 +279,11 @@ export function computeDoorX(wallLength: number, doorPosition: DoorPosition, doo
   }
 }
 
+/** @deprecated Will be removed in Task 2 */
 export function computeOpeningPositions(
   wallLength: number,
   hasDoor: boolean,
-  doorPosition: DoorPosition,
+  doorPosition: string,
   doorSize: DoorSize,
   windowCount: number,
 ): { doorX: number; windowXs: number[] } {
@@ -347,4 +352,117 @@ export function getWallLength(wallId: WallId, dimensions: BuildingDimensions): n
       return _exhaustive;
     }
   }
+}
+
+/** Convert a 0–1 fraction to meters from wall center */
+export function fractionToX(wallLength: number, fraction: number): number {
+  const usableStart = -wallLength / 2 + EDGE_CLEARANCE;
+  const usableEnd = wallLength / 2 - EDGE_CLEARANCE;
+  return usableStart + fraction * (usableEnd - usableStart);
+}
+
+/** Convert meters from wall center to 0–1 fraction */
+export function xToFraction(wallLength: number, x: number): number {
+  const usableStart = -wallLength / 2 + EDGE_CLEARANCE;
+  const usableEnd = wallLength / 2 - EDGE_CLEARANCE;
+  const usableLen = usableEnd - usableStart;
+  if (usableLen <= 0) return 0.5;
+  return Math.max(0, Math.min(1, (x - usableStart) / usableLen));
+}
+
+/** Resolve fractional positions to meters from wall center */
+export function resolveOpeningPositions(
+  wallLength: number,
+  doorPosition: number | null,
+  doorSize: DoorSize,
+  windows: { position: number }[],
+): { doorX: number | null; windowXs: number[] } {
+  const doorX = doorPosition !== null
+    ? fractionToX(wallLength, doorPosition)
+    : null;
+  const windowXs = windows.map(w => fractionToX(wallLength, w.position));
+  return { doorX, windowXs };
+}
+
+/** Clamp an opening position to avoid edges and other openings */
+export function clampOpeningPosition(
+  wallLength: number,
+  openingWidth: number,
+  proposedFraction: number,
+  otherOpenings: { position: number; width: number }[],
+): number {
+  const usableLen = wallLength - 2 * EDGE_CLEARANCE;
+  if (usableLen <= 0) return 0.5;
+
+  const halfW = openingWidth / 2;
+  const minFrac = halfW / usableLen;
+  const maxFrac = 1 - halfW / usableLen;
+  let frac = Math.max(minFrac, Math.min(maxFrac, proposedFraction));
+
+  const others = otherOpenings
+    .map(o => ({ frac: o.position, halfW: o.width / 2 }))
+    .sort((a, b) => a.frac - b.frac);
+
+  for (const o of others) {
+    const minGapFrac = (halfW + o.halfW + OPENING_GAP) / usableLen;
+    const dist = frac - o.frac;
+    if (Math.abs(dist) < minGapFrac) {
+      if (dist >= 0) {
+        frac = Math.max(frac, o.frac + minGapFrac);
+      } else {
+        frac = Math.min(frac, o.frac - minGapFrac);
+      }
+    }
+  }
+
+  frac = Math.max(minFrac, Math.min(maxFrac, frac));
+  return frac;
+}
+
+/** Find the best position for a new opening (largest gap) */
+export function findBestNewPosition(
+  wallLength: number,
+  openingWidth: number,
+  existingOpenings: { position: number; width: number }[],
+): number {
+  const usableLen = wallLength - 2 * EDGE_CLEARANCE;
+  if (usableLen <= 0) return 0.5;
+
+  const halfW = openingWidth / 2;
+  const minFrac = halfW / usableLen;
+  const maxFrac = 1 - halfW / usableLen;
+
+  if (existingOpenings.length === 0) return 0.5;
+
+  const zones = existingOpenings
+    .map(o => ({
+      start: o.position - (o.width / 2 + OPENING_GAP) / usableLen,
+      end: o.position + (o.width / 2 + OPENING_GAP) / usableLen,
+    }))
+    .sort((a, b) => a.start - b.start);
+
+  let bestCenter = 0.5;
+  let bestGap = 0;
+
+  const gapBefore = zones[0].start - minFrac;
+  if (gapBefore > bestGap) {
+    bestGap = gapBefore;
+    bestCenter = minFrac + gapBefore / 2;
+  }
+
+  for (let i = 0; i < zones.length - 1; i++) {
+    const gap = zones[i + 1].start - zones[i].end;
+    if (gap > bestGap) {
+      bestGap = gap;
+      bestCenter = zones[i].end + gap / 2;
+    }
+  }
+
+  const gapAfter = maxFrac - zones[zones.length - 1].end;
+  if (gapAfter > bestGap) {
+    bestGap = gapAfter;
+    bestCenter = zones[zones.length - 1].end + gapAfter / 2;
+  }
+
+  return Math.max(minFrac, Math.min(maxFrac, bestCenter));
 }

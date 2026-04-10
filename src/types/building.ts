@@ -22,8 +22,12 @@ export interface SurfaceMaterial {
 
 export type DoorMaterialId = 'wood' | 'aluminium' | 'pvc' | 'staal';
 export type DoorSize = 'enkel' | 'dubbel';
-export type DoorPosition = 'links' | 'midden' | 'rechts';
 export type DoorSwing = 'dicht' | 'naar_binnen' | 'naar_buiten';
+
+export interface WallWindow {
+  id: string;
+  position: number; // 0.0–1.0 fraction of usable wall length
+}
 
 export interface WallConfig {
   materialId: string;
@@ -32,10 +36,9 @@ export interface WallConfig {
   doorMaterialId: DoorMaterialId;
   doorSize: DoorSize;
   doorHasWindow: boolean;
-  doorPosition: DoorPosition;
+  doorPosition: number;
   doorSwing: DoorSwing;
-  hasWindow: boolean;
-  windowCount: number;
+  windows: WallWindow[];
 }
 
 export type FloorMaterialId = 'geen' | 'tegels' | 'beton' | 'hout';
