@@ -763,7 +763,12 @@ export default function SchematicView() {
       if (shiftOnDown.current) {
         useConfigStore.getState().toggleBuildingSelection(dragBuildingId.current);
       } else {
-        selectBuilding(dragBuildingId.current);
+        const clicked = useConfigStore.getState().buildings.find(b => b.id === dragBuildingId.current);
+        if (clicked?.type === 'muur') {
+          useConfigStore.getState().selectElement({ type: 'wall', id: 'front', buildingId: clicked.id });
+        } else {
+          selectBuilding(dragBuildingId.current);
+        }
       }
     }
     dragging.current = false;
@@ -1113,7 +1118,8 @@ export default function SchematicView() {
                   }}
                 />
 
-                {/* Wall segments with door/window gaps */}
+                {/* Wall segments with door/window gaps — no onWallClick so the
+                    outer hit target handles click-vs-drag uniformly */}
                 <g pointerEvents="none">
                   <SchematicWalls
                     dimensions={schematicDims}
@@ -1122,7 +1128,6 @@ export default function SchematicView() {
                     buildingId={w.id}
                     offsetX={wallOffsetX}
                     offsetY={wallOffsetY}
-                    onWallClick={onWallClick}
                   />
                 </g>
 

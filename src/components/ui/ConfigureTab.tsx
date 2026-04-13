@@ -24,14 +24,14 @@ const SECTIONS: { id: ConfigSection; labelKey: string; icon: string; showFor?: B
 
 function MuurWallAutoSelect({ buildingId }: { buildingId: string }) {
   const selectElement = useConfigStore((s) => s.selectElement);
-  const selectedElement = useConfigStore((s) => s.selectedElement);
 
   useEffect(() => {
-    const isAlreadySelected = selectedElement?.type === 'wall' && selectedElement.buildingId === buildingId;
+    const sel = useConfigStore.getState().selectedElement;
+    const isAlreadySelected = sel?.type === 'wall' && sel.buildingId === buildingId;
     if (!isAlreadySelected) {
       selectElement({ type: 'wall', id: 'front', buildingId });
     }
-  }, [buildingId, selectElement, selectedElement]);
+  }, [buildingId, selectElement]);
 
   return null;
 }
