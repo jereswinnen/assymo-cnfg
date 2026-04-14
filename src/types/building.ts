@@ -41,6 +41,7 @@ export interface WallConfig {
   doorHasWindow: boolean;
   doorPosition: number;
   doorSwing: DoorSwing;
+  doorMirror?: boolean;
   windows: WallWindow[];
 }
 

@@ -161,8 +161,10 @@ export function useDoorTexture(
 
   useEffect(() => {
     if (textures) {
+      // Match the wall's wood tile density (1.5×1.5 m) so door texture reads
+      // continuous with the surrounding wall.
       const rx = panelWidth / 1.5;
-      const ry = panelHeight / 2;
+      const ry = panelHeight / 1.5;
       textures.map.repeat.set(rx, ry);
       textures.normalMap.repeat.set(rx, ry);
       textures.roughnessMap.repeat.set(rx, ry);

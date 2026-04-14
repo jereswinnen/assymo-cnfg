@@ -251,6 +251,7 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg }: Ope
           doorSize={ds}
           doorHasWindow={wallCfg.doorHasWindow ?? false}
           doorMaterialId={wallCfg.doorMaterialId ?? 'wood'}
+          doorMirror={wallCfg.doorMirror ?? false}
         />
       )}
       {windowXs.map((wx, i) => {

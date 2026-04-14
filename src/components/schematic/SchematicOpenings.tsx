@@ -101,6 +101,7 @@ export default function SchematicOpenings({
                       doorWidth={dw}
                       isDouble={ds === 'dubbel'}
                       swing={cfg.doorSwing ?? 'dicht'}
+                      mirror={cfg.doorMirror ?? false}
                     />
                   </g>
 
@@ -113,6 +114,7 @@ export default function SchematicOpenings({
                         doorWidth={dw}
                         isDouble={ds === 'dubbel'}
                         swing={cfg.doorSwing ?? 'dicht'}
+                        mirror={cfg.doorMirror ?? false}
                       />
                     </g>
                   )}
@@ -177,12 +179,14 @@ function DoorSymbol({
   doorWidth: dw,
   isDouble,
   swing,
+  mirror,
 }: {
   geom: WallGeom;
   localDoorX: number;
   doorWidth: number;
   isDouble: boolean;
   swing: DoorSwing;
+  mirror?: boolean;
 }) {
   const { cx, cy, orientation, inward, hingeEnd } = geom;
   const isH = orientation === 'h';
@@ -204,6 +208,10 @@ function DoorSymbol({
     );
   }
 
+  const effectiveHinge: 'start' | 'end' = mirror
+    ? hingeEnd === 'start' ? 'end' : 'start'
+    : hingeEnd;
+
   return (
     <SingleDoorArc
       cx={cx}
@@ -213,7 +221,7 @@ function DoorSymbol({
       isH={isH}
       inward={inward}
       swingSign={swingSign}
-      hingeEnd={hingeEnd}
+      hingeEnd={effectiveHinge}
     />
   );
 }

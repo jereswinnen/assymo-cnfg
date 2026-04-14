@@ -409,9 +409,11 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
                 strokeWidth={isDoorSelected ? 0.04 : 0.025}
                 rx={0.01}
               />
-              {/* Door handle */}
+              {/* Door handle — flips to the opposite side when mirrored */}
               <rect
-                x={doorX + doorW / 2 - 0.15}
+                x={wallCfg.doorMirror
+                  ? doorX - doorW / 2 + 0.09
+                  : doorX + doorW / 2 - 0.15}
                 y={wallHeight - doorH / 2 - 0.07}
                 width={0.06} height={0.15}
                 fill="#8B6914" rx={0.01}

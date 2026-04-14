@@ -82,7 +82,8 @@ export const DEFAULT_WALL: WallConfig = {
   doorSize: 'enkel',
   doorHasWindow: false,
   doorPosition: 0.5,
-  doorSwing: 'dicht',
+  doorSwing: 'naar_buiten',
+  doorMirror: false,
   windows: [],
 };
 

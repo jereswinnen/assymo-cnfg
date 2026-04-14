@@ -188,6 +188,17 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
                     {t('surface.doorSwing.naar_buiten')}
                   </ToggleGroupItem>
                 </ToggleGroup>
+                <label
+                  htmlFor="door-mirror"
+                  className="flex items-center gap-2 pt-1 cursor-pointer text-xs text-muted-foreground"
+                >
+                  <Checkbox
+                    id="door-mirror"
+                    checked={wallCfg.doorMirror ?? false}
+                    onCheckedChange={(checked) => handleChange('doorMirror', !!checked)}
+                  />
+                  {t('surface.doorMirror')}
+                </label>
               </div>
             </div>
           )}

@@ -91,6 +91,7 @@ const nl: Record<string, string> = {
   'surface.doorSwing.dicht': 'Dicht',
   'surface.doorSwing.naar_binnen': 'Naar binnen',
   'surface.doorSwing.naar_buiten': 'Naar buiten',
+  'surface.doorMirror': 'Spiegelen',
   'surface.windows': 'Ramen',
   'surface.windowCount': 'Aantal',
   'surface.skylight': 'Dakraam',
