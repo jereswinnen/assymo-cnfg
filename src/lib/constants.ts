@@ -6,7 +6,6 @@ import type {
   FloorConfig,
   FloorMaterialId,
   RoofCovering,
-  TrimColor,
   BuildingType,
   WallId,
   DoorSize,
@@ -29,15 +28,6 @@ export const ROOF_COVERINGS: RoofCovering[] = [
   { id: 'epdm', label: 'EPDM', pricePerSqm: 35, color: '#2C2C2C' },
   { id: 'polycarbonaat', label: 'Polycarbonaat', pricePerSqm: 40, color: '#D4E8F0' },
   { id: 'metaal', label: 'Staalplaten', pricePerSqm: 50, color: '#708090' },
-];
-
-// Trim / edge colors
-export const TRIM_COLORS: TrimColor[] = [
-  { id: 'antraciet', label: 'Antraciet', hex: '#3C3C3C' },
-  { id: 'wit', label: 'Wit', hex: '#F5F5F5' },
-  { id: 'zwart', label: 'Zwart', hex: '#1A1A1A' },
-  { id: 'bruin', label: 'Bruin', hex: '#5C3317' },
-  { id: 'groen', label: 'Groen', hex: '#2E5930' },
 ];
 
 // Dutch finishes
@@ -92,7 +82,7 @@ export const DEFAULT_ROOF: RoofConfig = {
   type: 'flat',
   pitch: 0,
   coveringId: 'epdm',
-  trimColorId: 'antraciet',
+  trimMaterialId: 'wood',
   insulation: true,
   insulationThickness: 150,
   hasSkylight: false,

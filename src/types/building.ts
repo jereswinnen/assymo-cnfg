@@ -2,7 +2,6 @@ export type BuildingType = 'overkapping' | 'berging' | 'paal' | 'muur';
 export type Orientation = 'horizontal' | 'vertical';
 export type RoofType = 'flat' | 'pitched';
 export type RoofCoveringId = 'dakpannen' | 'riet' | 'epdm' | 'polycarbonaat' | 'metaal';
-export type TrimColorId = 'antraciet' | 'wit' | 'zwart' | 'bruin' | 'groen';
 
 export interface BuildingDimensions {
   width: number;
@@ -55,7 +54,7 @@ export interface RoofConfig {
   type: RoofType;
   pitch: number;
   coveringId: RoofCoveringId;
-  trimColorId: TrimColorId;
+  trimMaterialId: string;
   insulation: boolean;
   insulationThickness: number; // mm
   hasSkylight: boolean;
@@ -66,12 +65,6 @@ export interface RoofCovering {
   label: string;
   pricePerSqm: number;
   color: string;
-}
-
-export interface TrimColor {
-  id: TrimColorId;
-  label: string;
-  hex: string;
 }
 
 export interface BuildingEntity {

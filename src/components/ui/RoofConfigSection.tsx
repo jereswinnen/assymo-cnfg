@@ -1,12 +1,11 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
-import { ROOF_COVERINGS, TRIM_COLORS } from '@/lib/constants';
+import { ROOF_COVERINGS, WALL_MATERIALS } from '@/lib/constants';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import SectionLabel from '@/components/ui/SectionLabel';
-import ColorSwatches from './ColorSwatches';
 
 export default function RoofConfigSection() {
   const roof = useConfigStore((s) => s.roof);
@@ -46,14 +45,38 @@ export default function RoofConfigSection() {
         </div>
       </div>
 
-      {/* Trim color swatches */}
+      {/* Trim material — same options as wall materials */}
       <div className="space-y-2">
         <SectionLabel>{t('roof.trimColor')}</SectionLabel>
-        <ColorSwatches
-          colors={TRIM_COLORS}
-          selectedId={roof.trimColorId}
-          onSelect={(id) => updateRoof({ trimColorId: id as typeof roof.trimColorId })}
-        />
+        <div className="grid grid-cols-5 gap-1.5">
+          {WALL_MATERIALS.map((m) => {
+            const isSelected = roof.trimMaterialId === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => updateRoof({ trimMaterialId: m.id })}
+                className={`flex flex-col items-center gap-1.5 rounded-lg border p-2 transition-all ${
+                  isSelected
+                    ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                    : 'border-border hover:border-primary/40'
+                }`}
+              >
+                <span
+                  className="h-7 w-7 rounded-md border border-border/50"
+                  style={{
+                    backgroundColor: m.id === 'glass' ? '#B8D4E3' : m.color,
+                    opacity: m.id === 'glass' ? 0.6 : 1,
+                  }}
+                />
+                <span className={`text-[10px] font-medium leading-tight ${
+                  isSelected ? 'text-primary' : 'text-muted-foreground'
+                }`}>
+                  {m.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Skylight toggle */}

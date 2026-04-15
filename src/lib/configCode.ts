@@ -5,7 +5,6 @@ import type {
   RoofType,
   RoofConfig,
   RoofCoveringId,
-  TrimColorId,
   FloorMaterialId,
   WallConfig,
   WallId,
@@ -141,7 +140,7 @@ class BitReader {
 const BUILDING_TYPES: BuildingType[] = ['overkapping', 'berging', 'paal', 'muur'];
 const ORIENTATIONS: Orientation[] = ['horizontal', 'vertical'];
 const COVERING_IDS: RoofCoveringId[] = ['dakpannen', 'riet', 'epdm', 'polycarbonaat', 'metaal'];
-const TRIM_IDS: TrimColorId[] = ['antraciet', 'wit', 'zwart', 'bruin', 'groen'];
+const TRIM_MATERIAL_IDS = ['wood', 'brick', 'render', 'metal', 'glass'];
 const FLOOR_IDS: FloorMaterialId[] = ['geen', 'tegels', 'beton', 'hout'];
 const WALL_SLOTS: WallId[] = ['front', 'back', 'left', 'right'];
 const WALL_SIDES: WallSide[] = ['left', 'right', 'front', 'back'];
@@ -238,7 +237,7 @@ export function encodeState(
     w.write(clamp(roof.pitch, 0, 55), 6);
   }
   w.write(indexOf(COVERING_IDS, roof.coveringId), 3);
-  w.write(indexOf(TRIM_IDS, roof.trimColorId), 3);
+  w.write(indexOf(TRIM_MATERIAL_IDS, roof.trimMaterialId), 3);
   w.write(roof.insulation ? 1 : 0, 1);
   if (roof.insulation) {
     w.write(clamp(Math.round((roof.insulationThickness - 50) / 10), 0, 25), 5);
@@ -349,13 +348,13 @@ export function decodeState(code: string): {
   const pitch = isPitched ? clamp(r.read(6), 0, 55) : 0;
   const roofType: RoofType = isPitched ? 'pitched' : 'flat';
   const coveringId = COVERING_IDS[clamp(r.read(3), 0, 4)];
-  const trimColorId = TRIM_IDS[clamp(r.read(3), 0, 4)];
+  const trimMaterialId = TRIM_MATERIAL_IDS[clamp(r.read(3), 0, 4)];
   const insulation = r.read(1) === 1;
   const insulationThickness = insulation ? clamp(r.read(5) * 10 + 50, 50, 300) : 150;
   const hasSkylight = r.read(1) === 1;
 
   const roof: RoofConfig = {
-    type: roofType, pitch, coveringId, trimColorId,
+    type: roofType, pitch, coveringId, trimMaterialId,
     insulation, insulationThickness, hasSkylight,
   };
 
