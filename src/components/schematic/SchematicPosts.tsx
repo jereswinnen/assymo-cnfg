@@ -1,4 +1,5 @@
-import { POST_SPACING } from '@/lib/constants';
+import { autoPoleLayout } from '@/lib/constants';
+import type { PolesConfig } from '@/types/building';
 
 const POST_SIZE = 0.15;
 
@@ -7,29 +8,28 @@ interface SchematicPostsProps {
   depth: number;
   offsetX?: number;
   offsetY?: number;
+  poles?: PolesConfig;
 }
 
-export default function SchematicPosts({ width, depth, offsetX = 0, offsetY = 0 }: SchematicPostsProps) {
+export default function SchematicPosts({ width, depth, offsetX = 0, offsetY = 0, poles }: SchematicPostsProps) {
+  const layout = poles ?? autoPoleLayout(width, depth);
   const hw = width / 2;
   const hd = depth / 2;
 
   const positions: [number, number][] = [];
 
-  const postsW = Math.max(2, Math.floor(width / POST_SPACING) + 1);
-  const stepW = width / (postsW - 1);
-  for (let i = 0; i < postsW; i++) {
-    const x = -hw + i * stepW;
-    positions.push([x, hd]);
-    positions.push([x, -hd]);
-  }
+  // Corners
+  positions.push([-hw,  hd]);
+  positions.push([ hw,  hd]);
+  positions.push([-hw, -hd]);
+  positions.push([ hw, -hd]);
 
-  const postsD = Math.max(2, Math.floor(depth / POST_SPACING) + 1);
-  const stepD = depth / (postsD - 1);
-  for (let i = 1; i < postsD - 1; i++) {
-    const y = -hd + i * stepD;
-    positions.push([-hw, y]);
-    positions.push([hw, y]);
-  }
+  // Intermediates — keep the SchematicPosts/TimberFrame axis mapping
+  // (back = +hd / +z, front = -hd / -z).
+  for (const f of layout.back)  positions.push([-hw + f * width,  hd]);
+  for (const f of layout.front) positions.push([-hw + f * width, -hd]);
+  for (const f of layout.left)  positions.push([-hw, -hd + f * depth]);
+  for (const f of layout.right) positions.push([ hw, -hd + f * depth]);
 
   const half = POST_SIZE / 2;
 

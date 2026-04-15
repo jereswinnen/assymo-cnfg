@@ -67,6 +67,16 @@ export interface RoofCovering {
   color: string;
 }
 
+/** Per-side intermediate post fractions (0–1 along the edge, corners excluded).
+ *  When a building entity has no `poles`, TimberFrame falls back to the
+ *  automatic `autoPoleLayout()` computation. */
+export interface PolesConfig {
+  front: number[];
+  back: number[];
+  left: number[];
+  right: number[];
+}
+
 export interface BuildingEntity {
   id: string;
   type: BuildingType;
@@ -78,6 +88,7 @@ export interface BuildingEntity {
   floor: FloorConfig;
   orientation: Orientation;
   heightOverride: number | null;
+  poles?: PolesConfig;
 }
 
 export interface SnapConnection {

@@ -4,7 +4,7 @@ import { useMemo, useEffect } from 'react';
 import { MeshStandardMaterial, TextureLoader, RepeatWrapping, SRGBColorSpace, LinearSRGBColorSpace } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
-import { POST_SIZE, BEAM_H, DECK_T, POST_SPACING } from '@/lib/constants';
+import { POST_SIZE, BEAM_H, DECK_T, autoPoleLayout } from '@/lib/constants';
 
 const BEAM_W = 0.15;
 
@@ -30,6 +30,10 @@ export default function TimberFrame() {
   const isFlat = roof.type === 'flat';
   const roofPitch = roof.pitch;
   const hasBraces = building?.hasCornerBraces ?? false;
+  const poles = useMemo(
+    () => building?.poles ?? autoPoleLayout(width, depth),
+    [building?.poles, width, depth],
+  );
 
   // Determine which sides are suppressed (this building is buildingA in the connection)
   const suppressedSides = useMemo(() => {
@@ -88,26 +92,17 @@ export default function TimberFrame() {
     const suppF = suppressedSides.has('front');
     const suppB = suppressedSides.has('back');
 
-    // Posts along width (front/back edges)
-    const postsW = Math.max(2, Math.floor(width / POST_SPACING) + 1);
-    const stepW = width / (postsW - 1);
-    for (let i = 0; i < postsW; i++) {
-      const x = -hw + i * stepW;
-      const isLeftEdge = i === 0;
-      const isRightEdge = i === postsW - 1;
-      if (isLeftEdge && suppL) continue;
-      if (isRightEdge && suppR) continue;
-      if (!suppB) boxes.push({ pos: [x, height / 2, hd], size: [POST_SIZE, height, POST_SIZE] });
-      if (!suppF) boxes.push({ pos: [x, height / 2, -hd], size: [POST_SIZE, height, POST_SIZE] });
-    }
-    // Intermediate posts along depth (left/right edges)
-    const postsD = Math.max(2, Math.floor(depth / POST_SPACING) + 1);
-    const stepD = depth / (postsD - 1);
-    for (let i = 1; i < postsD - 1; i++) {
-      const z = -hd + i * stepD;
-      if (!suppL) boxes.push({ pos: [-hw, height / 2, z], size: [POST_SIZE, height, POST_SIZE] });
-      if (!suppR) boxes.push({ pos: [hw, height / 2, z], size: [POST_SIZE, height, POST_SIZE] });
-    }
+    // Corner posts (always present unless the adjacent sides are suppressed)
+    if (!suppB && !suppL) boxes.push({ pos: [-hw, height / 2, hd], size: [POST_SIZE, height, POST_SIZE] });
+    if (!suppB && !suppR) boxes.push({ pos: [hw, height / 2, hd], size: [POST_SIZE, height, POST_SIZE] });
+    if (!suppF && !suppL) boxes.push({ pos: [-hw, height / 2, -hd], size: [POST_SIZE, height, POST_SIZE] });
+    if (!suppF && !suppR) boxes.push({ pos: [hw, height / 2, -hd], size: [POST_SIZE, height, POST_SIZE] });
+
+    // Intermediate posts from the building's (possibly user-edited) pole layout
+    if (!suppB) for (const f of poles.back)   boxes.push({ pos: [-hw + f * width, height / 2,  hd], size: [POST_SIZE, height, POST_SIZE] });
+    if (!suppF) for (const f of poles.front)  boxes.push({ pos: [-hw + f * width, height / 2, -hd], size: [POST_SIZE, height, POST_SIZE] });
+    if (!suppL) for (const f of poles.left)   boxes.push({ pos: [-hw, height / 2, -hd + f * depth], size: [POST_SIZE, height, POST_SIZE] });
+    if (!suppR) for (const f of poles.right)  boxes.push({ pos: [ hw, height / 2, -hd + f * depth], size: [POST_SIZE, height, POST_SIZE] });
 
     // Top plate beams (skip on suppressed sides)
     const beamY = height + BEAM_H / 2;

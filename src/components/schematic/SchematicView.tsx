@@ -3,7 +3,7 @@
 import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { useConfigStore, selectSingleBuildingId, getEffectiveHeight } from '@/store/useConfigStore';
 import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/lib/snap';
-import { getConstraints, DOOR_W, DOUBLE_DOOR_W, WIN_W, xToFraction, clampOpeningPosition, fractionToX, getWallLength } from '@/lib/constants';
+import { getConstraints, DOOR_W, DOUBLE_DOOR_W, WIN_W, xToFraction, clampOpeningPosition, fractionToX, getWallLength, autoPoleLayout } from '@/lib/constants';
 import { t } from '@/lib/i18n';
 import SchematicPosts from './SchematicPosts';
 import SchematicWalls, { getWallGeometries } from './SchematicWalls';
@@ -196,6 +196,19 @@ export default function SchematicView() {
     fraction: number;
   } | null>(null);
 
+  // Overkapping intermediate-pole drag state
+  const draggingPole = useRef<{
+    buildingId: string;
+    side: 'front' | 'back' | 'left' | 'right';
+    index: number;
+  } | null>(null);
+  const [polePreview, setPolePreview] = useState<{
+    buildingId: string;
+    side: 'front' | 'back' | 'left' | 'right';
+    index: number;
+    fraction: number;
+  } | null>(null);
+
   const groupDragStartPositions = useRef<Map<string, [number, number]>>(new Map());
 
   // Selection rectangle state
@@ -361,6 +374,17 @@ export default function SchematicView() {
     setFrozenViewBox(computedViewBox);
   }, [buildings, computedViewBox]);
 
+  const onPolePointerDown = useCallback((
+    e: React.PointerEvent,
+    info: { buildingId: string; side: 'front' | 'back' | 'left' | 'right'; index: number },
+  ) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    pointerDownScreen.current = { x: e.clientX, y: e.clientY };
+    draggingPole.current = info;
+    setFrozenViewBox(computedViewBox);
+  }, [computedViewBox]);
+
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (isElevationMode) return;
     // --- Selection rectangle handling ---
@@ -459,6 +483,44 @@ export default function SchematicView() {
 
       updateBuildingDimensions(buildingId, { width: newWidth, depth: newDepth });
       updateBuildingPosition(buildingId, [newPosX, newPosZ]);
+      return;
+    }
+
+    // --- Pole drag handling ---
+    if (draggingPole.current) {
+      const down = pointerDownScreen.current;
+      if (down) {
+        const dx = e.clientX - down.x;
+        const dy = e.clientY - down.y;
+        if (dx * dx + dy * dy < 25) return; // 5px dead zone
+      }
+
+      if (!polePreview) {
+        useConfigStore.temporal.getState().pause();
+      }
+
+      const svg = svgRef.current;
+      if (!svg) return;
+
+      const { buildingId, side, index } = draggingPole.current;
+      const building = useConfigStore.getState().buildings.find(b => b.id === buildingId);
+      if (!building) return;
+
+      const [wx, wz] = clientToWorld(svg, e.clientX, e.clientY);
+      const [bx, bz] = building.position;
+      const { width, depth } = building.dimensions;
+
+      // Side axis: front/back slide along x (width); left/right slide along z (depth)
+      const axis = side === 'front' || side === 'back' ? 'x' : 'z';
+      const along = axis === 'x' ? (wx - bx) : (wz - bz);
+      const edgeLen = axis === 'x' ? width : depth;
+      const SNAP = 0.1;
+      const snapped = Math.round(along / SNAP) * SNAP;
+      const minClear = 0.2; // keep poles off the exact corners
+      const clamped = Math.max(minClear, Math.min(edgeLen - minClear, snapped));
+      const fraction = clamped / edgeLen;
+
+      setPolePreview({ buildingId, side, index, fraction });
       return;
     }
 
@@ -682,6 +744,30 @@ export default function SchematicView() {
       selectRectRef.current = null;
       pointerDownScreen.current = null;
       setSelectRect(null);
+      setFrozenViewBox(null);
+      return;
+    }
+
+    // --- Pole drag cleanup ---
+    if (draggingPole.current) {
+      if (polePreview) {
+        const { buildingId, side, index, fraction } = polePreview;
+        const building = useConfigStore.getState().buildings.find(b => b.id === buildingId);
+        if (building) {
+          const current = building.poles ?? autoPoleLayout(building.dimensions.width, building.dimensions.depth);
+          const nextSide = [...current[side]];
+          nextSide[index] = fraction;
+          nextSide.sort((a, b) => a - b);
+          useConfigStore.getState().updateBuildingPoles(buildingId, {
+            ...current,
+            [side]: nextSide,
+          });
+        }
+        useConfigStore.temporal.getState().resume();
+      }
+      draggingPole.current = null;
+      setPolePreview(null);
+      pointerDownScreen.current = null;
       setFrozenViewBox(null);
       return;
     }
@@ -952,8 +1038,110 @@ export default function SchematicView() {
 
                 {/* Posts */}
                 <g pointerEvents="none">
-                  <SchematicPosts width={width} depth={depth} offsetX={ox + width / 2} offsetY={oz + depth / 2} />
+                  <SchematicPosts
+                    width={width}
+                    depth={depth}
+                    offsetX={ox + width / 2}
+                    offsetY={oz + depth / 2}
+                    poles={b.poles}
+                  />
                 </g>
+
+                {/* Draggable handles on intermediate poles (overkapping only)
+                    + add-pole strips along each side */}
+                {b.type === 'overkapping' && (() => {
+                  const layout = b.poles ?? autoPoleLayout(width, depth);
+                  const HIT = 0.5;
+                  const STRIP = 0.4; // width of the add-pole hit strip along each side
+                  const isPreviewMatch = (side: 'front'|'back'|'left'|'right', idx: number) =>
+                    polePreview && polePreview.buildingId === b.id && polePreview.side === side && polePreview.index === idx;
+                  const addPole = (
+                    side: 'front'|'back'|'left'|'right',
+                    fraction: number,
+                  ) => {
+                    if (fraction <= 0.02 || fraction >= 0.98) return;
+                    const next = [...layout[side], fraction].sort((a, b) => a - b);
+                    useConfigStore.getState().updateBuildingPoles(b.id, { ...layout, [side]: next });
+                  };
+                  const removePole = (side: 'front'|'back'|'left'|'right', index: number) => {
+                    const next = [...layout[side]];
+                    next.splice(index, 1);
+                    useConfigStore.getState().updateBuildingPoles(b.id, { ...layout, [side]: next });
+                  };
+                  const handlesFor = (
+                    side: 'front'|'back'|'left'|'right',
+                    fracs: number[],
+                  ) => fracs.map((f, i) => {
+                    const preview = isPreviewMatch(side, i) ? polePreview!.fraction : f;
+                    const cx = side === 'front' || side === 'back'
+                      ? ox + preview * width
+                      : side === 'left' ? ox : ox + width;
+                    const cy = side === 'front' || side === 'back'
+                      ? (side === 'back' ? oz + depth : oz)
+                      : oz + preview * depth;
+                    const cursor = side === 'front' || side === 'back' ? 'ew-resize' : 'ns-resize';
+                    return (
+                      <rect
+                        key={`${side}-${i}`}
+                        x={cx - HIT / 2}
+                        y={cy - HIT / 2}
+                        width={HIT}
+                        height={HIT}
+                        fill={isPreviewMatch(side, i) ? 'rgba(59,130,246,0.25)' : 'transparent'}
+                        stroke={isPreviewMatch(side, i) ? '#3b82f6' : 'none'}
+                        strokeWidth={0.03}
+                        style={{ cursor }}
+                        onPointerDown={(e) => onPolePointerDown(e, { buildingId: b.id, side, index: i })}
+                        onDoubleClick={(e) => { e.stopPropagation(); removePole(side, i); }}
+                      />
+                    );
+                  });
+                  const addStrip = (side: 'front'|'back'|'left'|'right') => {
+                    const horizontal = side === 'front' || side === 'back';
+                    const sx = horizontal ? ox : (side === 'left' ? ox - STRIP / 2 : ox + width - STRIP / 2);
+                    const sy = horizontal
+                      ? (side === 'front' ? oz - STRIP / 2 : oz + depth - STRIP / 2)
+                      : oz;
+                    const sw = horizontal ? width : STRIP;
+                    const sh = horizontal ? STRIP : depth;
+                    return (
+                      <rect
+                        key={`strip-${side}`}
+                        x={sx}
+                        y={sy}
+                        width={sw}
+                        height={sh}
+                        fill="transparent"
+                        pointerEvents="all"
+                        onDoubleClick={(e) => {
+                          e.stopPropagation();
+                          const svg = svgRef.current;
+                          if (!svg) return;
+                          const [wx, wz] = clientToWorld(svg, e.clientX, e.clientY);
+                          const along = horizontal ? (wx - ox) : (wz - oz);
+                          const edgeLen = horizontal ? width : depth;
+                          const SNAP = 0.1;
+                          const snapped = Math.round(along / SNAP) * SNAP;
+                          const minClear = 0.2;
+                          const clamped = Math.max(minClear, Math.min(edgeLen - minClear, snapped));
+                          addPole(side, clamped / edgeLen);
+                        }}
+                      />
+                    );
+                  };
+                  return (
+                    <g>
+                      {addStrip('front')}
+                      {addStrip('back')}
+                      {addStrip('left')}
+                      {addStrip('right')}
+                      {handlesFor('front', layout.front)}
+                      {handlesFor('back', layout.back)}
+                      {handlesFor('left', layout.left)}
+                      {handlesFor('right', layout.right)}
+                    </g>
+                  );
+                })()}
 
                 {/* Walls */}
                 <g pointerEvents="none">
