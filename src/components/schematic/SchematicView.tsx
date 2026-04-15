@@ -515,7 +515,26 @@ export default function SchematicView() {
       const along = axis === 'x' ? (wx - bx) : (wz - bz);
       const edgeLen = axis === 'x' ? width : depth;
       const SNAP = 0.1;
-      const snapped = Math.round(along / SNAP) * SNAP;
+      const ALIGN_THRESHOLD = 0.15; // metres — pulls to opposite-side / self-side pole positions
+      let snapped = Math.round(along / SNAP) * SNAP;
+
+      // Alignment snap: pull toward other poles that lie on the same axis —
+      // the opposite side (symmetry) and sibling poles on the same side.
+      const layout = building.poles ?? autoPoleLayout(width, depth);
+      const oppositeSide: typeof side =
+        side === 'front' ? 'back' :
+        side === 'back' ? 'front' :
+        side === 'left' ? 'right' : 'left';
+      const alignCandidates: number[] = [];
+      for (const f of layout[oppositeSide]) alignCandidates.push(f * edgeLen);
+      layout[side].forEach((f, i) => { if (i !== index) alignCandidates.push(f * edgeLen); });
+      for (const cand of alignCandidates) {
+        if (Math.abs(cand - snapped) <= ALIGN_THRESHOLD) {
+          snapped = cand;
+          break;
+        }
+      }
+
       const minClear = 0.2; // keep poles off the exact corners
       const clamped = Math.max(minClear, Math.min(edgeLen - minClear, snapped));
       const fraction = clamped / edgeLen;
@@ -862,7 +881,7 @@ export default function SchematicView() {
     dragStartWorld.current = null;
     pointerDownScreen.current = null;
     setFrozenViewBox(null);
-  }, [selectBuilding, setDraggedBuildingId, setConnections, updateBuildingWall, openingDragPreview]);
+  }, [selectBuilding, setDraggedBuildingId, setConnections, updateBuildingWall, openingDragPreview, polePreview]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -1047,20 +1066,21 @@ export default function SchematicView() {
                   />
                 </g>
 
-                {/* Draggable handles on intermediate poles (overkapping only)
-                    + add-pole strips along each side */}
-                {b.type === 'overkapping' && (() => {
+                {/* Pole handles + visible add/remove controls for overkappingen.
+                    Only shown when the overkapping is selected so they don't
+                    clutter the canvas. */}
+                {b.type === 'overkapping' && isSelected && (() => {
                   const layout = b.poles ?? autoPoleLayout(width, depth);
-                  const HIT = 0.5;
-                  const STRIP = 0.4; // width of the add-pole hit strip along each side
-                  const isPreviewMatch = (side: 'front'|'back'|'left'|'right', idx: number) =>
-                    polePreview && polePreview.buildingId === b.id && polePreview.side === side && polePreview.index === idx;
+                  const HANDLE_R = 0.18;
+                  const ADD_R = 0.12;
+                  const MIN_GAP = 0.8; // don't show "+" if gap is smaller than this
+
                   const addPole = (
                     side: 'front'|'back'|'left'|'right',
                     fraction: number,
                   ) => {
-                    if (fraction <= 0.02 || fraction >= 0.98) return;
-                    const next = [...layout[side], fraction].sort((a, b) => a - b);
+                    const clamped = Math.max(0.02, Math.min(0.98, fraction));
+                    const next = [...layout[side], clamped].sort((a, b) => a - b);
                     useConfigStore.getState().updateBuildingPoles(b.id, { ...layout, [side]: next });
                   };
                   const removePole = (side: 'front'|'back'|'left'|'right', index: number) => {
@@ -1068,77 +1088,97 @@ export default function SchematicView() {
                     next.splice(index, 1);
                     useConfigStore.getState().updateBuildingPoles(b.id, { ...layout, [side]: next });
                   };
-                  const handlesFor = (
-                    side: 'front'|'back'|'left'|'right',
-                    fracs: number[],
-                  ) => fracs.map((f, i) => {
-                    const preview = isPreviewMatch(side, i) ? polePreview!.fraction : f;
-                    const cx = side === 'front' || side === 'back'
-                      ? ox + preview * width
-                      : side === 'left' ? ox : ox + width;
-                    const cy = side === 'front' || side === 'back'
-                      ? (side === 'back' ? oz + depth : oz)
-                      : oz + preview * depth;
-                    const cursor = side === 'front' || side === 'back' ? 'ew-resize' : 'ns-resize';
-                    return (
-                      <rect
-                        key={`${side}-${i}`}
-                        x={cx - HIT / 2}
-                        y={cy - HIT / 2}
-                        width={HIT}
-                        height={HIT}
-                        fill={isPreviewMatch(side, i) ? 'rgba(59,130,246,0.25)' : 'transparent'}
-                        stroke={isPreviewMatch(side, i) ? '#3b82f6' : 'none'}
-                        strokeWidth={0.03}
-                        style={{ cursor }}
-                        onPointerDown={(e) => onPolePointerDown(e, { buildingId: b.id, side, index: i })}
-                        onDoubleClick={(e) => { e.stopPropagation(); removePole(side, i); }}
-                      />
-                    );
-                  });
-                  const addStrip = (side: 'front'|'back'|'left'|'right') => {
-                    const horizontal = side === 'front' || side === 'back';
-                    const sx = horizontal ? ox : (side === 'left' ? ox - STRIP / 2 : ox + width - STRIP / 2);
-                    const sy = horizontal
-                      ? (side === 'front' ? oz - STRIP / 2 : oz + depth - STRIP / 2)
-                      : oz;
-                    const sw = horizontal ? width : STRIP;
-                    const sh = horizontal ? STRIP : depth;
-                    return (
-                      <rect
-                        key={`strip-${side}`}
-                        x={sx}
-                        y={sy}
-                        width={sw}
-                        height={sh}
-                        fill="transparent"
-                        pointerEvents="all"
-                        onDoubleClick={(e) => {
-                          e.stopPropagation();
-                          const svg = svgRef.current;
-                          if (!svg) return;
-                          const [wx, wz] = clientToWorld(svg, e.clientX, e.clientY);
-                          const along = horizontal ? (wx - ox) : (wz - oz);
-                          const edgeLen = horizontal ? width : depth;
-                          const SNAP = 0.1;
-                          const snapped = Math.round(along / SNAP) * SNAP;
-                          const minClear = 0.2;
-                          const clamped = Math.max(minClear, Math.min(edgeLen - minClear, snapped));
-                          addPole(side, clamped / edgeLen);
-                        }}
-                      />
-                    );
+
+                  const isPreviewMatch = (side: 'front'|'back'|'left'|'right', idx: number) =>
+                    polePreview && polePreview.buildingId === b.id && polePreview.side === side && polePreview.index === idx;
+
+                  // Geometry: map a side + fraction to an (sx, sy) screen point
+                  const sidePoint = (side: 'front'|'back'|'left'|'right', fraction: number): [number, number] => {
+                    if (side === 'front') return [ox + fraction * width, oz];
+                    if (side === 'back') return [ox + fraction * width, oz + depth];
+                    if (side === 'left') return [ox, oz + fraction * depth];
+                    return [ox + width, oz + fraction * depth];
                   };
+
+                  const handlesFor = (side: 'front'|'back'|'left'|'right') => {
+                    const fracs = layout[side];
+                    const horizontal = side === 'front' || side === 'back';
+                    return fracs.map((f, i) => {
+                      const preview = isPreviewMatch(side, i) ? polePreview!.fraction : f;
+                      const [cx, cy] = sidePoint(side, preview);
+                      const cursor = horizontal ? 'ew-resize' : 'ns-resize';
+                      const active = isPreviewMatch(side, i);
+                      return (
+                        <g key={`h-${side}-${i}`} style={{ cursor }}>
+                          {/* Visible handle dot */}
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={HANDLE_R}
+                            fill={active ? '#3b82f6' : '#ffffff'}
+                            stroke="#3b82f6"
+                            strokeWidth={0.04}
+                            pointerEvents="none"
+                          />
+                          {/* Hit target (larger) */}
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={HANDLE_R * 1.8}
+                            fill="transparent"
+                            onPointerDown={(e) => onPolePointerDown(e, { buildingId: b.id, side, index: i })}
+                            onDoubleClick={(e) => { e.stopPropagation(); removePole(side, i); }}
+                          >
+                            <title>Versleep om te verplaatsen — dubbelklik om te verwijderen</title>
+                          </circle>
+                        </g>
+                      );
+                    });
+                  };
+
+                  // "+" affordances at midpoints of each gap along each side
+                  const addMarkersFor = (side: 'front'|'back'|'left'|'right') => {
+                    const fracs = [0, ...layout[side], 1];
+                    const edgeLen = (side === 'front' || side === 'back') ? width : depth;
+                    const markers: React.ReactNode[] = [];
+                    for (let i = 0; i < fracs.length - 1; i++) {
+                      const gap = (fracs[i + 1] - fracs[i]) * edgeLen;
+                      if (gap < MIN_GAP) continue;
+                      const mid = (fracs[i] + fracs[i + 1]) / 2;
+                      const [cx, cy] = sidePoint(side, mid);
+                      markers.push(
+                        <g key={`add-${side}-${i}`} style={{ cursor: 'pointer' }}>
+                          <line x1={cx - ADD_R * 0.5} y1={cy} x2={cx + ADD_R * 0.5} y2={cy} stroke="#64748b" strokeWidth={0.03} strokeLinecap="round" pointerEvents="none" />
+                          <line x1={cx} y1={cy - ADD_R * 0.5} x2={cx} y2={cy + ADD_R * 0.5} stroke="#64748b" strokeWidth={0.03} strokeLinecap="round" pointerEvents="none" />
+                          {/* The circle is the hit target — pointerdown stops
+                              propagation so the building's drag doesn't fire,
+                              and the click handler adds the pole. */}
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={ADD_R * 1.4}
+                            fill="#ffffff"
+                            stroke="#94a3b8"
+                            strokeWidth={0.03}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); addPole(side, mid); }}
+                          >
+                            <title>Paal toevoegen</title>
+                          </circle>
+                        </g>
+                      );
+                    }
+                    return markers;
+                  };
+
                   return (
                     <g>
-                      {addStrip('front')}
-                      {addStrip('back')}
-                      {addStrip('left')}
-                      {addStrip('right')}
-                      {handlesFor('front', layout.front)}
-                      {handlesFor('back', layout.back)}
-                      {handlesFor('left', layout.left)}
-                      {handlesFor('right', layout.right)}
+                      {(['front','back','left','right'] as const).map(side => (
+                        <g key={side}>
+                          {addMarkersFor(side)}
+                          {handlesFor(side)}
+                        </g>
+                      ))}
                     </g>
                   );
                 })()}

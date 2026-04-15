@@ -150,7 +150,7 @@ export default function TimberFrame() {
     }
 
     return boxes;
-  }, [width, depth, height, isFlat, roofPitch, hasBraces, suppressedSides]);
+  }, [width, depth, height, isFlat, roofPitch, hasBraces, suppressedSides, poles]);
 
   return (
     <group>
