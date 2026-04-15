@@ -110,7 +110,7 @@ function createBuilding(type: BuildingType, position: [number, number]): Buildin
     position,
     dimensions,
     walls: getDefaultWalls(type),
-    hasCornerBraces: type === 'overkapping',
+    hasCornerBraces: false,
     floor: (type === 'berging' || type === 'overkapping')
       ? { materialId: 'beton' }
       : { ...DEFAULT_FLOOR },
