@@ -162,6 +162,24 @@ export const WINDOW_AREA_CUTOUT = 1.2 * 1.0;
 export const POST_PRICE = 120;
 export const POST_SPACING = 3;
 
+/** Automatic pole layout for an overkapping — mirrors what TimberFrame used to
+ *  compute inline. Returns per-side fractions (0–1 along the edge) of the
+ *  intermediate posts, corners excluded. */
+export function autoPoleLayout(width: number, depth: number): import('@/types/building').PolesConfig {
+  const postsW = Math.max(2, Math.floor(width / POST_SPACING) + 1);
+  const postsD = Math.max(2, Math.floor(depth / POST_SPACING) + 1);
+  const widthFractions: number[] = [];
+  for (let i = 1; i < postsW - 1; i++) widthFractions.push(i / (postsW - 1));
+  const depthFractions: number[] = [];
+  for (let i = 1; i < postsD - 1; i++) depthFractions.push(i / (postsD - 1));
+  return {
+    front: [...widthFractions],
+    back: [...widthFractions],
+    left: [...depthFractions],
+    right: [...depthFractions],
+  };
+}
+
 export const BRACE_PRICE = 45;
 export const WALL_THICKNESS = 0.15;
 

@@ -106,6 +106,7 @@ const nl: Record<string, string> = {
 
   // Structure
   'structure.cornerBraces': 'Schoren',
+  'structure.resetPoles': 'Auto-layout palen',
   'structure.cornerBraces.desc': 'Hoekschoren voor extra stabiliteit',
 
   // Quote

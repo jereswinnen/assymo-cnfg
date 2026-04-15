@@ -3,7 +3,7 @@
 import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { useConfigStore, selectSingleBuildingId, getEffectiveHeight } from '@/store/useConfigStore';
 import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/lib/snap';
-import { getConstraints, DOOR_W, DOUBLE_DOOR_W, WIN_W, xToFraction, clampOpeningPosition, fractionToX, getWallLength } from '@/lib/constants';
+import { getConstraints, DOOR_W, DOUBLE_DOOR_W, WIN_W, xToFraction, clampOpeningPosition, fractionToX, getWallLength, autoPoleLayout } from '@/lib/constants';
 import { t } from '@/lib/i18n';
 import SchematicPosts from './SchematicPosts';
 import SchematicWalls, { getWallGeometries } from './SchematicWalls';
@@ -196,6 +196,24 @@ export default function SchematicView() {
     fraction: number;
   } | null>(null);
 
+  // Overkapping intermediate-pole drag state
+  const draggingPole = useRef<{
+    buildingId: string;
+    side: 'front' | 'back' | 'left' | 'right';
+    index: number;
+  } | null>(null);
+  const [polePreview, setPolePreview] = useState<{
+    buildingId: string;
+    side: 'front' | 'back' | 'left' | 'right';
+    index: number;
+    fraction: number;
+  } | null>(null);
+  const [hoveredPole, setHoveredPole] = useState<{
+    buildingId: string;
+    side: 'front' | 'back' | 'left' | 'right';
+    index: number;
+  } | null>(null);
+
   const groupDragStartPositions = useRef<Map<string, [number, number]>>(new Map());
 
   // Selection rectangle state
@@ -361,6 +379,17 @@ export default function SchematicView() {
     setFrozenViewBox(computedViewBox);
   }, [buildings, computedViewBox]);
 
+  const onPolePointerDown = useCallback((
+    e: React.PointerEvent,
+    info: { buildingId: string; side: 'front' | 'back' | 'left' | 'right'; index: number },
+  ) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    pointerDownScreen.current = { x: e.clientX, y: e.clientY };
+    draggingPole.current = info;
+    setFrozenViewBox(computedViewBox);
+  }, [computedViewBox]);
+
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (isElevationMode) return;
     // --- Selection rectangle handling ---
@@ -459,6 +488,63 @@ export default function SchematicView() {
 
       updateBuildingDimensions(buildingId, { width: newWidth, depth: newDepth });
       updateBuildingPosition(buildingId, [newPosX, newPosZ]);
+      return;
+    }
+
+    // --- Pole drag handling ---
+    if (draggingPole.current) {
+      const down = pointerDownScreen.current;
+      if (down) {
+        const dx = e.clientX - down.x;
+        const dy = e.clientY - down.y;
+        if (dx * dx + dy * dy < 25) return; // 5px dead zone
+      }
+
+      if (!polePreview) {
+        useConfigStore.temporal.getState().pause();
+      }
+
+      const svg = svgRef.current;
+      if (!svg) return;
+
+      const { buildingId, side, index } = draggingPole.current;
+      const building = useConfigStore.getState().buildings.find(b => b.id === buildingId);
+      if (!building) return;
+
+      const [wx, wz] = clientToWorld(svg, e.clientX, e.clientY);
+      const [bx, bz] = building.position;
+      const { width, depth } = building.dimensions;
+
+      // Side axis: front/back slide along x (width); left/right slide along z (depth)
+      const axis = side === 'front' || side === 'back' ? 'x' : 'z';
+      const along = axis === 'x' ? (wx - bx) : (wz - bz);
+      const edgeLen = axis === 'x' ? width : depth;
+      const SNAP = 0.1;
+      const ALIGN_THRESHOLD = 0.15; // metres — pulls to opposite-side / self-side pole positions
+      let snapped = Math.round(along / SNAP) * SNAP;
+
+      // Alignment snap: pull toward other poles that lie on the same axis —
+      // the opposite side (symmetry) and sibling poles on the same side.
+      const layout = building.poles ?? autoPoleLayout(width, depth);
+      const oppositeSide: typeof side =
+        side === 'front' ? 'back' :
+        side === 'back' ? 'front' :
+        side === 'left' ? 'right' : 'left';
+      const alignCandidates: number[] = [];
+      for (const f of layout[oppositeSide]) alignCandidates.push(f * edgeLen);
+      layout[side].forEach((f, i) => { if (i !== index) alignCandidates.push(f * edgeLen); });
+      for (const cand of alignCandidates) {
+        if (Math.abs(cand - snapped) <= ALIGN_THRESHOLD) {
+          snapped = cand;
+          break;
+        }
+      }
+
+      const minClear = 0.2; // keep poles off the exact corners
+      const clamped = Math.max(minClear, Math.min(edgeLen - minClear, snapped));
+      const fraction = clamped / edgeLen;
+
+      setPolePreview({ buildingId, side, index, fraction });
       return;
     }
 
@@ -686,6 +772,39 @@ export default function SchematicView() {
       return;
     }
 
+    // --- Pole drag cleanup ---
+    if (draggingPole.current) {
+      if (polePreview) {
+        const { buildingId, side, index, fraction } = polePreview;
+        const building = useConfigStore.getState().buildings.find(b => b.id === buildingId);
+        if (building) {
+          const current = building.poles ?? autoPoleLayout(building.dimensions.width, building.dimensions.depth);
+          const nextSide = [...current[side]];
+          nextSide[index] = fraction;
+          // Dedupe: if the dragged pole lands within a small epsilon of any
+          // other pole on this side, drop the duplicate so we never persist
+          // two poles at the same x/z.
+          const EPS = 0.005; // fraction — ~2cm on a 4m side
+          const deduped: number[] = [];
+          for (const f of nextSide.sort((a, b) => a - b)) {
+            if (deduped.length === 0 || Math.abs(f - deduped[deduped.length - 1]) > EPS) {
+              deduped.push(f);
+            }
+          }
+          useConfigStore.getState().updateBuildingPoles(buildingId, {
+            ...current,
+            [side]: deduped,
+          });
+        }
+        useConfigStore.temporal.getState().resume();
+      }
+      draggingPole.current = null;
+      setPolePreview(null);
+      pointerDownScreen.current = null;
+      setFrozenViewBox(null);
+      return;
+    }
+
     // --- Opening drag cleanup ---
     if (draggingOpening.current) {
       if (openingDragPreview) {
@@ -776,7 +895,7 @@ export default function SchematicView() {
     dragStartWorld.current = null;
     pointerDownScreen.current = null;
     setFrozenViewBox(null);
-  }, [selectBuilding, setDraggedBuildingId, setConnections, updateBuildingWall, openingDragPreview]);
+  }, [selectBuilding, setDraggedBuildingId, setConnections, updateBuildingWall, openingDragPreview, polePreview]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -952,8 +1071,253 @@ export default function SchematicView() {
 
                 {/* Posts */}
                 <g pointerEvents="none">
-                  <SchematicPosts width={width} depth={depth} offsetX={ox + width / 2} offsetY={oz + depth / 2} />
+                  <SchematicPosts
+                    width={width}
+                    depth={depth}
+                    offsetX={ox + width / 2}
+                    offsetY={oz + depth / 2}
+                    poles={b.poles}
+                  />
                 </g>
+
+                {/* Pole handles + visible add/remove controls for overkappingen.
+                    Only shown when the overkapping is selected so they don't
+                    clutter the canvas. */}
+                {b.type === 'overkapping' && isSelected && (() => {
+                  const layout = b.poles ?? autoPoleLayout(width, depth);
+                  const HANDLE_R = 0.18;
+                  const ADD_R = 0.12;
+                  const MIN_GAP = 0.8; // don't show "+" if gap is smaller than this
+
+                  const addPole = (
+                    side: 'front'|'back'|'left'|'right',
+                    fraction: number,
+                  ) => {
+                    const clamped = Math.max(0.02, Math.min(0.98, fraction));
+                    const EPS = 0.005;
+                    const merged: number[] = [];
+                    for (const f of [...layout[side], clamped].sort((a, b) => a - b)) {
+                      if (merged.length === 0 || Math.abs(f - merged[merged.length - 1]) > EPS) {
+                        merged.push(f);
+                      }
+                    }
+                    useConfigStore.getState().updateBuildingPoles(b.id, { ...layout, [side]: merged });
+                  };
+                  const removePole = (side: 'front'|'back'|'left'|'right', index: number) => {
+                    const next = [...layout[side]];
+                    next.splice(index, 1);
+                    useConfigStore.getState().updateBuildingPoles(b.id, { ...layout, [side]: next });
+                  };
+
+                  const isPreviewMatch = (side: 'front'|'back'|'left'|'right', idx: number) =>
+                    polePreview && polePreview.buildingId === b.id && polePreview.side === side && polePreview.index === idx;
+
+                  // Geometry: map a side + fraction to an (sx, sy) screen point
+                  const sidePoint = (side: 'front'|'back'|'left'|'right', fraction: number): [number, number] => {
+                    if (side === 'front') return [ox + fraction * width, oz];
+                    if (side === 'back') return [ox + fraction * width, oz + depth];
+                    if (side === 'left') return [ox, oz + fraction * depth];
+                    return [ox + width, oz + fraction * depth];
+                  };
+
+                  const isHoveredPole = (side: 'front'|'back'|'left'|'right', idx: number) =>
+                    hoveredPole && hoveredPole.buildingId === b.id && hoveredPole.side === side && hoveredPole.index === idx;
+
+                  const handlesFor = (side: 'front'|'back'|'left'|'right') => {
+                    const fracs = layout[side];
+                    const horizontal = side === 'front' || side === 'back';
+                    // How far outward (away from building center) to place the × button
+                    const X_OFFSET = 0.45;
+                    const X_R = 0.14;
+                    return fracs.map((f, i) => {
+                      const preview = isPreviewMatch(side, i) ? polePreview!.fraction : f;
+                      const [cx, cy] = sidePoint(side, preview);
+                      const cursor = horizontal ? 'ew-resize' : 'ns-resize';
+                      const active = isPreviewMatch(side, i);
+                      const hovered = isHoveredPole(side, i);
+                      // × button position — nudged outside the building edge
+                      const xCx =
+                        side === 'left' ? cx - X_OFFSET :
+                        side === 'right' ? cx + X_OFFSET : cx;
+                      const xCy =
+                        side === 'front' ? cy - X_OFFSET :
+                        side === 'back' ? cy + X_OFFSET : cy;
+                      return (
+                        <g
+                          key={`h-${side}-${i}`}
+                          onPointerEnter={() => setHoveredPole({ buildingId: b.id, side, index: i })}
+                          onPointerLeave={() => setHoveredPole(prev => (prev && prev.buildingId === b.id && prev.side === side && prev.index === i ? null : prev))}
+                        >
+                          {/* Visible handle dot */}
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={HANDLE_R}
+                            fill={active ? '#3b82f6' : '#ffffff'}
+                            stroke="#3b82f6"
+                            strokeWidth={0.04}
+                            pointerEvents="none"
+                          />
+                          {/* Hit target (larger, drives the drag) */}
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={HANDLE_R * 1.8}
+                            fill="transparent"
+                            style={{ cursor }}
+                            onPointerDown={(e) => onPolePointerDown(e, { buildingId: b.id, side, index: i })}
+                          >
+                            <title>Versleep om te verplaatsen</title>
+                          </circle>
+                          {/* × remove button — appears on hover */}
+                          {hovered && !active && (
+                            <g style={{ cursor: 'pointer' }}>
+                              <circle
+                                cx={xCx}
+                                cy={xCy}
+                                r={X_R}
+                                fill="#ffffff"
+                                stroke="#ef4444"
+                                strokeWidth={0.035}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={(e) => { e.stopPropagation(); removePole(side, i); }}
+                              >
+                                <title>Paal verwijderen</title>
+                              </circle>
+                              <line x1={xCx - X_R * 0.45} y1={xCy - X_R * 0.45} x2={xCx + X_R * 0.45} y2={xCy + X_R * 0.45} stroke="#ef4444" strokeWidth={0.035} strokeLinecap="round" pointerEvents="none" />
+                              <line x1={xCx - X_R * 0.45} y1={xCy + X_R * 0.45} x2={xCx + X_R * 0.45} y2={xCy - X_R * 0.45} stroke="#ef4444" strokeWidth={0.035} strokeLinecap="round" pointerEvents="none" />
+                            </g>
+                          )}
+                        </g>
+                      );
+                    });
+                  };
+
+                  // Subtle dimension lines between adjacent pole positions (and corners).
+                  const measurementsFor = (side: 'front'|'back'|'left'|'right') => {
+                    const fracs = layout[side];
+                    const effective = fracs
+                      .map((f, i) => (isPreviewMatch(side, i) ? polePreview!.fraction : f))
+                      .slice()
+                      .sort((a, b) => a - b);
+                    const edgeLen = (side === 'front' || side === 'back') ? width : depth;
+                    const bookended = [0, ...effective, 1];
+                    const horizontal = side === 'front' || side === 'back';
+                    // Offset the dimension line outward from the building edge.
+                    // Positive in our helpers = below/right.
+                    const DIM_OFFSET = 0.35;
+                    const TICK = 0.07;
+                    const TEXT_GAP = 0.14;
+                    // Outward direction sign
+                    const outward =
+                      side === 'front' ? -1 :
+                      side === 'back' ? 1 :
+                      side === 'left' ? -1 : 1;
+                    const segments: React.ReactNode[] = [];
+                    for (let i = 0; i < bookended.length - 1; i++) {
+                      const startF = bookended[i];
+                      const endF = bookended[i + 1];
+                      const gap = (endF - startF) * edgeLen;
+                      if (gap < 0.5) continue;
+                      const [sx, sy] = sidePoint(side, startF);
+                      const [ex, ey] = sidePoint(side, endF);
+                      // Offset endpoints perpendicular to the edge
+                      const ox1 = horizontal ? sx : sx + outward * DIM_OFFSET;
+                      const oy1 = horizontal ? sy + outward * DIM_OFFSET : sy;
+                      const ox2 = horizontal ? ex : ex + outward * DIM_OFFSET;
+                      const oy2 = horizontal ? ey + outward * DIM_OFFSET : ey;
+                      const tx = (ox1 + ox2) / 2;
+                      const ty = (oy1 + oy2) / 2;
+                      // Label offset a touch further outward from the line so text
+                      // doesn't sit on top of it.
+                      const lx = horizontal ? tx : tx + outward * TEXT_GAP;
+                      const ly = horizontal ? ty + outward * TEXT_GAP : ty;
+                      const angle = horizontal ? 0 : -90;
+                      segments.push(
+                        <g key={`m-${side}-${i}`} stroke="#cbd5e1" strokeWidth={0.02} pointerEvents="none">
+                          {/* Dimension line */}
+                          <line x1={ox1} y1={oy1} x2={ox2} y2={oy2} />
+                          {/* Perpendicular ticks at each end */}
+                          {horizontal ? (
+                            <>
+                              <line x1={ox1} y1={oy1 - TICK} x2={ox1} y2={oy1 + TICK} />
+                              <line x1={ox2} y1={oy2 - TICK} x2={ox2} y2={oy2 + TICK} />
+                            </>
+                          ) : (
+                            <>
+                              <line x1={ox1 - TICK} y1={oy1} x2={ox1 + TICK} y2={oy1} />
+                              <line x1={ox2 - TICK} y1={oy2} x2={ox2 + TICK} y2={oy2} />
+                            </>
+                          )}
+                          {/* Label (with a white halo so it's readable over the line) */}
+                          <text
+                            x={lx}
+                            y={ly}
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            fontSize={0.16}
+                            fontFamily="system-ui, sans-serif"
+                            fill="#64748b"
+                            stroke="white"
+                            strokeWidth={0.06}
+                            paintOrder="stroke"
+                            transform={`rotate(${angle}, ${lx}, ${ly})`}
+                          >
+                            {gap.toFixed(2)}m
+                          </text>
+                        </g>
+                      );
+                    }
+                    return segments;
+                  };
+
+                  // "+" affordances at midpoints of each gap along each side
+                  const addMarkersFor = (side: 'front'|'back'|'left'|'right') => {
+                    const fracs = [0, ...layout[side], 1];
+                    const edgeLen = (side === 'front' || side === 'back') ? width : depth;
+                    const markers: React.ReactNode[] = [];
+                    for (let i = 0; i < fracs.length - 1; i++) {
+                      const gap = (fracs[i + 1] - fracs[i]) * edgeLen;
+                      if (gap < MIN_GAP) continue;
+                      const mid = (fracs[i] + fracs[i + 1]) / 2;
+                      const [cx, cy] = sidePoint(side, mid);
+                      markers.push(
+                        <g key={`add-${side}-${i}`} style={{ cursor: 'pointer' }}>
+                          <line x1={cx - ADD_R * 0.5} y1={cy} x2={cx + ADD_R * 0.5} y2={cy} stroke="#64748b" strokeWidth={0.03} strokeLinecap="round" pointerEvents="none" />
+                          <line x1={cx} y1={cy - ADD_R * 0.5} x2={cx} y2={cy + ADD_R * 0.5} stroke="#64748b" strokeWidth={0.03} strokeLinecap="round" pointerEvents="none" />
+                          {/* The circle is the hit target — pointerdown stops
+                              propagation so the building's drag doesn't fire,
+                              and the click handler adds the pole. */}
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={ADD_R * 1.4}
+                            fill="#ffffff"
+                            stroke="#94a3b8"
+                            strokeWidth={0.03}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); addPole(side, mid); }}
+                          >
+                            <title>Paal toevoegen</title>
+                          </circle>
+                        </g>
+                      );
+                    }
+                    return markers;
+                  };
+
+                  return (
+                    <g>
+                      {(['front','back','left','right'] as const).map(side => (
+                        <g key={side}>
+                          {measurementsFor(side)}
+                          {addMarkersFor(side)}
+                          {handlesFor(side)}
+                        </g>
+                      ))}
+                    </g>
+                  );
+                })()}
 
                 {/* Walls */}
                 <g pointerEvents="none">

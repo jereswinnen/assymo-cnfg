@@ -90,6 +90,26 @@ function ConnectionToggles() {
   );
 }
 
+function ResetPolesButton() {
+  const selectedBuilding = useConfigStore((s) => {
+    const sid = selectSingleBuildingId(s);
+    const b = s.buildings.find(b => b.id === sid);
+    return b ?? null;
+  });
+  const resetBuildingPoles = useConfigStore((s) => s.resetBuildingPoles);
+
+  if (!selectedBuilding || selectedBuilding.type !== 'overkapping' || !selectedBuilding.poles) return null;
+
+  return (
+    <button
+      onClick={() => resetBuildingPoles(selectedBuilding.id)}
+      className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-border/70 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+    >
+      {t('structure.resetPoles')}
+    </button>
+  );
+}
+
 function CornerBracesToggle() {
   const selectedBuilding = useConfigStore((s) => {
     const sid = selectSingleBuildingId(s);
@@ -204,6 +224,7 @@ export default function ConfigureTab() {
                       <FloorConfigSection />
                     )}
                     <CornerBracesToggle />
+                    <ResetPolesButton />
                     <ConnectionToggles />
                   </>
                 )}

@@ -11,6 +11,7 @@ import type {
   WallId,
   WallSide,
   WallConfig,
+  PolesConfig,
   SnapConnection,
   Orientation,
 } from '@/types/building';
@@ -63,6 +64,8 @@ interface ConfigState {
   updateBuildingWall: (id: string, wallId: WallId, patch: Partial<WallConfig>) => void;
   updateBuildingFloor: (id: string, patch: Partial<FloorConfig>) => void;
   toggleBuildingBraces: (id: string) => void;
+  updateBuildingPoles: (id: string, poles: PolesConfig) => void;
+  resetBuildingPoles: (id: string) => void;
 
   // Connections
   setConnections: (conns: SnapConnection[]) => void;
@@ -246,6 +249,22 @@ export const useConfigStore = create<ConfigState>()(
       buildings: state.buildings.map(b =>
         b.id === id ? { ...b, hasCornerBraces: !b.hasCornerBraces } : b,
       ),
+    })),
+
+  updateBuildingPoles: (id, poles) =>
+    set((state) => ({
+      buildings: state.buildings.map(b =>
+        b.id === id ? { ...b, poles } : b,
+      ),
+    })),
+
+  resetBuildingPoles: (id) =>
+    set((state) => ({
+      buildings: state.buildings.map(b => {
+        if (b.id !== id) return b;
+        const { poles: _, ...rest } = b;
+        return rest as typeof b;
+      }),
     })),
 
   setConnections: (conns) => set({ connections: conns }),

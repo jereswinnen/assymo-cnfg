@@ -35,19 +35,19 @@ export default function ObjectsTab() {
         {/* Catalog grid */}
         <div>
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
-            {viewMode === 'plan' ? t('sidebar.catalog.dragHint') : t('sidebar.catalog.switchTo2D')}
+            {viewMode !== '3d' ? t('sidebar.catalog.dragHint') : t('sidebar.catalog.switchTo2D')}
           </p>
           <div className="grid grid-cols-2 gap-2">
             {CATALOG_ITEMS.map(({ type, icon }) => (
               <div
                 key={type}
-                draggable={viewMode === 'plan'}
+                draggable={viewMode !== '3d'}
                 onDragStart={(e) => handleDragStart(e, type)}
                 onClick={() => {
-                  if (viewMode === 'plan') addBuilding(type);
+                  if (viewMode !== '3d') addBuilding(type);
                 }}
                 className={`flex flex-col items-center gap-1 rounded-lg border border-border p-3 select-none transition-all ${
-                  viewMode === 'plan'
+                  viewMode !== '3d'
                     ? 'cursor-grab hover:border-primary/40 hover:bg-primary/5'
                     : 'opacity-50 cursor-not-allowed'
                 }`}
@@ -136,7 +136,7 @@ function SidebarFooter({ resetConfig, viewMode }: { resetConfig: () => void; vie
         {t('app.reset')}
       </button>
       <ConfigCodeDialog />
-      {viewMode === 'plan' && (
+      {viewMode !== '3d' && (
         <button
           onClick={() => exportFloorPlan(buildings, connections, roof, defaultHeight)}
           className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-colors ml-auto"
