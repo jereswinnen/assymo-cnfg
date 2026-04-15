@@ -111,7 +111,9 @@ function createBuilding(type: BuildingType, position: [number, number]): Buildin
     dimensions,
     walls: getDefaultWalls(type),
     hasCornerBraces: type === 'overkapping',
-    floor: { ...DEFAULT_FLOOR },
+    floor: (type === 'berging' || type === 'overkapping')
+      ? { materialId: 'beton' }
+      : { ...DEFAULT_FLOOR },
     orientation: 'horizontal',
     heightOverride: null,
   };
