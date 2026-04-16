@@ -23,6 +23,7 @@ import {
   getDefaultWalls,
 } from '@/domain/building';
 import type { ConfigData } from './types';
+import { CONFIG_VERSION } from './types';
 
 export const INITIAL_DEFAULT_HEIGHT = 2.6;
 
@@ -51,6 +52,7 @@ export function createBuilding(type: BuildingType, position: [number, number]): 
 
 export function makeInitialConfig(): ConfigData {
   return {
+    version: CONFIG_VERSION,
     buildings: [createBuilding('berging', [-2, -2])],
     connections: [],
     roof: { ...DEFAULT_ROOF },

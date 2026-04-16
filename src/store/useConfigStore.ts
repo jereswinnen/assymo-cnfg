@@ -18,6 +18,7 @@ import {
   addBuilding as mAddBuilding,
   isWallHiddenByConnection as mIsWallHiddenByConnection,
   makeInitialConfig,
+  migrateConfig,
   removeBuilding as mRemoveBuilding,
   resetBuildingPoles as mResetBuildingPoles,
   setBuildingPrimaryMaterial as mSetBuildingPrimaryMaterial,
@@ -37,8 +38,7 @@ import {
   updateBuildingWall as mUpdateBuildingWall,
   updateRoof as mUpdateRoof,
 } from '@/domain/config';
-import type { ConfigData } from '@/domain/config';
-import { DEFAULT_PRIMARY_MATERIAL } from '@/domain/building';
+import type { ConfigData, LegacyBuilding } from '@/domain/config';
 import { useUIStore } from './useUIStore';
 
 /** Derive effective height from override or global default */
@@ -71,7 +71,7 @@ interface ConfigStore extends ConfigData {
   setOrientation: (id: string, orientation: Orientation) => void;
 
   resetConfig: () => void;
-  loadState: (buildings: BuildingEntity[], connections: SnapConnection[], roof: RoofConfig, defaultHeight?: number) => void;
+  loadState: (buildings: LegacyBuilding[], connections: SnapConnection[], roof: RoofConfig, defaultHeight?: number) => void;
 
   isWallHiddenByConnection: (buildingId: string, wallSide: WallSide) => boolean;
 }
@@ -134,24 +134,10 @@ export const useConfigStore = create<ConfigStore>()(
       },
 
       loadState: (buildings, connections, roof, defaultHeight) => {
-        // Backfill fields added by later schema revisions so legacy codes still load.
-        const migrated = buildings.map((b) => ({
-          ...b,
-          primaryMaterialId: (b as { primaryMaterialId?: string }).primaryMaterialId ?? DEFAULT_PRIMARY_MATERIAL,
-          orientation: (b as { orientation?: Orientation }).orientation ?? ('horizontal' as Orientation),
-          heightOverride: (b as { heightOverride?: number | null }).heightOverride ?? null,
-        }));
-        const structural = migrated.find((b) => b.type !== 'paal' && b.type !== 'muur');
-        const resolvedDefault = defaultHeight ?? structural?.dimensions.height ?? 3;
-
-        set({
-          buildings: migrated,
-          connections,
-          roof,
-          defaultHeight: resolvedDefault,
-        });
+        const migrated = migrateConfig({ buildings, connections, roof, defaultHeight });
+        set(migrated);
         useUIStore.setState({
-          selectedBuildingIds: migrated[0] ? [migrated[0].id] : [],
+          selectedBuildingIds: migrated.buildings[0] ? [migrated.buildings[0].id] : [],
           selectedElement: null,
           activeConfigSection: 'dimensions',
           sidebarTab: 'objects',

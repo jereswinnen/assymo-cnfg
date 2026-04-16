@@ -13,7 +13,6 @@ export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = 
   const roof = useConfigStore((s) => s.roof);
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const loadState = useConfigStore((s) => s.loadState);
-  const setDefaultHeight = useConfigStore((s) => s.setDefaultHeight);
 
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -38,8 +37,7 @@ export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = 
   const handleLoad = () => {
     try {
       const { buildings: b, connections: c, roof: r, defaultHeight: dh } = decodeState(inputValue);
-      loadState(b, c, r);
-      setDefaultHeight(dh);
+      loadState(b, c, r, dh);
       setInputValue('');
       setError('');
       setOpen(false);
