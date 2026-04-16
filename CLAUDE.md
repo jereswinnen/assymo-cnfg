@@ -8,6 +8,7 @@ Interactive 3D configurator for Assymo garden structures — overkapping (open c
 - React Three Fiber + drei + postprocessing (3D canvas)
 - Zustand + zundo (state + undo/redo)
 - Tailwind v4, shadcn, radix-ui, lucide-react
+- Neon Postgres + Drizzle ORM + `@neondatabase/serverless` (HTTP driver)
 - Vite+ (test runner only — does NOT replace Next's bundler)
 
 ## Package Manager
@@ -21,6 +22,11 @@ pnpm. Not npm, not yarn. `package-lock.json` is not tracked.
 - `pnpm test` — run the Vitest suite once via Vite+
 - `pnpm test:watch` — watch mode
 - `pnpm lint` — ESLint (Next's config)
+- `pnpm db:generate` — generate a new migration from `src/db/schema.ts`
+- `pnpm db:migrate` — apply pending migrations to Neon (uses unpooled URL)
+- `pnpm db:push` — dev-only: push schema without a migration file
+- `pnpm db:studio` — open Drizzle Studio against Neon
+- `pnpm db:seed` — idempotent seed for the `assymo` tenant
 
 ## Architecture
 
@@ -46,11 +52,28 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
 - `useUIStore` — ephemeral UI (view mode, sidebar tab/collapsed, selection, drag state, camera target, quality tier). Not undoable, not persisted.
 - `selectors.ts` — cross-store hooks (`useSelectedBuilding`, etc.)
 
+### `src/db/`
+
+- `schema.ts` — Drizzle table definitions. `tenants` holds the seeded
+  per-brand context (`priceBook` as jsonb); `configs` holds saved scenes
+  with their base58 `code` and the canonical `ConfigData` in `data`.
+- `client.ts` — Drizzle client wired to Neon HTTP. Imported by route
+  handlers; not used in RSC layouts (tenant layout resolver stays in
+  the in-memory `@/domain/tenant` registry for now).
+- `migrations/` — committed SQL. Never edit a migration by hand after
+  it's applied in any environment; write a follow-up migration instead.
+- `seed.ts` — upsert of the `assymo` tenant from `DEFAULT_PRICE_BOOK`.
+
 ### Routes
 
 - `src/app/(configurator)/` — current app
-- Reserved top-level route segments for `api/`, `admin/`, `shop/`
-- `src/app/layout.tsx` resolves the tenant from the `host` header and wraps in `<TenantProvider>`
+- `src/app/api/configs/` — `POST` (save a share code) + `GET [code]`
+  (fetch decoded config + priced quote). Both resolve the tenant via
+  `src/lib/apiTenant.ts`, which combines the host-based resolver with
+  the `tenants` DB row.
+- Reserved top-level route segments for `admin/`, `shop/`, more `api/*`
+- `src/app/layout.tsx` resolves the tenant from the `host` header
+  against the in-memory registry and wraps in `<TenantProvider>`
 
 ## White-label / multi-tenant
 
@@ -68,6 +91,7 @@ Anything that varies per brand lives on `TenantContext` — never in module-scop
 - **Store splits**: config data goes in `useConfigStore`; everything transient goes in `useUIStore`. If you find yourself reaching across stores, use `src/store/selectors.ts`.
 - **Testing**: tests live in `tests/` at repo root (centralised). Import from `'vite-plus/test'`. Every domain module has a spec; new domain functions should get at least a smoke test.
 - **`crypto.randomUUID()`** is used for building IDs (client) and decoded window IDs — keep Node 20+ assumptions.
+- **DB is source of truth** for tenant priceBook (admin edits flow to `tenants.price_book`). The in-memory registry in `@/domain/tenant/tenants.ts` is only used for synchronous resolution in the root layout — keep it in sync when seeding new tenants.
 
 ## Before committing
 
