@@ -6,6 +6,7 @@ import { t } from '@/lib/i18n';
 import { ChevronDown } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import DimensionsControl from './DimensionsControl';
+import BuildingMaterialSection from './BuildingMaterialSection';
 import RoofConfigSection from './RoofConfigSection';
 import FloorConfigSection from './FloorConfigSection';
 import WallSelector from './WallSelector';
@@ -13,10 +14,11 @@ import SurfaceProperties from './SurfaceProperties';
 import QuoteSummary from './QuoteSummary';
 import type { BuildingType } from '@/types/building';
 
-type ConfigSection = 'dimensions' | 'structure' | 'walls' | 'quote';
+type ConfigSection = 'dimensions' | 'material' | 'structure' | 'walls' | 'quote';
 
 const SECTIONS: { id: ConfigSection; labelKey: string; icon: string; showFor?: BuildingType[] }[] = [
   { id: 'dimensions', labelKey: 'sidebar.section.dimensions', icon: '📐' },
+  { id: 'material', labelKey: 'sidebar.section.material', icon: '🎨' },
   { id: 'structure', labelKey: 'sidebar.section.structure', icon: '🏗' },
   { id: 'walls', labelKey: 'sidebar.section.walls', icon: '🧱', showFor: ['berging', 'muur'] },
   { id: 'quote', labelKey: 'sidebar.section.quote', icon: '💰' },
@@ -217,6 +219,7 @@ export default function ConfigureTab() {
             {isOpen && (
               <div className="px-3 py-3 border-t border-border space-y-4">
                 {id === 'dimensions' && <DimensionsControl />}
+                {id === 'material' && <BuildingMaterialSection />}
                 {id === 'structure' && (
                   <>
                     <RoofConfigSection />

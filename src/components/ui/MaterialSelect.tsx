@@ -21,6 +21,9 @@ interface MaterialSelectProps<T extends BaseCatalogEntry> {
   onChange: (atomId: MaterialSlug) => void;
   /** Show €N/m² on each dropdown item (only meaningful for entries with pricePerSqm). */
   showPrice?: boolean;
+  /** Renders the trigger as read-only — used when the value is inherited
+   *  from a parent (e.g. building primary material). */
+  disabled?: boolean;
   className?: string;
   ariaLabel?: string;
 }
@@ -30,6 +33,7 @@ export default function MaterialSelect<T extends BaseCatalogEntry>({
   value,
   onChange,
   showPrice = false,
+  disabled = false,
   className,
   ariaLabel,
 }: MaterialSelectProps<T>) {
@@ -37,7 +41,7 @@ export default function MaterialSelect<T extends BaseCatalogEntry>({
   const current = entries.find((e) => e.atomId === value);
 
   return (
-    <Select value={value} onValueChange={(v) => onChange(v as MaterialSlug)}>
+    <Select value={value} onValueChange={(v) => onChange(v as MaterialSlug)} disabled={disabled}>
       <SelectTrigger
         className={cn('w-full', className)}
         size="sm"

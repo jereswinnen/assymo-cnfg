@@ -3,6 +3,7 @@
 import { useConfigStore } from '@/store/useConfigStore';
 import { WALL_CATALOG, getEffectiveWallMaterial } from '@/lib/materials';
 import { t } from '@/lib/i18n';
+import { Checkbox } from '@/components/ui/checkbox';
 import SectionLabel from '@/components/ui/SectionLabel';
 import MaterialSelect from '@/components/ui/MaterialSelect';
 import DoorConfig from '@/components/ui/DoorConfig';
@@ -45,10 +46,22 @@ export default function SurfaceProperties() {
       </div>
 
       <div className="space-y-2">
-        <SectionLabel>{t('surface.material')}</SectionLabel>
+        <div className="flex items-center justify-between">
+          <SectionLabel>{t('surface.material')}</SectionLabel>
+          <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer select-none">
+            <Checkbox
+              checked={wallCfg.materialId !== undefined}
+              onCheckedChange={(checked) => {
+                handleChange('materialId', checked ? effectiveMaterial : undefined);
+              }}
+            />
+            {t('material.override')}
+          </label>
+        </div>
         <MaterialSelect
           catalog={WALL_CATALOG}
           value={effectiveMaterial}
+          disabled={wallCfg.materialId === undefined}
           onChange={(atomId) => {
             handleChange('materialId', atomId);
             const entry = WALL_CATALOG.find(e => e.atomId === atomId);
@@ -60,6 +73,9 @@ export default function SurfaceProperties() {
           showPrice
           ariaLabel={t('surface.material')}
         />
+        {wallCfg.materialId === undefined && (
+          <p className="text-[11px] text-muted-foreground italic">{t('material.inherit')}</p>
+        )}
       </div>
 
       {isGlass && (

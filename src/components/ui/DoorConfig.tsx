@@ -90,13 +90,31 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
           {expanded && (
             <div className="border-t border-border/50 px-3 py-3 space-y-3 bg-muted/20">
               <div className="space-y-1.5">
-                <SectionLabel>{t('surface.doorMaterial')}</SectionLabel>
+                <div className="flex items-center justify-between">
+                  <SectionLabel>{t('surface.doorMaterial')}</SectionLabel>
+                  <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer select-none">
+                    <Checkbox
+                      checked={wallCfg.doorMaterialId !== undefined}
+                      onCheckedChange={(checked) => {
+                        handleChange(
+                          'doorMaterialId',
+                          checked ? getEffectiveDoorMaterial(wallCfg, building) : undefined,
+                        );
+                      }}
+                    />
+                    {t('material.override')}
+                  </label>
+                </div>
                 <MaterialSelect
                   catalog={DOOR_CATALOG}
                   value={getEffectiveDoorMaterial(wallCfg, building)}
+                  disabled={wallCfg.doorMaterialId === undefined}
                   onChange={(atomId) => handleChange('doorMaterialId', atomId as DoorMaterialId)}
                   ariaLabel={t('surface.doorMaterial')}
                 />
+                {wallCfg.doorMaterialId === undefined && (
+                  <p className="text-[11px] text-muted-foreground italic">{t('material.inherit')}</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
