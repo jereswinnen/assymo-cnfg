@@ -66,6 +66,15 @@ const nl: Record<string, string> = {
   'material.metal': 'Metaal',
   'material.glass': 'Glas',
 
+  // Wall cladding variants
+  'material.vurenvert': 'Vuren planchetten (V)',
+  'material.bevelhorz': 'Bevel siding (H)',
+  'material.zwartsmal': 'Zwart smal (V)',
+  'material.bruinvert': 'Bruin (V)',
+  'material.zwartvuren': 'Zwart vuren (V)',
+  'material.planchhorz': 'Planchet (H)',
+  'material.naaldhout3': 'Naaldhout 3-var',
+
   // Roof coverings
   'material.dakpannen': 'Dakpannen',
   'material.riet': 'Riet',

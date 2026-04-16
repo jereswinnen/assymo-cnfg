@@ -152,6 +152,85 @@ export const MATERIALS_REGISTRY = {
     color: '#4A5058',
   },
   // Note: `wood` (above) is reused by doors. No duplicate atom needed.
+
+  // ── Wall cladding variants (PNG PBR set) ───────────────────────────
+  vurenvert: {
+    id: 'vurenvert',
+    labelKey: 'material.vurenvert',
+    color: '#D9B77E',
+    textures: {
+      color: '/textures/vurenplanchettenvertical_basecolor.png',
+      normal: '/textures/vurenplanchettenvertical_normal.png',
+      roughness: '/textures/vurenplanchettenvertical_roughness.png',
+    },
+    tileSize: [1.5, 2],
+  },
+  bevelhorz: {
+    id: 'bevelhorz',
+    labelKey: 'material.bevelhorz',
+    color: '#9B8970',
+    textures: {
+      color: '/textures/bevelsidinghorizontal_basecolor.png',
+      normal: '/textures/bevelsidinghorizontal_normal.png',
+      roughness: '/textures/bevelsidinghorizontal_roughness.png',
+    },
+    tileSize: [1.5, 2],
+  },
+  zwartsmal: {
+    id: 'zwartsmal',
+    labelKey: 'material.zwartsmal',
+    color: '#1E1E1E',
+    textures: {
+      color: '/textures/zwartsmalvertical_basecolor.png',
+      normal: '/textures/zwartsmalvertical_normal.png',
+      roughness: '/textures/zwartsmalvertical_roughness.png',
+    },
+    tileSize: [1.5, 2],
+  },
+  bruinvert: {
+    id: 'bruinvert',
+    labelKey: 'material.bruinvert',
+    color: '#3C2817',
+    textures: {
+      color: '/textures/bruinvertical_basecolor.png',
+      normal: '/textures/bruinvertical_normal.png',
+      roughness: '/textures/bruinvertical_roughness.png',
+    },
+    tileSize: [1.5, 2],
+  },
+  zwartvuren: {
+    id: 'zwartvuren',
+    labelKey: 'material.zwartvuren',
+    color: '#1A1A1A',
+    textures: {
+      color: '/textures/zwartvurenvertical_basecolor.png',
+      normal: '/textures/zwartvurenvertical_normal.png',
+      roughness: '/textures/zwartvurenvertical_roughness.png',
+    },
+    tileSize: [1.5, 2],
+  },
+  planchhorz: {
+    id: 'planchhorz',
+    labelKey: 'material.planchhorz',
+    color: '#C9A876',
+    textures: {
+      color: '/textures/planchethorizontal_basecolor.png',
+      normal: '/textures/planchethorizontal_normal.png',
+      roughness: '/textures/planchethorizontal_roughness.png',
+    },
+    tileSize: [1.5, 2],
+  },
+  naaldhout3: {
+    id: 'naaldhout3',
+    labelKey: 'material.naaldhout3',
+    color: '#B89572',
+    textures: {
+      color: '/textures/naaldhout3varvertical_basecolor.png',
+      normal: '/textures/naaldhout3varvertical_normal.png',
+      roughness: '/textures/naaldhout3varvertical_roughness.png',
+    },
+    tileSize: [1.5, 2],
+  },
 } as const satisfies Record<string, MaterialAtom>;
 
 /** Literal union of every registered material slug. */
