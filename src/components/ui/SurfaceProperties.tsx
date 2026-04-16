@@ -1,14 +1,14 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
-import { WALL_CATALOG, getEffectiveWallMaterial } from '@/lib/materials';
+import { WALL_CATALOG, getEffectiveWallMaterial } from '@/domain/materials';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import SectionLabel from '@/components/ui/SectionLabel';
 import MaterialSelect from '@/components/ui/MaterialSelect';
 import DoorConfig from '@/components/ui/DoorConfig';
 import WindowConfig from '@/components/ui/WindowConfig';
-import type { WallId } from '@/types/building';
+import type { WallId } from '@/domain/building';
 
 export default function SurfaceProperties() {
   const selectedElement = useConfigStore((s) => s.selectedElement);

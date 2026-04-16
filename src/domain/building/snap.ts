@@ -1,5 +1,5 @@
-import type { BuildingEntity, SnapConnection, WallSide } from '@/types/building';
-import { POST_SIZE } from '@/lib/constants';
+import type { BuildingEntity, SnapConnection, WallSide } from '@/domain/building';
+import { POST_SIZE } from '@/domain/building';
 
 export const SNAP_THRESHOLD = 0.5;
 export const SNAP_ALIGN_THRESHOLD = 0.3;

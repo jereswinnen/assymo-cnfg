@@ -1,6 +1,6 @@
 'use client';
 
-import { WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT } from '@/lib/constants';
+import { WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT } from '@/domain/building';
 import { frameMat, glassMat } from './DoorMesh';
 import { WIN_DEPTH, FRAME_T, FRAME_D } from './wallGeometry';
 

@@ -8,10 +8,10 @@ import {
   getWallLength, fractionToX, xToFraction,
   clampOpeningPosition, EDGE_CLEARANCE, SNAP_INCREMENT,
   WIN_MIN_SIZE,
-} from '@/lib/constants';
-import { getAtomColor, getEffectiveWallMaterial } from '@/lib/materials';
+} from '@/domain/building';
+import { getAtomColor, getEffectiveWallMaterial } from '@/domain/materials';
 import { t } from '@/lib/i18n';
-import type { WallId } from '@/types/building';
+import type { WallId } from '@/domain/building';
 
 interface WallElevationProps {
   buildingId: string;

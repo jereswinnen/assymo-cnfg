@@ -14,7 +14,7 @@ import type {
   PolesConfig,
   SnapConnection,
   Orientation,
-} from '@/types/building';
+} from '@/domain/building';
 import {
   DEFAULT_DIMENSIONS,
   DEFAULT_ROOF,
@@ -24,7 +24,7 @@ import {
   POLE_DIMENSIONS,
   WALL_DIMENSIONS,
   getDefaultWalls,
-} from '@/lib/constants';
+} from '@/domain/building';
 
 /** Derive effective height from override or global default */
 export function getEffectiveHeight(building: BuildingEntity, defaultHeight: number): number {

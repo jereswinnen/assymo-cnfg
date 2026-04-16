@@ -1,12 +1,12 @@
-import type { BuildingEntity, RoofConfig } from '@/types/building';
+import type { BuildingEntity, RoofConfig } from '@/domain/building';
 import { t } from '@/lib/i18n';
-import { encodeState } from '@/lib/configCode';
-import type { SnapConnection } from '@/types/building';
+import { encodeState } from '@/domain/config';
+import type { SnapConnection } from '@/domain/building';
 import {
   getAvailableWallIds,
-} from '@/lib/constants';
-import { getAtom } from '@/lib/materials';
-import { calculateTotalQuote } from '@/lib/pricing';
+} from '@/domain/building';
+import { getAtom } from '@/domain/materials';
+import { calculateTotalQuote } from '@/domain/pricing';
 import type { PriceBook } from '@/domain/pricing';
 
 function wallMaterialLabel(id: string): string {

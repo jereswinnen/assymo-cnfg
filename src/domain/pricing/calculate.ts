@@ -3,7 +3,7 @@ import type {
   WallId,
   WallConfig,
   RoofConfig,
-} from '@/types/building';
+} from '@/domain/building';
 import {
   DOUBLE_DOOR_W,
   DOOR_AREA_CUTOUT,
@@ -11,7 +11,7 @@ import {
   WIN_H_DEFAULT,
   POST_SPACING,
   getWallLength,
-} from './constants';
+} from '@/domain/building';
 import {
   WALL_CATALOG,
   ROOF_COVERING_CATALOG,
@@ -19,8 +19,8 @@ import {
   DOOR_CATALOG,
   getEffectiveWallMaterial,
   getEffectiveDoorMaterial,
-} from './materials';
-import type { PriceBook } from '@/domain/pricing';
+} from '@/domain/materials';
+import type { PriceBook } from './priceBook';
 
 function findPrice(
   items: readonly { atomId: string; pricePerSqm: number }[],

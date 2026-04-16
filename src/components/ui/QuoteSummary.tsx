@@ -1,7 +1,7 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
-import { calculateTotalQuote } from '@/lib/pricing';
+import { calculateTotalQuote } from '@/domain/pricing';
 import { t } from '@/lib/i18n';
 import { useTenant } from '@/lib/TenantProvider';
 

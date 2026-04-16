@@ -1,7 +1,7 @@
 'use client';
 
 import { useConfigStore, selectSingleBuildingId } from '@/store/useConfigStore';
-import { WALL_CATALOG } from '@/lib/materials';
+import { WALL_CATALOG } from '@/domain/materials';
 import { t } from '@/lib/i18n';
 import SectionLabel from '@/components/ui/SectionLabel';
 import MaterialSelect from '@/components/ui/MaterialSelect';

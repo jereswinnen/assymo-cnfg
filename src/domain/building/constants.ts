@@ -5,7 +5,7 @@ import type {
   FloorConfig,
   BuildingType,
   WallId,
-} from '@/types/building';
+} from '@/domain/building';
 
 // Default dimensions
 export const DEFAULT_DIMENSIONS: BuildingDimensions = {
@@ -101,7 +101,7 @@ export const POST_SPACING = 3;
 /** Automatic pole layout for an overkapping — mirrors what TimberFrame used to
  *  compute inline. Returns per-side fractions (0–1 along the edge) of the
  *  intermediate posts, corners excluded. */
-export function autoPoleLayout(width: number, depth: number): import('@/types/building').PolesConfig {
+export function autoPoleLayout(width: number, depth: number): import('@/domain/building').PolesConfig {
   const postsW = Math.max(2, Math.floor(width / POST_SPACING) + 1);
   const postsD = Math.max(2, Math.floor(depth / POST_SPACING) + 1);
   const widthFractions: number[] = [];
@@ -216,10 +216,6 @@ export const WIDTH_CATEGORIES: WidthCategory[] = [
 export function getWidthCategory(width: number): WidthCategory | null {
   return WIDTH_CATEGORIES.find(c => width <= c.maxWidth) ?? null;
 }
-
-// Snap thresholds
-export const SNAP_THRESHOLD = 0.5;
-export const SNAP_ALIGN_THRESHOLD = 0.3;
 
 /** Get the length of a wall based on its ID and dimensions */
 export function getWallLength(wallId: WallId, dimensions: BuildingDimensions): number {

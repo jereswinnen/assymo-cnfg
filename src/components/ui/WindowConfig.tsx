@@ -6,9 +6,9 @@ import {
   WIN_W, WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT,
   getWallLength, findBestNewPosition, DOOR_W, DOUBLE_DOOR_W,
   EDGE_CLEARANCE, OPENING_GAP,
-} from '@/lib/constants';
+} from '@/domain/building';
 import { Plus, X } from 'lucide-react';
-import type { WallId, WallWindow } from '@/types/building';
+import type { WallId, WallWindow } from '@/domain/building';
 
 interface WindowConfigProps {
   wallId: WallId;

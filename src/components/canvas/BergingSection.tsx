@@ -3,7 +3,7 @@
 import Wall from './Wall';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
-import type { WallId } from '@/types/building';
+import type { WallId } from '@/domain/building';
 
 export default function BergingSection() {
   const buildingId = useBuildingId();

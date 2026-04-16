@@ -7,7 +7,7 @@ import { Vector3, BackSide, ShaderMaterial, ACESFilmicToneMapping } from 'three'
 import BuildingInstance from './BuildingInstance';
 import Ground from './Ground';
 import { useConfigStore, selectSingleBuildingId } from '@/store/useConfigStore';
-import type { WallId } from '@/types/building';
+import type { WallId } from '@/domain/building';
 
 const WALL_CAMERA_POSITIONS: Record<WallId, [number, number, number]> = {
   front: [0, 6, 15],

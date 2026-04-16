@@ -3,12 +3,12 @@
 import { useRef, useMemo, useEffect } from 'react';
 import { Group, MeshStandardMaterial, MathUtils } from 'three';
 import { useFrame } from '@react-three/fiber';
-import { DOUBLE_DOOR_W, DOOR_W } from '@/lib/constants';
+import { DOUBLE_DOOR_W, DOOR_W } from '@/domain/building';
 import { useDoorTexture } from '@/lib/textures';
 import { createDoorPanelWithWindowGeo } from './wallGeometry';
 import { DOOR_H, DOOR_DEPTH, FRAME_T, FRAME_D } from './wallGeometry';
-import type { DoorSwing, DoorSize } from '@/types/building';
-import { getAtomColor } from '@/lib/materials';
+import type { DoorSwing, DoorSize } from '@/domain/building';
+import { getAtomColor } from '@/domain/materials';
 
 // Door panel material configs for the legacy fixed-set (wood/aluminium/pvc/staal).
 // Cladding atoms (vurenvert, bevelhorz, etc.) fall back to a wood-like config —

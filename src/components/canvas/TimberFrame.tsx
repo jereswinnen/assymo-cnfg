@@ -3,8 +3,8 @@
 import { useMemo } from 'react';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
-import { POST_SIZE, BEAM_H, DECK_T, autoPoleLayout } from '@/lib/constants';
-import { getEffectivePoleMaterial } from '@/lib/materials';
+import { POST_SIZE, BEAM_H, DECK_T, autoPoleLayout } from '@/domain/building';
+import { getEffectivePoleMaterial } from '@/domain/materials';
 import { usePoleMaterial } from './poleMaterial';
 
 const BEAM_W = 0.15;

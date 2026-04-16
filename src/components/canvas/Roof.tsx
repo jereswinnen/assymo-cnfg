@@ -4,8 +4,8 @@ import { useRef, useMemo, useCallback } from 'react';
 import { Mesh } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
-import { BEAM_H, WALL_THICKNESS } from '@/lib/constants';
-import { getAtomColor } from '@/lib/materials';
+import { BEAM_H, WALL_THICKNESS } from '@/domain/building';
+import { getAtomColor } from '@/domain/materials';
 import { useRoofTexture, useWallTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
 

@@ -1,6 +1,6 @@
 import { Shape, Path, ExtrudeGeometry } from 'three';
-import { DOUBLE_DOOR_W, DOOR_W } from '@/lib/constants';
-import type { WallId, DoorSize } from '@/types/building';
+import { DOUBLE_DOOR_W, DOOR_W } from '@/domain/building';
+import type { WallId, DoorSize } from '@/domain/building';
 
 export const DOOR_H = 2.1;
 export const DOOR_DEPTH = 0.05;

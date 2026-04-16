@@ -3,11 +3,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useConfigStore, getEffectiveHeight, selectSingleBuildingId } from '@/store/useConfigStore';
 import { t } from '@/lib/i18n';
-import { getConstraints } from '@/lib/constants';
+import { getConstraints } from '@/domain/building';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import type { Orientation } from '@/types/building';
+import type { Orientation } from '@/domain/building';
 
 interface SliderRowProps {
   label: string;

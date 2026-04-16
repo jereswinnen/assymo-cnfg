@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from 'react';
 import { MeshStandardMaterial, TextureLoader, RepeatWrapping, SRGBColorSpace, LinearSRGBColorSpace } from 'three';
-import { getAtom, getAtomColor } from '@/lib/materials';
+import { getAtom, getAtomColor } from '@/domain/materials';
 
 /** Timber-frame pole material. Shared by TimberFrame (overkapping posts +
  *  fascia) and the standalone Paal so both track the primary material

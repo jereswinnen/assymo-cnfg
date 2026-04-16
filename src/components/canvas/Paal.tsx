@@ -2,8 +2,8 @@
 
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
-import { POST_SIZE } from '@/lib/constants';
-import { getEffectivePoleMaterial } from '@/lib/materials';
+import { POST_SIZE } from '@/domain/building';
+import { getEffectivePoleMaterial } from '@/domain/materials';
 import { usePoleMaterial } from './poleMaterial';
 
 /** Standalone Paal (pole) building. Matches TimberFrame post geometry and

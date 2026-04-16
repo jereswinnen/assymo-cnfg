@@ -2,16 +2,16 @@
 
 import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { useConfigStore, selectSingleBuildingId, getEffectiveHeight } from '@/store/useConfigStore';
-import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/lib/snap';
-import { getConstraints, DOOR_W, DOUBLE_DOOR_W, WIN_W, xToFraction, clampOpeningPosition, fractionToX, getWallLength, autoPoleLayout } from '@/lib/constants';
-import { getEffectivePrimaryMaterial, getAtomColor } from '@/lib/materials';
+import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/domain/building';
+import { getConstraints, DOOR_W, DOUBLE_DOOR_W, WIN_W, xToFraction, clampOpeningPosition, fractionToX, getWallLength, autoPoleLayout } from '@/domain/building';
+import { getEffectivePrimaryMaterial, getAtomColor } from '@/domain/materials';
 import { t } from '@/lib/i18n';
 import SchematicPosts from './SchematicPosts';
 import SchematicWalls, { getWallGeometries } from './SchematicWalls';
 import SchematicOpenings from './SchematicOpenings';
 import DimensionLine from './DimensionLine';
 import WallElevation from './WallElevation';
-import type { BuildingType, WallSide, WallId, SnapConnection, BuildingEntity } from '@/types/building';
+import type { BuildingType, WallSide, WallId, SnapConnection, BuildingEntity } from '@/domain/building';
 
 function getConnectedSides(buildingId: string, connections: SnapConnection[]): Set<WallSide> {
   const sides = new Set<WallSide>();

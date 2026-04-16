@@ -1,4 +1,4 @@
-import type { BuildingEntity, WallConfig } from '@/types/building';
+import type { BuildingEntity, WallConfig } from '@/domain/building';
 
 /** The first structural building in the scene (overkapping / berging). Used
  *  as the "main" primary-material source for any free-standing Muur or Paal

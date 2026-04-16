@@ -1,6 +1,6 @@
-import { encodeState, decodeState } from '../src/lib/configCode';
-import { DEFAULT_ROOF, DEFAULT_WALL } from '../src/lib/constants';
-import type { BuildingEntity } from '../src/types/building';
+import { encodeState, decodeState } from '../src/domain/config';
+import { DEFAULT_ROOF, DEFAULT_WALL } from '../src/domain/building';
+import type { BuildingEntity } from '../src/domain/building';
 
 const buildings: BuildingEntity[] = [
   {

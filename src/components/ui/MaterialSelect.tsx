@@ -11,7 +11,7 @@ import {
   resolveCatalog,
   type BaseCatalogEntry,
   type MaterialSlug,
-} from '@/lib/materials';
+} from '@/domain/materials';
 import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 

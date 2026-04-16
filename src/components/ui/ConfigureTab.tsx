@@ -12,7 +12,7 @@ import FloorConfigSection from './FloorConfigSection';
 import WallSelector from './WallSelector';
 import SurfaceProperties from './SurfaceProperties';
 import QuoteSummary from './QuoteSummary';
-import type { BuildingType } from '@/types/building';
+import type { BuildingType } from '@/domain/building';
 
 type ConfigSection = 'dimensions' | 'material' | 'structure' | 'walls' | 'quote';
 

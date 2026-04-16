@@ -1,11 +1,11 @@
 'use client';
 
 import { useConfigStore, selectSingleBuildingId } from '@/store/useConfigStore';
-import { FLOOR_CATALOG } from '@/lib/materials';
+import { FLOOR_CATALOG } from '@/domain/materials';
 import { t } from '@/lib/i18n';
 import SectionLabel from '@/components/ui/SectionLabel';
 import MaterialSelect from '@/components/ui/MaterialSelect';
-import type { FloorMaterialId } from '@/types/building';
+import type { FloorMaterialId } from '@/domain/building';
 
 export default function FloorConfigSection() {
   const selectedBuildingId = useConfigStore(selectSingleBuildingId);

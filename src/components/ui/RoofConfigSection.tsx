@@ -1,13 +1,13 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
-import { ROOF_TRIM_CATALOG, ROOF_COVERING_CATALOG } from '@/lib/materials';
+import { ROOF_TRIM_CATALOG, ROOF_COVERING_CATALOG } from '@/domain/materials';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import SectionLabel from '@/components/ui/SectionLabel';
 import MaterialSelect from '@/components/ui/MaterialSelect';
-import type { RoofCoveringId } from '@/types/building';
+import type { RoofCoveringId } from '@/domain/building';
 
 export default function RoofConfigSection() {
   const roof = useConfigStore((s) => s.roof);

@@ -14,8 +14,8 @@ import type {
   DoorSwing,
   WallWindow,
   SnapConnection,
-} from '@/types/building';
-import { getDefaultWalls } from '@/lib/constants';
+} from '@/domain/building';
+import { getDefaultWalls } from '@/domain/building';
 
 // ─── Base58 (Bitcoin-style, no 0/O/I/l) ─────────────────────────────
 const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';

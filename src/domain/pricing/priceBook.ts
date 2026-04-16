@@ -1,4 +1,4 @@
-import type { DoorSize } from '@/types/building';
+import type { DoorSize } from '@/domain/building';
 
 /** All scalar pricing dials a tenant can tweak. Catalog-driven prices
  *  (per-material €/m², door material surcharges) live on the material

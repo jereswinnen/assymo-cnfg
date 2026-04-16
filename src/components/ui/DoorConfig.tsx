@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
-import { clampOpeningPosition, DOOR_W, DOUBLE_DOOR_W, getWallLength, WIN_W } from '@/lib/constants';
-import { DOOR_CATALOG, getEffectiveDoorMaterial } from '@/lib/materials';
+import { clampOpeningPosition, DOOR_W, DOUBLE_DOOR_W, getWallLength, WIN_W } from '@/domain/building';
+import { DOOR_CATALOG, getEffectiveDoorMaterial } from '@/domain/materials';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -11,7 +11,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import SectionLabel from '@/components/ui/SectionLabel';
 import MaterialSelect from '@/components/ui/MaterialSelect';
 import { Plus, X } from 'lucide-react';
-import type { WallId, DoorMaterialId } from '@/types/building';
+import type { WallId, DoorMaterialId } from '@/domain/building';
 
 interface DoorConfigProps {
   wallId: WallId;

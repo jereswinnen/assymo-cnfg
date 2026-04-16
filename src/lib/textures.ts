@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from 'react';
 import { TextureLoader, RepeatWrapping, SRGBColorSpace, LinearSRGBColorSpace } from 'three';
 import type { Texture } from 'three';
-import { getAtom } from './materials/atoms';
+import { getAtom } from '@/domain/materials';
 
 const loader = new TextureLoader();
 const textureCache = new Map<string, Texture>();

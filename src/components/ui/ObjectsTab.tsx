@@ -6,7 +6,7 @@ import { t } from '@/lib/i18n';
 import { useTenant } from '@/lib/TenantProvider';
 import { RotateCcw, Download } from 'lucide-react';
 import ConfigCodeDialog from './ConfigCodeDialog';
-import type { BuildingType } from '@/types/building';
+import type { BuildingType } from '@/domain/building';
 
 const CATALOG_ITEMS: { type: BuildingType; icon: string }[] = [
   { type: 'berging', icon: '🏠' },

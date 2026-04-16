@@ -5,8 +5,8 @@ import {
   WIN_W,
   resolveOpeningPositions,
   fractionToX,
-} from '@/lib/constants';
-import type { WallConfig, DoorSwing, BuildingDimensions } from '@/types/building';
+} from '@/domain/building';
+import type { WallConfig, DoorSwing, BuildingDimensions } from '@/domain/building';
 import { getWallGeometries } from './SchematicWalls';
 import type { WallGeom } from './SchematicWalls';
 

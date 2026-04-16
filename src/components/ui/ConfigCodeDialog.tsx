@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { QrCode, Copy, Check, X } from 'lucide-react';
 import { useConfigStore } from '@/store/useConfigStore';
-import { encodeState, decodeState, formatCode } from '@/lib/configCode';
+import { encodeState, decodeState, formatCode } from '@/domain/config';
 import { t } from '@/lib/i18n';
 
 export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = {}) {

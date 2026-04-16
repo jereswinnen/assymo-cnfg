@@ -2,9 +2,9 @@
 
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
-import { getAtomColor } from '@/lib/materials';
+import { getAtomColor } from '@/domain/materials';
 import { useFloorTexture } from '@/lib/textures';
-import { POST_SIZE } from '@/lib/constants';
+import { POST_SIZE } from '@/domain/building';
 
 export default function Floor() {
   const buildingId = useBuildingId();

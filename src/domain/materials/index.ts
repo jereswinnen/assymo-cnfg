@@ -1,5 +1,5 @@
 /** Public API for the materials registry.
- *  Consumers should import from '@/lib/materials', not from subpaths. */
+ *  Consumers should import from '@/domain/materials', not from subpaths. */
 export * from './types';
 export * from './atoms';
 export * from './catalogs/wall';

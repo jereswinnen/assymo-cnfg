@@ -1,5 +1,5 @@
-import { autoPoleLayout } from '@/lib/constants';
-import type { PolesConfig } from '@/types/building';
+import { autoPoleLayout } from '@/domain/building';
+import type { PolesConfig } from '@/domain/building';
 
 const POST_SIZE = 0.15;
 

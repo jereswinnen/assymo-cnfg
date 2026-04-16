@@ -5,14 +5,14 @@ import {
   WIN_W,
   resolveOpeningPositions,
   getWallLength,
-} from '@/lib/constants';
-import { getAtomColor } from '@/lib/materials';
+} from '@/domain/building';
+import { getAtomColor } from '@/domain/materials';
 import type {
   BuildingDimensions,
   WallConfig,
   WallId,
   SelectedElement,
-} from '@/types/building';
+} from '@/domain/building';
 
 const T = WALL_THICKNESS;
 
