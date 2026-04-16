@@ -64,6 +64,25 @@ const nl: Record<string, string> = {
   'material.brick': 'Steen',
   'material.render': 'Stucwerk',
   'material.metal': 'Metaal',
+  'material.glass': 'Glas',
+
+  // Roof coverings
+  'material.dakpannen': 'Dakpannen',
+  'material.riet': 'Riet',
+  'material.epdm': 'EPDM',
+  'material.polycarbonaat': 'Polycarbonaat',
+  'material.metaal': 'Staalplaten',
+
+  // Floor materials
+  'material.geen': 'Geen',
+  'material.tegels': 'Tegels',
+  'material.beton': 'Beton',
+  'material.hout': 'Hout (vlonders)',
+
+  // Door materials
+  'material.aluminium': 'Aluminium',
+  'material.pvc': 'PVC',
+  'material.staal': 'Staal',
 
   // Surface properties
   'surface.material': 'Materiaal',

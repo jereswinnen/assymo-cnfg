@@ -1,4 +1,4 @@
-import type { MaterialAtom } from './types';
+import type { MaterialAtom, BaseCatalogEntry } from './types';
 
 /** Flat registry of all material primitives used across object catalogs.
  *  Mirrors a future `materials` DB table. Keys are stable slugs. */
@@ -172,4 +172,26 @@ export function requireAtom(slug: MaterialSlug): MaterialAtom {
 /** Resolve an atom's colour, falling back to a neutral grey if missing. */
 export function getAtomColor(slug: string): string {
   return MATERIALS_REGISTRY[slug as MaterialSlug]?.color ?? '#808080';
+}
+
+/** Join a catalog entry with its atom. Returns null if atom missing. */
+export function resolveEntry<T extends BaseCatalogEntry>(
+  entry: T,
+): (T & { atom: MaterialAtom }) | null {
+  const atom = getAtom(entry.atomId);
+  if (!atom) return null;
+  return { ...entry, atom };
+}
+
+/** Resolve a catalog to [entry + atom] objects, skipping archived atoms. */
+export function resolveCatalog<T extends BaseCatalogEntry>(
+  catalog: readonly T[],
+): Array<T & { atom: MaterialAtom }> {
+  const out: Array<T & { atom: MaterialAtom }> = [];
+  for (const entry of catalog) {
+    const resolved = resolveEntry(entry);
+    if (!resolved || resolved.atom.archivedAt) continue;
+    out.push(resolved);
+  }
+  return out;
 }
