@@ -177,6 +177,10 @@ function clamp(v: number, min: number, max: number): number {
 //   v1-v3: direct 2-bit write (legacy, no longer accepted by decoder)
 //   v4-v7: escape `write(0,2)` + 2-bit extension → version = 4 + ext
 //   v8+:   would require a nested escape (not yet defined)
+// Wire format note: muur width encoding base shifted from 1m to 0.5m
+// without a version bump. Pre-shift v7 codes containing a muur will
+// decode its width 0.5m too small; all other configs roundtrip. Per the
+// project's "no legacy migration" stance this is acceptable.
 const VERSION = 7;
 
 function encodeWall(w: BitWriter, wall: WallConfig) {
@@ -300,8 +304,9 @@ export function encodeState(
       w.writeSigned(clamp(Math.round(b.position[0] / 0.5), -64, 63), 7);
       w.writeSigned(clamp(Math.round(b.position[1] / 0.5), -64, 63), 7);
     } else if (b.type === 'muur') {
-      // Muur: width + position + wall flag + wall data, top-left stored directly
-      w.write(clamp(Math.round((b.dimensions.width - 1) / 0.5), 0, 31), 5);
+      // Muur: width + position + wall flag + wall data, top-left stored directly.
+      // Width range 0.5–16m (5 bits, 0.5m step, base 0.5).
+      w.write(clamp(Math.round((b.dimensions.width - 0.5) / 0.5), 0, 31), 5);
       w.writeSigned(clamp(Math.round(b.position[0] / 0.5), -64, 63), 7);
       w.writeSigned(clamp(Math.round(b.position[1] / 0.5), -64, 63), 7);
 
@@ -424,7 +429,7 @@ export function decodeState(code: string): {
     }
 
     if (type === 'muur') {
-      const width = clamp(r.read(5) * 0.5 + 1, 1, 16.5);
+      const width = clamp(r.read(5) * 0.5 + 0.5, 0.5, 16);
       const posX = r.readSigned(7) * 0.5;
       const posZ = r.readSigned(7) * 0.5;
       const height = heightOverride ?? defaultHeight;

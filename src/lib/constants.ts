@@ -197,7 +197,7 @@ export const DIMENSION_CONSTRAINTS: Record<string, DimensionConstraints> = {
     height: { min: 2.2,  max: 3,   step: 0.1 },
   },
   muur: {
-    width:  { min: 1,    max: 10,  step: 0.5 },
+    width:  { min: 0.5,  max: 10,  step: 0.5 },
     depth:  { min: 0.15, max: 0.15, step: 0 },
     height: { min: 2.2,  max: 3,   step: 0.1 },
   },
