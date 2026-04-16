@@ -10,7 +10,7 @@ if (!process.env.DATABASE_URL_UNPOOLED) {
 }
 
 export default defineConfig({
-  schema: './src/db/schema.ts',
+  schema: ['./src/db/schema.ts', './src/db/auth-schema.ts'],
   out: './src/db/migrations',
   dialect: 'postgresql',
   dbCredentials: {
