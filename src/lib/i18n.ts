@@ -65,14 +65,8 @@ const nl: Record<string, string> = {
   'material.render': 'Stucwerk',
   'material.metal': 'Metaal',
 
-  // Finishes
-  'finish.mat': 'Mat',
-  'finish.satijn': 'Satijn',
-  'finish.glans': 'Glans',
-
   // Surface properties
   'surface.material': 'Materiaal',
-  'surface.finish': 'Afwerking',
   'surface.door': 'Deur',
   'surface.doorMaterial': 'Materiaal',
   'surface.doorMaterial.wood': 'Hout',

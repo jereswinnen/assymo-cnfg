@@ -33,7 +33,6 @@ export interface WallWindow {
 
 export interface WallConfig {
   materialId: string;
-  finish: string;
   hasDoor: boolean;
   doorMaterialId: DoorMaterialId;
   doorSize: DoorSize;

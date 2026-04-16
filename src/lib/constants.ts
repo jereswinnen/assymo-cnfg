@@ -30,9 +30,6 @@ export const ROOF_COVERINGS: RoofCovering[] = [
   { id: 'metaal', label: 'Staalplaten', pricePerSqm: 50, color: '#708090' },
 ];
 
-// Dutch finishes
-export const FINISHES = ['Mat', 'Satijn', 'Glans'] as const;
-
 // Default dimensions
 export const DEFAULT_DIMENSIONS: BuildingDimensions = {
   width: 4,
@@ -66,7 +63,6 @@ export const DOUBLE_DOOR_W = 1.6;
 // Default wall config
 export const DEFAULT_WALL: WallConfig = {
   materialId: 'wood',
-  finish: 'Mat',
   hasDoor: false,
   doorMaterialId: 'wood',
   doorSize: 'enkel',

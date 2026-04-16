@@ -1,9 +1,8 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
-import { WALL_MATERIALS, FINISHES } from '@/lib/constants';
+import { WALL_MATERIALS } from '@/lib/constants';
 import { t } from '@/lib/i18n';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import SectionLabel from '@/components/ui/SectionLabel';
 import DoorConfig from '@/components/ui/DoorConfig';
 import WindowConfig from '@/components/ui/WindowConfig';
@@ -80,26 +79,6 @@ export default function SurfaceProperties() {
           })}
         </div>
       </div>
-
-      {!isGlass && (
-        <div className="space-y-2">
-          <SectionLabel>{t('surface.finish')}</SectionLabel>
-          <ToggleGroup
-            type="single"
-            value={wallCfg.finish}
-            onValueChange={(v) => { if (v) handleChange('finish', v); }}
-            className="w-full"
-            variant="outline"
-            size="sm"
-          >
-            {FINISHES.map((f) => (
-              <ToggleGroupItem key={f} value={f} className="flex-1 text-xs">
-                {f}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        </div>
-      )}
 
       {isGlass && (
         <p className="text-xs text-muted-foreground italic">Glaswand van zijde tot zijde</p>

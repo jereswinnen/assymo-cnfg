@@ -145,7 +145,6 @@ const FLOOR_IDS: FloorMaterialId[] = ['geen', 'tegels', 'beton', 'hout'];
 const WALL_SLOTS: WallId[] = ['front', 'back', 'left', 'right'];
 const WALL_SIDES: WallSide[] = ['left', 'right', 'front', 'back'];
 const MATERIAL_IDS = ['wood', 'brick', 'render', 'metal', 'glass'];
-const FINISH_IDS = ['Mat', 'Satijn', 'Glans'];
 const DOOR_MATERIAL_IDS: DoorMaterialId[] = ['wood', 'aluminium', 'pvc', 'staal'];
 const DOOR_SIZES: DoorSize[] = ['enkel', 'dubbel'];
 const DOOR_SWINGS: DoorSwing[] = ['dicht', 'naar_binnen', 'naar_buiten'];
@@ -164,7 +163,6 @@ const VERSION = 5;
 
 function encodeWall(w: BitWriter, wall: WallConfig) {
   w.write(indexOf(MATERIAL_IDS, wall.materialId), 3);
-  w.write(indexOf(FINISH_IDS, wall.finish), 2);
   w.write(wall.hasDoor ? 1 : 0, 1);
   if (wall.hasDoor) {
     w.write(indexOf(DOOR_MATERIAL_IDS, wall.doorMaterialId), 2);
@@ -186,7 +184,6 @@ function encodeWall(w: BitWriter, wall: WallConfig) {
 
 function decodeWall(r: BitReader): WallConfig {
   const materialId = MATERIAL_IDS[clamp(r.read(3), 0, 4)];
-  const finish = FINISH_IDS[clamp(r.read(2), 0, 2)];
   const hasDoor = r.read(1) === 1;
   let doorMaterialId: DoorMaterialId = 'wood';
   let doorSize: DoorSize = 'enkel';
@@ -213,7 +210,7 @@ function decodeWall(r: BitReader): WallConfig {
   }
 
   return {
-    materialId, finish, hasDoor, doorMaterialId, doorSize,
+    materialId, hasDoor, doorMaterialId, doorSize,
     doorHasWindow, doorPosition, doorSwing, windows,
   };
 }
