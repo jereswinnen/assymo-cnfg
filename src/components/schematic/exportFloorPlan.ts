@@ -1,4 +1,4 @@
-import type { BuildingEntity, RoofConfig, WallId } from '@/types/building';
+import type { BuildingEntity, RoofConfig } from '@/types/building';
 import { t } from '@/lib/i18n';
 import { encodeState } from '@/lib/configCode';
 import type { SnapConnection } from '@/types/building';
@@ -7,6 +7,7 @@ import {
 } from '@/lib/constants';
 import { getAtom } from '@/lib/materials';
 import { calculateTotalQuote } from '@/lib/pricing';
+import type { PriceBook } from '@/domain/pricing';
 
 function wallMaterialLabel(id: string): string {
   const atom = getAtom(id);
@@ -28,7 +29,7 @@ function doorMaterialLabel(id: string): string {
   return atom ? t(atom.labelKey) : id;
 }
 
-function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHeight: number): string {
+function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHeight: number, priceBook: PriceBook): string {
   const rows: string[] = [];
 
   const row = (label: string, value: string) =>
@@ -88,22 +89,22 @@ function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHei
   }
 
   // Quote
-  const { lineItems, total } = calculateTotalQuote(buildings, roof, defaultHeight);
+  const { lineItems, total } = calculateTotalQuote(buildings, roof, priceBook, defaultHeight);
   rows.push(`<tr><td colspan="2" style="padding:12px 0 6px;font-weight:600;font-size:14px;border-bottom:1px solid #eee">${t('section.6')}</td></tr>`);
   for (const item of lineItems) {
-    rows.push(row(item.label, `€${item.total.toFixed(0)}`));
+    rows.push(row(t(item.labelKey, item.labelParams), `€${item.total.toFixed(0)}`));
   }
   rows.push(`<tr><td style="padding:8px 16px 8px 0;font-weight:700;border-top:2px solid #333">${t('quote.total')}</td><td style="padding:8px 0;font-weight:700;font-size:16px;border-top:2px solid #333">€${total.toFixed(0)}</td></tr>`);
 
   return rows.join('\n');
 }
 
-export function exportFloorPlan(buildings: BuildingEntity[], connections: SnapConnection[], roof: RoofConfig, defaultHeight: number = 3) {
+export function exportFloorPlan(buildings: BuildingEntity[], connections: SnapConnection[], roof: RoofConfig, priceBook: PriceBook, defaultHeight: number = 3) {
   const svgEl = document.querySelector('.schematic-svg');
   if (!svgEl) return;
   const svgMarkup = svgEl.outerHTML;
 
-  const specRows = buildSpecRows(buildings, roof, defaultHeight);
+  const specRows = buildSpecRows(buildings, roof, defaultHeight, priceBook);
   const configCode = encodeState(buildings, connections, roof, defaultHeight);
   const title = `${t('app.title')} — ${t('schematic.title')}`;
   const date = new Date().toLocaleDateString('nl-NL', {

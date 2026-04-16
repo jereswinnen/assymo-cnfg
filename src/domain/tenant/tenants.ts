@@ -1,3 +1,4 @@
+import { DEFAULT_PRICE_BOOK } from '@/domain/pricing';
 import type { TenantContext, TenantId } from './types';
 
 /** Seeded tenant registry. Eventually replaced by a DB-backed resolver; the
@@ -8,6 +9,7 @@ const TENANTS: Record<TenantId, TenantContext> = {
     displayName: 'Assymo',
     locale: 'nl',
     currency: 'EUR',
+    priceBook: DEFAULT_PRICE_BOOK,
   },
 };
 

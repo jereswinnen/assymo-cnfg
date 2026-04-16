@@ -130,8 +130,8 @@ const nl: Record<string, string> = {
   // Quote
   'quote.title': 'Offerte overzicht',
   'quote.total': 'Totaal',
-  'quote.posts': 'Staanders',
-  'quote.braces': 'Schoren',
+  'quote.posts': 'Staanders ({count}\u00D7)',
+  'quote.braces': 'Schoren ({count}\u00D7)',
   'quote.pole': 'Paal',
   'quote.wall': 'Muur',
   'quote.roof': 'Dak',
@@ -195,6 +195,14 @@ const nl: Record<string, string> = {
   'code.invalidCode': 'Ongeldige code',
 };
 
-export function t(key: string): string {
-  return nl[key] ?? key;
+export function t(
+  key: string,
+  params?: Record<string, string | number>,
+): string {
+  const template = nl[key] ?? key;
+  if (!params) return template;
+  return template.replace(/\{(\w+)\}/g, (_, name) => {
+    const value = params[name];
+    return value === undefined ? `{${name}}` : String(value);
+  });
 }

@@ -5,7 +5,6 @@ import type {
   FloorConfig,
   BuildingType,
   WallId,
-  DoorSize,
 } from '@/types/building';
 
 // Default dimensions
@@ -14,13 +13,6 @@ export const DEFAULT_DIMENSIONS: BuildingDimensions = {
   depth: 4,
   height: 2.6,
 };
-
-// Door base prices by size + window surcharge
-export const DOOR_BASE_PRICE: Record<DoorSize, number> = {
-  enkel: 850,
-  dubbel: 1350,
-};
-export const DOOR_WINDOW_SURCHARGE = 200;
 
 export const DOUBLE_DOOR_W = 1.6;
 
@@ -98,16 +90,12 @@ export function getAvailableWallIds(type: BuildingType): WallId[] {
   }
 }
 
-// Pricing extras
-export const INSULATION_PRICE_PER_SQM_PER_MM = 0.12;
-export const DOOR_FLAT_FEE = 850;
-export const WINDOW_FLAT_FEE = 420;
-export const SKYLIGHT_FLAT_FEE = 780;
+// Cutout areas used to subtract openings from wall surface
 export const DOOR_AREA_CUTOUT = 2.1 * 0.9;
 export const WINDOW_AREA_CUTOUT = 1.2 * 1.0;
 
-// Post pricing for overkapping sections
-export const POST_PRICE = 120;
+// Structural post spacing for overkapping — drives both auto pole layout
+// and postCount() in the quote calculation. Geometric, not priced.
 export const POST_SPACING = 3;
 
 /** Automatic pole layout for an overkapping — mirrors what TimberFrame used to
@@ -128,7 +116,6 @@ export function autoPoleLayout(width: number, depth: number): import('@/types/bu
   };
 }
 
-export const BRACE_PRICE = 45;
 export const WALL_THICKNESS = 0.15;
 
 // Timber frame geometry

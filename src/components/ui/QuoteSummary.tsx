@@ -3,23 +3,25 @@
 import { useConfigStore } from '@/store/useConfigStore';
 import { calculateTotalQuote } from '@/lib/pricing';
 import { t } from '@/lib/i18n';
+import { useTenant } from '@/lib/TenantProvider';
 
 export default function QuoteSummary() {
+  const tenant = useTenant();
   const buildings = useConfigStore((s) => s.buildings);
   const roof = useConfigStore((s) => s.roof);
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
-  const { lineItems, total } = calculateTotalQuote(buildings, roof, defaultHeight);
+  const { lineItems, total } = calculateTotalQuote(buildings, roof, tenant.priceBook, defaultHeight);
 
   return (
     <div className="space-y-3">
       <div className="divide-y divide-border/60">
         {lineItems.map((item, i) => (
           <div
-            key={`${item.label}-${i}`}
+            key={`${item.labelKey}-${i}`}
             className="flex items-center justify-between py-2.5 text-sm"
           >
             <div>
-              <span className="text-foreground">{item.label}</span>
+              <span className="text-foreground">{t(item.labelKey, item.labelParams)}</span>
               {item.area > 0 && (
                 <span className="ml-2 text-[11px] text-muted-foreground">
                   {item.area.toFixed(1)} m{'\u00B2'}

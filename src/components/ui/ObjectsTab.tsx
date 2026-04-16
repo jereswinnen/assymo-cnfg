@@ -3,6 +3,7 @@
 import { useConfigStore, getEffectiveHeight, selectSingleBuildingId } from '@/store/useConfigStore';
 import { exportFloorPlan } from '@/components/schematic/exportFloorPlan';
 import { t } from '@/lib/i18n';
+import { useTenant } from '@/lib/TenantProvider';
 import { RotateCcw, Download } from 'lucide-react';
 import ConfigCodeDialog from './ConfigCodeDialog';
 import type { BuildingType } from '@/types/building';
@@ -124,6 +125,7 @@ function SidebarFooter({ resetConfig, viewMode }: { resetConfig: () => void; vie
   const buildings = useConfigStore((s) => s.buildings);
   const connections = useConfigStore((s) => s.connections);
   const roof = useConfigStore((s) => s.roof);
+  const tenant = useTenant();
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
 
   return (
@@ -138,7 +140,7 @@ function SidebarFooter({ resetConfig, viewMode }: { resetConfig: () => void; vie
       <ConfigCodeDialog />
       {viewMode !== '3d' && (
         <button
-          onClick={() => exportFloorPlan(buildings, connections, roof, defaultHeight)}
+          onClick={() => exportFloorPlan(buildings, connections, roof, tenant.priceBook, defaultHeight)}
           className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-colors ml-auto"
         >
           <Download className="h-3.5 w-3.5" />
