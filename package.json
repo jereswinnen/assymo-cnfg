@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vp test run",
+    "test:watch": "vp test"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
@@ -36,6 +38,7 @@
     "eslint-config-next": "16.1.6",
     "shadcn": "^3.8.4",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-plus": "^0.1.18"
   }
 }
