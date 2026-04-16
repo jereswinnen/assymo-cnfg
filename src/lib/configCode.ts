@@ -15,7 +15,7 @@ import type {
   WallWindow,
   SnapConnection,
 } from '@/types/building';
-import { DEFAULT_FLOOR, getDefaultWalls, WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT } from '@/lib/constants';
+import { getDefaultWalls } from '@/lib/constants';
 
 // ─── Base58 (Bitcoin-style, no 0/O/I/l) ─────────────────────────────
 const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
@@ -98,6 +98,16 @@ class BitWriter {
     this.write(clamp(value + offset, 0, (1 << numBits) - 1), numBits);
   }
 
+  /** Writes a lowercase ASCII slug of up to 15 chars. Format:
+   *  4 bits length + length*8 bits ASCII. */
+  writeSlug(slug: string): void {
+    const len = Math.min(slug.length, 15);
+    this.write(len, 4);
+    for (let i = 0; i < len; i++) {
+      this.write(slug.charCodeAt(i) & 0xff, 8);
+    }
+  }
+
   toBytes(): Uint8Array {
     const out = [...this.bytes];
     if (this.bitPos > 0) {
@@ -134,18 +144,22 @@ class BitReader {
     const offset = 1 << (numBits - 1);
     return this.read(numBits) - offset;
   }
+
+  readSlug(): string {
+    const len = this.read(4);
+    let out = '';
+    for (let i = 0; i < len; i++) {
+      out += String.fromCharCode(this.read(8));
+    }
+    return out;
+  }
 }
 
 // ─── Lookup tables ───────────────────────────────────────────────────
 const BUILDING_TYPES: BuildingType[] = ['overkapping', 'berging', 'paal', 'muur'];
 const ORIENTATIONS: Orientation[] = ['horizontal', 'vertical'];
-const COVERING_IDS: RoofCoveringId[] = ['dakpannen', 'riet', 'epdm', 'polycarbonaat', 'metaal'];
-const TRIM_MATERIAL_IDS = ['wood', 'brick', 'render', 'metal', 'glass'];
-const FLOOR_IDS: FloorMaterialId[] = ['geen', 'tegels', 'beton', 'hout'];
 const WALL_SLOTS: WallId[] = ['front', 'back', 'left', 'right'];
 const WALL_SIDES: WallSide[] = ['left', 'right', 'front', 'back'];
-const MATERIAL_IDS = ['wood', 'brick', 'render', 'metal', 'glass'];
-const DOOR_MATERIAL_IDS: DoorMaterialId[] = ['wood', 'aluminium', 'pvc', 'staal'];
 const DOOR_SIZES: DoorSize[] = ['enkel', 'dubbel'];
 const DOOR_SWINGS: DoorSwing[] = ['dicht', 'naar_binnen', 'naar_buiten'];
 
@@ -158,14 +172,18 @@ function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
 }
 
-// ─── Encode (Version 5: new dimension ranges, top-left positions) ──
-const VERSION = 5;
+// ─── Encode (Version 6: slug-based material IDs) ────────────────────
+// Version encoding (see header emission + decode for details):
+//   v1-v3: direct 2-bit write (legacy, no longer accepted by decoder)
+//   v4-v7: escape `write(0,2)` + 2-bit extension → version = 4 + ext
+//   v8+:   would require a nested escape (not yet defined)
+const VERSION = 6;
 
 function encodeWall(w: BitWriter, wall: WallConfig) {
-  w.write(indexOf(MATERIAL_IDS, wall.materialId), 3);
+  w.writeSlug(wall.materialId);
   w.write(wall.hasDoor ? 1 : 0, 1);
   if (wall.hasDoor) {
-    w.write(indexOf(DOOR_MATERIAL_IDS, wall.doorMaterialId), 2);
+    w.writeSlug(wall.doorMaterialId);
     w.write(indexOf(DOOR_SIZES, wall.doorSize), 1);
     w.write(wall.doorHasWindow ? 1 : 0, 1);
     w.write(Math.round((wall.doorPosition ?? 0.5) * 100), 7);
@@ -183,7 +201,7 @@ function encodeWall(w: BitWriter, wall: WallConfig) {
 }
 
 function decodeWall(r: BitReader): WallConfig {
-  const materialId = MATERIAL_IDS[clamp(r.read(3), 0, 4)];
+  const materialId = r.readSlug();
   const hasDoor = r.read(1) === 1;
   let doorMaterialId: DoorMaterialId = 'wood';
   let doorSize: DoorSize = 'enkel';
@@ -191,7 +209,7 @@ function decodeWall(r: BitReader): WallConfig {
   let doorPosition = 0.5;
   let doorSwing: DoorSwing = 'dicht';
   if (hasDoor) {
-    doorMaterialId = DOOR_MATERIAL_IDS[clamp(r.read(2), 0, 3)];
+    doorMaterialId = r.readSlug() as DoorMaterialId;
     doorSize = DOOR_SIZES[clamp(r.read(1), 0, 1)];
     doorHasWindow = r.read(1) === 1;
     doorPosition = r.read(7) / 100;
@@ -223,18 +241,18 @@ export function encodeState(
 ): string {
   const w = new BitWriter();
 
-  // Header: version 5 uses escape code 0 in 2-bit field, then 2-bit extension
-  // v5 = write(0,2) + write(1,2)  →  decoder reads 2 bits, if 0 reads 2 more → 4+ext
+  // Header: version uses escape code 0 in 2-bit field, then 2-bit extension
+  // v6 = write(0,2) + write(2,2)  →  decoder reads 2 bits, if 0 reads 2 more → 4+ext
   w.write(0, 2); // escape: extended version
-  w.write(1, 2); // extension bits: 4 + 1 = version 5
+  w.write(2, 2); // extension bits: 4 + 2 = version 6
 
   // Shared roof (same as v3)
   w.write(roof.type === 'pitched' ? 1 : 0, 1);
   if (roof.type === 'pitched') {
     w.write(clamp(roof.pitch, 0, 55), 6);
   }
-  w.write(indexOf(COVERING_IDS, roof.coveringId), 3);
-  w.write(indexOf(TRIM_MATERIAL_IDS, roof.trimMaterialId), 3);
+  w.writeSlug(roof.coveringId);
+  w.writeSlug(roof.trimMaterialId);
   w.write(roof.insulation ? 1 : 0, 1);
   if (roof.insulation) {
     w.write(clamp(Math.round((roof.insulationThickness - 50) / 10), 0, 25), 5);
@@ -287,7 +305,7 @@ export function encodeState(
       w.writeSigned(clamp(Math.round(b.position[0] / 0.5), -64, 63), 7);
       w.writeSigned(clamp(Math.round(b.position[1] / 0.5), -64, 63), 7);
 
-      w.write(indexOf(FLOOR_IDS, b.floor.materialId), 2);
+      w.writeSlug(b.floor.materialId);
       w.write(b.hasCornerBraces ? 1 : 0, 1);
 
       // Wall mask + data
@@ -331,21 +349,16 @@ export function decodeState(code: string): {
 
   let version = r.read(2);
   if (version === 0) {
-    // Extended version: 4 + next 2 bits
     version = 4 + r.read(2);
   }
-  if (version !== 2 && version !== 3 && version !== 4 && version !== 5) throw new Error('Unsupported version');
-
-  const isV3 = version === 3;
-  const isV4 = version === 4;
-  const isV5 = version === 5;
+  if (version !== 6) throw new Error(`Unsupported share code version: ${version}`);
 
   // Shared roof
   const isPitched = r.read(1) === 1;
   const pitch = isPitched ? clamp(r.read(6), 0, 55) : 0;
   const roofType: RoofType = isPitched ? 'pitched' : 'flat';
-  const coveringId = COVERING_IDS[clamp(r.read(3), 0, 4)];
-  const trimMaterialId = TRIM_MATERIAL_IDS[clamp(r.read(3), 0, 4)];
+  const coveringId = r.readSlug() as RoofCoveringId;
+  const trimMaterialId = r.readSlug();
   const insulation = r.read(1) === 1;
   const insulationThickness = insulation ? clamp(r.read(5) * 10 + 50, 50, 300) : 150;
   const hasSkylight = r.read(1) === 1;
@@ -355,51 +368,33 @@ export function decodeState(code: string): {
     insulation, insulationThickness, hasSkylight,
   };
 
-  // Default height (v4: 5 bits, v5: 4 bits)
-  const defaultHeight = isV5
-    ? clamp(r.read(4) * 0.1 + 2.2, 2.2, 3)
-    : isV4
-    ? clamp(r.read(5) * 0.25 + 2, 2, 6)
-    : 3;
+  // Default height: 4 bits, encodes 2.2–3.0 in 0.1 steps
+  const defaultHeight = clamp(r.read(4) * 0.1 + 2.2, 2.2, 3);
 
   // Buildings
   const buildingCount = r.read(3) + 1;
   const buildings: BuildingEntity[] = [];
 
   for (let bi = 0; bi < buildingCount; bi++) {
-    const typeBits = (isV3 || isV4 || isV5) ? 2 : 1;
-    const typeIdx = r.read(typeBits);
+    const typeIdx = r.read(2);
     const type = BUILDING_TYPES[clamp(typeIdx, 0, BUILDING_TYPES.length - 1)];
 
-    // V4/V5: per-building heightOverride and orientation
+    // Per-building heightOverride and orientation
     let heightOverride: number | null = null;
-    let orientation: Orientation = 'horizontal';
-    if (isV4 || isV5) {
-      const hasOverride = r.read(1) === 1;
-      if (hasOverride) {
-        heightOverride = isV5
-          ? clamp(r.read(4) * 0.1 + 2.2, 2.2, 3)
-          : clamp(r.read(5) * 0.25 + 2, 2, 6);
-      }
-      orientation = ORIENTATIONS[clamp(r.read(1), 0, 1)];
+    const hasOverride = r.read(1) === 1;
+    if (hasOverride) {
+      heightOverride = clamp(r.read(4) * 0.1 + 2.2, 2.2, 3);
     }
+    const orientation = ORIENTATIONS[clamp(r.read(1), 0, 1)];
 
-    if ((isV3 || isV4 || isV5) && type === 'paal') {
-      let height: number;
-      if (isV3) {
-        // v3: height encoded inline for paal
-        height = clamp(r.read(5) * 0.25 + 2, 2, 6);
-      } else {
-        // v4/v5: height comes from override or default
-        height = heightOverride ?? defaultHeight;
-      }
+    if (type === 'paal') {
+      const height = heightOverride ?? defaultHeight;
       const posX = r.readSigned(7) * 0.5;
       const posZ = r.readSigned(7) * 0.5;
       buildings.push({
         id: crypto.randomUUID(),
         type: 'paal',
-        // v5: position is top-left directly; v4 and earlier: was encoded as center
-        position: isV5 ? [posX, posZ] : [posX - 0.15 / 2, posZ - 0.15 / 2],
+        position: [posX, posZ],
         dimensions: { width: 0.15, depth: 0.15, height },
         walls: {},
         hasCornerBraces: false,
@@ -410,7 +405,7 @@ export function decodeState(code: string): {
       continue;
     }
 
-    if ((isV4 || isV5) && type === 'muur') {
+    if (type === 'muur') {
       const width = clamp(r.read(5) * 0.5 + 1, 1, 16.5);
       const posX = r.readSigned(7) * 0.5;
       const posZ = r.readSigned(7) * 0.5;
@@ -422,14 +417,10 @@ export function decodeState(code: string): {
         walls['front'] = decodeWall(r);
       }
 
-      const isVert = orientation === 'vertical';
-      const visualW = isVert ? 0.2 : width;
-      const visualD = isVert ? width : 0.2;
       buildings.push({
         id: crypto.randomUUID(),
         type: 'muur',
-        // v5: position is top-left directly; v4: was encoded as center
-        position: isV5 ? [posX, posZ] : [posX - visualW / 2, posZ - visualD / 2],
+        position: [posX, posZ],
         dimensions: { width, depth: 0.2, height },
         walls,
         hasCornerBraces: false,
@@ -440,18 +431,12 @@ export function decodeState(code: string): {
       continue;
     }
 
-    const width = isV5
-      ? clamp(r.read(9) * 0.1 + 1, 1, 40)
-      : clamp(r.read(5) * 0.5 + 3, 3, 15);
-    const depth = isV5
-      ? clamp(r.read(6) * 0.1 + 1, 1, 7)
-      : clamp(r.read(6) * 0.5 + 3, 3, 20);
-    const height = isV5
-      ? clamp(r.read(4) * 0.1 + 2.2, 2.2, 3)
-      : clamp(r.read(5) * 0.25 + 2, 2, 6);
+    const width = clamp(r.read(9) * 0.1 + 1, 1, 40);
+    const depth = clamp(r.read(6) * 0.1 + 1, 1, 7);
+    const height = clamp(r.read(4) * 0.1 + 2.2, 2.2, 3);
     const posX = r.readSigned(7) * 0.5;
     const posZ = r.readSigned(7) * 0.5;
-    const floorMaterialId = FLOOR_IDS[clamp(r.read(2), 0, 3)];
+    const floorMaterialId = r.readSlug() as FloorMaterialId;
     const hasCornerBraces = r.read(1) === 1;
 
     const mask = r.read(4);
@@ -464,8 +449,7 @@ export function decodeState(code: string): {
     buildings.push({
       id: crypto.randomUUID(),
       type,
-      // v5: position is top-left directly; v4 and earlier: was encoded as center
-      position: isV5 ? [posX, posZ] : [posX - width / 2, posZ - depth / 2],
+      position: [posX, posZ],
       dimensions: { width, depth, height },
       walls: Object.keys(walls).length > 0 ? walls : getDefaultWalls(type),
       hasCornerBraces,

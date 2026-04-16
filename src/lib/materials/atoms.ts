@@ -195,3 +195,22 @@ export function resolveCatalog<T extends BaseCatalogEntry>(
   }
   return out;
 }
+
+// Validate registry invariants at module-load time in non-production builds.
+// Slugs must fit the 15-char limit of share-code v6 encoding (4-bit length
+// field), and each atom's `id` must match its registry key.
+if (process.env.NODE_ENV !== 'production') {
+  for (const key of Object.keys(MATERIALS_REGISTRY) as MaterialSlug[]) {
+    const atom = MATERIALS_REGISTRY[key];
+    if (key.length > 15) {
+      throw new Error(
+        `Material slug "${key}" exceeds 15-char share-code encoding limit`,
+      );
+    }
+    if (atom.id !== key) {
+      throw new Error(
+        `Material atom id "${atom.id}" does not match registry key "${key}"`,
+      );
+    }
+  }
+}
