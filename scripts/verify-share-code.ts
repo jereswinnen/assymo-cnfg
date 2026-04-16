@@ -8,9 +8,11 @@ const buildings: BuildingEntity[] = [
     type: 'berging',
     position: [0, 0],
     dimensions: { width: 4, depth: 4, height: 2.6 },
+    primaryMaterialId: 'zwartvuren',
     walls: {
+      // front overrides to glass; back inherits primary; rest mix overrides + inherit
       front: { ...DEFAULT_WALL, materialId: 'glass' },
-      back:  { ...DEFAULT_WALL, materialId: 'brick' },
+      back:  { ...DEFAULT_WALL },
       left:  { ...DEFAULT_WALL, materialId: 'polycarbonaat' },
       right: { ...DEFAULT_WALL, materialId: 'wood', hasDoor: true, doorMaterialId: 'aluminium' },
     },
@@ -32,8 +34,9 @@ console.log('Encoded:', code);
 const decoded = decodeState(code);
 const b = decoded.buildings[0];
 console.log('Decoded:', {
+  primary: b.primaryMaterialId,
   frontWall: b.walls.front?.materialId,
-  backWall: b.walls.back?.materialId,
+  backWall: b.walls.back?.materialId, // expected: undefined → inherits
   leftWall: b.walls.left?.materialId,
   rightWall: b.walls.right?.materialId,
   rightDoorMat: b.walls.right?.doorMaterialId,
@@ -43,8 +46,9 @@ console.log('Decoded:', {
 });
 
 const ok =
+  b.primaryMaterialId === 'zwartvuren' &&
   b.walls.front?.materialId === 'glass' &&
-  b.walls.back?.materialId === 'brick' &&
+  b.walls.back?.materialId === undefined &&
   b.walls.left?.materialId === 'polycarbonaat' &&
   b.walls.right?.materialId === 'wood' &&
   b.walls.right?.doorMaterialId === 'aluminium' &&

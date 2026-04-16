@@ -7,3 +7,4 @@ export * from './catalogs/roof-trim';
 export * from './catalogs/roof-cover';
 export * from './catalogs/floor';
 export * from './catalogs/door';
+export * from './resolve';

@@ -24,11 +24,10 @@ export const DOOR_WINDOW_SURCHARGE = 200;
 
 export const DOUBLE_DOOR_W = 1.6;
 
-// Default wall config
+// Default wall config — materialId/doorMaterialId omitted so new walls
+// inherit from the building's primaryMaterialId.
 export const DEFAULT_WALL: WallConfig = {
-  materialId: 'wood',
   hasDoor: false,
-  doorMaterialId: 'wood',
   doorSize: 'enkel',
   doorHasWindow: false,
   doorPosition: 0.5,
@@ -36,6 +35,10 @@ export const DEFAULT_WALL: WallConfig = {
   doorMirror: false,
   windows: [],
 };
+
+/** Default building primary material — applied to walls/poles/fascia
+ *  whenever no override is set. */
+export const DEFAULT_PRIMARY_MATERIAL = 'wood';
 
 // Default roof config
 export const DEFAULT_ROOF: RoofConfig = {

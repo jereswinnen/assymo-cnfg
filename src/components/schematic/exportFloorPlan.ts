@@ -64,10 +64,10 @@ function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHei
       for (const id of activeWallIds) {
         const w = b.walls[id];
         if (!w) continue;
-        const parts: string[] = [wallMaterialLabel(w.materialId)];
+        const parts: string[] = [wallMaterialLabel(w.materialId ?? b.primaryMaterialId)];
         if (w.hasDoor) {
           const size = t(`surface.doorSize.${w.doorSize}`);
-          const mat = doorMaterialLabel(w.doorMaterialId);
+          const mat = doorMaterialLabel(w.doorMaterialId ?? b.primaryMaterialId);
           const withWindow = w.doorHasWindow ? `, ${t('surface.doorHasWindow').toLowerCase()}` : '';
           parts.push(`${t('surface.door')}: ${size} (${mat}${withWindow})`);
         }

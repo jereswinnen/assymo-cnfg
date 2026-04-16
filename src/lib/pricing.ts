@@ -19,7 +19,14 @@ import {
   BRACE_PRICE,
   getWallLength,
 } from './constants';
-import { WALL_CATALOG, ROOF_COVERING_CATALOG, FLOOR_CATALOG, DOOR_CATALOG } from './materials';
+import {
+  WALL_CATALOG,
+  ROOF_COVERING_CATALOG,
+  FLOOR_CATALOG,
+  DOOR_CATALOG,
+  getEffectiveWallMaterial,
+  getEffectiveDoorMaterial,
+} from './materials';
 import { t } from './i18n';
 
 function findPrice(
@@ -98,12 +105,12 @@ function wallLineItem(wallId: WallId, building: BuildingEntity, effectiveHeight:
     return { label: t(WALL_LABELS[wallId] ?? wallId), area: 0, materialCost: 0, insulationCost: 0, extrasCost: 0, total: 0 };
   }
   const area = wallNetArea(wallId, building, wallCfg, effectiveHeight);
-  const materialCost = area * findPrice(WALL_CATALOG, wallCfg.materialId);
+  const materialCost = area * findPrice(WALL_CATALOG, getEffectiveWallMaterial(wallCfg, building));
   let extrasCost = 0;
   if (wallCfg.hasDoor) {
     extrasCost += DOOR_BASE_PRICE[wallCfg.doorSize] ?? DOOR_BASE_PRICE.enkel;
     if (wallCfg.doorHasWindow) extrasCost += DOOR_WINDOW_SURCHARGE;
-    extrasCost += findSurcharge(wallCfg.doorMaterialId);
+    extrasCost += findSurcharge(getEffectiveDoorMaterial(wallCfg, building));
   }
   extrasCost += WINDOW_FLAT_FEE * (wallCfg.windows ?? []).length;
 

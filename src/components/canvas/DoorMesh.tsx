@@ -7,24 +7,36 @@ import { DOUBLE_DOOR_W, DOOR_W } from '@/lib/constants';
 import { useDoorTexture } from '@/lib/textures';
 import { createDoorPanelWithWindowGeo } from './wallGeometry';
 import { DOOR_H, DOOR_DEPTH, FRAME_T, FRAME_D } from './wallGeometry';
-import type { DoorSwing, DoorSize, DoorMaterialId } from '@/types/building';
+import type { DoorSwing, DoorSize } from '@/types/building';
+import { getAtomColor } from '@/lib/materials';
 
-// Door panel material configs (color when no texture, and material properties).
-// Wood matches the wall's meshStandardMaterial exactly (same metalness, tint,
-// env intensity) so a wooden door blends into a wooden wall.
-const DOOR_MAT_CFG: Record<DoorMaterialId, { color: string; tint: string; metalness: number; roughness: number; envMapIntensity: number }> = {
+// Door panel material configs for the legacy fixed-set (wood/aluminium/pvc/staal).
+// Cladding atoms (vurenvert, bevelhorz, etc.) fall back to a wood-like config —
+// they're textured wood variants so this matches the visual.
+const DOOR_MAT_CFG: Record<string, { color: string; tint: string; metalness: number; roughness: number; envMapIntensity: number }> = {
   wood:      { color: '#8B6840', tint: '#C4955A', metalness: 0.1,  roughness: 0.7,  envMapIntensity: 0.3 },
   aluminium: { color: '#2A2A2A', tint: '#ffffff', metalness: 0.7,  roughness: 0.25, envMapIntensity: 1.0 },
   pvc:       { color: '#1E1E1E', tint: '#ffffff', metalness: 0.05, roughness: 0.4,  envMapIntensity: 1.0 },
   staal:     { color: '#2C2C2C', tint: '#ffffff', metalness: 0.85, roughness: 0.2,  envMapIntensity: 1.0 },
 };
 
-// Handle materials: dark for wood, light for the rest
+const DEFAULT_DOOR_MAT = { tint: '#ffffff', metalness: 0.1, roughness: 0.7, envMapIntensity: 0.3 };
+
+function resolveDoorMatCfg(matId: string) {
+  const cfg = DOOR_MAT_CFG[matId];
+  if (cfg) return cfg;
+  return { ...DEFAULT_DOOR_MAT, color: getAtomColor(matId) };
+}
+
+// Handle materials: dark for wood-like, light for hard finishes.
 const HANDLE_DARK = new MeshStandardMaterial({ color: '#333333', metalness: 0.7, roughness: 0.3, emissive: '#222222', emissiveIntensity: 0.3 });
 const HANDLE_LIGHT = new MeshStandardMaterial({ color: '#E0E0E0', metalness: 0.9, roughness: 0.1, emissive: '#999999', emissiveIntensity: 0.4 });
 
-function getHandleMat(matId: DoorMaterialId): MeshStandardMaterial {
-  return matId === 'wood' ? HANDLE_DARK : HANDLE_LIGHT;
+function getHandleMat(matId: string): MeshStandardMaterial {
+  // Aluminium/pvc/staal get the light handle; everything else (wood + cladding) gets dark.
+  return matId === 'aluminium' || matId === 'pvc' || matId === 'staal'
+    ? HANDLE_LIGHT
+    : HANDLE_DARK;
 }
 
 export const frameMat = new MeshStandardMaterial({ color: '#2A2A2A', metalness: 0.4, roughness: 0.3, envMapIntensity: 0.8 });
@@ -59,7 +71,7 @@ interface DoorMeshProps {
   swing: DoorSwing;
   doorSize: DoorSize;
   doorHasWindow: boolean;
-  doorMaterialId: DoorMaterialId;
+  doorMaterialId: string;
   doorMirror?: boolean;
 }
 
@@ -69,7 +81,7 @@ export default function DoorMesh({ x, height, swing, doorSize, doorHasWindow, do
   const panelW = doorSize === 'dubbel' ? DOUBLE_DOOR_W / 2 : DOOR_W;
   const totalW = doorSize === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W;
   const hMat = getHandleMat(doorMaterialId);
-  const mc = DOOR_MAT_CFG[doorMaterialId];
+  const mc = resolveDoorMatCfg(doorMaterialId);
   const doorTex = useDoorTexture(doorMaterialId, panelW, dh);
   const panelColor = doorTex ? mc.tint : mc.color;
 

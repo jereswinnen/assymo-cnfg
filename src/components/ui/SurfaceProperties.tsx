@@ -1,7 +1,7 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
-import { WALL_CATALOG } from '@/lib/materials';
+import { WALL_CATALOG, getEffectiveWallMaterial } from '@/lib/materials';
 import { t } from '@/lib/i18n';
 import SectionLabel from '@/components/ui/SectionLabel';
 import MaterialSelect from '@/components/ui/MaterialSelect';
@@ -29,7 +29,8 @@ export default function SurfaceProperties() {
   if (!wallCfg) return null;
 
   const label = t(`wall.${wallId}`);
-  const currentWallEntry = WALL_CATALOG.find(e => e.atomId === wallCfg.materialId);
+  const effectiveMaterial = building ? getEffectiveWallMaterial(wallCfg, building) : 'wood';
+  const currentWallEntry = WALL_CATALOG.find(e => e.atomId === effectiveMaterial);
   const isGlass = currentWallEntry?.clearsOpenings === true;
 
   function handleChange(field: string, value: unknown) {
@@ -47,7 +48,7 @@ export default function SurfaceProperties() {
         <SectionLabel>{t('surface.material')}</SectionLabel>
         <MaterialSelect
           catalog={WALL_CATALOG}
-          value={wallCfg.materialId}
+          value={effectiveMaterial}
           onChange={(atomId) => {
             handleChange('materialId', atomId);
             const entry = WALL_CATALOG.find(e => e.atomId === atomId);

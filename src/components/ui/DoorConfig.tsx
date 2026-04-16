@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
 import { clampOpeningPosition, DOOR_W, DOUBLE_DOOR_W, getWallLength, WIN_W } from '@/lib/constants';
-import { DOOR_CATALOG } from '@/lib/materials';
+import { DOOR_CATALOG, getEffectiveDoorMaterial } from '@/lib/materials';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -93,7 +93,7 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
                 <SectionLabel>{t('surface.doorMaterial')}</SectionLabel>
                 <MaterialSelect
                   catalog={DOOR_CATALOG}
-                  value={wallCfg.doorMaterialId}
+                  value={getEffectiveDoorMaterial(wallCfg, building)}
                   onChange={(atomId) => handleChange('doorMaterialId', atomId as DoorMaterialId)}
                   ariaLabel={t('surface.doorMaterial')}
                 />

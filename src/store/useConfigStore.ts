@@ -20,6 +20,7 @@ import {
   DEFAULT_ROOF,
   DEFAULT_FLOOR,
   DEFAULT_WALL,
+  DEFAULT_PRIMARY_MATERIAL,
   POLE_DIMENSIONS,
   WALL_DIMENSIONS,
   getDefaultWalls,
@@ -63,6 +64,7 @@ interface ConfigState {
   updateBuildingPosition: (id: string, pos: [number, number]) => void;
   updateBuildingWall: (id: string, wallId: WallId, patch: Partial<WallConfig>) => void;
   updateBuildingFloor: (id: string, patch: Partial<FloorConfig>) => void;
+  setBuildingPrimaryMaterial: (id: string, materialId: string) => void;
   toggleBuildingBraces: (id: string) => void;
   updateBuildingPoles: (id: string, poles: PolesConfig) => void;
   resetBuildingPoles: (id: string) => void;
@@ -112,6 +114,7 @@ function createBuilding(type: BuildingType, position: [number, number]): Buildin
     type,
     position,
     dimensions,
+    primaryMaterialId: DEFAULT_PRIMARY_MATERIAL,
     walls: getDefaultWalls(type),
     hasCornerBraces: false,
     floor: (type === 'berging' || type === 'overkapping')
@@ -244,6 +247,21 @@ export const useConfigStore = create<ConfigState>()(
       ),
     })),
 
+  setBuildingPrimaryMaterial: (id, materialId) =>
+    set((state) => {
+      // Auto-sync the global roof trim to the building primary so the
+      // single-building common case "just works". Multi-building scenes
+      // keep the most-recent assignment; user can still override manually
+      // in the roof panel.
+      const updatedBuildings = state.buildings.map(b =>
+        b.id === id ? { ...b, primaryMaterialId: materialId } : b,
+      );
+      return {
+        buildings: updatedBuildings,
+        roof: { ...state.roof, trimMaterialId: materialId },
+      };
+    }),
+
   toggleBuildingBraces: (id) =>
     set((state) => ({
       buildings: state.buildings.map(b =>
@@ -356,9 +374,11 @@ export const useConfigStore = create<ConfigState>()(
   },
 
   loadState: (buildings, connections, roof) => {
-    // Migration: add orientation and heightOverride for legacy configs
+    // Migration: backfill primaryMaterialId / orientation / heightOverride
+    // for legacy configs that pre-date these fields.
     const migrated = buildings.map(b => ({
       ...b,
+      primaryMaterialId: (b as any).primaryMaterialId ?? DEFAULT_PRIMARY_MATERIAL,
       orientation: (b as any).orientation ?? ('horizontal' as Orientation),
       heightOverride: (b as any).heightOverride ?? null,
     }));

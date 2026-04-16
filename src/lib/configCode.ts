@@ -172,18 +172,29 @@ function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
 }
 
-// ─── Encode (Version 6: slug-based material IDs) ────────────────────
+// ─── Encode (Version 7: per-building primaryMaterialId + override flags) ─
 // Version encoding (see header emission + decode for details):
 //   v1-v3: direct 2-bit write (legacy, no longer accepted by decoder)
 //   v4-v7: escape `write(0,2)` + 2-bit extension → version = 4 + ext
 //   v8+:   would require a nested escape (not yet defined)
-const VERSION = 6;
+const VERSION = 7;
 
 function encodeWall(w: BitWriter, wall: WallConfig) {
-  w.writeSlug(wall.materialId);
+  // Material override: 1 bit flag + slug if set, else inherits primary.
+  if (wall.materialId !== undefined) {
+    w.write(1, 1);
+    w.writeSlug(wall.materialId);
+  } else {
+    w.write(0, 1);
+  }
   w.write(wall.hasDoor ? 1 : 0, 1);
   if (wall.hasDoor) {
-    w.writeSlug(wall.doorMaterialId);
+    if (wall.doorMaterialId !== undefined) {
+      w.write(1, 1);
+      w.writeSlug(wall.doorMaterialId);
+    } else {
+      w.write(0, 1);
+    }
     w.write(indexOf(DOOR_SIZES, wall.doorSize), 1);
     w.write(wall.doorHasWindow ? 1 : 0, 1);
     w.write(Math.round((wall.doorPosition ?? 0.5) * 100), 7);
@@ -193,23 +204,25 @@ function encodeWall(w: BitWriter, wall: WallConfig) {
   w.write(Math.min(winCount, 7), 3);
   for (let i = 0; i < Math.min(winCount, 7); i++) {
     const win = wall.windows![i];
-    w.write(Math.round(win.position * 100), 7);           // 0-100 → 0.0-1.0
-    w.write(Math.round((win.width ?? 1.2) * 10), 7);      // 0-100 → 0.0-10.0m
-    w.write(Math.round((win.height ?? 1.0) * 10), 7);     // 0-100 → 0.0-10.0m
-    w.write(Math.round((win.sillHeight ?? 1.2) * 10), 7); // 0-100 → 0.0-10.0m
+    w.write(Math.round(win.position * 100), 7);
+    w.write(Math.round((win.width ?? 1.2) * 10), 7);
+    w.write(Math.round((win.height ?? 1.0) * 10), 7);
+    w.write(Math.round((win.sillHeight ?? 1.2) * 10), 7);
   }
 }
 
 function decodeWall(r: BitReader): WallConfig {
-  const materialId = r.readSlug();
+  const hasMatOverride = r.read(1) === 1;
+  const materialId = hasMatOverride ? r.readSlug() : undefined;
   const hasDoor = r.read(1) === 1;
-  let doorMaterialId: DoorMaterialId = 'wood';
+  let doorMaterialId: string | undefined = undefined;
   let doorSize: DoorSize = 'enkel';
   let doorHasWindow = false;
   let doorPosition = 0.5;
   let doorSwing: DoorSwing = 'dicht';
   if (hasDoor) {
-    doorMaterialId = r.readSlug() as DoorMaterialId;
+    const hasDoorMatOverride = r.read(1) === 1;
+    doorMaterialId = hasDoorMatOverride ? r.readSlug() : undefined;
     doorSize = DOOR_SIZES[clamp(r.read(1), 0, 1)];
     doorHasWindow = r.read(1) === 1;
     doorPosition = r.read(7) / 100;
@@ -242,9 +255,9 @@ export function encodeState(
   const w = new BitWriter();
 
   // Header: version uses escape code 0 in 2-bit field, then 2-bit extension
-  // v6 = write(0,2) + write(2,2)  →  decoder reads 2 bits, if 0 reads 2 more → 4+ext
+  // v7 = write(0,2) + write(3,2)  →  decoder reads 2 bits, if 0 reads 2 more → 4+ext
   w.write(0, 2); // escape: extended version
-  w.write(2, 2); // extension bits: 4 + 2 = version 6
+  w.write(3, 2); // extension bits: 4 + 3 = version 7
 
   // Shared roof (same as v3)
   w.write(roof.type === 'pitched' ? 1 : 0, 1);
@@ -278,6 +291,9 @@ export function encodeState(
 
     // Orientation (all types): 0=horizontal, 1=vertical
     w.write(indexOf(ORIENTATIONS, b.orientation ?? 'horizontal'), 1);
+
+    // Primary material (all types — drives walls/poles/fascia inheritance)
+    w.writeSlug(b.primaryMaterialId);
 
     if (b.type === 'paal') {
       // Poles: position only (height from override/default), top-left stored directly
@@ -351,7 +367,7 @@ export function decodeState(code: string): {
   if (version === 0) {
     version = 4 + r.read(2);
   }
-  if (version !== 6) throw new Error(`Unsupported share code version: ${version}`);
+  if (version !== 7) throw new Error(`Unsupported share code version: ${version}`);
 
   // Shared roof
   const isPitched = r.read(1) === 1;
@@ -386,6 +402,7 @@ export function decodeState(code: string): {
       heightOverride = clamp(r.read(4) * 0.1 + 2.2, 2.2, 3);
     }
     const orientation = ORIENTATIONS[clamp(r.read(1), 0, 1)];
+    const primaryMaterialId = r.readSlug();
 
     if (type === 'paal') {
       const height = heightOverride ?? defaultHeight;
@@ -396,6 +413,7 @@ export function decodeState(code: string): {
         type: 'paal',
         position: [posX, posZ],
         dimensions: { width: 0.15, depth: 0.15, height },
+        primaryMaterialId,
         walls: {},
         hasCornerBraces: false,
         floor: { materialId: 'geen' },
@@ -422,6 +440,7 @@ export function decodeState(code: string): {
         type: 'muur',
         position: [posX, posZ],
         dimensions: { width, depth: 0.2, height },
+        primaryMaterialId,
         walls,
         hasCornerBraces: false,
         floor: { materialId: 'geen' },
@@ -451,6 +470,7 @@ export function decodeState(code: string): {
       type,
       position: [posX, posZ],
       dimensions: { width, depth, height },
+      primaryMaterialId,
       walls: Object.keys(walls).length > 0 ? walls : getDefaultWalls(type),
       hasCornerBraces,
       floor: { materialId: floorMaterialId },

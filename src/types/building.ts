@@ -25,9 +25,13 @@ export interface WallWindow {
 }
 
 export interface WallConfig {
-  materialId: string;
+  /** Override of the building's primaryMaterialId. When undefined the wall
+   *  inherits from `BuildingEntity.primaryMaterialId`. */
+  materialId?: string;
   hasDoor: boolean;
-  doorMaterialId: DoorMaterialId;
+  /** Override for the door panel. When undefined the door inherits from
+   *  the building's primaryMaterialId. */
+  doorMaterialId?: DoorMaterialId | string;
   doorSize: DoorSize;
   doorHasWindow: boolean;
   doorPosition: number;
@@ -68,6 +72,10 @@ export interface BuildingEntity {
   /** Top-left corner in world coords [x, z] — left edge, front edge (min X, min Z) */
   position: [number, number];
   dimensions: BuildingDimensions;
+  /** Material every wall, door, and pole defaults to unless individually
+   *  overridden. The roof's trim material auto-syncs with this when the
+   *  building-level picker is used. Always set; default 'wood'. */
+  primaryMaterialId: string;
   walls: Record<string, WallConfig>;
   hasCornerBraces: boolean;
   floor: FloorConfig;

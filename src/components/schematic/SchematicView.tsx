@@ -1324,6 +1324,7 @@ export default function SchematicView() {
                   <SchematicWalls
                     dimensions={b.dimensions}
                     walls={b.walls}
+                    primaryMaterialId={b.primaryMaterialId}
                     selectedElement={selectedElement}
                     buildingId={b.id}
                     offsetX={ox + width / 2}
@@ -1488,6 +1489,7 @@ export default function SchematicView() {
                   <SchematicWalls
                     dimensions={schematicDims}
                     walls={schematicWalls}
+                    primaryMaterialId={w.primaryMaterialId}
                     selectedElement={selectedElement}
                     buildingId={w.id}
                     offsetX={wallOffsetX}

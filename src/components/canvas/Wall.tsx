@@ -5,7 +5,7 @@ import { Mesh } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { WALL_THICKNESS, resolveOpeningPositions, getWallLength } from '@/lib/constants';
-import { getAtomColor } from '@/lib/materials';
+import { getAtomColor, getEffectiveWallMaterial, getEffectiveDoorMaterial } from '@/lib/materials';
 import { useWallTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
 import { WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT } from '@/lib/constants';
@@ -54,7 +54,9 @@ export default function Wall({ wallId }: WallProps) {
   const { width, depth } = dimensions;
 
   const wallCfg = building?.walls[wallId];
-  const materialId = wallCfg?.materialId ?? 'brick';
+  const materialId = wallCfg && building
+    ? getEffectiveWallMaterial(wallCfg, building)
+    : 'brick';
   const color = getAtomColor(materialId);
 
   const wallLength = getWallLength(wallId, dimensions);
@@ -194,6 +196,7 @@ export default function Wall({ wallId }: WallProps) {
         wallLength={wallLength}
         height={height}
         wallCfg={wallCfg}
+        effectiveDoorMaterial={building ? getEffectiveDoorMaterial(wallCfg, building) : 'wood'}
       />
     </group>
   );
@@ -205,9 +208,10 @@ interface OpeningsProps {
   wallLength: number;
   height: number;
   wallCfg: WallConfig;
+  effectiveDoorMaterial: string;
 }
 
-function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg }: OpeningsProps) {
+function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg, effectiveDoorMaterial }: OpeningsProps) {
   if (!wallCfg.hasDoor && (wallCfg.windows ?? []).length === 0) return null;
 
   const t = WALL_THICKNESS;
@@ -250,7 +254,7 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg }: Ope
           swing={wallCfg.doorSwing ?? 'dicht'}
           doorSize={ds}
           doorHasWindow={wallCfg.doorHasWindow ?? false}
-          doorMaterialId={wallCfg.doorMaterialId ?? 'wood'}
+          doorMaterialId={effectiveDoorMaterial}
           doorMirror={wallCfg.doorMirror ?? false}
         />
       )}

@@ -70,6 +70,7 @@ export function getWallGeometries(
 interface SchematicWallsProps {
   dimensions: BuildingDimensions;
   walls: Record<string, WallConfig>;
+  primaryMaterialId: string;
   selectedElement: SelectedElement;
   buildingId: string;
   offsetX: number;
@@ -80,6 +81,7 @@ interface SchematicWallsProps {
 export default function SchematicWalls({
   dimensions,
   walls,
+  primaryMaterialId,
   selectedElement,
   buildingId,
   offsetX,
@@ -104,6 +106,7 @@ export default function SchematicWalls({
             key={g.wallId}
             geom={g}
             cfg={cfg}
+            primaryMaterialId={primaryMaterialId}
             isSelected={isSelected}
             onWallClick={onWallClick ? () => onWallClick(g.wallId, buildingId) : undefined}
           />
@@ -116,17 +119,19 @@ export default function SchematicWalls({
 function SolidWall({
   geom,
   cfg,
+  primaryMaterialId,
   isSelected,
   onWallClick,
 }: {
   geom: WallGeom;
   cfg: WallConfig;
+  primaryMaterialId: string;
   isSelected: boolean;
   onWallClick?: () => void;
 }) {
   const { cx, cy, orientation, length, flipSign } = geom;
   const isH = orientation === 'h';
-  const fillColor = isSelected ? '#3b82f6' : getAtomColor(cfg.materialId);
+  const fillColor = isSelected ? '#3b82f6' : getAtomColor(cfg.materialId ?? primaryMaterialId);
   const fillOpacity = isSelected ? 0.5 : 0.35;
   const strokeColor = isSelected ? '#2563eb' : '#444';
 
