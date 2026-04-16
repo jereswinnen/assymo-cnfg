@@ -13,7 +13,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "node --env-file=.env.local --experimental-strip-types src/db/seed.ts"
+    "db:seed": "node --env-file=.env.local --experimental-strip-types src/db/seed.ts",
+    "db:bootstrap-admin": "tsx --env-file=.env.local src/db/bootstrap-admin.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
@@ -49,6 +50,7 @@
     "eslint-config-next": "16.1.6",
     "shadcn": "^3.8.4",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vite-plus": "^0.1.18"
   }
