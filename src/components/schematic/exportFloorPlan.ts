@@ -3,16 +3,17 @@ import { t } from '@/lib/i18n';
 import { encodeState } from '@/lib/configCode';
 import type { SnapConnection } from '@/types/building';
 import {
-  WALL_MATERIALS,
   ROOF_COVERINGS,
   FLOOR_MATERIALS,
   DOOR_MATERIALS,
   getAvailableWallIds,
 } from '@/lib/constants';
+import { getAtom } from '@/lib/materials';
 import { calculateTotalQuote } from '@/lib/pricing';
 
 function wallMaterialLabel(id: string): string {
-  return WALL_MATERIALS.find((m) => m.id === id)?.label ?? id;
+  const atom = getAtom(id);
+  return atom ? t(atom.labelKey) : id;
 }
 
 function roofCoveringLabel(id: string): string {

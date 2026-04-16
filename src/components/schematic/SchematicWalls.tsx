@@ -1,5 +1,4 @@
 import {
-  WALL_MATERIALS,
   WALL_THICKNESS,
   DOUBLE_DOOR_W,
   DOOR_W,
@@ -7,6 +6,7 @@ import {
   resolveOpeningPositions,
   getWallLength,
 } from '@/lib/constants';
+import { getAtomColor } from '@/lib/materials';
 import type {
   BuildingDimensions,
   WallConfig,
@@ -126,8 +126,7 @@ function SolidWall({
 }) {
   const { cx, cy, orientation, length, flipSign } = geom;
   const isH = orientation === 'h';
-  const mat = WALL_MATERIALS.find((m) => m.id === cfg.materialId);
-  const fillColor = isSelected ? '#3b82f6' : (mat?.color ?? '#888888');
+  const fillColor = isSelected ? '#3b82f6' : getAtomColor(cfg.materialId);
   const fillOpacity = isSelected ? 0.5 : 0.35;
   const strokeColor = isSelected ? '#2563eb' : '#444';
 

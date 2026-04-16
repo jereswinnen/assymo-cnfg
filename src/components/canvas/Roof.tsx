@@ -4,7 +4,8 @@ import { useRef, useMemo, useCallback } from 'react';
 import { Mesh } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
-import { ROOF_COVERINGS, WALL_MATERIALS, BEAM_H, WALL_THICKNESS } from '@/lib/constants';
+import { ROOF_COVERINGS, BEAM_H, WALL_THICKNESS } from '@/lib/constants';
+import { getAtomColor } from '@/lib/materials';
 import { useRoofTexture, useWallTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
 
@@ -221,7 +222,6 @@ const FASCIA_TEXTURE_TINT: Record<string, string> = {
 
 function FasciaBoardMesh({ board, materialId }: { board: FasciaBoard; materialId: string }) {
   const texture = useWallTexture(materialId, board.length, FASCIA_HEIGHT);
-  const mat = WALL_MATERIALS.find((m) => m.id === materialId);
   const isGlass = materialId === 'glass';
   const tint = FASCIA_TEXTURE_TINT[materialId] ?? '#ffffff';
 
@@ -230,7 +230,7 @@ function FasciaBoardMesh({ board, materialId }: { board: FasciaBoard; materialId
       <boxGeometry args={board.size} />
       <meshStandardMaterial
         key={texture ? 'textured' : 'flat'}
-        color={texture ? tint : (mat?.color ?? '#3C3C3C')}
+        color={texture ? tint : getAtomColor(materialId)}
         map={texture?.map ?? undefined}
         normalMap={texture?.normalMap ?? undefined}
         roughnessMap={texture?.roughnessMap ?? undefined}

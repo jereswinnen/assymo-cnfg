@@ -1,5 +1,4 @@
 import type {
-  SurfaceMaterial,
   BuildingDimensions,
   WallConfig,
   RoofConfig,
@@ -11,15 +10,6 @@ import type {
   DoorSize,
   DoorMaterialId,
 } from '@/types/building';
-
-// Wall materials with Dutch labels
-export const WALL_MATERIALS: SurfaceMaterial[] = [
-  { id: 'wood', label: 'Hout', pricePerSqm: 45, color: '#8B6914' },
-  { id: 'brick', label: 'Steen', pricePerSqm: 65, color: '#8B4513' },
-  { id: 'render', label: 'Stucwerk', pricePerSqm: 55, color: '#F5F5DC' },
-  { id: 'metal', label: 'Metaal', pricePerSqm: 70, color: '#708090' },
-  { id: 'glass', label: 'Glas', pricePerSqm: 120, color: '#B8D4E3' },
-];
 
 // Roof coverings with 3D colors
 export const ROOF_COVERINGS: RoofCovering[] = [

@@ -4,7 +4,8 @@ import { useRef, useMemo, useEffect, useCallback } from 'react';
 import { Mesh } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
-import { WALL_MATERIALS, WALL_THICKNESS, resolveOpeningPositions, getWallLength } from '@/lib/constants';
+import { WALL_THICKNESS, resolveOpeningPositions, getWallLength } from '@/lib/constants';
+import { getAtomColor } from '@/lib/materials';
 import { useWallTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
 import { WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT } from '@/lib/constants';
@@ -54,8 +55,7 @@ export default function Wall({ wallId }: WallProps) {
 
   const wallCfg = building?.walls[wallId];
   const materialId = wallCfg?.materialId ?? 'brick';
-  const material = WALL_MATERIALS.find((m) => m.id === materialId);
-  const color = material?.color ?? '#cccccc';
+  const color = getAtomColor(materialId);
 
   const wallLength = getWallLength(wallId, dimensions);
   const texture = useWallTexture(materialId, wallLength, height);

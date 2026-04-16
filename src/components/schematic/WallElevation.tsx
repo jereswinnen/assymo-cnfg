@@ -3,12 +3,13 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import {
-  WALL_MATERIALS, DOOR_W, DOUBLE_DOOR_W,
+  DOOR_W, DOUBLE_DOOR_W,
   WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT,
   getWallLength, fractionToX, xToFraction,
   clampOpeningPosition, EDGE_CLEARANCE, SNAP_INCREMENT,
   WIN_MIN_SIZE,
 } from '@/lib/constants';
+import { getAtomColor } from '@/lib/materials';
 import { t } from '@/lib/i18n';
 import type { WallId } from '@/types/building';
 
@@ -286,8 +287,7 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
 
   const wallLength = getWallLength(wallId, building.dimensions);
   const wallHeight = getEffectiveHeight(building, defaultHeight);
-  const mat = WALL_MATERIALS.find(m => m.id === wallCfg.materialId);
-  const wallColor = mat?.color ?? '#d4a5a9';
+  const wallColor = getAtomColor(wallCfg.materialId);
 
   const windows = wallCfg.windows ?? [];
 

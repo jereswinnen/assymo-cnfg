@@ -3,82 +3,7 @@
 import { useEffect, useMemo } from 'react';
 import { TextureLoader, RepeatWrapping, SRGBColorSpace, LinearSRGBColorSpace } from 'three';
 import type { Texture } from 'three';
-
-// Wall PBR texture maps (color, normal, roughness per material)
-const WALL_TEXTURE_MAP: Record<string, { color: string; normal: string; roughness: string }> = {
-  wood: {
-    color: '/textures/wood_color.jpg',
-    normal: '/textures/wood_normal.jpg',
-    roughness: '/textures/wood_roughness.jpg',
-  },
-  brick: {
-    color: '/textures/brick_color.jpg',
-    normal: '/textures/brick_normal.jpg',
-    roughness: '/textures/brick_roughness.jpg',
-  },
-  render: {
-    color: '/textures/plaster_color.jpg',
-    normal: '/textures/plaster_normal.jpg',
-    roughness: '/textures/plaster_roughness.jpg',
-  },
-  metal: {
-    color: '/textures/metal_color.jpg',
-    normal: '/textures/metal_normal.jpg',
-    roughness: '/textures/metal_roughness.jpg',
-  },
-};
-
-// Floor PBR texture maps (color, normal, roughness per material)
-const FLOOR_TEXTURE_MAP: Record<string, { color: string; normal: string; roughness: string }> = {
-  tegels: {
-    color: '/textures/floor_tiles_color.jpg',
-    normal: '/textures/floor_tiles_normal.jpg',
-    roughness: '/textures/floor_tiles_roughness.jpg',
-  },
-  beton: {
-    color: '/textures/floor_concrete_color.jpg',
-    normal: '/textures/floor_concrete_normal.jpg',
-    roughness: '/textures/floor_concrete_roughness.jpg',
-  },
-  hout: {
-    color: '/textures/floor_wood_color.jpg',
-    normal: '/textures/floor_wood_normal.jpg',
-    roughness: '/textures/floor_wood_roughness.jpg',
-  },
-};
-
-// Roof PBR texture maps
-const ROOF_TEXTURE_MAP: Record<string, { color: string; normal: string; roughness: string }> = {
-  dakpannen: {
-    color: '/textures/roof_tiles_color.jpg',
-    normal: '/textures/roof_tiles_normal.jpg',
-    roughness: '/textures/roof_tiles_roughness.jpg',
-  },
-  riet: {
-    color: '/textures/thatch_color.jpg',
-    normal: '/textures/thatch_normal.jpg',
-    roughness: '/textures/thatch_roughness.jpg',
-  },
-};
-
-const FLOOR_TILE_SIZE: Record<string, [number, number]> = {
-  tegels: [2, 2],
-  beton: [3, 3],
-  hout: [1.5, 1.5],
-};
-
-// How many meters each texture tile covers (controls repeat density)
-const WALL_TILE_SIZE: Record<string, [number, number]> = {
-  wood: [1.5, 1.5],
-  brick: [3, 2],
-  render: [3, 3],
-  metal: [1.5, 2],
-};
-
-const ROOF_TILE_SIZE: Record<string, [number, number]> = {
-  dakpannen: [2, 2],
-  riet: [3, 3],
-};
+import { getAtom } from './materials/atoms';
 
 const loader = new TextureLoader();
 const textureCache = new Map<string, Texture>();
@@ -108,8 +33,9 @@ export function useWallTexture(
   wallWidth: number,
   wallHeight: number,
 ): PBRTextures | null {
-  const paths = WALL_TEXTURE_MAP[materialId];
-  const tileSize = WALL_TILE_SIZE[materialId];
+  const atom = getAtom(materialId);
+  const paths = atom?.textures ?? null;
+  const tileSize = atom?.tileSize ?? null;
 
   const textures = useMemo(() => {
     if (!paths) return null;
@@ -148,7 +74,7 @@ export function useDoorTexture(
   panelWidth: number,
   panelHeight: number,
 ): PBRTextures | null {
-  const paths = materialId === 'wood' ? WALL_TEXTURE_MAP.wood : null;
+  const paths = materialId === 'wood' ? (getAtom('wood')?.textures ?? null) : null;
 
   const textures = useMemo(() => {
     if (!paths) return null;
@@ -189,8 +115,9 @@ export function useRoofTexture(
   roofWidth: number,
   roofDepth: number,
 ): PBRTextures | null {
-  const paths = ROOF_TEXTURE_MAP[coveringId];
-  const tileSize = ROOF_TILE_SIZE[coveringId];
+  const atom = getAtom(coveringId);
+  const paths = atom?.textures ?? null;
+  const tileSize = atom?.tileSize ?? null;
 
   const textures = useMemo(() => {
     if (!paths) return null;
@@ -231,8 +158,9 @@ export function useFloorTexture(
   floorWidth: number,
   floorDepth: number,
 ): FloorPBR | null {
-  const paths = FLOOR_TEXTURE_MAP[materialId];
-  const tileSize = FLOOR_TILE_SIZE[materialId];
+  const atom = getAtom(materialId);
+  const paths = atom?.textures ?? null;
+  const tileSize = atom?.tileSize ?? null;
 
   const textures = useMemo(() => {
     if (!paths) return null;

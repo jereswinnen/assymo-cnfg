@@ -1,7 +1,8 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
-import { ROOF_COVERINGS, WALL_MATERIALS } from '@/lib/constants';
+import { ROOF_COVERINGS } from '@/lib/constants';
+import { ROOF_TRIM_CATALOG, resolveCatalog } from '@/lib/materials';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -49,12 +50,12 @@ export default function RoofConfigSection() {
       <div className="space-y-2">
         <SectionLabel>{t('roof.trimColor')}</SectionLabel>
         <div className="grid grid-cols-5 gap-1.5">
-          {WALL_MATERIALS.map((m) => {
-            const isSelected = roof.trimMaterialId === m.id;
+          {resolveCatalog(ROOF_TRIM_CATALOG).map(({ atomId, atom }) => {
+            const isSelected = roof.trimMaterialId === atomId;
             return (
               <button
-                key={m.id}
-                onClick={() => updateRoof({ trimMaterialId: m.id })}
+                key={atomId}
+                onClick={() => updateRoof({ trimMaterialId: atomId })}
                 className={`flex flex-col items-center gap-1.5 rounded-lg border p-2 transition-all ${
                   isSelected
                     ? 'border-primary bg-primary/5 ring-1 ring-primary'
@@ -64,14 +65,14 @@ export default function RoofConfigSection() {
                 <span
                   className="h-7 w-7 rounded-md border border-border/50"
                   style={{
-                    backgroundColor: m.id === 'glass' ? '#B8D4E3' : m.color,
-                    opacity: m.id === 'glass' ? 0.6 : 1,
+                    backgroundColor: atom.color,
+                    opacity: atomId === 'glass' ? 0.6 : 1,
                   }}
                 />
                 <span className={`text-[10px] font-medium leading-tight ${
                   isSelected ? 'text-primary' : 'text-muted-foreground'
                 }`}>
-                  {m.label}
+                  {t(atom.labelKey)}
                 </span>
               </button>
             );

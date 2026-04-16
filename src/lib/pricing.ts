@@ -5,7 +5,6 @@ import type {
   RoofConfig,
 } from '@/types/building';
 import {
-  WALL_MATERIALS,
   ROOF_COVERINGS,
   FLOOR_MATERIALS,
   INSULATION_PRICE_PER_SQM_PER_MM,
@@ -23,9 +22,21 @@ import {
   BRACE_PRICE,
   getWallLength,
 } from './constants';
+import { WALL_CATALOG } from './materials';
 import { t } from './i18n';
 
-function findPrice(items: readonly { id: string; pricePerSqm: number }[], id: string): number {
+function findPrice(
+  items: readonly { atomId: string; pricePerSqm: number }[],
+  atomId: string,
+): number {
+  return items.find((m) => m.atomId === atomId)?.pricePerSqm ?? 0;
+}
+
+// LEGACY: delete in Task 5 once all callers use findPrice.
+function findPriceLegacy(
+  items: readonly { id: string; pricePerSqm: number }[],
+  id: string,
+): number {
   return items.find((m) => m.id === id)?.pricePerSqm ?? 0;
 }
 
@@ -98,7 +109,7 @@ function wallLineItem(wallId: WallId, building: BuildingEntity, effectiveHeight:
     return { label: t(WALL_LABELS[wallId] ?? wallId), area: 0, materialCost: 0, insulationCost: 0, extrasCost: 0, total: 0 };
   }
   const area = wallNetArea(wallId, building, wallCfg, effectiveHeight);
-  const materialCost = area * findPrice(WALL_MATERIALS, wallCfg.materialId);
+  const materialCost = area * findPrice(WALL_CATALOG, wallCfg.materialId);
   let extrasCost = 0;
   if (wallCfg.hasDoor) {
     extrasCost += DOOR_BASE_PRICE[wallCfg.doorSize] ?? DOOR_BASE_PRICE.enkel;
@@ -120,7 +131,7 @@ function wallLineItem(wallId: WallId, building: BuildingEntity, effectiveHeight:
 function roofLineItem(building: BuildingEntity, roof: RoofConfig): LineItem {
   const { width, depth } = building.dimensions;
   const area = roofTotalArea(width, depth, roof.pitch, roof.type);
-  const materialCost = area * findPrice(ROOF_COVERINGS, roof.coveringId);
+  const materialCost = area * findPriceLegacy(ROOF_COVERINGS, roof.coveringId);
   const insulationCost = roof.insulation
     ? area * roof.insulationThickness * INSULATION_PRICE_PER_SQM_PER_MM
     : 0;
@@ -171,7 +182,7 @@ function floorLineItem(building: BuildingEntity): LineItem | null {
   if (materialId === 'geen') return null;
   const { width, depth } = building.dimensions;
   const area = width * depth;
-  const materialCost = area * findPrice(FLOOR_MATERIALS, materialId);
+  const materialCost = area * findPriceLegacy(FLOOR_MATERIALS, materialId);
   return {
     label: t('floor.label'),
     area,
