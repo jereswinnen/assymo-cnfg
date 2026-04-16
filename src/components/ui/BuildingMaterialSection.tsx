@@ -1,6 +1,7 @@
 'use client';
 
-import { useConfigStore, selectSingleBuildingId } from '@/store/useConfigStore';
+import { useConfigStore } from '@/store/useConfigStore';
+import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import { WALL_CATALOG } from '@/domain/materials';
 import { t } from '@/lib/i18n';
 import SectionLabel from '@/components/ui/SectionLabel';
@@ -9,12 +10,12 @@ import MaterialSelect from '@/components/ui/MaterialSelect';
 /** Building-level "Materiaal" picker — sets primaryMaterialId, which walls,
  *  doors, poles, and fascia inherit from when they have no override. */
 export default function BuildingMaterialSection() {
-  const selectedBuildingId = useConfigStore(selectSingleBuildingId);
-  const primaryMaterialId = useConfigStore((s) => {
-    const sid = selectSingleBuildingId(s);
-    if (!sid) return null;
-    return s.buildings.find(b => b.id === sid)?.primaryMaterialId ?? null;
-  });
+  const selectedBuildingId = useUIStore(selectSingleBuildingId);
+  const primaryMaterialId = useConfigStore((s) =>
+    selectedBuildingId
+      ? s.buildings.find(b => b.id === selectedBuildingId)?.primaryMaterialId ?? null
+      : null,
+  );
   const setBuildingPrimaryMaterial = useConfigStore((s) => s.setBuildingPrimaryMaterial);
 
   if (!selectedBuildingId || !primaryMaterialId) {

@@ -1,7 +1,8 @@
 'use client';
 
 import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
-import { useConfigStore, selectSingleBuildingId, getEffectiveHeight } from '@/store/useConfigStore';
+import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
+import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/domain/building';
 import { getConstraints, DOOR_W, DOUBLE_DOOR_W, WIN_W, xToFraction, clampOpeningPosition, fractionToX, getWallLength, autoPoleLayout } from '@/domain/building';
 import { getEffectivePrimaryMaterial, getAtomColor } from '@/domain/materials';
@@ -151,16 +152,16 @@ function ResizeHandles({
 export default function SchematicView() {
   const buildings = useConfigStore((s) => s.buildings);
   const connections = useConfigStore((s) => s.connections);
-  const selectedElement = useConfigStore((s) => s.selectedElement);
+  const selectedElement = useUIStore((s) => s.selectedElement);
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const isElevationMode = selectedElement?.type === 'wall';
-  const selectedBuildingIds = useConfigStore((s) => s.selectedBuildingIds);
-  const selectedBuildingId = useConfigStore(selectSingleBuildingId);
-  const selectBuilding = useConfigStore((s) => s.selectBuilding);
+  const selectedBuildingIds = useUIStore((s) => s.selectedBuildingIds);
+  const selectedBuildingId = useUIStore(selectSingleBuildingId);
+  const selectBuilding = useUIStore((s) => s.selectBuilding);
   const updateBuildingPosition = useConfigStore((s) => s.updateBuildingPosition);
   const setPoleAttachment = useConfigStore((s) => s.setPoleAttachment);
   const setConnections = useConfigStore((s) => s.setConnections);
-  const setDraggedBuildingId = useConfigStore((s) => s.setDraggedBuildingId);
+  const setDraggedBuildingId = useUIStore((s) => s.setDraggedBuildingId);
   const setOrientation = useConfigStore((s) => s.setOrientation);
   const addBuilding = useConfigStore((s) => s.addBuilding);
   const updateBuildingDimensions = useConfigStore((s) => s.updateBuildingDimensions);
@@ -304,11 +305,12 @@ export default function SchematicView() {
     setFrozenViewBox(computedViewBox);
 
     // Capture start positions for all selected buildings (for group drag)
-    const state = useConfigStore.getState();
-    if (state.selectedBuildingIds.includes(buildingId) && state.selectedBuildingIds.length > 1) {
+    const cfg = useConfigStore.getState();
+    const ui = useUIStore.getState();
+    if (ui.selectedBuildingIds.includes(buildingId) && ui.selectedBuildingIds.length > 1) {
       const posMap = new Map<string, [number, number]>();
-      for (const id of state.selectedBuildingIds) {
-        const b = state.buildings.find(b => b.id === id);
+      for (const id of ui.selectedBuildingIds) {
+        const b = cfg.buildings.find(b => b.id === id);
         if (b) posMap.set(id, [...b.position]);
       }
       groupDragStartPositions.current = posMap;
@@ -785,13 +787,13 @@ export default function SchematicView() {
           return rectsOverlap(x, y, w, h, bx, by, bw, bh);
         });
         if (hits.length > 0) {
-          useConfigStore.getState().selectBuildings(hits.map(b => b.id));
+          useUIStore.getState().selectBuildings(hits.map(b => b.id));
         } else {
-          useConfigStore.getState().selectBuildings([]);
+          useUIStore.getState().selectBuildings([]);
         }
       } else {
         // Click on empty space (no drag) — deselect
-        useConfigStore.getState().selectBuildings([]);
+        useUIStore.getState().selectBuildings([]);
       }
       selectRectAnchor.current = null;
       selectRectRef.current = null;
@@ -909,11 +911,11 @@ export default function SchematicView() {
       groupDragStartPositions.current = new Map();
     } else if (dragBuildingId.current) {
       if (shiftOnDown.current) {
-        useConfigStore.getState().toggleBuildingSelection(dragBuildingId.current);
+        useUIStore.getState().toggleBuildingSelection(dragBuildingId.current);
       } else {
         const clicked = useConfigStore.getState().buildings.find(b => b.id === dragBuildingId.current);
         if (clicked?.type === 'muur') {
-          useConfigStore.getState().selectElement({ type: 'wall', id: 'front', buildingId: clicked.id });
+          useUIStore.getState().selectElement({ type: 'wall', id: 'front', buildingId: clicked.id });
         } else {
           selectBuilding(dragBuildingId.current);
         }
@@ -930,9 +932,9 @@ export default function SchematicView() {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (isElevationMode) {
-          useConfigStore.getState().selectElement(null);
+          useUIStore.getState().selectElement(null);
         } else {
-          useConfigStore.getState().selectBuildings([]);
+          useUIStore.getState().selectBuildings([]);
         }
       }
     };
@@ -1013,7 +1015,7 @@ export default function SchematicView() {
   }, [addBuilding, updateBuildingPosition, setPoleAttachment, setConnections, selectBuilding]);
 
   const onWallClick = useCallback((wallId: WallId, buildingId: string) => {
-    useConfigStore.getState().selectElement({ type: 'wall', id: wallId, buildingId });
+    useUIStore.getState().selectElement({ type: 'wall', id: wallId, buildingId });
   }, []);
 
   return (

@@ -1,16 +1,17 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useConfigStore, selectSingleBuildingId } from '@/store/useConfigStore';
+import { useConfigStore } from '@/store/useConfigStore';
+import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import { t } from '@/lib/i18n';
 import ObjectsTab from './ObjectsTab';
 import ConfigureTab from './ConfigureTab';
 
 export default function MobileBottomSheet() {
   const [expanded, setExpanded] = useState(false);
-  const sidebarTab = useConfigStore((s) => s.sidebarTab);
-  const setSidebarTab = useConfigStore((s) => s.setSidebarTab);
-  const selectedBuildingId = useConfigStore(selectSingleBuildingId);
+  const sidebarTab = useUIStore((s) => s.sidebarTab);
+  const setSidebarTab = useUIStore((s) => s.setSidebarTab);
+  const selectedBuildingId = useUIStore(selectSingleBuildingId);
 
   const touchStartY = useRef<number | null>(null);
 

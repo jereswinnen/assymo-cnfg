@@ -3,9 +3,10 @@
 import dynamic from 'next/dynamic';
 import Sidebar from '@/components/ui/Sidebar';
 import SchematicView from '@/components/schematic/SchematicView';
-import { useConfigStore } from '@/store/useConfigStore';
+import { useUIStore } from '@/store/useUIStore';
 import { t } from '@/lib/i18n';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
+import { useGPUQuality } from '@/hooks/useGPUQuality';
 
 const BuildingScene = dynamic(
   () => import('@/components/canvas/BuildingScene'),
@@ -13,10 +14,10 @@ const BuildingScene = dynamic(
 );
 
 function ViewToggle() {
-  const viewMode = useConfigStore((s) => s.viewMode);
-  const setViewMode = useConfigStore((s) => s.setViewMode);
-  const selectedElement = useConfigStore((s) => s.selectedElement);
-  const selectElement = useConfigStore((s) => s.selectElement);
+  const viewMode = useUIStore((s) => s.viewMode);
+  const setViewMode = useUIStore((s) => s.setViewMode);
+  const selectedElement = useUIStore((s) => s.selectedElement);
+  const selectElement = useUIStore((s) => s.selectElement);
   const isElevationMode = selectedElement?.type === 'wall';
 
   return (
@@ -96,7 +97,8 @@ function ViewToggle() {
 
 export default function Home() {
   useUndoRedo();
-  const viewMode = useConfigStore((s) => s.viewMode);
+  useGPUQuality();
+  const viewMode = useUIStore((s) => s.viewMode);
 
   return (
     <div className="relative h-dvh flex">

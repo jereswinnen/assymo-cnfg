@@ -8,11 +8,12 @@ import Wall from './Wall';
 import Paal from './Paal';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
+import { useUIStore } from "@/store/useUIStore";
 
 export default function Building() {
   const buildingId = useBuildingId();
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
-  const clearSelection = useConfigStore((s) => s.clearSelection);
+  const clearSelection = useUIStore((s) => s.clearSelection);
 
   if (!building) return null;
 

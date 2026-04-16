@@ -4,6 +4,7 @@ import { useRef, useMemo, useCallback } from 'react';
 import { Mesh } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
+import { useUIStore } from "@/store/useUIStore";
 import { BEAM_H, WALL_THICKNESS } from '@/domain/building';
 import { getAtomColor } from '@/domain/materials';
 import { useRoofTexture, useWallTexture } from '@/lib/textures';
@@ -20,8 +21,8 @@ export default function Roof() {
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const roof = useConfigStore((s) => s.roof);
   const connections = useConfigStore((s) => s.connections);
-  const selectedElement = useConfigStore((s) => s.selectedElement);
-  const selectElement = useConfigStore((s) => s.selectElement);
+  const selectedElement = useUIStore((s) => s.selectedElement);
+  const selectElement = useUIStore((s) => s.selectElement);
 
   const { width, depth } = building?.dimensions ?? { width: 8, depth: 4 };
   const height = building ? getEffectiveHeight(building, defaultHeight) : 3;

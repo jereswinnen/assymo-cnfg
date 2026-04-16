@@ -6,7 +6,8 @@ import { OrbitControls } from '@react-three/drei';
 import { Vector3, BackSide, ShaderMaterial, ACESFilmicToneMapping } from 'three';
 import BuildingInstance from './BuildingInstance';
 import Ground from './Ground';
-import { useConfigStore, selectSingleBuildingId } from '@/store/useConfigStore';
+import { useConfigStore } from '@/store/useConfigStore';
+import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import type { WallId } from '@/domain/building';
 
 const WALL_CAMERA_POSITIONS: Record<WallId, [number, number, number]> = {
@@ -87,10 +88,10 @@ function CameraAnimator() {
   const targetPos = useRef<Vector3 | null>(null);
   const animating = useRef(false);
 
-  const wallId = useConfigStore((s) => s.cameraTargetWallId);
-  const clearTarget = useConfigStore((s) => s.clearCameraTarget);
-  const draggedBuildingId = useConfigStore((s) => s.draggedBuildingId);
-  const selectedBuildingId = useConfigStore(selectSingleBuildingId);
+  const wallId = useUIStore((s) => s.cameraTargetWallId);
+  const clearTarget = useUIStore((s) => s.clearCameraTarget);
+  const draggedBuildingId = useUIStore((s) => s.draggedBuildingId);
+  const selectedBuildingId = useUIStore(selectSingleBuildingId);
   const buildings = useConfigStore((s) => s.buildings);
 
   useEffect(() => {
@@ -148,7 +149,7 @@ function CameraAnimator() {
 }
 
 export default function BuildingScene() {
-  const clearSelection = useConfigStore((s) => s.clearSelection);
+  const clearSelection = useUIStore((s) => s.clearSelection);
   const buildings = useConfigStore((s) => s.buildings);
 
   return (

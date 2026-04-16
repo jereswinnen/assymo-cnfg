@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useConfigStore } from '@/store/useConfigStore';
+import { useUIStore } from "@/store/useUIStore";
 import { t } from '@/lib/i18n';
 import ObjectsTab from './ObjectsTab';
 import ConfigureTab from './ConfigureTab';
@@ -21,11 +22,11 @@ function useIsDesktop() {
 }
 
 export default function Sidebar() {
-  const sidebarTab = useConfigStore((s) => s.sidebarTab);
-  const setSidebarTab = useConfigStore((s) => s.setSidebarTab);
-  const sidebarCollapsed = useConfigStore((s) => s.sidebarCollapsed);
-  const setSidebarCollapsed = useConfigStore((s) => s.setSidebarCollapsed);
-  const selectedCount = useConfigStore((s) => s.selectedBuildingIds.length);
+  const sidebarTab = useUIStore((s) => s.sidebarTab);
+  const setSidebarTab = useUIStore((s) => s.setSidebarTab);
+  const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
+  const setSidebarCollapsed = useUIStore((s) => s.setSidebarCollapsed);
+  const selectedCount = useUIStore((s) => s.selectedBuildingIds.length);
   const isDesktop = useIsDesktop();
 
   // Keyboard shortcuts: [ to toggle sidebar, Delete/Backspace to remove selected building
@@ -37,11 +38,11 @@ export default function Sidebar() {
         setSidebarCollapsed(!sidebarCollapsed);
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        const state = useConfigStore.getState();
-        const sid = state.selectedBuildingIds.length === 1 ? state.selectedBuildingIds[0] : null;
+        const ids = useUIStore.getState().selectedBuildingIds;
+        const sid = ids.length === 1 ? ids[0] : null;
         if (sid) {
           e.preventDefault();
-          state.removeBuilding(sid);
+          useConfigStore.getState().removeBuilding(sid);
         }
       }
     };

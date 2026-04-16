@@ -4,6 +4,7 @@ import { useRef, useMemo, useEffect, useCallback } from 'react';
 import { Mesh } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
+import { useUIStore } from "@/store/useUIStore";
 import { WALL_THICKNESS, resolveOpeningPositions, getWallLength } from '@/domain/building';
 import { getAtomColor, getEffectiveWallMaterial, getEffectiveDoorMaterial } from '@/domain/materials';
 import { useWallTexture } from '@/lib/textures';
@@ -44,8 +45,8 @@ export default function Wall({ wallId }: WallProps) {
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
   const buildings = useConfigStore((s) => s.buildings);
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
-  const selectedElement = useConfigStore((s) => s.selectedElement);
-  const selectElement = useConfigStore((s) => s.selectElement);
+  const selectedElement = useUIStore((s) => s.selectedElement);
+  const selectElement = useUIStore((s) => s.selectElement);
 
   const onSelect = useCallback(() => selectElement({ type: 'wall', id: wallId, buildingId }), [selectElement, wallId, buildingId]);
   const { hovered, handlers: pointerHandlers } = useClickableObject(onSelect);

@@ -1,69 +1,57 @@
 import { create } from 'zustand';
 import { temporal } from 'zundo';
 import type {
-  BuildingEntity,
   BuildingDimensions,
+  BuildingEntity,
   BuildingType,
-  RoofType,
-  RoofConfig,
   FloorConfig,
-  SelectedElement,
+  Orientation,
+  PolesConfig,
+  RoofConfig,
+  RoofType,
+  SnapConnection,
+  WallConfig,
   WallId,
   WallSide,
-  WallConfig,
-  PolesConfig,
-  SnapConnection,
-  Orientation,
 } from '@/domain/building';
 import {
-  DEFAULT_DIMENSIONS,
-  DEFAULT_ROOF,
-  DEFAULT_FLOOR,
-  DEFAULT_WALL,
-  DEFAULT_PRIMARY_MATERIAL,
-  POLE_DIMENSIONS,
-  WALL_DIMENSIONS,
-  getDefaultWalls,
-} from '@/domain/building';
+  addBuilding as mAddBuilding,
+  isWallHiddenByConnection as mIsWallHiddenByConnection,
+  makeInitialConfig,
+  removeBuilding as mRemoveBuilding,
+  resetBuildingPoles as mResetBuildingPoles,
+  setBuildingPrimaryMaterial as mSetBuildingPrimaryMaterial,
+  setConnections as mSetConnections,
+  setDefaultHeight as mSetDefaultHeight,
+  setHeightOverride as mSetHeightOverride,
+  setOrientation as mSetOrientation,
+  setPoleAttachment as mSetPoleAttachment,
+  setRoofType as mSetRoofType,
+  toggleBuildingBraces as mToggleBuildingBraces,
+  toggleConnectionOpen as mToggleConnectionOpen,
+  updateBuildingDimensions as mUpdateBuildingDimensions,
+  updateBuildingFloor as mUpdateBuildingFloor,
+  updateBuildingPoles as mUpdateBuildingPoles,
+  updateBuildingPosition as mUpdateBuildingPosition,
+  updateBuildingPositions as mUpdateBuildingPositions,
+  updateBuildingWall as mUpdateBuildingWall,
+  updateRoof as mUpdateRoof,
+} from '@/domain/config';
+import type { ConfigData } from '@/domain/config';
+import { DEFAULT_PRIMARY_MATERIAL } from '@/domain/building';
+import { useUIStore } from './useUIStore';
 
 /** Derive effective height from override or global default */
 export function getEffectiveHeight(building: BuildingEntity, defaultHeight: number): number {
   return building.heightOverride ?? defaultHeight;
 }
 
-interface ConfigState {
-  buildings: BuildingEntity[];
-  connections: SnapConnection[];
-  roof: RoofConfig;
-
-  selectedBuildingIds: string[];
-  selectedElement: SelectedElement;
-  draggedBuildingId: string | null;
-  cameraTargetWallId: WallId | null;
-  defaultHeight: number;
-  sidebarTab: 'objects' | 'configure';
-  sidebarCollapsed: boolean;
-  activeConfigSection: 'dimensions' | 'material' | 'structure' | 'walls' | 'quote' | null;
-  viewMode: 'plan' | '3d' | 'split';
-  qualityTier: 'high' | 'low';
-
-  // Building CRUD
+interface ConfigStore extends ConfigData {
   addBuilding: (type: BuildingType, position?: [number, number]) => string;
   removeBuilding: (id: string) => void;
-  selectBuilding: (id: string | null) => void;
-
-  // Multi-select
-  selectBuildings: (ids: string[]) => void;
-  toggleBuildingSelection: (id: string) => void;
-
-  // Batch position update (for group move — single undo step)
   updateBuildingPositions: (updates: { id: string; position: [number, number] }[]) => void;
-
-  // Per-building mutations
   updateBuildingDimensions: (id: string, dims: Partial<BuildingDimensions>) => void;
   updateBuildingPosition: (id: string, pos: [number, number]) => void;
-  /** Set (or clear) the building a Paal is snapped to. Drives material
-   *  inheritance — the Paal picks up the parent's primaryMaterial. */
   setPoleAttachment: (id: string, attachedTo: string | null) => void;
   updateBuildingWall: (id: string, wallId: WallId, patch: Partial<WallConfig>) => void;
   updateBuildingFloor: (id: string, patch: Partial<FloorConfig>) => void;
@@ -72,405 +60,114 @@ interface ConfigState {
   updateBuildingPoles: (id: string, poles: PolesConfig) => void;
   resetBuildingPoles: (id: string) => void;
 
-  // Connections
   setConnections: (conns: SnapConnection[]) => void;
   toggleConnectionOpen: (aId: string, sideA: WallSide, bId: string, sideB: WallSide) => void;
 
-  // Shared roof
   setRoofType: (type: RoofType) => void;
   updateRoof: (patch: Partial<RoofConfig>) => void;
-
-  // Selection & UI
-  selectElement: (element: SelectedElement) => void;
-  clearSelection: () => void;
-  clearCameraTarget: () => void;
-  setDraggedBuildingId: (id: string | null) => void;
-
-  setSidebarTab: (tab: 'objects' | 'configure') => void;
-  setSidebarCollapsed: (collapsed: boolean) => void;
-  setActiveConfigSection: (section: 'dimensions' | 'material' | 'structure' | 'walls' | 'quote' | null) => void;
-  setViewMode: (mode: 'plan' | '3d' | 'split') => void;
 
   setDefaultHeight: (height: number) => void;
   setHeightOverride: (id: string, override: number | null) => void;
   setOrientation: (id: string, orientation: Orientation) => void;
 
-  // Reset & load
   resetConfig: () => void;
-  loadState: (buildings: BuildingEntity[], connections: SnapConnection[], roof: RoofConfig) => void;
+  loadState: (buildings: BuildingEntity[], connections: SnapConnection[], roof: RoofConfig, defaultHeight?: number) => void;
 
-  // Computed
-  getSelectedBuilding: () => BuildingEntity | null;
-  getSelectedWallConfig: () => WallConfig | null;
   isWallHiddenByConnection: (buildingId: string, wallSide: WallSide) => boolean;
 }
 
-function createBuilding(type: BuildingType, position: [number, number]): BuildingEntity {
-  const dimensions = type === 'paal'
-    ? { ...POLE_DIMENSIONS }
-    : type === 'muur'
-    ? { ...WALL_DIMENSIONS }
-    : { ...DEFAULT_DIMENSIONS };
+const initialConfig = makeInitialConfig();
 
-  return {
-    id: crypto.randomUUID(),
-    type,
-    position,
-    dimensions,
-    primaryMaterialId: DEFAULT_PRIMARY_MATERIAL,
-    walls: getDefaultWalls(type),
-    hasCornerBraces: false,
-    floor: (type === 'berging' || type === 'overkapping')
-      ? { materialId: 'beton' }
-      : { ...DEFAULT_FLOOR },
-    orientation: 'horizontal',
-    heightOverride: null,
-  };
-}
-
-function makeInitialBuilding(): BuildingEntity {
-  return createBuilding('berging', [-2, -2]);
-}
-
-const initialBuilding = makeInitialBuilding();
-
-export const useConfigStore = create<ConfigState>()(
+export const useConfigStore = create<ConfigStore>()(
   temporal(
     (set, get) => ({
-  buildings: [initialBuilding],
-  connections: [],
-  roof: { ...DEFAULT_ROOF },
+      ...initialConfig,
 
-  selectedBuildingIds: [initialBuilding.id],
-  selectedElement: null,
-  draggedBuildingId: null,
-  cameraTargetWallId: null,
-  defaultHeight: 2.6,
-  sidebarTab: 'objects',
-  sidebarCollapsed: false,
-  activeConfigSection: 'dimensions',
-  viewMode: 'plan',
-  qualityTier: 'high',
+      addBuilding: (type, position) => {
+        const { cfg, id } = mAddBuilding(get(), type, position);
+        set(cfg);
+        useUIStore.getState().selectBuilding(id);
+        return id;
+      },
 
-  addBuilding: (type, position) => {
-    const b = createBuilding(type, position ?? [0, 0]);
-    if (!position) {
-      const existing = get().buildings;
-      if (existing.length > 0) {
-        const maxX = Math.max(...existing.map(e => e.position[0] + e.dimensions.width));
-        b.position = [maxX + 2, 0];
-      }
-    }
-    set((state) => ({
-      buildings: [...state.buildings, b],
-      selectedBuildingIds: [b.id],
-      sidebarTab: 'configure' as const,
-      sidebarCollapsed: false,
-    }));
-    return b.id;
-  },
-
-  removeBuilding: (id) =>
-    set((state) => {
-      const target = state.buildings.find(b => b.id === id);
-      // Always keep at least one structural building
-      const structuralCount = state.buildings.filter(b => b.type !== 'paal' && b.type !== 'muur').length;
-      if (!target) return state;
-      if (target.type !== 'paal' && target.type !== 'muur' && structuralCount <= 1) return state;
-      const buildings = state.buildings.filter(b => b.id !== id);
-      const connections = state.connections.filter(
-        c => c.buildingAId !== id && c.buildingBId !== id,
-      );
-      const wasSelected = state.selectedBuildingIds.includes(id);
-      const selectedBuildingIds = state.selectedBuildingIds.filter(i => i !== id);
-      const selectedElement =
-        wasSelected && selectedBuildingIds.length === 0 ? null : state.selectedElement;
-      const sidebarTab =
-        wasSelected && selectedBuildingIds.length === 0 ? 'objects' as const : state.sidebarTab;
-      return { buildings, connections, selectedBuildingIds, selectedElement, sidebarTab };
-    }),
-
-  selectBuilding: (id) => set({
-    selectedBuildingIds: id ? [id] : [],
-    ...(id ? { sidebarTab: 'configure' as const, sidebarCollapsed: false } : {}),
-  }),
-
-  selectBuildings: (ids) => set({ selectedBuildingIds: ids }),
-
-  toggleBuildingSelection: (id) =>
-    set((state) => {
-      const ids = state.selectedBuildingIds;
-      const exists = ids.includes(id);
-      return {
-        selectedBuildingIds: exists
-          ? ids.filter(i => i !== id)
-          : [...ids, id],
-      };
-    }),
-
-  updateBuildingPositions: (updates) =>
-    set((state) => ({
-      buildings: state.buildings.map(b => {
-        const u = updates.find(u => u.id === b.id);
-        return u ? { ...b, position: u.position } : b;
-      }),
-    })),
-
-  updateBuildingDimensions: (id, dims) =>
-    set((state) => ({
-      buildings: state.buildings.map(b =>
-        b.id === id ? { ...b, dimensions: { ...b.dimensions, ...dims } } : b,
-      ),
-    })),
-
-  updateBuildingPosition: (id, pos) =>
-    set((state) => ({
-      buildings: state.buildings.map(b => (b.id === id ? { ...b, position: pos } : b)),
-    })),
-
-  setPoleAttachment: (id, attachedTo) =>
-    set((state) => ({
-      buildings: state.buildings.map(b => {
-        if (b.id !== id) return b;
-        if (attachedTo === null) {
-          const { attachedTo: _, ...rest } = b;
-          return rest as typeof b;
+      removeBuilding: (id) => {
+        const ui = useUIStore.getState();
+        const wasSelected = ui.selectedBuildingIds.includes(id);
+        const next = mRemoveBuilding(get(), id);
+        if (next === get()) return;
+        set(next);
+        if (wasSelected) {
+          const remaining = ui.selectedBuildingIds.filter((i) => i !== id);
+          useUIStore.setState({
+            selectedBuildingIds: remaining,
+            selectedElement: remaining.length === 0 ? null : ui.selectedElement,
+            sidebarTab: remaining.length === 0 ? 'objects' : ui.sidebarTab,
+          });
         }
-        return { ...b, attachedTo };
-      }),
-    })),
+      },
 
-  updateBuildingWall: (id, wallId, patch) =>
-    set((state) => ({
-      buildings: state.buildings.map(b =>
-        b.id === id
-          ? {
-              ...b,
-              walls: {
-                ...b.walls,
-                [wallId]: { ...(b.walls[wallId] ?? DEFAULT_WALL), ...patch },
-              },
-            }
-          : b,
-      ),
-    })),
+      updateBuildingPositions: (updates) => set(mUpdateBuildingPositions(get(), updates)),
+      updateBuildingDimensions: (id, dims) => set(mUpdateBuildingDimensions(get(), id, dims)),
+      updateBuildingPosition: (id, pos) => set(mUpdateBuildingPosition(get(), id, pos)),
+      setPoleAttachment: (id, attachedTo) => set(mSetPoleAttachment(get(), id, attachedTo)),
+      updateBuildingWall: (id, wallId, patch) => set(mUpdateBuildingWall(get(), id, wallId, patch)),
+      updateBuildingFloor: (id, patch) => set(mUpdateBuildingFloor(get(), id, patch)),
+      setBuildingPrimaryMaterial: (id, materialId) => set(mSetBuildingPrimaryMaterial(get(), id, materialId)),
+      toggleBuildingBraces: (id) => set(mToggleBuildingBraces(get(), id)),
+      updateBuildingPoles: (id, poles) => set(mUpdateBuildingPoles(get(), id, poles)),
+      resetBuildingPoles: (id) => set(mResetBuildingPoles(get(), id)),
 
-  updateBuildingFloor: (id, patch) =>
-    set((state) => ({
-      buildings: state.buildings.map(b =>
-        b.id === id ? { ...b, floor: { ...b.floor, ...patch } } : b,
-      ),
-    })),
+      setConnections: (conns) => set(mSetConnections(get(), conns)),
+      toggleConnectionOpen: (aId, sideA, bId, sideB) =>
+        set(mToggleConnectionOpen(get(), aId, sideA, bId, sideB)),
 
-  setBuildingPrimaryMaterial: (id, materialId) =>
-    set((state) => {
-      // Snap-connected buildings form one visual structure (e.g. a berging
-      // with an overkapping attached), so propagate the primary across the
-      // whole connected component. Independent buildings keep their own.
-      // Roof trim is global — also synced for the single-structure case.
-      const connectedIds = new Set<string>([id]);
-      const queue: string[] = [id];
-      while (queue.length > 0) {
-        const cur = queue.shift()!;
-        for (const c of state.connections) {
-          const other =
-            c.buildingAId === cur ? c.buildingBId :
-            c.buildingBId === cur ? c.buildingAId : null;
-          if (other && !connectedIds.has(other)) {
-            connectedIds.add(other);
-            queue.push(other);
-          }
-        }
-      }
-      const updatedBuildings = state.buildings.map(b =>
-        connectedIds.has(b.id) ? { ...b, primaryMaterialId: materialId } : b,
-      );
-      return {
-        buildings: updatedBuildings,
-        roof: { ...state.roof, trimMaterialId: materialId },
-      };
-    }),
+      setRoofType: (type) => set(mSetRoofType(get(), type)),
+      updateRoof: (patch) => set(mUpdateRoof(get(), patch)),
 
-  toggleBuildingBraces: (id) =>
-    set((state) => ({
-      buildings: state.buildings.map(b =>
-        b.id === id ? { ...b, hasCornerBraces: !b.hasCornerBraces } : b,
-      ),
-    })),
+      setDefaultHeight: (height) => set(mSetDefaultHeight(get(), height)),
+      setHeightOverride: (id, override) => set(mSetHeightOverride(get(), id, override)),
+      setOrientation: (id, orientation) => set(mSetOrientation(get(), id, orientation)),
 
-  updateBuildingPoles: (id, poles) =>
-    set((state) => ({
-      buildings: state.buildings.map(b =>
-        b.id === id ? { ...b, poles } : b,
-      ),
-    })),
+      resetConfig: () => {
+        set(makeInitialConfig());
+        useUIStore.getState().resetUI();
+      },
 
-  resetBuildingPoles: (id) =>
-    set((state) => ({
-      buildings: state.buildings.map(b => {
-        if (b.id !== id) return b;
-        const { poles: _, ...rest } = b;
-        return rest as typeof b;
-      }),
-    })),
+      loadState: (buildings, connections, roof, defaultHeight) => {
+        // Backfill fields added by later schema revisions so legacy codes still load.
+        const migrated = buildings.map((b) => ({
+          ...b,
+          primaryMaterialId: (b as { primaryMaterialId?: string }).primaryMaterialId ?? DEFAULT_PRIMARY_MATERIAL,
+          orientation: (b as { orientation?: Orientation }).orientation ?? ('horizontal' as Orientation),
+          heightOverride: (b as { heightOverride?: number | null }).heightOverride ?? null,
+        }));
+        const structural = migrated.find((b) => b.type !== 'paal' && b.type !== 'muur');
+        const resolvedDefault = defaultHeight ?? structural?.dimensions.height ?? 3;
 
-  setConnections: (conns) => set({ connections: conns }),
+        set({
+          buildings: migrated,
+          connections,
+          roof,
+          defaultHeight: resolvedDefault,
+        });
+        useUIStore.setState({
+          selectedBuildingIds: migrated[0] ? [migrated[0].id] : [],
+          selectedElement: null,
+          activeConfigSection: 'dimensions',
+          sidebarTab: 'objects',
+        });
+      },
 
-  toggleConnectionOpen: (aId, sideA, bId, sideB) =>
-    set((state) => ({
-      connections: state.connections.map(c => {
-        const match =
-          (c.buildingAId === aId && c.sideA === sideA && c.buildingBId === bId && c.sideB === sideB) ||
-          (c.buildingAId === bId && c.sideA === sideB && c.buildingBId === aId && c.sideB === sideA);
-        return match ? { ...c, isOpen: !c.isOpen } : c;
-      }),
-    })),
-
-  setRoofType: (type) =>
-    set((state) => {
-      const sensibleCovering = type === 'flat' ? ('epdm' as const) : ('dakpannen' as const);
-      return {
-        roof: {
-          ...state.roof,
-          type,
-          pitch: type === 'flat' ? 0 : 25,
-          coveringId: sensibleCovering,
-        },
-      };
-    }),
-
-  updateRoof: (patch) =>
-    set((state) => ({
-      roof: { ...state.roof, ...patch },
-    })),
-
-  selectElement: (element) =>
-    set((state) => ({
-      selectedElement: element,
-      selectedBuildingIds:
-        element?.type === 'wall' ? [element.buildingId] : state.selectedBuildingIds,
-      activeConfigSection:
-        element?.type === 'wall' ? 'walls' : element?.type === 'roof' ? 'structure' : state.activeConfigSection,
-      sidebarTab: 'configure' as const,
-      sidebarCollapsed: false,
-      cameraTargetWallId:
-        element?.type === 'wall' ? element.id : state.cameraTargetWallId,
-    })),
-
-  clearSelection: () => set({ selectedElement: null }),
-
-  clearCameraTarget: () => set({ cameraTargetWallId: null }),
-
-  setDraggedBuildingId: (id) => set({ draggedBuildingId: id }),
-
-  setSidebarTab: (tab) => set({ sidebarTab: tab }),
-  setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
-  setActiveConfigSection: (section) => set({ activeConfigSection: section }),
-  setViewMode: (mode) => set({ viewMode: mode }),
-
-  setDefaultHeight: (height) => set({ defaultHeight: height }),
-
-  setHeightOverride: (id, override) =>
-    set((state) => ({
-      buildings: state.buildings.map(b =>
-        b.id === id ? { ...b, heightOverride: override } : b,
-      ),
-    })),
-
-  setOrientation: (id, orientation) =>
-    set((state) => ({
-      buildings: state.buildings.map(b =>
-        b.id === id ? { ...b, orientation } : b,
-      ),
-    })),
-
-  resetConfig: () => {
-    const initial = makeInitialBuilding();
-    set({
-      buildings: [initial],
-      connections: [],
-      roof: { ...DEFAULT_ROOF },
-      selectedBuildingIds: [],
-      selectedElement: null,
-      draggedBuildingId: null,
-      cameraTargetWallId: null,
-      defaultHeight: 2.6,
-      activeConfigSection: 'dimensions',
-      sidebarTab: 'objects',
-      sidebarCollapsed: false,
-      viewMode: 'plan',
-    });
-  },
-
-  loadState: (buildings, connections, roof) => {
-    // Migration: backfill primaryMaterialId / orientation / heightOverride
-    // for legacy configs that pre-date these fields.
-    const migrated = buildings.map(b => ({
-      ...b,
-      primaryMaterialId: (b as any).primaryMaterialId ?? DEFAULT_PRIMARY_MATERIAL,
-      orientation: (b as any).orientation ?? ('horizontal' as Orientation),
-      heightOverride: (b as any).heightOverride ?? null,
-    }));
-    // Derive defaultHeight from first structural building
-    const structural = migrated.find(b => b.type !== 'paal' && b.type !== 'muur');
-    const defaultHeight = structural?.dimensions.height ?? 3;
-
-    set({
-      buildings: migrated,
-      connections,
-      roof,
-      defaultHeight,
-      selectedBuildingIds: migrated[0] ? [migrated[0].id] : [],
-      selectedElement: null,
-      activeConfigSection: 'dimensions',
-      sidebarTab: 'objects',
-    });
-  },
-
-  getSelectedBuilding: () => {
-    const { buildings, selectedBuildingIds } = get();
-    if (selectedBuildingIds.length !== 1) return null;
-    return buildings.find(b => b.id === selectedBuildingIds[0]) ?? null;
-  },
-
-  getSelectedWallConfig: () => {
-    const { buildings, selectedElement } = get();
-    if (!selectedElement || selectedElement.type !== 'wall') return null;
-    const building = buildings.find(b => b.id === selectedElement.buildingId);
-    if (!building) return null;
-    return building.walls[selectedElement.id] ?? null;
-  },
-
-  isWallHiddenByConnection: (buildingId, wallSide) => {
-    const { connections } = get();
-    return connections.some(
-      c =>
-        c.isOpen &&
-        ((c.buildingAId === buildingId && c.sideA === wallSide) ||
-          (c.buildingBId === buildingId && c.sideB === wallSide)),
-    );
-  },
+      isWallHiddenByConnection: (buildingId, wallSide) =>
+        mIsWallHiddenByConnection(get(), buildingId, wallSide),
     }),
     {
       partialize: (state) => ({
         buildings: state.buildings,
         connections: state.connections,
         roof: state.roof,
+        defaultHeight: state.defaultHeight,
       }),
     },
   ),
 );
-
-/** Selector: returns the single selected building ID, or null if 0 or 2+ are selected */
-export const selectSingleBuildingId = (s: ConfigState) =>
-  s.selectedBuildingIds.length === 1 ? s.selectedBuildingIds[0] : null;
-
-// Detect GPU tier at startup and update store
-if (typeof window !== 'undefined') {
-  import('detect-gpu').then(({ getGPUTier }) =>
-    getGPUTier().then((result) => {
-      const tier = (result.tier ?? 0) >= 3 ? 'high' : 'low';
-      useConfigStore.setState({ qualityTier: tier });
-    })
-  );
-}

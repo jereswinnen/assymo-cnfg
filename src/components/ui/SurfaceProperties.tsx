@@ -1,6 +1,7 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
+import { useUIStore } from "@/store/useUIStore";
 import { WALL_CATALOG, getEffectiveWallMaterial } from '@/domain/materials';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -11,7 +12,7 @@ import WindowConfig from '@/components/ui/WindowConfig';
 import type { WallId } from '@/domain/building';
 
 export default function SurfaceProperties() {
-  const selectedElement = useConfigStore((s) => s.selectedElement);
+  const selectedElement = useUIStore((s) => s.selectedElement);
   const buildings = useConfigStore((s) => s.buildings);
   const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
 

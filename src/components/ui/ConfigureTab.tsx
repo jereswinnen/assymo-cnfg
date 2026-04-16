@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useConfigStore, getEffectiveHeight, selectSingleBuildingId } from '@/store/useConfigStore';
+import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
+import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import { t } from '@/lib/i18n';
 import { ChevronDown } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -25,10 +26,10 @@ const SECTIONS: { id: ConfigSection; labelKey: string; icon: string; showFor?: B
 ];
 
 function MuurWallAutoSelect({ buildingId }: { buildingId: string }) {
-  const selectElement = useConfigStore((s) => s.selectElement);
+  const selectElement = useUIStore((s) => s.selectElement);
 
   useEffect(() => {
-    const sel = useConfigStore.getState().selectedElement;
+    const sel = useUIStore.getState().selectedElement;
     const isAlreadySelected = sel?.type === 'wall' && sel.buildingId === buildingId;
     if (!isAlreadySelected) {
       selectElement({ type: 'wall', id: 'front', buildingId });
@@ -59,7 +60,7 @@ function WallsContent({ buildingType, buildingId }: { buildingType: BuildingType
 function ConnectionToggles() {
   const buildings = useConfigStore((s) => s.buildings);
   const connections = useConfigStore((s) => s.connections);
-  const selectedBuildingId = useConfigStore(selectSingleBuildingId);
+  const selectedBuildingId = useUIStore(selectSingleBuildingId);
   const toggleConnectionOpen = useConfigStore((s) => s.toggleConnectionOpen);
 
   const selectedConnections = connections.filter(
@@ -93,11 +94,10 @@ function ConnectionToggles() {
 }
 
 function ResetPolesButton() {
-  const selectedBuilding = useConfigStore((s) => {
-    const sid = selectSingleBuildingId(s);
-    const b = s.buildings.find(b => b.id === sid);
-    return b ?? null;
-  });
+  const selectedBuildingId = useUIStore(selectSingleBuildingId);
+  const selectedBuilding = useConfigStore((s) =>
+    selectedBuildingId ? s.buildings.find(b => b.id === selectedBuildingId) ?? null : null,
+  );
   const resetBuildingPoles = useConfigStore((s) => s.resetBuildingPoles);
 
   if (!selectedBuilding || selectedBuilding.type !== 'overkapping' || !selectedBuilding.poles) return null;
@@ -113,11 +113,10 @@ function ResetPolesButton() {
 }
 
 function CornerBracesToggle() {
-  const selectedBuilding = useConfigStore((s) => {
-    const sid = selectSingleBuildingId(s);
-    const b = s.buildings.find(b => b.id === sid);
-    return b ?? null;
-  });
+  const selectedBuildingId = useUIStore(selectSingleBuildingId);
+  const selectedBuilding = useConfigStore((s) =>
+    selectedBuildingId ? s.buildings.find(b => b.id === selectedBuildingId) ?? null : null,
+  );
   const toggleBuildingBraces = useConfigStore((s) => s.toggleBuildingBraces);
 
   if (!selectedBuilding || selectedBuilding.type === 'paal' || selectedBuilding.type === 'muur') return null;
@@ -148,14 +147,13 @@ function CornerBracesToggle() {
 
 export default function ConfigureTab() {
   const buildings = useConfigStore((s) => s.buildings);
-  const selectedBuilding = useConfigStore((s) => {
-    const sid = selectSingleBuildingId(s);
-    const b = s.buildings.find(b => b.id === sid);
-    return b ?? null;
-  });
+  const selectedBuildingId = useUIStore(selectSingleBuildingId);
+  const selectedBuilding = useConfigStore((s) =>
+    selectedBuildingId ? s.buildings.find(b => b.id === selectedBuildingId) ?? null : null,
+  );
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
-  const activeSection = useConfigStore((s) => s.activeConfigSection);
-  const setActiveSection = useConfigStore((s) => s.setActiveConfigSection);
+  const activeSection = useUIStore((s) => s.activeConfigSection);
+  const setActiveSection = useUIStore((s) => s.setActiveConfigSection);
 
   if (!selectedBuilding) {
     return (

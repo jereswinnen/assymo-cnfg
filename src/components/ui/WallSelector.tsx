@@ -1,18 +1,18 @@
 'use client';
 
-import { useConfigStore, selectSingleBuildingId } from '@/store/useConfigStore';
+import { useConfigStore } from '@/store/useConfigStore';
+import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import { getAvailableWallIds } from '@/domain/building';
 import { t } from '@/lib/i18n';
 import type { WallId } from '@/domain/building';
 
 export default function WallSelector() {
-  const selectedBuilding = useConfigStore((s) => {
-    const sid = selectSingleBuildingId(s);
-    if (!sid) return null;
-    return s.buildings.find(b => b.id === sid) ?? null;
-  });
-  const selectedElement = useConfigStore((s) => s.selectedElement);
-  const selectElement = useConfigStore((s) => s.selectElement);
+  const selectedBuildingId = useUIStore(selectSingleBuildingId);
+  const selectedBuilding = useConfigStore((s) =>
+    selectedBuildingId ? s.buildings.find(b => b.id === selectedBuildingId) ?? null : null,
+  );
+  const selectedElement = useUIStore((s) => s.selectedElement);
+  const selectElement = useUIStore((s) => s.selectElement);
   const isWallHiddenByConnection = useConfigStore((s) => s.isWallHiddenByConnection);
 
   if (!selectedBuilding) {

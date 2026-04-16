@@ -1,6 +1,7 @@
 'use client';
 
-import { useConfigStore, getEffectiveHeight, selectSingleBuildingId } from '@/store/useConfigStore';
+import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
+import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import { exportFloorPlan } from '@/components/schematic/exportFloorPlan';
 import { t } from '@/lib/i18n';
 import { useTenant } from '@/lib/TenantProvider';
@@ -17,13 +18,13 @@ const CATALOG_ITEMS: { type: BuildingType; icon: string }[] = [
 
 export default function ObjectsTab() {
   const buildings = useConfigStore((s) => s.buildings);
-  const selectedBuildingId = useConfigStore(selectSingleBuildingId);
+  const selectedBuildingId = useUIStore(selectSingleBuildingId);
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const addBuilding = useConfigStore((s) => s.addBuilding);
   const removeBuilding = useConfigStore((s) => s.removeBuilding);
-  const selectBuilding = useConfigStore((s) => s.selectBuilding);
+  const selectBuilding = useUIStore((s) => s.selectBuilding);
   const resetConfig = useConfigStore((s) => s.resetConfig);
-  const viewMode = useConfigStore((s) => s.viewMode);
+  const viewMode = useUIStore((s) => s.viewMode);
 
   const handleDragStart = (e: React.DragEvent, type: BuildingType) => {
     e.dataTransfer.setData('application/building-type', type);

@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { BoxGeometry } from 'three';
 import { BuildingProvider } from '@/lib/BuildingContext';
-import { useConfigStore, getEffectiveHeight, selectSingleBuildingId } from '@/store/useConfigStore';
+import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
+import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import Building from './Building';
 
 interface BuildingInstanceProps {
@@ -12,9 +13,9 @@ interface BuildingInstanceProps {
 
 export default function BuildingInstance({ buildingId }: BuildingInstanceProps) {
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
-  const selectedBuildingId = useConfigStore(selectSingleBuildingId);
+  const selectedBuildingId = useUIStore(selectSingleBuildingId);
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
-  const selectBuilding = useConfigStore((s) => s.selectBuilding);
+  const selectBuilding = useUIStore((s) => s.selectBuilding);
 
   const handleClick = useCallback((e: { stopPropagation: () => void }) => {
     e.stopPropagation();
