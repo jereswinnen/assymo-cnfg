@@ -6,4 +6,11 @@ export const ROOF_TRIM_CATALOG: RoofTrimCatalogEntry[] = [
   { atomId: 'render' },
   { atomId: 'metal' },
   { atomId: 'glass' },
+  { atomId: 'vurenvert' },
+  { atomId: 'bevelhorz' },
+  { atomId: 'zwartsmal' },
+  { atomId: 'bruinvert' },
+  { atomId: 'zwartvuren' },
+  { atomId: 'planchhorz' },
+  { atomId: 'naaldhout3' },
 ];

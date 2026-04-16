@@ -117,7 +117,7 @@ const nl: Record<string, string> = {
 
   // Roof config
   'roof.covering': 'Dakbedekking',
-  'roof.trimColor': 'Randafwerking',
+  'roof.trimColor': 'Dakbakafwerking',
   'roof.insulation': 'Dakisolatie',
   'roof.thickness': 'Dikte',
   'roof.skylight': 'Dakraam',
