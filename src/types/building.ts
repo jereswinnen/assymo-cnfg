@@ -82,6 +82,11 @@ export interface BuildingEntity {
   orientation: Orientation;
   heightOverride: number | null;
   poles?: PolesConfig;
+  /** For Paals only: id of the structural building the pole was last snapped
+   *  onto. Used to inherit primaryMaterial from that building so the pole
+   *  follows the global material. Cleared when the pole is moved away from
+   *  any snap target. */
+  attachedTo?: string;
 }
 
 export interface SnapConnection {

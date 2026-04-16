@@ -42,6 +42,7 @@ export default function Wall({ wallId }: WallProps) {
 
   const buildingId = useBuildingId();
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
+  const buildings = useConfigStore((s) => s.buildings);
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const selectedElement = useConfigStore((s) => s.selectedElement);
   const selectElement = useConfigStore((s) => s.selectElement);
@@ -55,7 +56,7 @@ export default function Wall({ wallId }: WallProps) {
 
   const wallCfg = building?.walls[wallId];
   const materialId = wallCfg && building
-    ? getEffectiveWallMaterial(wallCfg, building)
+    ? getEffectiveWallMaterial(wallCfg, building, buildings)
     : 'brick';
   const color = getAtomColor(materialId);
 
@@ -196,7 +197,7 @@ export default function Wall({ wallId }: WallProps) {
         wallLength={wallLength}
         height={height}
         wallCfg={wallCfg}
-        effectiveDoorMaterial={building ? getEffectiveDoorMaterial(wallCfg, building) : 'wood'}
+        effectiveDoorMaterial={building ? getEffectiveDoorMaterial(wallCfg, building, buildings) : 'wood'}
       />
     </group>
   );

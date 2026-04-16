@@ -99,18 +99,18 @@ const WALL_LABELS: Record<string, string> = {
   right: 'wall.right',
 };
 
-function wallLineItem(wallId: WallId, building: BuildingEntity, effectiveHeight: number): LineItem {
+function wallLineItem(wallId: WallId, building: BuildingEntity, effectiveHeight: number, buildings?: BuildingEntity[]): LineItem {
   const wallCfg = building.walls[wallId];
   if (!wallCfg) {
     return { label: t(WALL_LABELS[wallId] ?? wallId), area: 0, materialCost: 0, insulationCost: 0, extrasCost: 0, total: 0 };
   }
   const area = wallNetArea(wallId, building, wallCfg, effectiveHeight);
-  const materialCost = area * findPrice(WALL_CATALOG, getEffectiveWallMaterial(wallCfg, building));
+  const materialCost = area * findPrice(WALL_CATALOG, getEffectiveWallMaterial(wallCfg, building, buildings));
   let extrasCost = 0;
   if (wallCfg.hasDoor) {
     extrasCost += DOOR_BASE_PRICE[wallCfg.doorSize] ?? DOOR_BASE_PRICE.enkel;
     if (wallCfg.doorHasWindow) extrasCost += DOOR_WINDOW_SURCHARGE;
-    extrasCost += findSurcharge(getEffectiveDoorMaterial(wallCfg, building));
+    extrasCost += findSurcharge(getEffectiveDoorMaterial(wallCfg, building, buildings));
   }
   extrasCost += WINDOW_FLAT_FEE * (wallCfg.windows ?? []).length;
 
@@ -189,7 +189,12 @@ function floorLineItem(building: BuildingEntity): LineItem | null {
   };
 }
 
-export function calculateBuildingQuote(building: BuildingEntity, roof: RoofConfig, defaultHeight: number): {
+export function calculateBuildingQuote(
+  building: BuildingEntity,
+  roof: RoofConfig,
+  defaultHeight: number,
+  buildings?: BuildingEntity[],
+): {
   lineItems: LineItem[];
   total: number;
 } {
@@ -213,7 +218,7 @@ export function calculateBuildingQuote(building: BuildingEntity, roof: RoofConfi
     const lineItems: LineItem[] = [];
     const wallIds = Object.keys(building.walls) as WallId[];
     for (const id of wallIds) {
-      const item = wallLineItem(id, building, effectiveHeight);
+      const item = wallLineItem(id, building, effectiveHeight, buildings);
       if (item.total > 0) lineItems.push(item);
     }
     const total = lineItems.reduce((sum, item) => sum + item.total, 0);
@@ -230,7 +235,7 @@ export function calculateBuildingQuote(building: BuildingEntity, roof: RoofConfi
 
   const wallIds = Object.keys(building.walls) as WallId[];
   for (const id of wallIds) {
-    const item = wallLineItem(id, building, effectiveHeight);
+    const item = wallLineItem(id, building, effectiveHeight, buildings);
     if (item.total > 0) lineItems.push(item);
   }
 
@@ -249,7 +254,7 @@ export function calculateTotalQuote(buildings: BuildingEntity[], roof: RoofConfi
 } {
   const lineItems: LineItem[] = [];
   for (const building of buildings) {
-    const { lineItems: items } = calculateBuildingQuote(building, roof, defaultHeight);
+    const { lineItems: items } = calculateBuildingQuote(building, roof, defaultHeight, buildings);
     lineItems.push(...items);
   }
   const total = lineItems.reduce((sum, item) => sum + item.total, 0);

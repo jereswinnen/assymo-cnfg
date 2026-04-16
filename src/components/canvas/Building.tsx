@@ -5,26 +5,19 @@ import Floor from './Floor';
 import TimberFrame from './TimberFrame';
 import BergingSection from './BergingSection';
 import Wall from './Wall';
+import Paal from './Paal';
 import { useBuildingId } from '@/lib/BuildingContext';
-import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
-import { POST_SIZE } from '@/lib/constants';
+import { useConfigStore } from '@/store/useConfigStore';
 
 export default function Building() {
   const buildingId = useBuildingId();
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
-  const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const clearSelection = useConfigStore((s) => s.clearSelection);
 
   if (!building) return null;
 
   if (building.type === 'paal') {
-    const h = getEffectiveHeight(building, defaultHeight);
-    return (
-      <mesh position={[0, h / 2, 0]}>
-        <boxGeometry args={[POST_SIZE, h, POST_SIZE]} />
-        <meshStandardMaterial color="#8B6914" />
-      </mesh>
-    );
+    return <Paal />;
   }
 
   if (building.type === 'muur') {

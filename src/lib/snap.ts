@@ -166,16 +166,26 @@ export function detectSnap(
   };
 }
 
+export interface PoleSnapResult {
+  /** Pole center position after snapping. */
+  center: [number, number];
+  /** Id of the building this pole snapped to, or null if no snap was found. */
+  attachedTo: string | null;
+}
+
 /** Snap a pole's center to building edges, corners, and midpoints.
- *  Order: edge slide first, then corners/midpoints override as detents. */
+ *  Order: edge slide first, then corners/midpoints override as detents.
+ *  Returns the snapped center position and the id of the building the pole
+ *  attached to (or null if nothing was in snap range). */
 export function detectPoleSnap(
-  polePos: [number, number],
+  poleCenter: [number, number],
   buildings: BuildingEntity[],
-): [number, number] {
-  const [px, pz] = polePos;
+): PoleSnapResult {
+  const [px, pz] = poleCenter;
   let bestDist = SNAP_THRESHOLD;
   let snapX = px;
   let snapZ = pz;
+  let attachedTo: string | null = null;
 
   // Pass 1: edge slide (general snap to nearest point on edge)
   for (const b of buildings) {
@@ -185,12 +195,25 @@ export function detectPoleSnap(
     const w = b.dimensions.width;
     const d = b.dimensions.depth;
 
-    const edges: { fixed: 'x' | 'z'; val: number; min: number; max: number }[] = [
-      { fixed: 'z', val: tz,     min: lx, max: lx + w },
-      { fixed: 'z', val: tz + d, min: lx, max: lx + w },
-      { fixed: 'x', val: lx,     min: tz, max: tz + d },
-      { fixed: 'x', val: lx + w, min: tz, max: tz + d },
-    ];
+    let edges: { fixed: 'x' | 'z'; val: number; min: number; max: number }[];
+    if (b.type === 'muur') {
+      // Muurs are thin walls — snap the pole to the wall's midline so it
+      // sits ON the wall rather than at one of its two parallel edges.
+      // For vertical muurs, dimensions.width is the wall length (along Z)
+      // and dimensions.depth is the thickness (along X).
+      if (b.orientation === 'vertical') {
+        edges = [{ fixed: 'x', val: lx + d / 2, min: tz, max: tz + w }];
+      } else {
+        edges = [{ fixed: 'z', val: tz + d / 2, min: lx, max: lx + w }];
+      }
+    } else {
+      edges = [
+        { fixed: 'z', val: tz,     min: lx, max: lx + w },
+        { fixed: 'z', val: tz + d, min: lx, max: lx + w },
+        { fixed: 'x', val: lx,     min: tz, max: tz + d },
+        { fixed: 'x', val: lx + w, min: tz, max: tz + d },
+      ];
+    }
 
     for (const e of edges) {
       if (e.fixed === 'z') {
@@ -201,6 +224,7 @@ export function detectPoleSnap(
           bestDist = d;
           snapX = clampedX;
           snapZ = e.val;
+          attachedTo = b.id;
         }
       } else {
         const distToEdge = Math.abs(px - e.val);
@@ -210,6 +234,7 @@ export function detectPoleSnap(
           bestDist = d;
           snapX = e.val;
           snapZ = clampedZ;
+          attachedTo = b.id;
         }
       }
     }
@@ -228,12 +253,24 @@ export function detectPoleSnap(
     const cx = lx + w / 2;
     const cz = tz + d / 2;
 
-    const targets: [number, number][] = [
-      [lx, tz], [lx + w, tz],
-      [lx, tz + d], [lx + w, tz + d],
-      [cx, tz], [cx, tz + d],
-      [lx, cz], [lx + w, cz],
-    ];
+    let targets: [number, number][];
+    if (b.type === 'muur') {
+      // For a muur, meaningful detents are the two midline endpoints.
+      if (b.orientation === 'vertical') {
+        const midX = lx + d / 2;
+        targets = [[midX, tz], [midX, tz + w]];
+      } else {
+        const midZ = tz + d / 2;
+        targets = [[lx, midZ], [lx + w, midZ]];
+      }
+    } else {
+      targets = [
+        [lx, tz], [lx + w, tz],
+        [lx, tz + d], [lx + w, tz + d],
+        [cx, tz], [cx, tz + d],
+        [lx, cz], [lx + w, cz],
+      ];
+    }
 
     for (const [tx, tz] of targets) {
       const d = Math.hypot(snapX - tx, snapZ - tz);
@@ -241,11 +278,18 @@ export function detectPoleSnap(
         detentDist = d;
         snapX = tx;
         snapZ = tz;
+        attachedTo = b.id;
       }
     }
   }
 
-  return [snapX, snapZ];
+  return { center: [snapX, snapZ], attachedTo };
+}
+
+export interface WallSnapResult {
+  position: [number, number];
+  /** Id of the structural building this wall snapped to (edge slide), or null. */
+  attachedTo: string | null;
 }
 
 /** Snap a standalone wall to building edges, poles, and other wall endpoints.
@@ -256,13 +300,13 @@ export function detectWallSnap(
   wallWidth: number,
   orientation: 'horizontal' | 'vertical',
   buildings: BuildingEntity[],
-): [number, number] {
+): WallSnapResult {
   const [wx, wz] = wallPos;
   let bestDist = SNAP_THRESHOLD;
   let snapX = wx;
   let snapZ = wz;
+  let attachedTo: string | null = null;
 
-  const halfLong = wallWidth / 2;
   const halfShort = POST_SIZE / 2;
 
   // Pass 1: edge slide — wall's long edge slides along building edges
@@ -287,6 +331,7 @@ export function detectWallSnap(
           bestDist = dist;
           snapZ = e.z - halfShort;
           snapX = wx;
+          attachedTo = b.id;
         }
       }
     } else {
@@ -303,6 +348,7 @@ export function detectWallSnap(
           bestDist = dist;
           snapX = e.x - halfShort;
           snapZ = wz;
+          attachedTo = b.id;
         }
       }
     }
@@ -369,7 +415,7 @@ export function detectWallSnap(
     snapZ += detentDz;
   }
 
-  return [snapX, snapZ];
+  return { position: [snapX, snapZ], attachedTo };
 }
 
 /** Snap a single dragged edge to opposing edges of other buildings */

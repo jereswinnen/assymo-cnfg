@@ -1,11 +1,11 @@
 'use client';
 
-import { useMemo, useEffect } from 'react';
-import { MeshStandardMaterial, TextureLoader, RepeatWrapping, SRGBColorSpace, LinearSRGBColorSpace } from 'three';
+import { useMemo } from 'react';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { POST_SIZE, BEAM_H, DECK_T, autoPoleLayout } from '@/lib/constants';
-import { getAtom, getAtomColor, getEffectivePoleMaterial } from '@/lib/materials';
+import { getEffectivePoleMaterial } from '@/lib/materials';
+import { usePoleMaterial } from './poleMaterial';
 
 const BEAM_W = 0.15;
 
@@ -46,58 +46,7 @@ export default function TimberFrame() {
   }, [connections, buildingId]);
 
   const poleMaterialId = building ? getEffectivePoleMaterial(building) : 'wood';
-  const poleAtom = getAtom(poleMaterialId);
-
-  const timberMat = useMemo(() => {
-    const loader = new TextureLoader();
-    const paths = poleAtom?.textures ?? null;
-    const tile = poleAtom?.tileSize ?? [2, 2];
-    const baseColor = getAtomColor(poleMaterialId);
-
-    if (!paths) {
-      return new MeshStandardMaterial({
-        color: baseColor,
-        metalness: 0.05,
-        roughness: 1,
-        envMapIntensity: 0.2,
-      });
-    }
-
-    const colorTex = loader.load(paths.color);
-    colorTex.wrapS = RepeatWrapping;
-    colorTex.wrapT = RepeatWrapping;
-    colorTex.colorSpace = SRGBColorSpace;
-    colorTex.repeat.set(2 / tile[0], 2 / tile[1]);
-
-    const normalTex = loader.load(paths.normal);
-    normalTex.wrapS = RepeatWrapping;
-    normalTex.wrapT = RepeatWrapping;
-    normalTex.colorSpace = LinearSRGBColorSpace;
-    normalTex.repeat.set(2 / tile[0], 2 / tile[1]);
-
-    const roughTex = loader.load(paths.roughness);
-    roughTex.wrapS = RepeatWrapping;
-    roughTex.wrapT = RepeatWrapping;
-    roughTex.colorSpace = LinearSRGBColorSpace;
-    roughTex.repeat.set(2 / tile[0], 2 / tile[1]);
-
-    return new MeshStandardMaterial({
-      map: colorTex,
-      normalMap: normalTex,
-      roughnessMap: roughTex,
-      color: poleMaterialId === 'wood' ? '#C4955A' : '#ffffff',
-      metalness: 0.05,
-      roughness: 1,
-      envMapIntensity: 0.2,
-    });
-  }, [poleMaterialId, poleAtom]);
-
-  useEffect(() => () => {
-    timberMat.map?.dispose();
-    timberMat.normalMap?.dispose();
-    timberMat.roughnessMap?.dispose();
-    timberMat.dispose();
-  }, [timberMat]);
+  const timberMat = usePoleMaterial(poleMaterialId);
 
   const elements = useMemo(() => {
     const hw = width / 2;

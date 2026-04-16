@@ -9,7 +9,7 @@ import {
   clampOpeningPosition, EDGE_CLEARANCE, SNAP_INCREMENT,
   WIN_MIN_SIZE,
 } from '@/lib/constants';
-import { getAtomColor } from '@/lib/materials';
+import { getAtomColor, getEffectiveWallMaterial } from '@/lib/materials';
 import { t } from '@/lib/i18n';
 import type { WallId } from '@/types/building';
 
@@ -20,6 +20,7 @@ interface WallElevationProps {
 
 export default function WallElevation({ buildingId, wallId }: WallElevationProps) {
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
+  const buildings = useConfigStore((s) => s.buildings);
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
 
@@ -287,7 +288,7 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
 
   const wallLength = getWallLength(wallId, building.dimensions);
   const wallHeight = getEffectiveHeight(building, defaultHeight);
-  const wallColor = getAtomColor(wallCfg.materialId ?? building.primaryMaterialId);
+  const wallColor = getAtomColor(getEffectiveWallMaterial(wallCfg, building, buildings));
 
   const windows = wallCfg.windows ?? [];
 

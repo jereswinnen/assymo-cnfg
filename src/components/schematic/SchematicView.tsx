@@ -4,6 +4,7 @@ import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { useConfigStore, selectSingleBuildingId, getEffectiveHeight } from '@/store/useConfigStore';
 import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/lib/snap';
 import { getConstraints, DOOR_W, DOUBLE_DOOR_W, WIN_W, xToFraction, clampOpeningPosition, fractionToX, getWallLength, autoPoleLayout } from '@/lib/constants';
+import { getEffectivePrimaryMaterial, getAtomColor } from '@/lib/materials';
 import { t } from '@/lib/i18n';
 import SchematicPosts from './SchematicPosts';
 import SchematicWalls, { getWallGeometries } from './SchematicWalls';
@@ -157,6 +158,7 @@ export default function SchematicView() {
   const selectedBuildingId = useConfigStore(selectSingleBuildingId);
   const selectBuilding = useConfigStore((s) => s.selectBuilding);
   const updateBuildingPosition = useConfigStore((s) => s.updateBuildingPosition);
+  const setPoleAttachment = useConfigStore((s) => s.setPoleAttachment);
   const setConnections = useConfigStore((s) => s.setConnections);
   const setDraggedBuildingId = useConfigStore((s) => s.setDraggedBuildingId);
   const setOrientation = useConfigStore((s) => s.setOrientation);
@@ -699,9 +701,18 @@ export default function SchematicView() {
       let snappedDz = dz;
 
       if (building.type === 'paal') {
-        const snapped = detectPoleSnap(newDraggedPos, allBuildings.filter(b => !groupDragStartPositions.current.has(b.id)));
-        snappedDx = snapped[0] - draggedStartPos[0];
-        snappedDz = snapped[1] - draggedStartPos[1];
+        const halfW = building.dimensions.width / 2;
+        const halfD = building.dimensions.depth / 2;
+        const centerIn: [number, number] = [newDraggedPos[0] + halfW, newDraggedPos[1] + halfD];
+        const snapped = detectPoleSnap(
+          centerIn,
+          allBuildings.filter(b => !groupDragStartPositions.current.has(b.id)),
+        );
+        // Convert snapped center back to top-left corner for storage.
+        const snappedCorner: [number, number] = [snapped.center[0] - halfW, snapped.center[1] - halfD];
+        snappedDx = snappedCorner[0] - draggedStartPos[0];
+        snappedDz = snappedCorner[1] - draggedStartPos[1];
+        setPoleAttachment(building.id, snapped.attachedTo);
       } else if (building.type === 'muur') {
         const snapped = detectWallSnap(
           newDraggedPos,
@@ -709,8 +720,9 @@ export default function SchematicView() {
           building.orientation,
           allBuildings.filter(b => !groupDragStartPositions.current.has(b.id)),
         );
-        snappedDx = snapped[0] - draggedStartPos[0];
-        snappedDz = snapped[1] - draggedStartPos[1];
+        snappedDx = snapped.position[0] - draggedStartPos[0];
+        snappedDz = snapped.position[1] - draggedStartPos[1];
+        setPoleAttachment(building.id, snapped.attachedTo);
       } else {
         const others = allBuildings.filter(b => !groupDragStartPositions.current.has(b.id) && b.type !== 'paal' && b.type !== 'muur');
         const tempBuilding = { ...building, position: newDraggedPos };
@@ -733,8 +745,15 @@ export default function SchematicView() {
       ];
 
       if (building.type === 'paal') {
-        const snapped = detectPoleSnap(newPos, allBuildings.filter(b => b.id !== building.id));
-        updateBuildingPosition(building.id, snapped);
+        const halfW = building.dimensions.width / 2;
+        const halfD = building.dimensions.depth / 2;
+        const centerIn: [number, number] = [newPos[0] + halfW, newPos[1] + halfD];
+        const snapped = detectPoleSnap(
+          centerIn,
+          allBuildings.filter(b => b.id !== building.id),
+        );
+        updateBuildingPosition(building.id, [snapped.center[0] - halfW, snapped.center[1] - halfD]);
+        setPoleAttachment(building.id, snapped.attachedTo);
       } else if (building.type === 'muur') {
         const snapped = detectWallSnap(
           newPos,
@@ -742,7 +761,8 @@ export default function SchematicView() {
           building.orientation,
           allBuildings.filter(b => b.id !== building.id),
         );
-        updateBuildingPosition(building.id, snapped);
+        updateBuildingPosition(building.id, snapped.position);
+        setPoleAttachment(building.id, snapped.attachedTo);
       } else {
         const others = allBuildings.filter(b => b.id !== building.id && b.type !== 'paal' && b.type !== 'muur');
         const tempBuilding = { ...building, position: newPos };
@@ -751,7 +771,7 @@ export default function SchematicView() {
         setConnections(newConnections);
       }
     }
-  }, [isElevationMode, updateBuildingPosition, updateBuildingDimensions, setConnections, setDraggedBuildingId]);
+  }, [isElevationMode, updateBuildingPosition, setPoleAttachment, updateBuildingDimensions, setConnections, setDraggedBuildingId]);
 
   const onPointerUp = useCallback(() => {
     // --- Selection rectangle commit ---
@@ -964,8 +984,15 @@ export default function SchematicView() {
     if (!building) return;
 
     if (building.type === 'paal') {
-      const snapped = detectPoleSnap(building.position, allBuildings.filter(b => b.id !== newId));
-      updateBuildingPosition(newId, snapped);
+      const halfW = building.dimensions.width / 2;
+      const halfD = building.dimensions.depth / 2;
+      const centerIn: [number, number] = [building.position[0] + halfW, building.position[1] + halfD];
+      const snapped = detectPoleSnap(
+        centerIn,
+        allBuildings.filter(b => b.id !== newId),
+      );
+      updateBuildingPosition(newId, [snapped.center[0] - halfW, snapped.center[1] - halfD]);
+      setPoleAttachment(newId, snapped.attachedTo);
     } else if (building.type === 'muur') {
       const snapped = detectWallSnap(
         building.position,
@@ -973,7 +1000,8 @@ export default function SchematicView() {
         building.orientation,
         allBuildings.filter(b => b.id !== newId),
       );
-      updateBuildingPosition(newId, snapped);
+      updateBuildingPosition(newId, snapped.position);
+      setPoleAttachment(newId, snapped.attachedTo);
     } else {
       const others = allBuildings.filter(b => b.id !== newId && b.type !== 'paal' && b.type !== 'muur');
       const { snappedPosition, newConnections } = detectSnap(building, others);
@@ -982,7 +1010,7 @@ export default function SchematicView() {
     }
 
     selectBuilding(newId);
-  }, [addBuilding, updateBuildingPosition, setConnections, selectBuilding]);
+  }, [addBuilding, updateBuildingPosition, setPoleAttachment, setConnections, selectBuilding]);
 
   const onWallClick = useCallback((wallId: WallId, buildingId: string) => {
     useConfigStore.getState().selectElement({ type: 'wall', id: wallId, buildingId });
@@ -1333,7 +1361,7 @@ export default function SchematicView() {
                   <SchematicWalls
                     dimensions={b.dimensions}
                     walls={b.walls}
-                    primaryMaterialId={b.primaryMaterialId}
+                    primaryMaterialId={getEffectivePrimaryMaterial(b, buildings)}
                     selectedElement={selectedElement}
                     buildingId={b.id}
                     offsetX={ox + width / 2}
@@ -1498,7 +1526,7 @@ export default function SchematicView() {
                   <SchematicWalls
                     dimensions={schematicDims}
                     walls={schematicWalls}
-                    primaryMaterialId={w.primaryMaterialId}
+                    primaryMaterialId={getEffectivePrimaryMaterial(w, buildings)}
                     selectedElement={selectedElement}
                     buildingId={w.id}
                     offsetX={wallOffsetX}
@@ -1566,6 +1594,7 @@ export default function SchematicView() {
             const cx = p.position[0] + p.dimensions.width / 2;
             const cz = p.position[1] + p.dimensions.depth / 2;
             const isSelected = selectedBuildingIds.includes(p.id) || previewSelectedIds.has(p.id);
+            const poleColor = getAtomColor(getEffectivePrimaryMaterial(p, buildings));
             return (
               <g
                 key={p.id}
@@ -1576,7 +1605,7 @@ export default function SchematicView() {
                   y={cz - s / 2}
                   width={s}
                   height={s}
-                  fill="#8B6914"
+                  fill={poleColor}
                   stroke={isSelected ? '#3b82f6' : '#666'}
                   strokeWidth={isSelected ? 0.04 : 0.02}
                   style={{ cursor: 'grab' }}

@@ -62,6 +62,9 @@ interface ConfigState {
   // Per-building mutations
   updateBuildingDimensions: (id: string, dims: Partial<BuildingDimensions>) => void;
   updateBuildingPosition: (id: string, pos: [number, number]) => void;
+  /** Set (or clear) the building a Paal is snapped to. Drives material
+   *  inheritance — the Paal picks up the parent's primaryMaterial. */
+  setPoleAttachment: (id: string, attachedTo: string | null) => void;
   updateBuildingWall: (id: string, wallId: WallId, patch: Partial<WallConfig>) => void;
   updateBuildingFloor: (id: string, patch: Partial<FloorConfig>) => void;
   setBuildingPrimaryMaterial: (id: string, materialId: string) => void;
@@ -223,6 +226,18 @@ export const useConfigStore = create<ConfigState>()(
   updateBuildingPosition: (id, pos) =>
     set((state) => ({
       buildings: state.buildings.map(b => (b.id === id ? { ...b, position: pos } : b)),
+    })),
+
+  setPoleAttachment: (id, attachedTo) =>
+    set((state) => ({
+      buildings: state.buildings.map(b => {
+        if (b.id !== id) return b;
+        if (attachedTo === null) {
+          const { attachedTo: _, ...rest } = b;
+          return rest as typeof b;
+        }
+        return { ...b, attachedTo };
+      }),
     })),
 
   updateBuildingWall: (id, wallId, patch) =>
