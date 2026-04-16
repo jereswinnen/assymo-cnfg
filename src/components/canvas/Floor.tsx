@@ -4,6 +4,7 @@ import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
 import { getAtomColor } from '@/lib/materials';
 import { useFloorTexture } from '@/lib/textures';
+import { POST_SIZE } from '@/lib/constants';
 
 export default function Floor() {
   const buildingId = useBuildingId();
@@ -12,13 +13,20 @@ export default function Floor() {
   const materialId = building?.floor.materialId ?? 'geen';
   const { width, depth } = building?.dimensions ?? { width: 8, depth: 4 };
 
-  const pbr = useFloorTexture(materialId, width, depth);
+  // Building dimensions measure pole-center to pole-center (and wall
+  // center-line to wall center-line). Extending by POST_SIZE so the floor
+  // reaches the outer face of corner poles / walls — otherwise the
+  // structure visibly stands "outside" the slab.
+  const floorWidth = width + POST_SIZE;
+  const floorDepth = depth + POST_SIZE;
+
+  const pbr = useFloorTexture(materialId, floorWidth, floorDepth);
 
   if (materialId === 'geen') return null;
 
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} receiveShadow>
-      <planeGeometry args={[width, depth]} />
+      <planeGeometry args={[floorWidth, floorDepth]} />
       <meshStandardMaterial
         color={pbr ? '#ffffff' : getAtomColor(materialId)}
         map={pbr?.map ?? undefined}
