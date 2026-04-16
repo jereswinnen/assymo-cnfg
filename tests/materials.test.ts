@@ -3,6 +3,7 @@ import {
   WALL_CATALOG,
   getAtom,
   getEffectiveDoorMaterial,
+  getEffectivePrimaryMaterial,
   getEffectiveWallMaterial,
 } from '@/domain/materials';
 import { DEFAULT_WALL } from '@/domain/building';
@@ -47,5 +48,43 @@ describe('material resolution', () => {
     const building = makeBuilding({ id: 'b1', type: 'berging', primaryMaterialId: 'wood' });
     const effective = getEffectiveDoorMaterial({ ...DEFAULT_WALL, hasDoor: true }, building);
     expect(effective).toBe('wood');
+  });
+});
+
+describe('getEffectivePrimaryMaterial (attachment chain)', () => {
+  it('returns the building\'s own primary for a structural building', () => {
+    const b = makeBuilding({ id: 'a', type: 'berging', primaryMaterialId: 'glass' });
+    expect(getEffectivePrimaryMaterial(b, [b])).toBe('glass');
+  });
+
+  it('walks attachedTo from a paal up to a structural parent', () => {
+    const parent = makeBuilding({ id: 'a', type: 'berging', primaryMaterialId: 'glass' });
+    const pole = makeBuilding({
+      id: 'p',
+      type: 'paal',
+      primaryMaterialId: 'wood',
+      attachedTo: 'a',
+    });
+    expect(getEffectivePrimaryMaterial(pole, [parent, pole])).toBe('glass');
+  });
+
+  it('falls back to its own primary when the attachment chain is broken', () => {
+    const pole = makeBuilding({
+      id: 'p',
+      type: 'paal',
+      primaryMaterialId: 'wood',
+      attachedTo: 'ghost',
+    });
+    expect(getEffectivePrimaryMaterial(pole, [pole])).toBe('wood');
+  });
+
+  it('returns own primary when no buildings list is provided', () => {
+    const pole = makeBuilding({
+      id: 'p',
+      type: 'paal',
+      primaryMaterialId: 'wood',
+      attachedTo: 'a',
+    });
+    expect(getEffectivePrimaryMaterial(pole)).toBe('wood');
   });
 });

@@ -4,8 +4,11 @@ import {
   makeInitialConfig,
   removeBuilding,
   setBuildingPrimaryMaterial,
+  setHeightOverride,
+  setRoofType,
   toggleConnectionOpen,
   updateBuildingDimensions,
+  updateBuildingFloor,
   updateBuildingWall,
 } from '@/domain/config';
 import { makeBuilding, makeConfig } from './fixtures';
@@ -134,5 +137,60 @@ describe('toggleConnectionOpen', () => {
     });
     const next = toggleConnectionOpen(cfg, 'b', 'left', 'a', 'right');
     expect(next.connections[0].isOpen).toBe(true);
+  });
+});
+
+describe('setRoofType', () => {
+  it('switches flat → pitched with a sensible covering (dakpannen) and non-zero pitch', () => {
+    const cfg = makeConfig();
+    const next = setRoofType(cfg, 'pitched');
+    expect(next.roof.type).toBe('pitched');
+    expect(next.roof.pitch).toBeGreaterThan(0);
+    expect(next.roof.coveringId).toBe('dakpannen');
+  });
+
+  it('switches pitched → flat with epdm covering and zero pitch', () => {
+    const cfg = makeConfig({
+      roof: {
+        type: 'pitched',
+        pitch: 30,
+        coveringId: 'dakpannen',
+        trimMaterialId: 'wood',
+        insulation: true,
+        insulationThickness: 150,
+        hasSkylight: false,
+      },
+    });
+    const next = setRoofType(cfg, 'flat');
+    expect(next.roof.type).toBe('flat');
+    expect(next.roof.pitch).toBe(0);
+    expect(next.roof.coveringId).toBe('epdm');
+  });
+});
+
+describe('updateBuildingFloor', () => {
+  it('merges the floor patch', () => {
+    const cfg = makeConfig();
+    const id = cfg.buildings[0].id;
+    const next = updateBuildingFloor(cfg, id, { materialId: 'hout' });
+    expect(next.buildings[0].floor.materialId).toBe('hout');
+  });
+});
+
+describe('setHeightOverride', () => {
+  it('sets a numeric override', () => {
+    const cfg = makeConfig();
+    const id = cfg.buildings[0].id;
+    const next = setHeightOverride(cfg, id, 2.8);
+    expect(next.buildings[0].heightOverride).toBe(2.8);
+  });
+
+  it('clears the override when passed null', () => {
+    const cfg = makeConfig({
+      buildings: [{ ...makeConfig().buildings[0], heightOverride: 2.8 }],
+    });
+    const id = cfg.buildings[0].id;
+    const next = setHeightOverride(cfg, id, null);
+    expect(next.buildings[0].heightOverride).toBeNull();
   });
 });
