@@ -545,6 +545,15 @@ export default function SchematicView() {
       const fraction = clamped / edgeLen;
 
       setPolePreview({ buildingId, side, index, fraction });
+      // Live-sync to 3D: write the in-progress fraction to the store on every
+      // move. Temporal is paused above, so this doesn't flood undo history;
+      // pointer-up still runs the final dedup pass.
+      const liveSide = [...layout[side]];
+      liveSide[index] = fraction;
+      useConfigStore.getState().updateBuildingPoles(buildingId, {
+        ...layout,
+        [side]: liveSide,
+      });
       return;
     }
 
