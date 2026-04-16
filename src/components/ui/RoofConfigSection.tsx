@@ -1,8 +1,7 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
-import { ROOF_COVERINGS } from '@/lib/constants';
-import { ROOF_TRIM_CATALOG, resolveCatalog } from '@/lib/materials';
+import { ROOF_TRIM_CATALOG, ROOF_COVERING_CATALOG, resolveCatalog } from '@/lib/materials';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -18,12 +17,12 @@ export default function RoofConfigSection() {
       <div className="space-y-2">
         <SectionLabel>{t('roof.covering')}</SectionLabel>
         <div className="grid grid-cols-2 gap-1.5">
-          {ROOF_COVERINGS.map((cov) => {
-            const isSelected = roof.coveringId === cov.id;
+          {resolveCatalog(ROOF_COVERING_CATALOG).map(({ atomId, atom, pricePerSqm }) => {
+            const isSelected = roof.coveringId === atomId;
             return (
               <button
-                key={cov.id}
-                onClick={() => updateRoof({ coveringId: cov.id })}
+                key={atomId}
+                onClick={() => updateRoof({ coveringId: atomId as typeof roof.coveringId })}
                 className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-all ${
                   isSelected
                     ? 'border-primary bg-primary/5 ring-1 ring-primary'
@@ -32,13 +31,13 @@ export default function RoofConfigSection() {
               >
                 <div
                   className="h-6 w-6 shrink-0 rounded-md border border-border/50"
-                  style={{ backgroundColor: cov.color }}
+                  style={{ backgroundColor: atom.color }}
                 />
                 <div>
                   <div className={`text-xs font-medium ${isSelected ? 'text-primary' : 'text-foreground'}`}>
-                    {cov.label}
+                    {t(atom.labelKey)}
                   </div>
-                  <div className="text-[10px] text-muted-foreground">{'\u20AC'}{cov.pricePerSqm}/m{'\u00B2'}</div>
+                  <div className="text-[10px] text-muted-foreground">{'\u20AC'}{pricePerSqm}/m{'\u00B2'}</div>
                 </div>
               </button>
             );

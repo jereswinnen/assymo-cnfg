@@ -12,13 +12,6 @@ export interface BuildingDimensions {
 export type WallId = 'front' | 'back' | 'left' | 'right';
 export type WallSide = 'left' | 'right' | 'front' | 'back';
 
-export interface SurfaceMaterial {
-  id: string;
-  label: string;
-  pricePerSqm: number;
-  color: string;
-}
-
 export type DoorMaterialId = 'wood' | 'aluminium' | 'pvc' | 'staal';
 export type DoorSize = 'enkel' | 'dubbel';
 export type DoorSwing = 'dicht' | 'naar_binnen' | 'naar_buiten';
@@ -57,13 +50,6 @@ export interface RoofConfig {
   insulation: boolean;
   insulationThickness: number; // mm
   hasSkylight: boolean;
-}
-
-export interface RoofCovering {
-  id: RoofCoveringId;
-  label: string;
-  pricePerSqm: number;
-  color: string;
 }
 
 /** Per-side intermediate post fractions (0–1 along the edge, corners excluded).

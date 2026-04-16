@@ -3,22 +3,10 @@ import type {
   WallConfig,
   RoofConfig,
   FloorConfig,
-  FloorMaterialId,
-  RoofCovering,
   BuildingType,
   WallId,
   DoorSize,
-  DoorMaterialId,
 } from '@/types/building';
-
-// Roof coverings with 3D colors
-export const ROOF_COVERINGS: RoofCovering[] = [
-  { id: 'dakpannen', label: 'Dakpannen', pricePerSqm: 55, color: '#8B4513' },
-  { id: 'riet', label: 'Riet', pricePerSqm: 85, color: '#C4A84E' },
-  { id: 'epdm', label: 'EPDM', pricePerSqm: 35, color: '#2C2C2C' },
-  { id: 'polycarbonaat', label: 'Polycarbonaat', pricePerSqm: 40, color: '#D4E8F0' },
-  { id: 'metaal', label: 'Staalplaten', pricePerSqm: 50, color: '#708090' },
-];
 
 // Default dimensions
 export const DEFAULT_DIMENSIONS: BuildingDimensions = {
@@ -26,20 +14,6 @@ export const DEFAULT_DIMENSIONS: BuildingDimensions = {
   depth: 4,
   height: 2.6,
 };
-
-// Door materials
-export interface DoorMaterial {
-  id: DoorMaterialId;
-  label: string;
-  surcharge: number;
-}
-
-export const DOOR_MATERIALS: DoorMaterial[] = [
-  { id: 'wood', label: 'Hout', surcharge: 0 },
-  { id: 'aluminium', label: 'Aluminium', surcharge: 150 },
-  { id: 'pvc', label: 'PVC', surcharge: 0 },
-  { id: 'staal', label: 'Staal', surcharge: 250 },
-];
 
 // Door base prices by size + window surcharge
 export const DOOR_BASE_PRICE: Record<DoorSize, number> = {
@@ -73,21 +47,6 @@ export const DEFAULT_ROOF: RoofConfig = {
   insulationThickness: 150,
   hasSkylight: false,
 };
-
-// Floor materials
-export interface FloorMaterial {
-  id: FloorMaterialId;
-  label: string;
-  pricePerSqm: number;
-  color: string;
-}
-
-export const FLOOR_MATERIALS: FloorMaterial[] = [
-  { id: 'geen', label: 'Geen', pricePerSqm: 0, color: 'transparent' },
-  { id: 'tegels', label: 'Tegels', pricePerSqm: 35, color: '#B0A090' },
-  { id: 'beton', label: 'Beton', pricePerSqm: 25, color: '#A0A0A0' },
-  { id: 'hout', label: 'Hout (vlonders)', pricePerSqm: 55, color: '#C4A672' },
-];
 
 export const DEFAULT_FLOOR: FloorConfig = {
   materialId: 'geen',

@@ -2,7 +2,7 @@
 
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
-import { FLOOR_MATERIALS } from '@/lib/constants';
+import { getAtomColor } from '@/lib/materials';
 import { useFloorTexture } from '@/lib/textures';
 
 export default function Floor() {
@@ -12,16 +12,15 @@ export default function Floor() {
   const materialId = building?.floor.materialId ?? 'geen';
   const { width, depth } = building?.dimensions ?? { width: 8, depth: 4 };
 
-  const material = FLOOR_MATERIALS.find((m) => m.id === materialId);
   const pbr = useFloorTexture(materialId, width, depth);
 
-  if (materialId === 'geen' || !material) return null;
+  if (materialId === 'geen') return null;
 
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} receiveShadow>
       <planeGeometry args={[width, depth]} />
       <meshStandardMaterial
-        color={pbr ? '#ffffff' : material.color}
+        color={pbr ? '#ffffff' : getAtomColor(materialId)}
         map={pbr?.map ?? undefined}
         normalMap={pbr?.normalMap ?? undefined}
         roughnessMap={pbr?.roughnessMap ?? undefined}

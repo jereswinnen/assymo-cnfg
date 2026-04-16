@@ -88,10 +88,6 @@ const nl: Record<string, string> = {
   'surface.material': 'Materiaal',
   'surface.door': 'Deur',
   'surface.doorMaterial': 'Materiaal',
-  'surface.doorMaterial.wood': 'Hout',
-  'surface.doorMaterial.aluminium': 'Aluminium',
-  'surface.doorMaterial.pvc': 'PVC',
-  'surface.doorMaterial.staal': 'Staal',
   'surface.doorSize': 'Formaat',
   'surface.doorSize.enkel': 'Enkel',
   'surface.doorSize.dubbel': 'Dubbel',
@@ -134,10 +130,6 @@ const nl: Record<string, string> = {
   // Floor
   'floor.label': 'Vloer',
   'floor.material': 'Vloerbedekking',
-  'floor.geen': 'Geen',
-  'floor.tegels': 'Tegels',
-  'floor.beton': 'Beton',
-  'floor.hout': 'Hout (vlonders)',
 
   // Walls section
   'walls.disabled': 'Overkapping heeft geen wanden',

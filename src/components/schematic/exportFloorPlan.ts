@@ -3,9 +3,6 @@ import { t } from '@/lib/i18n';
 import { encodeState } from '@/lib/configCode';
 import type { SnapConnection } from '@/types/building';
 import {
-  ROOF_COVERINGS,
-  FLOOR_MATERIALS,
-  DOOR_MATERIALS,
   getAvailableWallIds,
 } from '@/lib/constants';
 import { getAtom } from '@/lib/materials';
@@ -17,15 +14,18 @@ function wallMaterialLabel(id: string): string {
 }
 
 function roofCoveringLabel(id: string): string {
-  return ROOF_COVERINGS.find((c) => c.id === id)?.label ?? id;
+  const atom = getAtom(id);
+  return atom ? t(atom.labelKey) : id;
 }
 
 function floorMaterialLabel(id: string): string {
-  return FLOOR_MATERIALS.find((m) => m.id === id)?.label ?? id;
+  const atom = getAtom(id);
+  return atom ? t(atom.labelKey) : id;
 }
 
 function doorMaterialLabel(id: string): string {
-  return DOOR_MATERIALS.find((m) => m.id === id)?.label ?? id;
+  const atom = getAtom(id);
+  return atom ? t(atom.labelKey) : id;
 }
 
 function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHeight: number): string {

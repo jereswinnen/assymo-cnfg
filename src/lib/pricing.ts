@@ -5,12 +5,9 @@ import type {
   RoofConfig,
 } from '@/types/building';
 import {
-  ROOF_COVERINGS,
-  FLOOR_MATERIALS,
   INSULATION_PRICE_PER_SQM_PER_MM,
   DOOR_BASE_PRICE,
   DOOR_WINDOW_SURCHARGE,
-  DOOR_MATERIALS,
   DOUBLE_DOOR_W,
   WINDOW_FLAT_FEE,
   SKYLIGHT_FLAT_FEE,
@@ -22,7 +19,7 @@ import {
   BRACE_PRICE,
   getWallLength,
 } from './constants';
-import { WALL_CATALOG } from './materials';
+import { WALL_CATALOG, ROOF_COVERING_CATALOG, FLOOR_CATALOG, DOOR_CATALOG } from './materials';
 import { t } from './i18n';
 
 function findPrice(
@@ -32,16 +29,8 @@ function findPrice(
   return items.find((m) => m.atomId === atomId)?.pricePerSqm ?? 0;
 }
 
-// LEGACY: delete in Task 5 once all callers use findPrice.
-function findPriceLegacy(
-  items: readonly { id: string; pricePerSqm: number }[],
-  id: string,
-): number {
-  return items.find((m) => m.id === id)?.pricePerSqm ?? 0;
-}
-
 function findSurcharge(id: string): number {
-  return DOOR_MATERIALS.find((m) => m.id === id)?.surcharge ?? 0;
+  return DOOR_CATALOG.find((m) => m.atomId === id)?.surcharge ?? 0;
 }
 
 function degToRad(deg: number): number {
@@ -131,7 +120,7 @@ function wallLineItem(wallId: WallId, building: BuildingEntity, effectiveHeight:
 function roofLineItem(building: BuildingEntity, roof: RoofConfig): LineItem {
   const { width, depth } = building.dimensions;
   const area = roofTotalArea(width, depth, roof.pitch, roof.type);
-  const materialCost = area * findPriceLegacy(ROOF_COVERINGS, roof.coveringId);
+  const materialCost = area * findPrice(ROOF_COVERING_CATALOG, roof.coveringId);
   const insulationCost = roof.insulation
     ? area * roof.insulationThickness * INSULATION_PRICE_PER_SQM_PER_MM
     : 0;
@@ -182,7 +171,7 @@ function floorLineItem(building: BuildingEntity): LineItem | null {
   if (materialId === 'geen') return null;
   const { width, depth } = building.dimensions;
   const area = width * depth;
-  const materialCost = area * findPriceLegacy(FLOOR_MATERIALS, materialId);
+  const materialCost = area * findPrice(FLOOR_CATALOG, materialId);
   return {
     label: t('floor.label'),
     area,

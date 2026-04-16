@@ -1,7 +1,7 @@
 'use client';
 
 import { useConfigStore, selectSingleBuildingId } from '@/store/useConfigStore';
-import { FLOOR_MATERIALS } from '@/lib/constants';
+import { FLOOR_CATALOG, resolveCatalog } from '@/lib/materials';
 import { t } from '@/lib/i18n';
 import SectionLabel from '@/components/ui/SectionLabel';
 
@@ -27,25 +27,27 @@ export default function FloorConfigSection() {
     <div className="space-y-2">
       <SectionLabel>{t('floor.material')}</SectionLabel>
       <div className="grid grid-cols-2 gap-1.5">
-        {FLOOR_MATERIALS.map((m) => {
-          const isSelected = floorMaterialId === m.id;
+        {resolveCatalog(FLOOR_CATALOG).map(({ atomId, atom, isVoid }) => {
+          const isSelected = floorMaterialId === atomId;
           return (
             <button
-              key={m.id}
-              onClick={() => updateBuildingFloor(selectedBuildingId, { materialId: m.id })}
+              key={atomId}
+              onClick={() => updateBuildingFloor(selectedBuildingId, {
+                materialId: atomId as typeof floorMaterialId,
+              })}
               className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-all ${
                 isSelected
                   ? 'border-primary bg-primary/5 ring-1 ring-primary text-primary'
                   : 'border-border text-foreground hover:border-primary/40'
               }`}
             >
-              {m.id !== 'geen' && (
+              {!isVoid && (
                 <span
                   className="inline-block h-5 w-5 shrink-0 rounded-md border border-border/50"
-                  style={{ backgroundColor: m.color }}
+                  style={{ backgroundColor: atom.color }}
                 />
               )}
-              {m.label}
+              {t(atom.labelKey)}
             </button>
           );
         })}
