@@ -249,12 +249,26 @@ export const useConfigStore = create<ConfigState>()(
 
   setBuildingPrimaryMaterial: (id, materialId) =>
     set((state) => {
-      // Auto-sync the global roof trim to the building primary so the
-      // single-building common case "just works". Multi-building scenes
-      // keep the most-recent assignment; user can still override manually
-      // in the roof panel.
+      // Snap-connected buildings form one visual structure (e.g. a berging
+      // with an overkapping attached), so propagate the primary across the
+      // whole connected component. Independent buildings keep their own.
+      // Roof trim is global — also synced for the single-structure case.
+      const connectedIds = new Set<string>([id]);
+      const queue: string[] = [id];
+      while (queue.length > 0) {
+        const cur = queue.shift()!;
+        for (const c of state.connections) {
+          const other =
+            c.buildingAId === cur ? c.buildingBId :
+            c.buildingBId === cur ? c.buildingAId : null;
+          if (other && !connectedIds.has(other)) {
+            connectedIds.add(other);
+            queue.push(other);
+          }
+        }
+      }
       const updatedBuildings = state.buildings.map(b =>
-        b.id === id ? { ...b, primaryMaterialId: materialId } : b,
+        connectedIds.has(b.id) ? { ...b, primaryMaterialId: materialId } : b,
       );
       return {
         buildings: updatedBuildings,
