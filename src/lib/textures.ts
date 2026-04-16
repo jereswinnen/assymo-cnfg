@@ -74,7 +74,10 @@ export function useDoorTexture(
   panelWidth: number,
   panelHeight: number,
 ): PBRTextures | null {
-  const paths = materialId === 'wood' ? (getAtom('wood')?.textures ?? null) : null;
+  const atom = getAtom(materialId);
+  const paths = atom?.textures ?? null;
+  // Tile size matches the surrounding wall so the door texture reads continuous.
+  const tileSize = atom?.tileSize ?? [1.5, 1.5];
 
   const textures = useMemo(() => {
     if (!paths) return null;
@@ -87,15 +90,13 @@ export function useDoorTexture(
 
   useEffect(() => {
     if (textures) {
-      // Match the wall's wood tile density (1.5×1.5 m) so door texture reads
-      // continuous with the surrounding wall.
-      const rx = panelWidth / 1.5;
-      const ry = panelHeight / 1.5;
+      const rx = panelWidth / tileSize[0];
+      const ry = panelHeight / tileSize[1];
       textures.map.repeat.set(rx, ry);
       textures.normalMap.repeat.set(rx, ry);
       textures.roughnessMap.repeat.set(rx, ry);
     }
-  }, [textures, panelWidth, panelHeight]);
+  }, [textures, tileSize, panelWidth, panelHeight]);
 
   useEffect(() => {
     if (!textures) return;
