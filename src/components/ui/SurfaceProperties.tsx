@@ -1,9 +1,10 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
-import { WALL_CATALOG, resolveCatalog } from '@/lib/materials';
+import { WALL_CATALOG } from '@/lib/materials';
 import { t } from '@/lib/i18n';
 import SectionLabel from '@/components/ui/SectionLabel';
+import MaterialSelect from '@/components/ui/MaterialSelect';
 import DoorConfig from '@/components/ui/DoorConfig';
 import WindowConfig from '@/components/ui/WindowConfig';
 import type { WallId } from '@/types/building';
@@ -44,41 +45,20 @@ export default function SurfaceProperties() {
 
       <div className="space-y-2">
         <SectionLabel>{t('surface.material')}</SectionLabel>
-        <div className="grid grid-cols-5 gap-1.5">
-          {resolveCatalog(WALL_CATALOG).map(({ atomId, atom, clearsOpenings }) => {
-            const isSelected = wallCfg.materialId === atomId;
-            return (
-              <button
-                key={atomId}
-                onClick={() => {
-                  handleChange('materialId', atomId);
-                  if (clearsOpenings) {
-                    handleChange('hasDoor', false);
-                    handleChange('windows', []);
-                  }
-                }}
-                className={`flex flex-col items-center gap-1.5 rounded-lg border p-2 transition-all ${
-                  isSelected
-                    ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                    : 'border-border hover:border-primary/40'
-                }`}
-              >
-                <span
-                  className="h-7 w-7 rounded-md border border-border/50"
-                  style={{
-                    backgroundColor: atom.color,
-                    opacity: atomId === 'glass' ? 0.6 : 1,
-                  }}
-                />
-                <span className={`text-[10px] font-medium leading-tight ${
-                  isSelected ? 'text-primary' : 'text-muted-foreground'
-                }`}>
-                  {t(atom.labelKey)}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <MaterialSelect
+          catalog={WALL_CATALOG}
+          value={wallCfg.materialId}
+          onChange={(atomId) => {
+            handleChange('materialId', atomId);
+            const entry = WALL_CATALOG.find(e => e.atomId === atomId);
+            if (entry?.clearsOpenings) {
+              handleChange('hasDoor', false);
+              handleChange('windows', []);
+            }
+          }}
+          showPrice
+          ariaLabel={t('surface.material')}
+        />
       </div>
 
       {isGlass && (

@@ -3,14 +3,15 @@
 import { useState } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
 import { clampOpeningPosition, DOOR_W, DOUBLE_DOOR_W, getWallLength, WIN_W } from '@/lib/constants';
-import { DOOR_CATALOG, resolveCatalog } from '@/lib/materials';
+import { DOOR_CATALOG } from '@/lib/materials';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import SectionLabel from '@/components/ui/SectionLabel';
-import { Plus, X, ChevronDown, ChevronRight } from 'lucide-react';
-import type { WallId } from '@/types/building';
+import MaterialSelect from '@/components/ui/MaterialSelect';
+import { Plus, X } from 'lucide-react';
+import type { WallId, DoorMaterialId } from '@/types/building';
 
 interface DoorConfigProps {
   wallId: WallId;
@@ -90,20 +91,12 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
             <div className="border-t border-border/50 px-3 py-3 space-y-3 bg-muted/20">
               <div className="space-y-1.5">
                 <SectionLabel>{t('surface.doorMaterial')}</SectionLabel>
-                <ToggleGroup
-                  type="single"
+                <MaterialSelect
+                  catalog={DOOR_CATALOG}
                   value={wallCfg.doorMaterialId}
-                  onValueChange={(v) => { if (v) handleChange('doorMaterialId', v); }}
-                  className="w-full"
-                  variant="outline"
-                  size="sm"
-                >
-                  {resolveCatalog(DOOR_CATALOG).map(({ atomId, atom }) => (
-                    <ToggleGroupItem key={atomId} value={atomId} className="flex-1 text-xs">
-                      {t(atom.labelKey)}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
+                  onChange={(atomId) => handleChange('doorMaterialId', atomId as DoorMaterialId)}
+                  ariaLabel={t('surface.doorMaterial')}
+                />
               </div>
 
               <div className="space-y-1.5">
