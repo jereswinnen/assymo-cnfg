@@ -3,7 +3,10 @@ import { POST_SIZE } from '@/domain/building';
 
 export const SNAP_THRESHOLD = 0.5;
 export const SNAP_ALIGN_THRESHOLD = 0.3;
-const POLE_DETENT_THRESHOLD = 0.35;
+/** Pole snap is intentionally tighter than general building snap — a pole
+ *  is a small element and users expect to place it precisely. */
+const POLE_SNAP_THRESHOLD = 0.25;
+const POLE_DETENT_THRESHOLD = 0.18;
 
 interface Edge {
   axis: 'x' | 'z';
@@ -182,7 +185,7 @@ export function detectPoleSnap(
   buildings: BuildingEntity[],
 ): PoleSnapResult {
   const [px, pz] = poleCenter;
-  let bestDist = SNAP_THRESHOLD;
+  let bestDist = POLE_SNAP_THRESHOLD;
   let snapX = px;
   let snapZ = pz;
   let attachedTo: string | null = null;
@@ -220,7 +223,7 @@ export function detectPoleSnap(
         const distToEdge = Math.abs(pz - e.val);
         const clampedX = Math.max(e.min, Math.min(e.max, px));
         const d = Math.hypot(px - clampedX, pz - e.val);
-        if (distToEdge < SNAP_THRESHOLD && d < bestDist) {
+        if (distToEdge < POLE_SNAP_THRESHOLD && d < bestDist) {
           bestDist = d;
           snapX = clampedX;
           snapZ = e.val;
@@ -230,7 +233,7 @@ export function detectPoleSnap(
         const distToEdge = Math.abs(px - e.val);
         const clampedZ = Math.max(e.min, Math.min(e.max, pz));
         const d = Math.hypot(px - e.val, pz - clampedZ);
-        if (distToEdge < SNAP_THRESHOLD && d < bestDist) {
+        if (distToEdge < POLE_SNAP_THRESHOLD && d < bestDist) {
           bestDist = d;
           snapX = e.val;
           snapZ = clampedZ;
