@@ -21,7 +21,7 @@ export default async function AdminAuthedLayout({ children }: { children: React.
   const role = session.user.role as Role;
 
   return (
-    <div className="min-h-screen flex bg-neutral-50 text-neutral-900">
+    <div className="h-screen flex bg-neutral-50 text-neutral-900">
       <Sidebar role={role} tenantId={session.user.tenantId as string | null} />
       <div className="flex-1 flex flex-col">
         <Header
