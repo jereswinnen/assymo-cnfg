@@ -89,3 +89,11 @@ export const POST = withSession(async (session, req) => {
     throw err;
   }
 });
+
+/** List tenants. super_admin only — tenant_admin reads its own tenant
+ *  via /api/admin/tenants/[id] (or /api/admin/tenants/current). */
+export const GET = withSession(async (session) => {
+  requireBusiness(session, ['super_admin']);
+  const rows = await db.select().from(tenants);
+  return NextResponse.json({ tenants: rows });
+});
