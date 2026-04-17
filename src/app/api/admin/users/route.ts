@@ -153,32 +153,25 @@ export const GET = withSession(async (session) => {
   const actorRole = session.user.role as Role;
   const actorTenantId = session.user.tenantId as string | null;
 
-  const baseQuery = db
-    .select({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      tenantId: user.tenantId,
-      createdAt: user.createdAt,
-    })
-    .from(user)
-    .where(eq(user.userType, 'business'));
+  const fields = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    tenantId: user.tenantId,
+    createdAt: user.createdAt,
+  } as const;
 
-  const rows =
+  // Build the where clause: super_admin sees all business users;
+  // tenant_admin sees only its own tenant. The '__none__' fallback
+  // ensures a malformed tenant_admin without a tenantId returns an
+  // empty list rather than crashing the query.
+  const where =
     actorRole === 'super_admin'
-      ? await baseQuery
-      : await db
-          .select({
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            tenantId: user.tenantId,
-            createdAt: user.createdAt,
-          })
-          .from(user)
-          .where(and(eq(user.userType, 'business'), eq(user.tenantId, actorTenantId ?? '__none__')));
+      ? eq(user.userType, 'business')
+      : and(eq(user.userType, 'business'), eq(user.tenantId, actorTenantId ?? '__none__'));
+
+  const rows = await db.select(fields).from(user).where(where);
 
   return NextResponse.json({ users: rows });
 });
