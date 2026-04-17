@@ -191,15 +191,25 @@ Each phase ends in something deployable.
 
 ### Phase 1 — Admin foundation
 
-- Migration: add `userType` column, default existing users to `business`.
+- Migration: add `userType` column; default existing users to `business`.
 - Migration: add `branding` jsonb to `tenants`; seed Assymo defaults.
-- Scaffold shadcn primitives (button, input, form, dialog, card, table, dropdown-menu, sheet) — current `components/ui/` is configurator-only.
-- `requireBusiness` / `requireClient` guards in `@/lib/auth-guards`.
-- Missing list endpoints: `GET /api/admin/users`, `GET /api/admin/tenants`, `GET /api/admin/clients`.
-- `tenant_hosts` admin endpoints (`GET/POST/DELETE /api/admin/tenants/[id]/hosts`).
+- Update `auth.ts` `additionalFields` (add `userType`; drop `staff` from role enum).
+- Regenerate `src/db/auth-schema.ts`.
+- Update `auth-guards`: drop `staff`, add `UserType`, `requireBusiness`, `requireClient`.
+- Refactor existing admin endpoints to use `requireBusiness`.
+- Missing list endpoints: `GET /api/admin/users`, `GET /api/admin/tenants`, `GET /api/admin/tenants/[id]`.
+- `tenant_hosts` admin endpoints (`GET/POST /api/admin/tenants/[id]/hosts`, `DELETE /api/admin/tenants/[id]/hosts/[hostname]`).
 - `tenant_branding` admin endpoint (`PATCH /api/admin/tenants/[id]/branding`).
-- `/admin` shell + sign-in + dashboard + tenants + users + price-book + registry + clients pages.
-- Sign-out + session display in header.
+- Scaffold shadcn primitives (button, input, form, dialog, card, table, dropdown-menu, sonner).
+- `/admin` shell with role-aware sidebar + header (session display + sign-out).
+- Pages: `/admin/sign-in`, `/admin` (dashboard), `/admin/tenants` (super_admin), `/admin/tenants/[id]` (details + hosts + branding + price book), `/admin/users` (list + invite).
+- i18n keys for the entire admin surface.
+- Update `CLAUDE.md` to reflect new role model + `userType`.
+
+**Deferred to later phases** (data model not yet present):
+- `/admin/clients` (and `GET /api/admin/clients`) → Phase 2 (lands with first client users).
+- `/admin/registry` → Phase 4.5 (lands with material catalog).
+- `/admin/orders`, `/admin/invoices` → Phases 2 and 5.
 
 ### Phase 2 — Orders
 
@@ -260,3 +270,15 @@ Explicit non-goals to keep this lean:
 - Online payments (Phase 6, business-ready dependent).
 - Per-tenant custom email templates (in cross-cutting, not blocking).
 - Marketing/landing pages on `/shop/` (no `/shop` storefront — `/` is the storefront).
+
+## Progress
+
+Tick a box when the phase is merged to `main` and deployed. Each phase has its own implementation plan in `docs/superpowers/plans/` once it's the active phase.
+
+- [ ] Phase 1 — Admin foundation — [plan](../plans/2026-04-17-phase-1-admin-foundation.md)
+- [ ] Phase 2 — Orders
+- [ ] Phase 3 — Configurator submit
+- [ ] Phase 4 — Webshop shell + client account
+  - [ ] Phase 4.5 — Material catalog filtering
+- [ ] Phase 5 — Invoices
+- [ ] Phase 6 — Online payments (deferred until business-ready)
