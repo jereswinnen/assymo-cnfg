@@ -295,6 +295,11 @@ const nl: Record<string, string> = {
   'admin.orders.status.quoted': 'Offerte verstuurd',
   'admin.orders.status.accepted': 'Aanvaard',
   'admin.orders.status.cancelled': 'Geannuleerd',
+  'admin.orders.col.part': 'Onderdeel',
+  'admin.orders.col.amount': 'Bedrag',
+  'admin.orders.detail.contact.name': 'Naam',
+  'admin.orders.detail.contact.email': 'E-mail',
+  'admin.orders.detail.contact.phone': 'Telefoon',
 
   // Admin — clients
   'admin.nav.clients': 'Klanten',

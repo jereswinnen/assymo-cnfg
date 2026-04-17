@@ -21,8 +21,8 @@ export function OrderQuoteTable({ snapshot }: Props) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Onderdeel</TableHead>
-          <TableHead className="text-right">Bedrag</TableHead>
+          <TableHead>{t('admin.orders.col.part')}</TableHead>
+          <TableHead className="text-right">{t('admin.orders.col.amount')}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

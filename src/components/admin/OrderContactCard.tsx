@@ -19,9 +19,9 @@ export function OrderContactCard({
         <CardTitle>{t('admin.orders.detail.section.contact')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
-        <div><span className="text-neutral-500">Naam:</span> {contactName}</div>
-        <div><span className="text-neutral-500">E-mail:</span> {contactEmail}</div>
-        {contactPhone && <div><span className="text-neutral-500">Telefoon:</span> {contactPhone}</div>}
+        <div><span className="text-neutral-500">{t('admin.orders.detail.contact.name')}:</span> {contactName}</div>
+        <div><span className="text-neutral-500">{t('admin.orders.detail.contact.email')}:</span> {contactEmail}</div>
+        {contactPhone && <div><span className="text-neutral-500">{t('admin.orders.detail.contact.phone')}:</span> {contactPhone}</div>}
         {customerId ? (
           <div>
             <Link href={`/admin/clients/${customerId}`} className="text-blue-600 hover:underline">
