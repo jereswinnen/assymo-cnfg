@@ -3,7 +3,7 @@ import { db } from '@/db/client';
 import { tenantHosts, tenants } from '@/db/schema';
 import { DEFAULT_PRICE_BOOK, type PriceBook } from '@/domain/pricing';
 import { DEFAULT_ASSYMO_BRANDING, type Branding, type Currency, type Locale } from '@/domain/tenant';
-import { requireRole } from '@/lib/auth-guards';
+import { requireBusiness } from '@/lib/auth-guards';
 import { withSession } from '@/lib/auth-session';
 
 const TENANT_ID_RE = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
@@ -29,7 +29,7 @@ function isNonEmptyString(v: unknown): v is string {
  *  the tenant row — if any host conflicts with an existing row the
  *  whole create is rejected (409). */
 export const POST = withSession(async (session, req) => {
-  requireRole(session, ['super_admin']);
+  requireBusiness(session, ['super_admin']);
 
   let body: CreateTenantBody;
   try {

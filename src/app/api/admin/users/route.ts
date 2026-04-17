@@ -4,10 +4,10 @@ import { db } from '@/db/client';
 import { tenants } from '@/db/schema';
 import { user } from '@/db/auth-schema';
 import { auth } from '@/lib/auth';
-import { AuthError, requireRole, type Role } from '@/lib/auth-guards';
+import { AuthError, requireBusiness, type Role } from '@/lib/auth-guards';
 import { withSession } from '@/lib/auth-session';
 
-const CREATABLE_ROLES: readonly Role[] = ['super_admin', 'tenant_admin', 'staff'];
+const CREATABLE_ROLES: readonly Role[] = ['super_admin', 'tenant_admin'];
 
 interface CreateUserBody {
   email?: unknown;
@@ -25,7 +25,7 @@ function isNonEmptyString(v: unknown): v is string {
  *  emailVerified=true (admin vouched for it) and dispatches a magic
  *  link so the new user can start a session without a password. */
 export const POST = withSession(async (session, req) => {
-  requireRole(session, ['super_admin', 'tenant_admin']);
+  requireBusiness(session, ['super_admin', 'tenant_admin']);
   const actorRole = session.user.role as Role;
   const actorTenantId = session.user.tenantId as string | null | undefined;
 
@@ -112,6 +112,7 @@ export const POST = withSession(async (session, req) => {
       emailVerified: true,
       tenantId,
       role,
+      userType: 'business' as const,
       createdAt: now,
       updatedAt: now,
     })

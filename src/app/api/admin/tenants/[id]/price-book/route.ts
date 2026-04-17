@@ -3,14 +3,14 @@ import { and, eq, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { tenants } from '@/db/schema';
 import { validatePriceBookPatch, type PriceBook } from '@/domain/pricing';
-import { requireRole, requireTenantScope } from '@/lib/auth-guards';
+import { requireBusiness, requireTenantScope } from '@/lib/auth-guards';
 import { withSession } from '@/lib/auth-session';
 
 /** PATCH the tenant's priceBook. super_admin can touch any tenant;
- *  tenant_admin can only touch its own. staff is denied. The body is
+ *  tenant_admin can only touch its own. Business users only; client users are denied. The body is
  *  a partial priceBook; fields are merged over the stored jsonb. */
 export const PATCH = withSession(async (session, req, ctx: { params: Promise<{ id: string }> }) => {
-  requireRole(session, ['super_admin', 'tenant_admin']);
+  requireBusiness(session, ['super_admin', 'tenant_admin']);
 
   const { id } = await ctx.params;
   requireTenantScope(session, id);
