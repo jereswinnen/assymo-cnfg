@@ -48,6 +48,15 @@ export const auth = betterAuth({
 
   plugins: [
     magicLink({
+      // Block session creation for emails that don't already have a user
+      // row. Both onboarding flows (admin invite via POST /api/admin/users
+      // and shop submit via POST /api/shop/orders) insert the user BEFORE
+      // calling signInMagicLink, so disabling signup at the verify step is
+      // safe. The request endpoint still 200s + sends an email for unknown
+      // addresses (Better Auth's no-enumeration default); the verify
+      // endpoint redirects with `?error=new_user_signup_disabled` instead
+      // of creating a session for the unknown user.
+      disableSignUp: true,
       sendMagicLink: async ({ email, url }) => {
         // Detect an order-confirmation context. The Better Auth magic-link
         // URL embeds `callbackURL` as a query param; parse it and route to
