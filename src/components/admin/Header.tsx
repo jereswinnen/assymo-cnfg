@@ -1,5 +1,7 @@
 'use client';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import { signOut } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import { t } from '@/lib/i18n';
@@ -10,12 +12,14 @@ interface Props { name: string; email: string; role: Role }
 export function Header({ name, email, role }: Props) {
   const router = useRouter();
   return (
-    <header className="h-14 bg-white border-b border-neutral-200 flex items-center justify-between px-6">
-      <div className="text-sm text-neutral-600">
-        {name} <span className="text-neutral-400">·</span> {t(`admin.role.${role}`)}
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
+      <SidebarTrigger />
+      <Separator orientation="vertical" className="h-6" />
+      <div className="text-sm text-muted-foreground">
+        {name} <span className="text-muted-foreground/60">·</span> {t(`admin.role.${role}`)}
       </div>
-      <div className="flex items-center gap-3">
-        <span className="text-xs text-neutral-500">{email}</span>
+      <div className="ml-auto flex items-center gap-3">
+        <span className="text-xs text-muted-foreground">{email}</span>
         <Button
           variant="outline"
           size="sm"

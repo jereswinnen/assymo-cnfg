@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { Sidebar } from '@/components/admin/Sidebar';
 import { Header } from '@/components/admin/Header';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import type { Role, UserType } from '@/lib/auth-guards';
 
 export default async function AdminAuthedLayout({ children }: { children: React.ReactNode }) {
@@ -21,16 +22,16 @@ export default async function AdminAuthedLayout({ children }: { children: React.
   const role = session.user.role as Role;
 
   return (
-    <div className="h-screen flex bg-neutral-50 text-neutral-900">
+    <SidebarProvider>
       <Sidebar role={role} tenantId={session.user.tenantId as string | null} />
-      <div className="flex-1 flex flex-col">
+      <SidebarInset>
         <Header
           name={session.user.name ?? session.user.email}
           email={session.user.email}
           role={role}
         />
-        <main className="flex-1 p-8 overflow-y-auto">{children}</main>
-      </div>
-    </div>
+        <main className="flex-1 overflow-y-auto p-8">{children}</main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import Sidebar from '@/components/ui/Sidebar';
+import Sidebar from '@/components/ui/ConfiguratorSidebar';
 import SchematicView from '@/components/schematic/SchematicView';
 import { useUIStore } from '@/store/useUIStore';
 import { t } from '@/lib/i18n';
