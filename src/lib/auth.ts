@@ -36,7 +36,7 @@ export const auth = betterAuth({
       },
       userType: {
         type: ['business', 'client'] as const,
-        required: false,
+        required: true,
         defaultValue: 'business',
         input: false,
       },

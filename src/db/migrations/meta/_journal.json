@@ -29,6 +29,13 @@
       "when": 1776420580384,
       "tag": "0003_admin_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776425064806,
+      "tag": "0004_striped_elektra",
+      "breakpoints": true
     }
   ]
 }

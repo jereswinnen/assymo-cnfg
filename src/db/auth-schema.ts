@@ -16,9 +16,9 @@ export const user = pgTable("user", {
   role: text("role", { enum: ["super_admin", "tenant_admin"] }).default(
     "tenant_admin",
   ),
-  userType: text("user_type", { enum: ["business", "client"] }).default(
-    "business",
-  ),
+  userType: text("user_type", { enum: ["business", "client"] })
+    .default("business")
+    .notNull(),
 });
 
 export const session = pgTable(
