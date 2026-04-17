@@ -3,32 +3,33 @@ import {
   AuthError,
   requireRole,
   requireTenantScope,
+  requireBusiness,
+  requireClient,
+  type UserType,
 } from '@/lib/auth-guards';
 import type { Session } from '@/lib/auth';
 
-// Fabricate just enough of a Session for the pure guards. The real
-// session has many more fields but the guards only read user.role +
-// user.tenantId, so this shape is sufficient.
-function mkSession(role: string | null, tenantId: string | null): Session {
+function mkSession(
+  role: string | null,
+  tenantId: string | null,
+  userType: UserType | null = 'business',
+): Session {
   return {
     session: {} as Session['session'],
-    user: {
-      role,
-      tenantId,
-    } as Session['user'],
+    user: { role, tenantId, userType } as Session['user'],
   };
 }
 
 describe('requireRole', () => {
   it('passes when the role is allowed', () => {
-    const s = mkSession('super_admin', null);
-    expect(() => requireRole(s, ['super_admin'])).not.toThrow();
+    expect(() =>
+      requireRole(mkSession('super_admin', null), ['super_admin']),
+    ).not.toThrow();
   });
 
   it('throws forbidden_role when the role is not in the list', () => {
-    const s = mkSession('staff', 'assymo');
     try {
-      requireRole(s, ['super_admin', 'tenant_admin']);
+      requireRole(mkSession('tenant_admin', 'assymo'), ['super_admin']);
       expect.fail('should have thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(AuthError);
@@ -38,8 +39,9 @@ describe('requireRole', () => {
   });
 
   it('throws when the user has no role at all', () => {
-    const s = mkSession(null, 'assymo');
-    expect(() => requireRole(s, ['staff'])).toThrow(AuthError);
+    expect(() =>
+      requireRole(mkSession(null, 'assymo'), ['tenant_admin']),
+    ).toThrow(AuthError);
   });
 });
 
@@ -56,19 +58,55 @@ describe('requireTenantScope', () => {
     expect(() => requireTenantScope(s, 'other')).toThrow(AuthError);
   });
 
-  it('staff can touch its own tenant only', () => {
-    const s = mkSession('staff', 'assymo');
-    expect(() => requireTenantScope(s, 'assymo')).not.toThrow();
-    expect(() => requireTenantScope(s, 'other')).toThrow(AuthError);
-  });
-
   it('throws forbidden_tenant when mismatched', () => {
-    const s = mkSession('staff', 'assymo');
     try {
-      requireTenantScope(s, 'other');
+      requireTenantScope(mkSession('tenant_admin', 'assymo'), 'other');
       expect.fail('should have thrown');
     } catch (err) {
       expect((err as AuthError).code).toBe('forbidden_tenant');
+    }
+  });
+});
+
+describe('requireBusiness', () => {
+  it('passes for a business user with an allowed role', () => {
+    expect(() =>
+      requireBusiness(mkSession('tenant_admin', 'assymo', 'business'), ['tenant_admin']),
+    ).not.toThrow();
+  });
+
+  it('throws forbidden_user_type when the user is a client', () => {
+    try {
+      requireBusiness(mkSession('tenant_admin', 'assymo', 'client'), ['tenant_admin']);
+      expect.fail('should have thrown');
+    } catch (err) {
+      expect((err as AuthError).code).toBe('forbidden_user_type');
+    }
+  });
+
+  it('throws forbidden_role when the role is not allowed', () => {
+    try {
+      requireBusiness(mkSession('tenant_admin', 'assymo', 'business'), ['super_admin']);
+      expect.fail('should have thrown');
+    } catch (err) {
+      expect((err as AuthError).code).toBe('forbidden_role');
+    }
+  });
+});
+
+describe('requireClient', () => {
+  it('passes for a client user', () => {
+    expect(() =>
+      requireClient(mkSession(null, 'assymo', 'client')),
+    ).not.toThrow();
+  });
+
+  it('throws forbidden_user_type for a business user', () => {
+    try {
+      requireClient(mkSession('tenant_admin', 'assymo', 'business'));
+      expect.fail('should have thrown');
+    } catch (err) {
+      expect((err as AuthError).code).toBe('forbidden_user_type');
     }
   });
 });

@@ -1,16 +1,17 @@
 import { NextResponse } from 'next/server';
 import type { Session } from './auth';
 
-export type Role = 'super_admin' | 'tenant_admin' | 'staff';
+export type Role = 'super_admin' | 'tenant_admin';
+export type UserType = 'business' | 'client';
 
-export const ALL_ROLES = ['super_admin', 'tenant_admin', 'staff'] as const satisfies readonly Role[];
+export const ALL_ROLES = ['super_admin', 'tenant_admin'] as const satisfies readonly Role[];
+export const ALL_USER_TYPES = ['business', 'client'] as const satisfies readonly UserType[];
 
-/** Machine-readable error codes returned by the guards. Kept stable so
- *  the client can branch on them (401 vs 403 vs 403_tenant). */
 export type AuthErrorCode =
   | 'unauthenticated'
   | 'forbidden_role'
-  | 'forbidden_tenant';
+  | 'forbidden_tenant'
+  | 'forbidden_user_type';
 
 export class AuthError extends Error {
   constructor(
@@ -21,8 +22,7 @@ export class AuthError extends Error {
   }
 }
 
-/** Require the session's user role to be one of the given values.
- *  Throws AuthError('forbidden_role', 403) otherwise. */
+/** Require the session's user role to be one of the given values. */
 export function requireRole(session: Session, roles: readonly Role[]): void {
   const role = session.user.role as Role | null | undefined;
   if (!role || !roles.includes(role)) {
@@ -30,9 +30,8 @@ export function requireRole(session: Session, roles: readonly Role[]): void {
   }
 }
 
-/** Enforce tenant-scope access. `super_admin` can touch any tenant;
- *  everyone else is limited to their own `tenantId`. Throws
- *  AuthError('forbidden_tenant', 403) otherwise. */
+/** Tenant-scope check. super_admin bypasses; everyone else must match
+ *  their own tenantId. */
 export function requireTenantScope(session: Session, tenantId: string): void {
   const role = session.user.role as Role | null | undefined;
   if (role === 'super_admin') return;
@@ -41,9 +40,27 @@ export function requireTenantScope(session: Session, tenantId: string): void {
   }
 }
 
-/** Convert any thrown error into a JSON response: AuthError becomes
- *  its declared status + code, anything else re-throws so Next's
- *  error boundary renders a 500. */
+/** Require a business userType + an allowed business role. Used by
+ *  every /api/admin/* endpoint. */
+export function requireBusiness(session: Session, roles: readonly Role[]): void {
+  const userType = session.user.userType as UserType | null | undefined;
+  if (userType !== 'business') {
+    throw new AuthError('forbidden_user_type', 403);
+  }
+  requireRole(session, roles);
+}
+
+/** Require a client userType. Used by every /api/shop/* endpoint
+ *  (added in Phase 2 — guard ships here so the API and UI can
+ *  rely on it consistently). */
+export function requireClient(session: Session): void {
+  const userType = session.user.userType as UserType | null | undefined;
+  if (userType !== 'client') {
+    throw new AuthError('forbidden_user_type', 403);
+  }
+}
+
+/** Convert any thrown error into a JSON response. */
 export function toAuthErrorResponse(err: unknown): NextResponse {
   if (err instanceof AuthError) {
     return NextResponse.json({ error: err.code }, { status: err.status });
