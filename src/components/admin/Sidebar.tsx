@@ -4,6 +4,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Building2,
   ChevronsUpDownIcon,
+  ClipboardList,
+  Contact2,
   LayoutDashboard,
   LogOutIcon,
   Store,
@@ -53,6 +55,8 @@ interface NavItem {
 
 const ITEMS: NavItem[] = [
   { href: '/admin', labelKey: 'admin.nav.dashboard', icon: LayoutDashboard, visible: () => true },
+  { href: '/admin/orders', labelKey: 'admin.nav.orders', icon: ClipboardList, visible: () => true },
+  { href: '/admin/clients', labelKey: 'admin.nav.clients', icon: Contact2, visible: () => true },
   { href: '/admin/tenants', labelKey: 'admin.nav.tenants', icon: Building2, visible: (r) => r === 'super_admin' },
   { href: '/admin/users', labelKey: 'admin.nav.users', icon: Users, visible: () => true },
 ];
