@@ -276,7 +276,7 @@ Explicit non-goals to keep this lean:
 Tick a box when the phase is merged to `main` and deployed. Each phase has its own implementation plan in `docs/superpowers/plans/` once it's the active phase.
 
 - [x] Phase 1 — Admin foundation — [plan](../plans/2026-04-17-phase-1-admin-foundation.md)
-- [ ] Phase 2 — Orders
+- [x] Phase 2 — Orders — [plan](../plans/2026-04-17-phase-2-orders.md)
 - [ ] Phase 3 — Configurator submit
 - [ ] Phase 4 — Webshop shell + client account
   - [ ] Phase 4.5 — Material catalog filtering

@@ -10,6 +10,8 @@ export interface Crumb {
  *  this same map for the parent. */
 const STATIC_LABELS: Record<string, string> = {
   '/admin': 'admin.nav.dashboard',
+  '/admin/orders': 'admin.nav.orders',
+  '/admin/clients': 'admin.nav.clients',
   '/admin/tenants': 'admin.nav.tenants',
   '/admin/users': 'admin.nav.users',
 };

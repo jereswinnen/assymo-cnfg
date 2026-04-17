@@ -40,6 +40,7 @@ Pure TypeScript. No React, no three.js, no zustand. Safe to import from API rout
 - `building/` — entity types (`BuildingEntity`, `WallConfig`, `RoofConfig`, `SnapConnection`), geometric constants, snap detection, opening geometry helpers
 - `config/` — the canonical `ConfigData` contract + versioning (`CONFIG_VERSION`), base58 codec, `migrateConfig` for legacy input, pure `mutations.ts` (used by stores and future API), `validateConfig` returning stable error codes
 - `pricing/` — `PriceBook` (per-tenant scalar dials) + `calculateTotalQuote`; line items are structured `{ labelKey, labelParams }` so UIs format labels at render time
+- `orders/` — pure order types (`OrderStatus`, `OrderQuoteSnapshot`, `OrderConfigSnapshot`, `OrderRecord`), state machine (`ALLOWED_TRANSITIONS`, `validateOrderTransition`, `allowedNextStatuses`), and `buildQuoteSnapshot` / `buildConfigSnapshot` for freezing the priced quote + ConfigData at submit time
 - `materials/` — `MATERIALS_REGISTRY` + per-object catalogs (wall/roof/floor/door) + attachment-chain resolution helpers
 - `tenant/` — `TenantContext` with `priceBook`; host-based resolver
 
@@ -59,7 +60,12 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   holds the seeded per-brand context (`priceBook` and `branding` as jsonb); `configs`
   holds saved scenes with their base58 `code` and the canonical
   `ConfigData` in `data`; `tenant_hosts` maps request hosts to tenants
-  (hostname PK, tenantId FK with cascade delete).
+  (hostname PK, tenantId FK with cascade delete). `orders` rows freeze
+  the priced quote (`quoteSnapshot`) and the ConfigData (`configSnapshot`)
+  at submit time so each order is re-renderable years later regardless
+  of price-book or migration drift; `customerId` is nullable until the
+  client claims their magic-link account, and `configId` cascades to
+  NULL if the source config row is later GC'd.
 - `resolveTenant.ts` — DB-backed tenant resolver. `resolveTenantByHost`
   tries exact host, bare host (no port), and the leftmost subdomain
   label against `tenant_hosts`. Wrapped in React `cache()` so the
@@ -112,6 +118,23 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
     tenant at any role; tenant_admin is pinned to its own tenant and
     can't grant super_admin. Creates the row with `emailVerified=true`
     and best-effort fires a magic link.
+  - `GET /api/admin/orders` — super_admin all, tenant_admin own;
+    list orders newest-first
+  - `GET /api/admin/orders/[id]` — scoped detail (joined with customer)
+  - `PATCH /api/admin/orders/[id]/status` — validated transition via
+    `validateOrderTransition` from `@/domain/orders`
+  - `GET /api/admin/clients` — list `userType='client'` users in scope
+  - `GET /api/admin/clients/[id]` — client detail + their orders
+- `src/app/api/shop/*` — public + client-facing API.
+  - `POST /api/shop/orders` — public, host-scoped. Takes
+    `{ code, contact: { email, name, phone?, notes? } }`, snapshots the
+    priced quote via `buildQuoteSnapshot`, auto-creates (or reuses) a
+    `client` user keyed by email, and fires Better Auth's magic link
+    with `callbackURL=/shop/account/orders/<id>`. The `sendMagicLink`
+    callback in `src/lib/auth.ts` branches on that prefix and
+    dispatches the order-confirmation template
+    (`src/lib/orderConfirmationEmail.ts`) so the magic link rides
+    inside the order email.
 - `src/app/admin/` — business management UI. Split into a `(authed)` route
   group (session-guarded shell, all real pages live here) and a sibling
   `sign-in/` (no guard so the magic-link form can render). The `(authed)`
@@ -165,10 +188,17 @@ Anything that varies per brand lives on `TenantContext` — never in module-scop
 - **DB is source of truth** for tenants, hosts, and priceBooks. Every tenant lookup (layout, API routes, admin API) goes through `resolveTenantByHost` / `getTenantById` in `@/db/resolveTenant`. The `@/domain/tenant` folder keeps only pure host-normalization helpers and the `DEFAULT_TENANT_ID` constant — no hardcoded host map.
 - **Global-unique emails across tenants.** A user belongs to exactly one tenant (`user.tenantId`). super_admins can carry `tenantId=null`.
 - **Auth guards are split**: `@/lib/auth-guards` stays pure (no auth/DB imports, testable stand-alone). `@/lib/auth-session` holds the runtime-coupled `requireSession` / `withSession`.
+- **Order state machine** lives in `@/domain/orders/transitions.ts`.
+  Allowed transitions: `submitted → quoted | cancelled`,
+  `quoted → accepted | cancelled`, `accepted → cancelled`,
+  `draft → submitted | cancelled` (reserved). `cancelled` is terminal.
+  All transitions go through `validateOrderTransition`; the admin
+  status dropdown sources its options from `allowedNextStatuses` so
+  the UI cannot offer a transition the API would reject.
 
 ## Before committing
 
-- `pnpm test` must pass (113+ tests)
+- `pnpm test` must pass (161+ tests)
 - `pnpm build` must pass
 - `pnpm exec tsc --noEmit` must pass
 - Lint is noisy with pre-existing warnings — net-new errors only are a blocker
