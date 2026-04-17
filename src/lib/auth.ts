@@ -23,19 +23,21 @@ export const auth = betterAuth({
 
   user: {
     additionalFields: {
-      /** Which tenant this user belongs to. Nullable during initial
-       *  signup/invite, filled in by the admin API. `input: false`
-       *  means clients cannot set this directly. */
       tenantId: {
         type: 'string',
         required: false,
         input: false,
       },
-      /** Role within the tenant (or system-wide for super_admin). */
       role: {
-        type: ['super_admin', 'tenant_admin', 'staff'] as const,
+        type: ['super_admin', 'tenant_admin'] as const,
         required: false,
-        defaultValue: 'staff',
+        defaultValue: 'tenant_admin',
+        input: false,
+      },
+      userType: {
+        type: ['business', 'client'] as const,
+        required: false,
+        defaultValue: 'business',
         input: false,
       },
     },
