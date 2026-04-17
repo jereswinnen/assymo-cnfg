@@ -5,9 +5,7 @@ import { db } from '@/db/client';
 import { tenants } from '@/db/schema';
 import { TenantsTable } from '@/components/admin/TenantsTable';
 import { CreateTenantDialog } from '@/components/admin/CreateTenantDialog';
-import { PageTitle } from '@/components/admin/PageTitle';
 import { PageHeaderActions } from '@/components/admin/PageHeaderActions';
-import { t } from '@/lib/i18n';
 
 export default async function TenantsPage() {
   const session = (await auth.api.getSession({ headers: await headers() }))!;
@@ -17,7 +15,6 @@ export default async function TenantsPage() {
 
   return (
     <div className="space-y-6">
-      <PageTitle title={t('admin.tenants.title')} />
       <PageHeaderActions>
         <CreateTenantDialog />
       </PageHeaderActions>

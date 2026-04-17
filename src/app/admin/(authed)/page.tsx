@@ -5,7 +5,6 @@ import { tenants } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { t } from '@/lib/i18n';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PageTitle } from '@/components/admin/PageTitle';
 
 export default async function AdminDashboard() {
   // Layout already guarantees a business session.
@@ -19,7 +18,6 @@ export default async function AdminDashboard() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <PageTitle title={t('admin.nav.dashboard')} />
       <h1 className="text-2xl font-semibold">
         {t('admin.dashboard.greeting', { name: session.user.name ?? session.user.email })}
       </h1>
