@@ -265,6 +265,65 @@ const nl: Record<string, string> = {
   'admin.role.tenant_admin': 'Tenant admin',
   'admin.error.generic': 'Er ging iets mis.',
   'admin.error.forbidden': 'Geen toegang.',
+
+  // Admin — orders
+  'admin.nav.orders': 'Bestellingen',
+  'admin.orders.title': 'Bestellingen',
+  'admin.orders.empty': 'Nog geen bestellingen.',
+  'admin.orders.col.id': 'Bestel-ID',
+  'admin.orders.col.customer': 'Klant',
+  'admin.orders.col.email': 'E-mail',
+  'admin.orders.col.status': 'Status',
+  'admin.orders.col.total': 'Totaal',
+  'admin.orders.col.tenant': 'Tenant',
+  'admin.orders.col.submittedAt': 'Ingediend',
+  'admin.orders.detail.section.contact': 'Contact',
+  'admin.orders.detail.section.quote': 'Offerte',
+  'admin.orders.detail.section.config': 'Configuratie',
+  'admin.orders.detail.section.status': 'Status',
+  'admin.orders.detail.notes': 'Notities',
+  'admin.orders.detail.code': 'Configuratiecode',
+  'admin.orders.detail.openConfigurator': 'Open in configurator',
+  'admin.orders.detail.openCustomer': 'Klantprofiel openen',
+  'admin.orders.detail.noCustomer': 'Nog niet geclaimd',
+  'admin.orders.status.transition': 'Status wijzigen naar…',
+  'admin.orders.status.transition.submit': 'Wijzigen',
+  'admin.orders.status.transition.success': 'Status bijgewerkt naar {status}.',
+  'admin.orders.status.transition.error': 'Wijzigen mislukt: {error}',
+  'admin.orders.status.draft': 'Concept',
+  'admin.orders.status.submitted': 'Ingediend',
+  'admin.orders.status.quoted': 'Offerte verstuurd',
+  'admin.orders.status.accepted': 'Aanvaard',
+  'admin.orders.status.cancelled': 'Geannuleerd',
+
+  // Admin — clients
+  'admin.nav.clients': 'Klanten',
+  'admin.clients.title': 'Klanten',
+  'admin.clients.empty': 'Nog geen klanten.',
+  'admin.clients.col.email': 'E-mail',
+  'admin.clients.col.name': 'Naam',
+  'admin.clients.col.tenant': 'Tenant',
+  'admin.clients.col.createdAt': 'Aangemaakt',
+  'admin.clients.detail.section.profile': 'Profiel',
+  'admin.clients.detail.section.orders': 'Bestellingen',
+  'admin.clients.detail.email': 'E-mail',
+  'admin.clients.detail.name': 'Naam',
+  'admin.clients.detail.claimed': 'Account geclaimd',
+  'admin.clients.detail.unclaimed': 'Account nog niet geclaimd',
+  'admin.clients.detail.noOrders': 'Deze klant heeft nog geen bestellingen.',
+
+  // Email — order confirmation
+  'email.orderConfirmation.subject': 'Je bestelling bij {brand} ({orderId})',
+  'email.orderConfirmation.greeting': 'Hallo {name},',
+  'email.orderConfirmation.intro':
+    'Bedankt voor je aanvraag. We bekijken je configuratie en sturen je binnen één werkdag een offerte op maat.',
+  'email.orderConfirmation.summary': 'Samenvatting:',
+  'email.orderConfirmation.total': 'Geschatte totaal',
+  'email.orderConfirmation.claimIntro':
+    'Klik hieronder om je account aan te maken en de status van je bestelling te volgen. De link verloopt binnen 24 uur.',
+  'email.orderConfirmation.claimCta': 'Bekijk mijn bestelling',
+  'email.orderConfirmation.footer':
+    'Vragen? Antwoord op deze e-mail of bel ons.',
 };
 
 export function t(
