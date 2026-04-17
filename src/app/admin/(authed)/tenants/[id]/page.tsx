@@ -8,6 +8,7 @@ import { TenantDetailsSection } from '@/components/admin/TenantDetailsSection';
 import { HostsSection } from '@/components/admin/HostsSection';
 import { BrandingSection } from '@/components/admin/BrandingSection';
 import { PriceBookSection } from '@/components/admin/PriceBookSection';
+import { PageTitle } from '@/components/admin/PageTitle';
 
 export default async function TenantDetailPage({
   params,
@@ -26,7 +27,7 @@ export default async function TenantDetailPage({
 
   return (
     <div className="space-y-8 max-w-4xl">
-      <h1 className="text-2xl font-semibold">{tenant.displayName}</h1>
+      <PageTitle title={tenant.displayName} />
       <TenantDetailsSection tenant={tenant} />
       <HostsSection tenantId={tenant.id} initialHosts={hosts} />
       <BrandingSection tenantId={tenant.id} initialBranding={tenant.branding} />

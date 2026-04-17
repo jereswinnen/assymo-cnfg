@@ -5,6 +5,8 @@ import { db } from '@/db/client';
 import { tenants } from '@/db/schema';
 import { TenantsTable } from '@/components/admin/TenantsTable';
 import { CreateTenantDialog } from '@/components/admin/CreateTenantDialog';
+import { PageTitle } from '@/components/admin/PageTitle';
+import { PageHeaderActions } from '@/components/admin/PageHeaderActions';
 import { t } from '@/lib/i18n';
 
 export default async function TenantsPage() {
@@ -15,10 +17,10 @@ export default async function TenantsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{t('admin.tenants.title')}</h1>
+      <PageTitle title={t('admin.tenants.title')} />
+      <PageHeaderActions>
         <CreateTenantDialog />
-      </div>
+      </PageHeaderActions>
       <TenantsTable tenants={rows} />
     </div>
   );

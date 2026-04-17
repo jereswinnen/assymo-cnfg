@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { Sidebar } from '@/components/admin/Sidebar';
 import { Header } from '@/components/admin/Header';
+import { AdminHeaderProvider } from '@/components/admin/AdminHeaderContext';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import type { Role, UserType } from '@/lib/auth-guards';
@@ -24,13 +25,15 @@ export default async function AdminAuthedLayout({ children }: { children: React.
   const name = session.user.name ?? session.user.email;
 
   return (
-    <SidebarProvider>
-      <Sidebar role={role} tenantId={tenantId} name={name} email={session.user.email} />
-      <SidebarInset>
-        <Header />
-        <div className="flex-1 p-4">{children}</div>
-      </SidebarInset>
-      <Toaster />
-    </SidebarProvider>
+    <AdminHeaderProvider>
+      <SidebarProvider>
+        <Sidebar role={role} tenantId={tenantId} name={name} email={session.user.email} />
+        <SidebarInset>
+          <Header />
+          <div className="flex-1 p-4">{children}</div>
+        </SidebarInset>
+        <Toaster />
+      </SidebarProvider>
+    </AdminHeaderProvider>
   );
 }
