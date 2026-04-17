@@ -1,6 +1,15 @@
 import { headers } from 'next/headers';
+import { NextResponse } from 'next/server';
 import { auth, type Session } from './auth';
-import { AuthError, toAuthErrorResponse } from './auth-guards';
+import { AuthError } from './auth-guards';
+
+/** Convert any thrown error into a JSON response. */
+export function toAuthErrorResponse(err: unknown): NextResponse {
+  if (err instanceof AuthError) {
+    return NextResponse.json({ error: err.code }, { status: err.status });
+  }
+  throw err;
+}
 
 /** Fetch the current Better Auth session from the request headers.
  *  Throws AuthError('unauthenticated', 401) when there is none. */

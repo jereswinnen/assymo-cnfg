@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import type { Session } from './auth';
 
 export type Role = 'super_admin' | 'tenant_admin';
@@ -58,12 +57,4 @@ export function requireClient(session: Session): void {
   if (userType !== 'client') {
     throw new AuthError('forbidden_user_type', 403);
   }
-}
-
-/** Convert any thrown error into a JSON response. */
-export function toAuthErrorResponse(err: unknown): NextResponse {
-  if (err instanceof AuthError) {
-    return NextResponse.json({ error: err.code }, { status: err.status });
-  }
-  throw err;
 }
