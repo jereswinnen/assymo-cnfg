@@ -112,9 +112,39 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
     tenant at any role; tenant_admin is pinned to its own tenant and
     can't grant super_admin. Creates the row with `emailVerified=true`
     and best-effort fires a magic link.
-- Reserved top-level route segments for `admin/`, `shop/`, more `api/*`
+- `src/app/admin/` — business management UI. Split into a `(authed)` route
+  group (session-guarded shell, all real pages live here) and a sibling
+  `sign-in/` (no guard so the magic-link form can render). The `(authed)`
+  layout wraps in `AdminHeaderProvider` + `SidebarProvider`, renders the
+  sidebar, header, content, and a bottom-mounted `<Toaster />`.
+- Reserved top-level route segments for `shop/`, more `api/*`
 - `src/app/layout.tsx` resolves the tenant from the `host` header
   against the in-memory registry and wraps in `<TenantProvider>`
+
+## Admin UI patterns
+
+- **Shadcn primitives in their NATIVE form.** Never restyle button/dialog/
+  sidebar/etc. Add new primitives via `pnpm dlx shadcn@latest add [name]`.
+  Animations come from `tw-animate-css` (imported in `globals.css`).
+- **Sidebar:** `src/components/admin/Sidebar.tsx` uses the shadcn `Sidebar`
+  primitive with `collapsible="offcanvas"` + `<SidebarRail />`. Footer is
+  the user avatar + dropdown (sign-out lives there). Nav items take a
+  lucide icon and `tooltip` so they show labels when collapsed.
+- **Header:** `src/components/admin/Header.tsx` is sticky (`top-0 z-10`)
+  and renders `SidebarTrigger` + breadcrumb + an actions slot.
+- **Header context:** `src/components/admin/AdminHeaderContext.tsx`
+  provides `useAdminHeaderTitle(title)` and `useAdminHeaderActions(node)`.
+  Two tiny client wrappers (`PageTitle`, `PageHeaderActions`) let server
+  pages register into the header without becoming client components.
+- **Breadcrumbs:** `src/components/admin/breadcrumbs.ts` holds a
+  `STATIC_LABELS` route → i18n-key map. Static pages get their crumb
+  automatically — DO NOT call `<PageTitle>` on them. Dynamic `[id]` pages
+  register the leaf via `<PageTitle title={…} />`; the resolver chains
+  the parent crumb (linked) automatically.
+- **Adding a new admin page:** add the route to `STATIC_LABELS` (or rely
+  on auto-chain for `[id]` pages), add a sidebar nav item, write the page
+  inside `src/app/admin/(authed)/…`. Page-level CTAs go into the header
+  via `<PageHeaderActions>…</PageHeaderActions>`.
 
 ## White-label / multi-tenant
 
