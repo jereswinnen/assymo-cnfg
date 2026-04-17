@@ -9,6 +9,12 @@ body {
   overflow: hidden;
 }
 
+/* Admin shell needs the page to scroll; the configurator locks the
+   viewport to its 3D canvas, but the admin shows long forms/tables. */
+body:has([data-app="admin"]) {
+  overflow: auto;
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
