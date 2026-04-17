@@ -9,7 +9,7 @@ Interactive 3D configurator for Assymo garden structures — overkapping (open c
 - Zustand + zundo (state + undo/redo)
 - Tailwind v4, shadcn, radix-ui, lucide-react
 - Neon Postgres + Drizzle ORM + `@neondatabase/serverless` (HTTP driver)
-- Better Auth (email+password + magic link via Resend)
+- Better Auth (email+password + magic link via Resend); users carry `userType: 'business' | 'client'`, with `/api/admin/*` requiring `userType=business`
 - Vite+ (test runner only — does NOT replace Next's bundler)
 
 ## Package Manager
@@ -56,7 +56,7 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
 ### `src/db/`
 
 - `schema.ts` — Drizzle table definitions for domain tables. `tenants`
-  holds the seeded per-brand context (`priceBook` as jsonb); `configs`
+  holds the seeded per-brand context (`priceBook` and `branding` as jsonb); `configs`
   holds saved scenes with their base58 `code` and the canonical
   `ConfigData` in `data`; `tenant_hosts` maps request hosts to tenants
   (hostname PK, tenantId FK with cascade delete).
@@ -68,7 +68,7 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   `npx @better-auth/cli generate --config src/lib/auth.ts --output src/db/auth-schema.ts`
   after changing `src/lib/auth.ts` (additionalFields, plugins). Holds
   `user`, `session`, `account`, `verification`. User has a nullable
-  `tenantId` and a `role` of `super_admin | tenant_admin | staff`.
+  `tenantId` and a `role` of `super_admin | tenant_admin`.
 - `client.ts` — Drizzle client wired to Neon HTTP. Merges both schemas
   so a single `db` instance covers everything. Imported by route
   handlers; not used in RSC layouts (tenant layout resolver stays in
@@ -94,11 +94,20 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   `@/lib/auth-guards`, which is framework-free and tested alone).
   Current endpoints:
   - `GET  /api/admin/tenants/current` — any authenticated session
+  - `GET /api/admin/tenants` — super_admin only; list all tenants
+  - `GET /api/admin/tenants/[id]` — super_admin only; fetch single tenant
   - `POST /api/admin/tenants` — super_admin only; creates the tenant
     row + any supplied host mappings in one request
+  - `GET/POST /api/admin/tenants/[id]/hosts` — super_admin any,
+    tenant_admin own; list and add host mappings
+  - `DELETE /api/admin/tenants/[id]/hosts/[hostname]` — super_admin any,
+    tenant_admin own; remove a host mapping
   - `PATCH /api/admin/tenants/[id]/price-book` — super_admin any,
     tenant_admin own; validates against `validatePriceBookPatch` and
     merges over the stored jsonb
+  - `PATCH /api/admin/tenants/[id]/branding` — super_admin any,
+    tenant_admin own; update tenant branding (displayName, colors, logo)
+  - `GET /api/admin/users` — list business users in scope
   - `POST /api/admin/users` — super_admin can create any user in any
     tenant at any role; tenant_admin is pinned to its own tenant and
     can't grant super_admin. Creates the row with `emailVerified=true`

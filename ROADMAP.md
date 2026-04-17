@@ -9,22 +9,17 @@ Living plan for the configurator → admin → webshop rollout. Updated as phase
 - Better Auth (email+password + magic link via Resend); first super_admin bootstrapped
 - Admin API complete: `GET /api/admin/tenants/current`, `POST /api/admin/tenants`, `PATCH /api/admin/tenants/[id]/price-book`, `POST /api/admin/users`
 - Host-based tenant resolution (DB-backed via `tenant_hosts`)
+- **Phase 1 (admin foundation) in progress** on branch `phase-1-admin-foundation`
 
 See `CLAUDE.md` for architecture details and conventions.
 
-## Phase 1 — Admin UI (next)
+## Phase 1 — Admin foundation (in progress)
 
-Consume the admin API end-to-end.
+Detailed spec + plan:
+- Spec: `docs/superpowers/specs/2026-04-17-platform-architecture-design.md`
+- Plan: `docs/superpowers/plans/2026-04-17-phase-1-admin-foundation.md`
 
-- `src/app/admin/` route group
-  - `/admin/sign-in` — magic-link form using `signIn.magicLink` from `@/lib/auth-client`
-  - `/admin/layout.tsx` — session guard (redirect unauthenticated → sign-in; 403 page for role=staff); sidebar + header
-- Pages:
-  - `/admin` — dashboard (session user, tenant summary)
-  - `/admin/price-book` — form that PATCHes `/api/admin/tenants/[id]/price-book`, with live-preview of a sample quote
-  - `/admin/users` — list of users in current tenant + "invite user" modal → POST `/api/admin/users`
-  - `/admin/tenants` (super_admin only) — list + "create tenant" form → POST `/api/admin/tenants`
-- Unblocks every downstream phase — real humans drive the APIs we just built
+Spec progress is tracked at the bottom of the spec.
 
 ## Phase 2 — Orders layer
 
