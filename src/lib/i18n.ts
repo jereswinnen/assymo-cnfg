@@ -263,7 +263,6 @@ const nl: Record<string, string> = {
   // Admin — common
   'admin.role.super_admin': 'Super admin',
   'admin.role.tenant_admin': 'Tenant admin',
-  'admin.role.staff': 'Medewerker',
   'admin.error.generic': 'Er ging iets mis.',
   'admin.error.forbidden': 'Geen toegang.',
 };
