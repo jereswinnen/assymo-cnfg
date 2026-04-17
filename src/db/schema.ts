@@ -9,7 +9,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import type { ConfigData } from '@/domain/config';
 import type { PriceBook } from '@/domain/pricing';
-import type { Currency, Locale } from '@/domain/tenant';
+import type { Branding, Currency, Locale } from '@/domain/tenant';
 
 /** Tenants — one row per white-label brand. Columns mirror the in-memory
  *  TenantContext. `id` is the stable slug used everywhere (URL lookup,
@@ -20,6 +20,7 @@ export const tenants = pgTable('tenants', {
   locale: text('locale').$type<Locale>().notNull(),
   currency: text('currency').$type<Currency>().notNull(),
   priceBook: jsonb('price_book').$type<PriceBook>().notNull(),
+  branding: jsonb('branding').$type<Branding>().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

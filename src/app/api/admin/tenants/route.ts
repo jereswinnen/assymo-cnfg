@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db/client';
 import { tenantHosts, tenants } from '@/db/schema';
 import { DEFAULT_PRICE_BOOK, type PriceBook } from '@/domain/pricing';
-import type { Currency, Locale } from '@/domain/tenant';
+import { DEFAULT_ASSYMO_BRANDING, type Branding, type Currency, type Locale } from '@/domain/tenant';
 import { requireRole } from '@/lib/auth-guards';
 import { withSession } from '@/lib/auth-session';
 
@@ -16,6 +16,7 @@ interface CreateTenantBody {
   locale?: unknown;
   currency?: unknown;
   priceBook?: unknown;
+  branding?: unknown;
   hosts?: unknown;
 }
 
@@ -63,12 +64,13 @@ export const POST = withSession(async (session, req) => {
   const locale = body.locale as Locale;
   const currency = body.currency as Currency;
   const priceBook = (body.priceBook as PriceBook | undefined) ?? DEFAULT_PRICE_BOOK;
+  const branding = (body.branding as Branding | undefined) ?? DEFAULT_ASSYMO_BRANDING;
   const normalizedHosts = (hosts as string[]).map((h) => h.toLowerCase());
 
   try {
     const [tenant] = await db
       .insert(tenants)
-      .values({ id, displayName, locale, currency, priceBook })
+      .values({ id, displayName, locale, currency, priceBook, branding })
       .returning();
 
     if (normalizedHosts.length > 0) {

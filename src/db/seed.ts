@@ -2,6 +2,7 @@ import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { sql } from 'drizzle-orm';
 import { DEFAULT_PRICE_BOOK } from '../domain/pricing/priceBook.ts';
+import { DEFAULT_ASSYMO_BRANDING } from '../domain/tenant/branding.ts';
 import * as schema from './schema.ts';
 import { tenantHosts, tenants } from './schema.ts';
 
@@ -22,6 +23,7 @@ async function main() {
       locale: 'nl',
       currency: 'EUR',
       priceBook: DEFAULT_PRICE_BOOK,
+      branding: DEFAULT_ASSYMO_BRANDING,
     })
     .onConflictDoUpdate({
       target: tenants.id,
@@ -30,6 +32,7 @@ async function main() {
         locale: sql`excluded.locale`,
         currency: sql`excluded.currency`,
         priceBook: sql`excluded.price_book`,
+        branding: sql`excluded.branding`,
         updatedAt: sql`now()`,
       },
     });
