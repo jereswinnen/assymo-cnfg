@@ -9,7 +9,8 @@ Living plan for the configurator → admin → webshop rollout. Updated as phase
 - Better Auth (email+password + magic link via Resend); first super_admin bootstrapped
 - Admin API complete: `GET /api/admin/tenants/current`, `POST /api/admin/tenants`, `PATCH /api/admin/tenants/[id]/price-book`, `POST /api/admin/users`
 - Host-based tenant resolution (DB-backed via `tenant_hosts`)
-- **Phase 1 (admin foundation) in progress** on branch `phase-1-admin-foundation`
+- Phase 1 (admin foundation) shipped
+- **Phase 2 (orders) in progress** on branch `phase-2-orders`
 
 See `CLAUDE.md` for architecture details and conventions.
 
@@ -21,16 +22,11 @@ Detailed spec + plan:
 
 Spec progress is tracked at the bottom of the spec.
 
-## Phase 2 — Orders layer
+## Phase 2 — Orders (in progress)
 
-First persistent artifact produced by customers.
-
-- Schema: `orders` table
-  - `id, tenantId, configId, customerId (nullable until Phase 5), status, totalCents, currency, quoteSnapshot (jsonb), contactEmail, contactName, notes, createdAt, updatedAt, submittedAt`
-  - State enum: `draft | submitted | quoted | accepted | awaiting_payment | paid | cancelled`
-- Domain: `src/domain/orders/` with pure state-transition rules + `validateOrderTransition(from, to)` returning the same `ValidationError[]` shape we use elsewhere
-- API: `POST /api/orders` (public, host-scoped), `GET /api/admin/orders`, `PATCH /api/admin/orders/[id]/status`
-- Admin UI: `/admin/orders` list + `/admin/orders/[id]` detail (config preview, status transitions)
+Detailed plan: `docs/superpowers/plans/2026-04-17-phase-2-orders.md`.
+Spec progress is tracked at the bottom of
+`docs/superpowers/specs/2026-04-17-platform-architecture-design.md`.
 
 ## Phase 3 — Configurator "submit" flow
 
