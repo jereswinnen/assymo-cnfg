@@ -1,40 +1,53 @@
 import { describe, it, expect } from 'vite-plus/test';
-import {
-  DEFAULT_TENANT_ID,
-  getTenantById,
-  resolveTenantFromHost,
-} from '@/domain/tenant';
+import { DEFAULT_TENANT_ID, candidateHostKeys } from '@/domain/tenant';
 
-describe('tenant resolver', () => {
-  it('resolves localhost to the default assymo tenant', () => {
-    expect(resolveTenantFromHost('localhost').id).toBe('assymo');
-    expect(resolveTenantFromHost('localhost:3000').id).toBe('assymo');
+describe('candidateHostKeys', () => {
+  it('returns the exact host as the first candidate', () => {
+    expect(candidateHostKeys('assymo.be')).toEqual(['assymo.be']);
   });
 
-  it('falls back to the default tenant for unknown hosts', () => {
-    expect(resolveTenantFromHost('unregistered.example.com').id).toBe(DEFAULT_TENANT_ID);
+  it('lowercases the input', () => {
+    expect(candidateHostKeys('ASSYMO.BE')).toEqual(['assymo.be']);
   });
 
-  it('falls back for null/undefined host', () => {
-    expect(resolveTenantFromHost(null).id).toBe(DEFAULT_TENANT_ID);
-    expect(resolveTenantFromHost(undefined).id).toBe(DEFAULT_TENANT_ID);
+  it('adds a bare host fallback when the host includes a port', () => {
+    expect(candidateHostKeys('localhost:3000')).toEqual(['localhost:3000', 'localhost']);
   });
 
-  it('handles uppercase host values', () => {
-    expect(resolveTenantFromHost('ASSYMO.BE').id).toBe('assymo');
+  it('adds the leftmost subdomain label for 3+ part hosts', () => {
+    expect(candidateHostKeys('partner.configurator.com')).toEqual([
+      'partner.configurator.com',
+      'partner',
+    ]);
+  });
+
+  it('combines port + subdomain candidates', () => {
+    expect(candidateHostKeys('partner.configurator.com:8080')).toEqual([
+      'partner.configurator.com:8080',
+      'partner.configurator.com',
+      'partner',
+    ]);
+  });
+
+  it('does NOT add a subdomain candidate for 2-part hosts', () => {
+    // `assymo.be` has only two labels, so we never look up `assymo` as a key.
+    expect(candidateHostKeys('assymo.be')).not.toContain('assymo');
+  });
+
+  it('returns an empty list for null / undefined / empty input', () => {
+    expect(candidateHostKeys(null)).toEqual([]);
+    expect(candidateHostKeys(undefined)).toEqual([]);
+    expect(candidateHostKeys('')).toEqual([]);
+  });
+
+  it('deduplicates candidates that collapse onto the same key', () => {
+    // `localhost` has no port and one label, so the bare + exact candidates match.
+    expect(candidateHostKeys('localhost')).toEqual(['localhost']);
   });
 });
 
-describe('getTenantById', () => {
-  it('returns the assymo tenant with a priceBook attached', () => {
-    const tenant = getTenantById('assymo');
-    expect(tenant.id).toBe('assymo');
-    expect(tenant.priceBook.postPrice).toBeGreaterThan(0);
-    expect(tenant.priceBook.doorBase.enkel).toBeGreaterThan(0);
-  });
-
-  it('falls back to the default tenant for unknown ids', () => {
-    const tenant = getTenantById('no-such-tenant');
-    expect(tenant.id).toBe(DEFAULT_TENANT_ID);
+describe('DEFAULT_TENANT_ID', () => {
+  it('is the assymo slug', () => {
+    expect(DEFAULT_TENANT_ID).toBe('assymo');
   });
 });

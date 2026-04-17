@@ -15,6 +15,13 @@
       "when": 1776351258898,
       "tag": "0001_long_killmonger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776412012672,
+      "tag": "0002_peaceful_longshot",
+      "breakpoints": true
     }
   ]
 }

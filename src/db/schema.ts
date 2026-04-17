@@ -1,4 +1,5 @@
 import {
+  index,
   integer,
   jsonb,
   pgTable,
@@ -42,7 +43,25 @@ export const configs = pgTable(
   (t) => [uniqueIndex('configs_tenant_code_idx').on(t.tenantId, t.code)],
 );
 
+/** Hosts that resolve to a given tenant — exact match (`assymo.be`),
+ *  dev fallback (`localhost`, `localhost:3000`), or subdomain shorthand
+ *  (`partner` matching `partner.configurator.com`). All stored lowercase;
+ *  callers normalize before lookup. */
+export const tenantHosts = pgTable(
+  'tenant_hosts',
+  {
+    hostname: text('hostname').primaryKey(),
+    tenantId: text('tenant_id')
+      .references(() => tenants.id, { onDelete: 'cascade' })
+      .notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index('tenant_hosts_tenant_id_idx').on(t.tenantId)],
+);
+
 export type TenantRow = typeof tenants.$inferSelect;
 export type NewTenantRow = typeof tenants.$inferInsert;
 export type ConfigRow = typeof configs.$inferSelect;
 export type NewConfigRow = typeof configs.$inferInsert;
+export type TenantHostRow = typeof tenantHosts.$inferSelect;
+export type NewTenantHostRow = typeof tenantHosts.$inferInsert;

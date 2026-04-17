@@ -3,13 +3,15 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { sql } from 'drizzle-orm';
 import { DEFAULT_PRICE_BOOK } from '../domain/pricing/priceBook.ts';
 import * as schema from './schema.ts';
-import { tenants } from './schema.ts';
+import { tenantHosts, tenants } from './schema.ts';
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL is not set — run with --env-file=.env.local');
 }
 
 const db = drizzle({ client: neon(process.env.DATABASE_URL), schema });
+
+const DEFAULT_HOSTS = ['localhost', 'localhost:3000', 'assymo.be'];
 
 async function main() {
   await db
@@ -32,7 +34,14 @@ async function main() {
       },
     });
 
-  console.log('Seeded tenant: assymo');
+  for (const hostname of DEFAULT_HOSTS) {
+    await db
+      .insert(tenantHosts)
+      .values({ hostname, tenantId: 'assymo' })
+      .onConflictDoNothing({ target: tenantHosts.hostname });
+  }
+
+  console.log(`Seeded tenant: assymo (${DEFAULT_HOSTS.length} hosts)`);
 }
 
 main().catch((err) => {
