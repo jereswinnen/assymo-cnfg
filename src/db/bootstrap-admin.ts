@@ -49,9 +49,16 @@ async function main() {
   if (existing[0]) {
     await db
       .update(user)
-      .set({ tenantId, role: 'super_admin', emailVerified: true })
+      .set({
+        tenantId,
+        role: 'super_admin',
+        emailVerified: true,
+        ...(nameOverride ? { name: nameOverride } : {}),
+      })
       .where(eq(user.id, existing[0].id));
-    console.log(`Promoted existing user ${email} → super_admin in tenant "${tenantId}"`);
+    console.log(
+      `Promoted existing user ${email}${nameOverride ? ` (${nameOverride})` : ''} → super_admin in tenant "${tenantId}"`,
+    );
   } else {
     const id = crypto.randomUUID();
     const name = nameOverride ?? (email!.split('@')[0] ?? 'Admin');
