@@ -47,7 +47,7 @@ function AdminBreadcrumbs() {
 
 export function Header() {
   return (
-    <header className="px-4 flex h-16 shrink-0 items-center gap-2 border-b">
+    <header className="sticky top-0 z-10 px-4 flex h-16 shrink-0 items-center gap-2 border-b bg-background">
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
       <AdminBreadcrumbs />
