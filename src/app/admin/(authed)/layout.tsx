@@ -22,7 +22,7 @@ export default async function AdminAuthedLayout({ children }: { children: React.
   const role = session.user.role as Role;
 
   return (
-    <SidebarProvider data-app="admin">
+    <SidebarProvider>
       <Sidebar role={role} tenantId={session.user.tenantId as string | null} />
       <SidebarInset>
         <Header

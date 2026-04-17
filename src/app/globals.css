@@ -6,13 +6,6 @@
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
-  overflow: hidden;
-}
-
-/* Admin shell needs the page to scroll; the configurator locks the
-   viewport to its 3D canvas, but the admin shows long forms/tables. */
-body:has([data-app="admin"]) {
-  overflow: auto;
 }
 
 @theme inline {
