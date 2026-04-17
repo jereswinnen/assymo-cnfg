@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { tenants } from '@/db/schema';
 import { user } from '@/db/auth-schema';
@@ -142,4 +142,43 @@ export const POST = withSession(async (session, req) => {
     { user: inserted, magicLinkDispatched },
     { status: 201 },
   );
+});
+
+/** List business users in scope. super_admin sees all rows;
+ *  tenant_admin sees only its own tenant. Clients are excluded
+ *  (those go through a separate /api/admin/clients endpoint in
+ *  Phase 2). */
+export const GET = withSession(async (session) => {
+  requireBusiness(session, ['super_admin', 'tenant_admin']);
+  const actorRole = session.user.role as Role;
+  const actorTenantId = session.user.tenantId as string | null;
+
+  const baseQuery = db
+    .select({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      tenantId: user.tenantId,
+      createdAt: user.createdAt,
+    })
+    .from(user)
+    .where(eq(user.userType, 'business'));
+
+  const rows =
+    actorRole === 'super_admin'
+      ? await baseQuery
+      : await db
+          .select({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            tenantId: user.tenantId,
+            createdAt: user.createdAt,
+          })
+          .from(user)
+          .where(and(eq(user.userType, 'business'), eq(user.tenantId, actorTenantId ?? '__none__')));
+
+  return NextResponse.json({ users: rows });
 });
