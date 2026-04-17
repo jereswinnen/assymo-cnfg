@@ -8,6 +8,11 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import type { ConfigData } from '@/domain/config';
+import type {
+  OrderConfigSnapshot,
+  OrderQuoteSnapshot,
+  OrderStatus,
+} from '@/domain/orders';
 import type { PriceBook } from '@/domain/pricing';
 import type { Branding, Currency, Locale } from '@/domain/tenant';
 
@@ -60,9 +65,49 @@ export const tenantHosts = pgTable(
   (t) => [index('tenant_hosts_tenant_id_idx').on(t.tenantId)],
 );
 
+/** Customer orders. Each row freezes the priced quote (`quoteSnapshot`)
+ *  and the ConfigData (`configSnapshot`) at submit time so the order is
+ *  re-renderable years later regardless of price-book or migration drift.
+ *  `customerId` is nullable until the client claims the magic link;
+ *  `configId` is nullable so an order is preserved even if a config row
+ *  is later GC'd. `code` is the base58 share code — the same value lives
+ *  inside `quoteSnapshot.items[*].code`, denormalized to the row for
+ *  cheap list-view filtering. */
+export const orders = pgTable(
+  'orders',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .references(() => tenants.id, { onDelete: 'restrict' })
+      .notNull(),
+    configId: text('config_id').references(() => configs.id, { onDelete: 'set null' }),
+    code: text('code').notNull(),
+    customerId: text('customer_id'),
+    contactEmail: text('contact_email').notNull(),
+    contactName: text('contact_name').notNull(),
+    contactPhone: text('contact_phone'),
+    notes: text('notes'),
+    status: text('status').$type<OrderStatus>().notNull(),
+    totalCents: integer('total_cents').notNull(),
+    currency: text('currency').$type<Currency>().notNull(),
+    quoteSnapshot: jsonb('quote_snapshot').$type<OrderQuoteSnapshot>().notNull(),
+    configSnapshot: jsonb('config_snapshot').$type<OrderConfigSnapshot>().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    submittedAt: timestamp('submitted_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('orders_tenant_id_idx').on(t.tenantId),
+    index('orders_customer_id_idx').on(t.customerId),
+    index('orders_status_idx').on(t.status),
+  ],
+);
+
 export type TenantRow = typeof tenants.$inferSelect;
 export type NewTenantRow = typeof tenants.$inferInsert;
 export type ConfigRow = typeof configs.$inferSelect;
 export type NewConfigRow = typeof configs.$inferInsert;
 export type TenantHostRow = typeof tenantHosts.$inferSelect;
 export type NewTenantHostRow = typeof tenantHosts.$inferInsert;
+export type OrderRow = typeof orders.$inferSelect;
+export type NewOrderRow = typeof orders.$inferInsert;
