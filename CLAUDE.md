@@ -134,7 +134,10 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
     callback in `src/lib/auth.ts` branches on that prefix and
     dispatches the order-confirmation template
     (`src/lib/orderConfirmationEmail.ts`) so the magic link rides
-    inside the order email.
+    inside the order email. The configurator's "In winkelmandje"
+    dialog (see "Configurator submit flow" below) calls this endpoint
+    as the second leg of a two-POST chain: `POST /api/configs` first,
+    then `POST /api/shop/orders` with the returned code.
 - `src/app/admin/` — business management UI. Split into a `(authed)` route
   group (session-guarded shell, all real pages live here) and a sibling
   `sign-in/` (no guard so the magic-link form can render). The `(authed)`
@@ -168,6 +171,39 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   on auto-chain for `[id]` pages), add a sidebar nav item, write the page
   inside `src/app/admin/(authed)/…`. Page-level CTAs go into the header
   via `<PageHeaderActions>…</PageHeaderActions>`.
+
+## Configurator submit flow
+
+The sidebar's "In winkelmandje" CTA (in `src/components/ui/ObjectsTab.tsx`
+→ `SidebarFooter`) opens `OrderSubmitDialog`. The dialog collects
+name / email / phone / notes via react-hook-form + a zod schema from
+`@/domain/orders/contactForm` (messages are i18n **keys** so the schema
+stays framework-free and testable).
+
+On submit, `useSubmitOrder` (in `src/components/ui/useSubmitOrder.ts`)
+chains two POSTs:
+
+1. `POST /api/configs` with the current `encodeState()` code — persists
+   the scene (idempotent per tenant+code).
+2. `POST /api/shop/orders` with `{ code, contact }` — the server
+   snapshots the priced quote, auto-creates (or reuses) the `client`
+   user, and fires the magic-link email.
+
+On 201, the dialog swaps to a confirmation view showing the order ID,
+estimated total, and "we reach out within 1 werkdag" copy. Server
+error codes (`validation_failed`, `config_not_found`, `config_invalid`,
+`email_in_use_by_business`, `unknown_tenant`, `invalid_code`) plus the
+client-synthesised `network` / `unknown` sentinels are mapped to
+Dutch banner copy via `mapShopOrdersErrorCode` (also in
+`@/domain/orders/contactForm`); `validation_failed` details are
+surfaced as inline field errors.
+
+The dialog owns the "disabled until there's at least one building"
+rule via `useConfigStore(s => s.buildings.length)`. No cart
+persistence — closing the dialog discards the form state. The shipped
+shadcn `FormMessage` renders `error.message` verbatim, so the dialog
+uses a local `TranslatedFormMessage` wrapper that runs the i18n key
+through `t()`.
 
 ## White-label / multi-tenant
 
