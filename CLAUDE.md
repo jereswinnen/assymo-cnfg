@@ -323,7 +323,7 @@ Anything that varies per brand lives on `TenantContext` — never in module-scop
 
 ## Before committing
 
-- `pnpm test` must pass (161+ tests)
+- `pnpm test` must pass (305+ tests)
 - `pnpm build` must pass
 - `pnpm exec tsc --noEmit` must pass
 - Lint is noisy with pre-existing warnings — net-new errors only are a blocker
