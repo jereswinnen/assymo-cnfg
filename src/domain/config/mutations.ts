@@ -339,6 +339,35 @@ export function setOrientation(
   return mapBuilding(cfg, id, (b) => ({ ...b, orientation }));
 }
 
+/** Reset a building in-place to its source product's defaults. Preserves
+ *  id, position, orientation, connections, poles, attachedTo, and the
+ *  scene roof. Only dimensions + primaryMaterialId + floor.materialId
+ *  are touched. */
+export function resetBuildingToDefaults(
+  state: ConfigData,
+  buildingId: string,
+  defaults: ProductBuildingDefaults,
+): ConfigData {
+  return {
+    ...state,
+    buildings: state.buildings.map((b) => {
+      if (b.id !== buildingId) return b;
+      return {
+        ...b,
+        dimensions: {
+          width: defaults.dimensions.width ?? b.dimensions.width,
+          depth: defaults.dimensions.depth ?? b.dimensions.depth,
+          height: defaults.dimensions.height ?? b.dimensions.height,
+        },
+        primaryMaterialId: defaults.primaryMaterialId ?? b.primaryMaterialId,
+        floor: defaults.floor
+          ? { materialId: defaults.floor.materialId as FloorMaterialId }
+          : b.floor,
+      };
+    }),
+  };
+}
+
 /** True iff the wall is opened-up by a snap connection (no wall drawn). */
 export function isWallHiddenByConnection(
   cfg: ConfigData,

@@ -22,6 +22,7 @@ import {
   migrateConfig,
   removeBuilding as mRemoveBuilding,
   resetBuildingPoles as mResetBuildingPoles,
+  resetBuildingToDefaults as mResetBuildingToDefaults,
   setBuildingPrimaryMaterial as mSetBuildingPrimaryMaterial,
   setConnections as mSetConnections,
   setDefaultHeight as mSetDefaultHeight,
@@ -64,6 +65,7 @@ interface ConfigStore extends ConfigData {
   toggleBuildingBraces: (id: string) => void;
   updateBuildingPoles: (id: string, poles: PolesConfig) => void;
   resetBuildingPoles: (id: string) => void;
+  resetBuildingToDefaults: (id: string, defaults: ProductBuildingDefaults) => void;
 
   setConnections: (conns: SnapConnection[]) => void;
   toggleConnectionOpen: (aId: string, sideA: WallSide, bId: string, sideB: WallSide) => void;
@@ -131,6 +133,7 @@ export const useConfigStore = create<ConfigStore>()(
       toggleBuildingBraces: (id) => set(mToggleBuildingBraces(get(), id)),
       updateBuildingPoles: (id, poles) => set(mUpdateBuildingPoles(get(), id, poles)),
       resetBuildingPoles: (id) => set(mResetBuildingPoles(get(), id)),
+      resetBuildingToDefaults: (id, defaults) => set(mResetBuildingToDefaults(get(), id, defaults)),
 
       setConnections: (conns) => set(mSetConnections(get(), conns)),
       toggleConnectionOpen: (aId, sideA, bId, sideB) =>

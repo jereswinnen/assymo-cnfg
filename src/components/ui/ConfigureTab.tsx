@@ -3,6 +3,8 @@
 import { useEffect } from 'react';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
+import { useTenant } from '@/lib/TenantProvider';
+import { applyProductDefaults } from '@/domain/catalog';
 import { t } from '@/lib/i18n';
 import { ChevronDown } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -154,6 +156,11 @@ export default function ConfigureTab() {
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const activeSection = useUIStore((s) => s.activeConfigSection);
   const setActiveSection = useUIStore((s) => s.setActiveConfigSection);
+  const resetBuildingToDefaults = useConfigStore((s) => s.resetBuildingToDefaults);
+  const { catalog } = useTenant();
+  const sourceProduct = selectedBuilding?.sourceProductId
+    ? catalog.products.find((p) => p.id === selectedBuilding.sourceProductId) ?? null
+    : null;
 
   if (!selectedBuilding) {
     return (
@@ -196,6 +203,24 @@ export default function ConfigureTab() {
           </span>
         </div>
       </div>
+
+      {/* Bouwset chip + Herstel standaarden */}
+      {sourceProduct && (
+        <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2 text-xs">
+          <span className="font-medium">
+            {t('configurator.building.kitChip', { name: sourceProduct.name })}
+          </span>
+          <button
+            type="button"
+            className="text-primary underline"
+            onClick={() => {
+              resetBuildingToDefaults(selectedBuilding!.id, applyProductDefaults(sourceProduct));
+            }}
+          >
+            {t('configurator.building.resetDefaults')}
+          </button>
+        </div>
+      )}
 
       {/* Accordion sections */}
       {visibleSections.map(({ id, labelKey, icon }) => {
