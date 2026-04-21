@@ -294,6 +294,6 @@ Tick a box when the phase is merged to `main` and deployed. Each phase has its o
 - [x] Phase 5 — Invoices — [plan](../plans/2026-04-21-phase-5-invoices.md)
 - [ ] Phase 5.5 — Catalog (Products + Materials + Pricing) — [design](./2026-04-21-phase-5.5-catalog-design.md)
   - [x] Phase 5.5.1 — Materials to DB + texture uploads — [plan](../plans/2026-04-21-phase-5.5.1-materials-to-db.md)
-  - [ ] Phase 5.5.2 — Products + landing UX — [plan](../plans/2026-04-21-phase-5.5.2-products-landing.md)
+  - [x] Phase 5.5.2 — Products + landing UX — [plan](../plans/2026-04-21-phase-5.5.2-products-landing.md)
   - [ ] Phase 5.5.3 — Hardening + share-code refactor + cleanup
 - [ ] Phase 6 — Online payments (deferred until business-ready)
