@@ -442,6 +442,88 @@ const nl: Record<string, string> = {
     'Dit materiaal komt in meerdere categorieën voor — aan/uit zetten geldt overal.',
   'admin.registry.noTenant':
     'Je bent super_admin zonder eigen tenant. Open een tenantdetailpagina om materialen te beheren.',
+  // Admin — sidebar + invoices
+  'admin.nav.invoices': 'Facturen',
+  // Admin — tenant section heading
+  'admin.tenant.section.invoicing': 'Facturatie',
+  // Admin — invoicing form (tenant defaults)
+  'admin.invoicing.form.vatRate': 'BTW-tarief',
+  'admin.invoicing.form.vatRate.help': 'Fractie, bv. 0,21 = 21%.',
+  'admin.invoicing.form.paymentTermDays': 'Betaaltermijn (dagen)',
+  'admin.invoicing.form.bankIban': 'IBAN',
+  'admin.invoicing.form.bankBic': 'BIC',
+  'admin.invoicing.form.save': 'Opslaan',
+  // Admin — invoices list
+  'admin.invoices.title': 'Facturen',
+  'admin.invoices.empty': 'Nog geen facturen.',
+  'admin.invoices.col.number': 'Nummer',
+  'admin.invoices.col.customer': 'Klant',
+  'admin.invoices.col.issuedAt': 'Opgemaakt',
+  'admin.invoices.col.dueAt': 'Vervaldatum',
+  'admin.invoices.col.total': 'Totaal',
+  'admin.invoices.col.status': 'Status',
+  // Admin — invoice detail
+  'admin.invoice.detail.supplier': 'Leverancier',
+  'admin.invoice.detail.customer': 'Klant',
+  'admin.invoice.detail.dates': 'Datums',
+  'admin.invoice.detail.amounts': 'Bedragen',
+  'admin.invoice.detail.payments': 'Betalingen',
+  'admin.invoice.detail.noPayments': 'Nog geen betalingen.',
+  'admin.invoice.detail.downloadPdf': 'PDF downloaden',
+  // Admin — issue-invoice dialog
+  'admin.issueInvoice.trigger': 'Factuur opmaken',
+  'admin.issueInvoice.title': 'Factuur opmaken',
+  'admin.issueInvoice.customerName': 'Naam klant',
+  'admin.issueInvoice.customerAddress': 'Adres klant',
+  'admin.issueInvoice.issuedAt': 'Factuurdatum',
+  'admin.issueInvoice.dueAt': 'Vervaldatum',
+  'admin.issueInvoice.vatRate': 'BTW-tarief',
+  'admin.issueInvoice.submit': 'Opmaken',
+  'admin.issueInvoice.error.supplier_incomplete':
+    'Vul eerst je leveranciersgegevens in (IBAN) bij Tenant instellingen.',
+  'admin.issueInvoice.error.order_not_invoiceable':
+    'De bestelling moet eerst aanvaard zijn (status: aanvaard).',
+  'admin.issueInvoice.error.already_invoiced':
+    'Er bestaat al een factuur voor deze bestelling.',
+  // Admin — record-payment dialog
+  'admin.recordPayment.trigger': 'Betaling registreren',
+  'admin.recordPayment.title': 'Betaling registreren',
+  'admin.recordPayment.amount': 'Bedrag (€)',
+  'admin.recordPayment.paidAt': 'Betaald op',
+  'admin.recordPayment.providerRef': 'Bankreferentie (optioneel)',
+  'admin.recordPayment.note': 'Nota (optioneel)',
+  'admin.recordPayment.submit': 'Registreren',
+  // Admin — payment status
+  'payment.status.unpaid': 'Onbetaald',
+  'payment.status.partial': 'Deels betaald',
+  'payment.status.paid': 'Betaald',
+  'payment.status.overpaid': 'Teveel betaald',
+  // Shop — invoice
+  'shop.invoice.title': 'Factuur {number}',
+  'shop.invoice.backLink': '← Terug naar bestelling',
+  'shop.invoice.downloadPdf': 'PDF downloaden',
+  'shop.invoice.section.supplier': 'Leverancier',
+  'shop.invoice.section.amounts': 'Bedragen',
+  'shop.invoice.section.payments': 'Betalingen',
+  'shop.order.invoice.title': 'Factuur',
+  'shop.order.invoice.none': 'Nog geen factuur opgemaakt.',
+  // PDF labels
+  'invoice.pdf.title': 'FACTUUR',
+  'invoice.pdf.number': 'Factuurnummer',
+  'invoice.pdf.issuedAt': 'Factuurdatum',
+  'invoice.pdf.dueAt': 'Vervaldatum',
+  'invoice.pdf.customer': 'Aan',
+  'invoice.pdf.lineItems.description': 'Omschrijving',
+  'invoice.pdf.lineItems.amount': 'Bedrag',
+  'invoice.pdf.subtotal': 'Subtotaal',
+  'invoice.pdf.vat': 'BTW ({rate}%)',
+  'invoice.pdf.grandTotal': 'Totaal incl. BTW',
+  'invoice.pdf.paymentInstructions':
+    'Gelieve te betalen op IBAN {iban} (BIC {bic}) onder vermelding van {reference}.',
+  'invoice.pdf.status.unpaid': 'Onbetaald',
+  'invoice.pdf.status.partial': 'Deels betaald',
+  'invoice.pdf.status.paid': 'Betaald',
+  'invoice.pdf.status.overpaid': 'Teveel betaald',
 };
 
 export function t(

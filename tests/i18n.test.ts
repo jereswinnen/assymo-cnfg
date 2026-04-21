@@ -41,4 +41,11 @@ describe('t()', () => {
     expect(t('admin.registry.group.wall')).toBe('Wandmaterialen');
     expect(t('admin.registry.sharedSlugHint')).toContain('meerdere');
   });
+
+  it('exposes admin.invoices + invoice.pdf keys used by Phase 5', () => {
+    expect(t('admin.nav.invoices')).toBe('Facturen');
+    expect(t('admin.invoicing.form.bankIban')).toBe('IBAN');
+    expect(t('invoice.pdf.vat', { rate: '21' })).toContain('21%');
+    expect(t('payment.status.paid')).toBe('Betaald');
+  });
 });
