@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
+  Boxes,
   Building2,
   ChevronsUpDownIcon,
   ClipboardList,
@@ -146,6 +147,18 @@ export function Sidebar({ role, tenantId, name, email }: Props) {
                   <Link href="/admin/catalog/materials">
                     <Palette />
                     <span>{t('admin.nav.catalog.materials')}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === '/admin/catalog/products' || pathname.startsWith('/admin/catalog/products/')}
+                  tooltip={t('admin.nav.catalog.products')}
+                >
+                  <Link href="/admin/catalog/products">
+                    <Boxes />
+                    <span>{t('admin.nav.catalog.products')}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

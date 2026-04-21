@@ -511,6 +511,7 @@ const nl: Record<string, string> = {
   // Admin — catalog nav
   'admin.nav.catalog': 'Catalogus',
   'admin.nav.catalog.materials': 'Materialen',
+  'admin.nav.catalog.products': 'Producten',
 
   // Admin — catalog / materials
   'admin.catalog.materials.title': 'Materialen',
@@ -567,6 +568,89 @@ const nl: Record<string, string> = {
   'admin.catalog.materials.error.void_conflict':    'Er bestaat al een "Geen vloer"-materiaal — slechts één toegestaan',
   'admin.catalog.materials.error.upload.type_rejected': 'Alleen JPG, PNG en WEBP toegestaan',
   'admin.catalog.materials.error.upload.too_large': 'Bestand is te groot (max. 5 MB)',
+
+  // Admin — catalog / products
+  'admin.catalog.products.title': 'Producten',
+  'admin.catalog.products.new': 'Nieuw product',
+  'admin.catalog.products.edit': 'Product bewerken',
+  'admin.catalog.products.empty': 'Nog geen producten. Voeg je eerste bouwset toe om te beginnen.',
+
+  'admin.catalog.products.column.hero':       'Hero',
+  'admin.catalog.products.column.name':       'Naam',
+  'admin.catalog.products.column.kind':       'Type',
+  'admin.catalog.products.column.startPrice': 'Vanaf',
+  'admin.catalog.products.column.status':     'Status',
+  'admin.catalog.products.column.actions':    'Acties',
+
+  'admin.catalog.products.status.active':   'Actief',
+  'admin.catalog.products.status.archived': 'Gearchiveerd',
+
+  'admin.catalog.products.kind.overkapping': 'Overkapping',
+  'admin.catalog.products.kind.berging':     'Berging',
+
+  'admin.catalog.products.field.kind':        'Type bouwset',
+  'admin.catalog.products.field.name':        'Naam',
+  'admin.catalog.products.field.slug':        'Slug',
+  'admin.catalog.products.field.description': 'Beschrijving',
+  'admin.catalog.products.field.heroImage':   'Hero afbeelding',
+  'admin.catalog.products.field.defaults':    'Standaardwaarden',
+  'admin.catalog.products.field.constraints': 'Grenzen',
+  'admin.catalog.products.field.basePrice':   'Basisprijs',
+  'admin.catalog.products.field.sortOrder':   'Volgorde',
+
+  'admin.catalog.products.field.defaults.width':      'Breedte (m)',
+  'admin.catalog.products.field.defaults.depth':      'Diepte (m)',
+  'admin.catalog.products.field.defaults.height':     'Hoogte (m)',
+  'admin.catalog.products.field.defaults.wall':       'Standaard wand',
+  'admin.catalog.products.field.defaults.roofCover':  'Standaard dakbedekking',
+  'admin.catalog.products.field.defaults.roofTrim':   'Standaard daktrim',
+  'admin.catalog.products.field.defaults.floor':      'Standaard vloer',
+  'admin.catalog.products.field.defaults.door':       'Standaard deur',
+
+  'admin.catalog.products.field.constraints.minWidth':  'Min. breedte',
+  'admin.catalog.products.field.constraints.maxWidth':  'Max. breedte',
+  'admin.catalog.products.field.constraints.minDepth':  'Min. diepte',
+  'admin.catalog.products.field.constraints.maxDepth':  'Max. diepte',
+  'admin.catalog.products.field.constraints.minHeight': 'Min. hoogte',
+  'admin.catalog.products.field.constraints.maxHeight': 'Max. hoogte',
+  'admin.catalog.products.field.constraints.allowed.wall':      'Toegestane wanden',
+  'admin.catalog.products.field.constraints.allowed.roofCover': 'Toegestane dakbedekkingen',
+  'admin.catalog.products.field.constraints.allowed.roofTrim':  'Toegestane daktrim',
+  'admin.catalog.products.field.constraints.allowed.floor':     'Toegestane vloeren',
+  'admin.catalog.products.field.constraints.allowed.door':      'Toegestane deuren',
+  'admin.catalog.products.field.constraints.allowed.hint':      'Leeg = alle materialen van deze categorie toegestaan.',
+
+  'admin.catalog.products.action.save':     'Opslaan',
+  'admin.catalog.products.action.cancel':   'Annuleren',
+  'admin.catalog.products.action.archive':  'Archiveren',
+  'admin.catalog.products.action.restore':  'Herstellen',
+  'admin.catalog.products.action.edit':     'Bewerken',
+
+  'admin.catalog.products.error.slug_invalid':               'Ongeldige slug (alleen kleine letters, cijfers en koppeltekens)',
+  'admin.catalog.products.error.slug_taken':                 'Deze slug is al in gebruik',
+  'admin.catalog.products.error.name_invalid':               'Naam is verplicht (max. 100 tekens)',
+  'admin.catalog.products.error.description_invalid':        'Beschrijving is te lang (max. 1000 tekens)',
+  'admin.catalog.products.error.hero_image_invalid':         'Hero afbeelding moet een geldige URL zijn',
+  'admin.catalog.products.error.dimensions_invalid':         'Afmetingen buiten bereik (0,5 – 40 m)',
+  'admin.catalog.products.error.base_price_invalid':         'Basisprijs moet een geheel getal ≥ 0 zijn (in cent)',
+  'admin.catalog.products.error.sort_order_invalid':         'Volgorde moet een geheel getal zijn',
+  'admin.catalog.products.error.kind_invalid':               'Type kan niet worden gewijzigd',
+  'admin.catalog.products.error.default_material_not_found': 'Standaardmateriaal bestaat niet in deze categorie',
+  'admin.catalog.products.error.allowed_material_not_found': 'Toegestaan materiaal bestaat niet in deze categorie',
+  'admin.catalog.products.error.constraints_invalid':        'Ongeldige grenzen (min ≤ max, slugs moeten bestaan)',
+
+  // Landing page + configurator tray
+  'landing.hero.title':         '{displayName}',
+  'landing.hero.subtitle':      'Ontwerp je bouwset op maat',
+  'landing.product.fromPrice':  'Vanaf €{amount}',
+  'landing.product.configure':  'Configureren',
+  'landing.blankSlate.title':   'Bouw van nul',
+  'landing.blankSlate.body':    'Start met een leeg canvas en bouw stap voor stap.',
+  'configurator.tray.kits':     'Bouwsets',
+  'configurator.tray.primitives': 'Losse elementen',
+  'configurator.building.kitChip': 'Bouwset: {name}',
+  'configurator.building.resetDefaults': 'Herstel standaarden',
+  'configurator.picker.kitRestricted': 'Beperkt door bouwset',
 
   // PDF labels
   'invoice.pdf.title': 'FACTUUR',
