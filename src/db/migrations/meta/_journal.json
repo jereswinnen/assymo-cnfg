@@ -50,6 +50,20 @@
       "when": 1776762717979,
       "tag": "0006_small_overlord",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1776770973674,
+      "tag": "0007_strong_spencer_smythe",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1776771733363,
+      "tag": "0008_fast_vanisher",
+      "breakpoints": true
     }
   ]
 }

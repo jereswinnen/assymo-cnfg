@@ -41,4 +41,17 @@ describe('t()', () => {
     expect(t('admin.registry.group.wall')).toBe('Wandmaterialen');
     expect(t('admin.registry.sharedSlugHint')).toContain('meerdere');
   });
+
+  it('exposes admin.invoices + invoice.pdf keys used by Phase 5', () => {
+    expect(t('admin.nav.invoices')).toBe('Facturen');
+    expect(t('admin.invoicing.form.bankIban')).toBe('IBAN');
+    expect(t('invoice.pdf.vat', { rate: '21' })).toContain('21%');
+    expect(t('payment.status.paid')).toBe('Betaald');
+  });
+
+  it('exposes shop.order.invoice.* keys used by the order-detail Factuur card', () => {
+    expect(t('shop.order.invoice.title')).toBe('Factuur');
+    expect(t('shop.order.invoice.none')).toBe('Nog geen factuur opgemaakt.');
+    expect(t('shop.order.invoice.linkLabel')).toBe('Factuur bekijken');
+  });
 });

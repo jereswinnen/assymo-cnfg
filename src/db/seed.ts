@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { sql } from 'drizzle-orm';
 import { DEFAULT_PRICE_BOOK } from '../domain/pricing/priceBook.ts';
 import { DEFAULT_ASSYMO_BRANDING } from '../domain/tenant/branding.ts';
+import { DEFAULT_ASSYMO_INVOICING } from '../domain/tenant/invoicing.ts';
 import * as schema from './schema.ts';
 import { tenantHosts, tenants } from './schema.ts';
 
@@ -24,6 +25,7 @@ async function main() {
       currency: 'EUR',
       priceBook: DEFAULT_PRICE_BOOK,
       branding: DEFAULT_ASSYMO_BRANDING,
+      invoicing: DEFAULT_ASSYMO_INVOICING,
       // enabledMaterials omitted -> NULL (unrestricted). The assymo tenant
       // is the catalog owner and always sees every registered material.
     })
@@ -35,6 +37,7 @@ async function main() {
         currency: sql`excluded.currency`,
         priceBook: sql`excluded.price_book`,
         branding: sql`excluded.branding`,
+        invoicing: sql`excluded.invoicing`,
         updatedAt: sql`now()`,
       },
     });

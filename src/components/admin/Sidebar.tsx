@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   LogOutIcon,
   Package,
+  Receipt,
   Store,
   Users,
 } from 'lucide-react';
@@ -57,6 +58,7 @@ interface NavItem {
 const ITEMS: NavItem[] = [
   { href: '/admin', labelKey: 'admin.nav.dashboard', icon: LayoutDashboard, visible: () => true },
   { href: '/admin/orders', labelKey: 'admin.nav.orders', icon: ClipboardList, visible: () => true },
+  { href: '/admin/invoices', labelKey: 'admin.nav.invoices', icon: Receipt, visible: () => true },
   { href: '/admin/clients', labelKey: 'admin.nav.clients', icon: Contact2, visible: () => true },
   { href: '/admin/tenants', labelKey: 'admin.nav.tenants', icon: Building2, visible: (r) => r === 'super_admin' },
   { href: '/admin/users', labelKey: 'admin.nav.users', icon: Users, visible: () => true },
