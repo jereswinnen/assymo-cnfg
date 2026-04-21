@@ -183,6 +183,11 @@ export default function DimensionsControl() {
         />
       )}
 
+      {/* TODO(Phase 5.5.3): height constraint for structural buildings applies
+          scene-wide via `setDefaultHeight`, which affects ALL structural buildings
+          in the scene — not just the one with the sourceProductId. Acceptable
+          today (single-product scenes are the common case) but will need a per-
+          building height model if multi-product scenes become common. */}
       {isStructural ? (
         <SliderRow
           label={t('dim.height')}

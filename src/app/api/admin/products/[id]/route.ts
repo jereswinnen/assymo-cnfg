@@ -1,57 +1,12 @@
 import { NextResponse } from 'next/server';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
-import { materials, products } from '@/db/schema';
+import { products } from '@/db/schema';
 import { productDbRowToDomain } from '@/db/resolveTenant';
-import {
-  PRODUCT_SLOT_TO_CATEGORY,
-  validateProductCreate,
-  validateProductPatch,
-  type ProductSlot,
-  type ProductValidationFieldError,
-} from '@/domain/catalog';
+import { validateProductCreate, validateProductPatch } from '@/domain/catalog';
 import { requireBusiness, requireTenantScope } from '@/lib/auth-guards';
 import { withSession } from '@/lib/auth-session';
-
-async function checkMaterialReferences(
-  tenantId: string,
-  defaultsMaterials: Partial<Record<ProductSlot, string>> | undefined,
-  allow: Partial<Record<ProductSlot, string[]>> | undefined,
-): Promise<ProductValidationFieldError[]> {
-  const errors: ProductValidationFieldError[] = [];
-  const toCheck: Array<{ slot: ProductSlot; slug: string; kind: 'default' | 'allow' }> = [];
-  if (defaultsMaterials) {
-    for (const [slot, slug] of Object.entries(defaultsMaterials) as [ProductSlot, string][]) {
-      toCheck.push({ slot, slug, kind: 'default' });
-    }
-  }
-  if (allow) {
-    for (const [slot, slugs] of Object.entries(allow) as [ProductSlot, string[]][]) {
-      for (const slug of slugs) toCheck.push({ slot, slug, kind: 'allow' });
-    }
-  }
-  if (toCheck.length === 0) return errors;
-  const rows = await db
-    .select({ slug: materials.slug, category: materials.category })
-    .from(materials)
-    .where(eq(materials.tenantId, tenantId));
-  const rowsBy = new Map(rows.map((r) => [`${r.category}:${r.slug}`, true]));
-  for (const c of toCheck) {
-    const category = PRODUCT_SLOT_TO_CATEGORY[c.slot];
-    if (!rowsBy.has(`${category}:${c.slug}`)) {
-      const code =
-        c.kind === 'default' ? 'default_material_not_found' : 'allowed_material_not_found';
-      errors.push({
-        field:
-          c.kind === 'default'
-            ? `defaults.materials.${c.slot}`
-            : `constraints.allowedMaterialsBySlot.${c.slot}`,
-        code,
-      });
-    }
-  }
-  return errors;
-}
+import { checkProductMaterialReferences } from '@/lib/productRefCheck';
 
 export const GET = withSession(
   async (session, _req: Request, ctx: { params: Promise<{ id: string }> }) => {
@@ -111,7 +66,7 @@ export const PATCH = withSession(
       );
     }
 
-    const refErrors = await checkMaterialReferences(
+    const refErrors = await checkProductMaterialReferences(
       existing.tenantId,
       shape.value.defaults.materials,
       shape.value.constraints.allowedMaterialsBySlot,
