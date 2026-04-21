@@ -30,7 +30,7 @@ export default async function AdminAuthedLayout({ children }: { children: React.
         <Sidebar role={role} tenantId={tenantId} name={name} email={session.user.email} />
         <SidebarInset>
           <Header />
-          <div className="flex-1 p-4">{children}</div>
+          <div className="flex flex-1 flex-col p-4">{children}</div>
         </SidebarInset>
         <Toaster />
       </SidebarProvider>
