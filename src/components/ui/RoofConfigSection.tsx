@@ -1,7 +1,7 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
-import { ROOF_TRIM_CATALOG, ROOF_COVERING_CATALOG } from '@/domain/materials';
+import { useTenantCatalogs } from '@/lib/useTenantCatalogs';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -12,13 +12,17 @@ import type { RoofCoveringId } from '@/domain/building';
 export default function RoofConfigSection() {
   const roof = useConfigStore((s) => s.roof);
   const updateRoof = useConfigStore((s) => s.updateRoof);
+  const { roofTrim, roofCover } = useTenantCatalogs({
+    roofTrim: roof.trimMaterialId,
+    roofCover: roof.coveringId,
+  });
 
   return (
     <div className="space-y-5">
       <div className="space-y-2">
         <SectionLabel>{t('roof.covering')}</SectionLabel>
         <MaterialSelect
-          catalog={ROOF_COVERING_CATALOG}
+          catalog={roofCover}
           value={roof.coveringId}
           onChange={(atomId) => updateRoof({ coveringId: atomId as RoofCoveringId })}
           showPrice
@@ -29,7 +33,7 @@ export default function RoofConfigSection() {
       <div className="space-y-2">
         <SectionLabel>{t('roof.trimColor')}</SectionLabel>
         <MaterialSelect
-          catalog={ROOF_TRIM_CATALOG}
+          catalog={roofTrim}
           value={roof.trimMaterialId}
           onChange={(atomId) => updateRoof({ trimMaterialId: atomId })}
           ariaLabel={t('roof.trimColor')}
