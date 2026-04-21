@@ -8,6 +8,7 @@ import {
   type ProductDefaults,
   type ProductKind,
   type ProductPatchInput,
+  type ProductRow,
   type ProductSlot,
   type ProductValidationFieldError,
   type ProductValidationResult,
@@ -289,4 +290,44 @@ export function validateProductPatch(
 
   if (errors.length > 0) return { ok: false, errors };
   return { ok: true, value: out };
+}
+
+/** Partial BuildingEntity-shape derived from a product's defaults. The
+ *  configurator layer spreads this into a new entity, filling remaining
+ *  fields (walls, roof, id, position, orientation, heightOverride) with
+ *  its own engine defaults. Framework-free — no reverse-dependency on
+ *  `@/domain/building`. */
+export interface ProductBuildingDefaults {
+  sourceProductId: string;
+  type: ProductKind;
+  dimensions: { width?: number; depth?: number; height?: number };
+  primaryMaterialId?: string;
+  floor?: { materialId: string };
+  roof?: { coveringId?: string; trimMaterialId?: string };
+  door?: { doorMaterialId?: string };
+}
+
+/** Build a partial BuildingEntity defaults payload from a product. */
+export function applyProductDefaults(product: ProductRow): ProductBuildingDefaults {
+  const out: ProductBuildingDefaults = {
+    sourceProductId: product.id,
+    type: product.kind,
+    dimensions: {},
+  };
+  if (product.defaults.width !== undefined) out.dimensions.width = product.defaults.width;
+  if (product.defaults.depth !== undefined) out.dimensions.depth = product.defaults.depth;
+  if (product.defaults.height !== undefined) out.dimensions.height = product.defaults.height;
+
+  const mats = product.defaults.materials;
+  if (mats) {
+    if (mats.wallCladding) out.primaryMaterialId = mats.wallCladding;
+    if (mats.floor) out.floor = { materialId: mats.floor };
+    if (mats.roofCovering || mats.roofTrim) {
+      out.roof = {};
+      if (mats.roofCovering) out.roof.coveringId = mats.roofCovering;
+      if (mats.roofTrim) out.roof.trimMaterialId = mats.roofTrim;
+    }
+    if (mats.door) out.door = { doorMaterialId: mats.door };
+  }
+  return out;
 }
