@@ -1,6 +1,7 @@
 import type { PriceBook } from '@/domain/pricing';
 import type { Branding } from './branding';
 import type { EnabledMaterials } from './enabledMaterials';
+import type { TenantInvoicing } from './invoicing';
 
 /** Tenant-scoped configuration injected into every domain function that
  *  depends on brand, locale, or catalog decisions. Anything that varies
@@ -23,4 +24,9 @@ export interface TenantContext {
    *  `ALWAYS_ENABLED_SLUGS` (currently `geen`) are added transparently
    *  by `filterCatalog` and do not need to be included. */
   enabledMaterials: EnabledMaterials;
+  /** Per-tenant invoicing defaults: VAT rate, payment-term days, bank
+   *  account. Edited through the admin InvoicingSection; seeded on
+   *  assymo with 21% / 30d and empty IBAN (admin MUST fill before
+   *  issuing the first invoice). */
+  invoicing: TenantInvoicing;
 }
