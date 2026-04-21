@@ -1,3 +1,6 @@
+// Subpath import (not the @/domain/materials barrel) to keep this file
+// cycle-safe if @/domain/materials ever needs to consume anything from
+// @/domain/tenant. Pure-registry access only; no re-exports pulled in.
 import { MATERIALS_REGISTRY } from '@/domain/materials/atoms';
 
 /** Per-tenant material allow-list. `null` = unrestricted; any array
@@ -41,6 +44,8 @@ export function validateEnabledMaterialsPatch(
   }
 
   const errors: string[] = [];
+  // Duplicates are silently collapsed (normalization, not an error);
+  // unknown or malformed slugs go to `errors` below.
   const seen = new Set<string>();
   const out: string[] = [];
   for (let i = 0; i < raw.length; i += 1) {

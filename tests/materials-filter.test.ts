@@ -88,4 +88,8 @@ describe('isMaterialEnabled', () => {
   it('returns true for always-enabled sentinel slugs even when not in the list', () => {
     expect(isMaterialEnabled('geen', [])).toBe(true);
   });
+
+  it('returns true for sentinel slugs when the enabled list is non-empty', () => {
+    expect(isMaterialEnabled('geen', ['wood', 'brick'])).toBe(true);
+  });
 });

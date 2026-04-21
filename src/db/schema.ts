@@ -26,6 +26,7 @@ export const tenants = pgTable('tenants', {
   currency: text('currency').$type<Currency>().notNull(),
   priceBook: jsonb('price_book').$type<PriceBook>().notNull(),
   branding: jsonb('branding').$type<Branding>().notNull(),
+  /** Allow-list of material slugs. `null` = unrestricted. See `@/domain/tenant` → `validateEnabledMaterialsPatch` and `ALWAYS_ENABLED_SLUGS`. */
   enabledMaterials: text('enabled_materials').array(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
