@@ -11,7 +11,7 @@ export const GET = withSession(async (session, _req, ctx: { params: Promise<{ id
   const { id } = await ctx.params;
 
   const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id)).limit(1);
-  if (!invoice) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  if (!invoice) return NextResponse.json({ error: 'invoice_not_found' }, { status: 404 });
   requireTenantScope(session, invoice.tenantId);
 
   const paymentRows = await db

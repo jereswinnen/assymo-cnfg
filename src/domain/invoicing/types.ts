@@ -24,6 +24,7 @@ export interface InvoiceRecord {
   issuedAt: string;            // ISO
   dueAt: string;               // ISO
   customerAddress: string;
+  customerName: string;
   subtotalCents: number;
   vatRate: number;             // 0.21 etc.
   vatCents: number;

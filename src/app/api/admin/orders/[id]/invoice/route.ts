@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { db } from '@/db/client';
-import { invoices, orders, tenants } from '@/db/schema';
+import { invoiceNumbers, invoices, orders, tenants } from '@/db/schema';
 import {
   buildSupplierSnapshot,
   computeInvoiceAmounts,
@@ -56,17 +56,19 @@ export const POST = withSession(async (session, req, ctx: { params: Promise<{ id
 
   // Atomic sequence allocation
   const year = new Date(value.issuedAt).getUTCFullYear();
-  const [numberRow] = await db.execute(sql`
-    INSERT INTO "invoice_numbers" ("tenant_id", "year", "last_seq")
-    VALUES (${order.tenantId}, ${year}, 1)
-    ON CONFLICT ("tenant_id") DO UPDATE SET
-      "year" = ${year},
-      "last_seq" = CASE WHEN "invoice_numbers"."year" = ${year}
-                        THEN "invoice_numbers"."last_seq" + 1
-                        ELSE 1 END
-    RETURNING "year", "last_seq";
-  `) as unknown as Array<{ year: number; last_seq: number }>;
-  const number = formatInvoiceNumber(numberRow.year, numberRow.last_seq);
+  const [numberRow] = await db
+    .insert(invoiceNumbers)
+    .values({ tenantId: order.tenantId, year, lastSeq: 1 })
+    .onConflictDoUpdate({
+      target: invoiceNumbers.tenantId,
+      set: {
+        year,
+        lastSeq: sql`CASE WHEN ${invoiceNumbers.year} = ${year} THEN ${invoiceNumbers.lastSeq} + 1 ELSE 1 END`,
+      },
+    })
+    .returning({ year: invoiceNumbers.year, lastSeq: invoiceNumbers.lastSeq });
+
+  const number = formatInvoiceNumber(numberRow.year, numberRow.lastSeq);
 
   // Freeze supplier snapshot
   const supplierSnapshot = buildSupplierSnapshot({
@@ -86,6 +88,7 @@ export const POST = withSession(async (session, req, ctx: { params: Promise<{ id
       issuedAt: new Date(value.issuedAt),
       dueAt: new Date(value.dueAt),
       customerAddress: value.customerAddress,
+      customerName: value.customerName,
       subtotalCents: amounts.subtotalCents,
       vatRate: String(value.vatRate),
       vatCents: amounts.vatCents,

@@ -151,6 +151,7 @@ export const invoices = pgTable(
     issuedAt: timestamp('issued_at', { withTimezone: true }).notNull(),
     dueAt: timestamp('due_at', { withTimezone: true }).notNull(),
     customerAddress: text('customer_address').notNull(),
+    customerName: text('customer_name').notNull(),
     subtotalCents: integer('subtotal_cents').notNull(),
     vatRate: text('vat_rate').notNull(),
     vatCents: integer('vat_cents').notNull(),
