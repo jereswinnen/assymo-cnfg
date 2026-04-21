@@ -9,4 +9,3 @@ export type {
 } from './types';
 export * from './filter';
 export * from './resolve';
-export { resolveCatalog, type MaterialSlug } from './atoms';

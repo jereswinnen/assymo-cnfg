@@ -15,7 +15,6 @@ const STATIC_LABELS: Record<string, string> = {
   '/admin/clients': 'admin.nav.clients',
   '/admin/tenants': 'admin.nav.tenants',
   '/admin/users': 'admin.nav.users',
-  '/admin/registry': 'admin.nav.registry',
   '/admin/catalog': 'admin.nav.catalog',
   '/admin/catalog/materials': 'admin.nav.catalog.materials',
   '/admin/catalog/materials/new': 'admin.catalog.materials.new',

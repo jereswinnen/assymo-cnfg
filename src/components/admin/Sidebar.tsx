@@ -8,7 +8,6 @@ import {
   Contact2,
   LayoutDashboard,
   LogOutIcon,
-  Package,
   Palette,
   Receipt,
   Store,
@@ -63,7 +62,6 @@ const ITEMS: NavItem[] = [
   { href: '/admin/clients', labelKey: 'admin.nav.clients', icon: Contact2, visible: () => true },
   { href: '/admin/tenants', labelKey: 'admin.nav.tenants', icon: Building2, visible: (r) => r === 'super_admin' },
   { href: '/admin/users', labelKey: 'admin.nav.users', icon: Users, visible: () => true },
-  { href: '/admin/registry', labelKey: 'admin.nav.registry', icon: Package, visible: (r) => r === 'tenant_admin' },
 ];
 
 function getInitials(name: string): string {
