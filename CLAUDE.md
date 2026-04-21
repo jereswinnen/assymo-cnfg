@@ -42,7 +42,8 @@ Pure TypeScript. No React, no three.js, no zustand. Safe to import from API rout
 - `pricing/` — `PriceBook` (per-tenant scalar dials) + `calculateTotalQuote`; line items are structured `{ labelKey, labelParams }` so UIs format labels at render time
 - `orders/` — pure order types (`OrderStatus`, `OrderQuoteSnapshot`, `OrderConfigSnapshot`, `OrderRecord`), state machine (`ALLOWED_TRANSITIONS`, `validateOrderTransition`, `allowedNextStatuses`), and `buildQuoteSnapshot` / `buildConfigSnapshot` for freezing the priced quote + ConfigData at submit time
 - `materials/` — `MATERIALS_REGISTRY` + per-object catalogs (wall/roof/floor/door) + attachment-chain resolution helpers + `filterCatalog` / `filterCatalogAllowing` / `isMaterialEnabled` for tenant-scoped material allow-listing (null = unrestricted, `[]` = nothing enabled, sentinel `geen` always enabled)
-- `tenant/` — `TenantContext` with `priceBook` + `branding` + `enabledMaterials` (material allow-list); host-based resolver; `brandingToCssVars` + `cssVarsToInlineBlock` for the branded shell; `validateEnabledMaterialsPatch` for admin PATCH validation
+- `tenant/` — `TenantContext` with `priceBook` + `branding` + `enabledMaterials` + `invoicing` (VAT rate, payment term, IBAN/BIC); host-based resolver; `brandingToCssVars` + `cssVarsToInlineBlock` for the branded shell; `validateBrandingPatch`, `validateEnabledMaterialsPatch`, `validateInvoicingPatch` for admin PATCH validation
+- `invoicing/` — pure numbering (`formatInvoiceNumber`), VAT math (`computeInvoiceAmounts`), payment-status derivation (`derivePaymentStatus`), supplier-snapshot builder, and patch validators (`validateIssueInvoiceInput`, `validatePaymentInput`). All framework-free; consumed by the admin API + PDF renderer.
 
 ### `src/lib/` — browser-coupled
 
@@ -57,7 +58,7 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
 ### `src/db/`
 
 - `schema.ts` — Drizzle table definitions for domain tables. `tenants`
-  holds the seeded per-brand context (`priceBook` and `branding` as jsonb,
+  holds the seeded per-brand context (`priceBook`, `branding`, `invoicing` as jsonb,
   `enabledMaterials` as a nullable text[] material allow-list); `configs`
   holds saved scenes with their base58 `code` and the canonical
   `ConfigData` in `data`; `tenant_hosts` maps request hosts to tenants
@@ -67,6 +68,16 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   of price-book or migration drift; `customerId` is nullable until the
   client claims their magic-link account, and `configId` cascades to
   NULL if the source config row is later GC'd.
+  `invoices` rows freeze the priced invoice at issue time: `number` is per-tenant-per-year
+  (`YYYY-NNNN`), `supplierSnapshot` captures the tenant's invoicing + footer details at
+  issue time, amounts (`subtotalCents`, `vatRate`, `vatCents`, `totalCents`) + VAT rate
+  are immutable afterwards. `customerAddress` is captured at issue time via the admin
+  IssueInvoiceDialog. `orderId` is UNIQUE (1:1 with an order). `invoice_numbers` holds
+  one row per tenant tracking the current `year` + `last_seq`; atomic UPSERT on issue
+  handles the first-ever, same-year, and new-year reset cases in a single round-trip.
+  `payments` rows carry manual bank-transfer entries (Phase 5) and future provider
+  webhooks (Phase 6). Payment status is DERIVED from sum(payments) vs invoice.totalCents —
+  there is no status column on the invoice.
 - `resolveTenant.ts` — DB-backed tenant resolver. `resolveTenantByHost`
   tries exact host, bare host (no port), and the leftmost subdomain
   label against `tenant_hosts`. Wrapped in React `cache()` so the
@@ -117,6 +128,21 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   - `PATCH /api/admin/tenants/[id]/enabled-materials` — super_admin any,
     tenant_admin own; validates against `validateEnabledMaterialsPatch`.
     `null` = unrestricted; `[]` = nothing; populated string[] = allow-list.
+  - `PATCH /api/admin/tenants/[id]/invoicing` — super_admin any,
+    tenant_admin own; validates against `validateInvoicingPatch`; partial
+    merge over the stored jsonb.
+  - `POST /api/admin/orders/[id]/invoice` — super_admin any, tenant_admin
+    own; issues the invoice. Requires `order.status === 'accepted'` AND
+    no existing invoice AND `tenant.invoicing.bankIban` set. Atomically
+    allocates the next per-tenant-per-year number via the `invoice_numbers`
+    upsert.
+  - `GET /api/admin/invoices` — list own scope newest-first (super_admin
+    sees all tenants).
+  - `GET /api/admin/invoices/[id]` — detail with `payments[]` + derived
+    `status`.
+  - `POST /api/admin/invoices/[id]/payments` — record a manual payment.
+    Method enum already admits `mollie|stripe` for Phase 6; Phase 5 rejects
+    anything except `manual` at validation time.
   - `GET /api/admin/users` — list business users in scope
   - `POST /api/admin/users` — super_admin can create any user in any
     tenant at any role; tenant_admin is pinned to its own tenant and
@@ -148,14 +174,23 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
     `customerId === session.user.id`. Returns 404 for both "not
     found" and "not yours" to avoid leaking existence of another
     client's order.
+  - `GET /api/shop/invoices/[id]` — client-only, scoped to the order's
+    `customerId === session.user.id`. Returns 404 for both "not found"
+    and "not yours".
+- `src/app/api/invoices/[id]/pdf/` — `GET` streams `application/pdf`.
+  Session-scoped: business-side requires `super_admin` OR `tenant_admin`
+  with matching `invoice.tenantId`; client-side requires
+  `order.customerId === session.user.id`. 404 on any scope mismatch.
+  Rendered on-demand via `@react-pdf/renderer` and
+  `src/lib/renderInvoicePdf.tsx`; not cached.
 - `src/app/admin/` — business management UI. Split into a `(authed)` route
   group (session-guarded shell, all real pages live here) and a sibling
   `sign-in/` (no guard so the magic-link form can render). The `(authed)`
   layout wraps in `AdminHeaderProvider` + `SidebarProvider`, renders the
   sidebar, header, content, and a bottom-mounted `<Toaster />`. The
-  authed tree now also ships `/admin/registry` (tenant_admin only —
-  super_admin edits per-tenant via the Materials section on
-  `/admin/tenants/[id]`).
+  authed tree now also ships `/admin/invoices` (list + detail) and
+  `/admin/registry` (tenant_admin only — super_admin edits per-tenant via
+  the Materials + Invoicing sections on `/admin/tenants/[id]`).
 - `src/app/shop/` — client account tree. Mirrors admin's split: a
   sibling `sign-in/` (unauthenticated-only guard that bounces already-
   signed-in users) and an `(authed)` group with a session guard that
@@ -165,6 +200,9 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   - `/shop/account` — client's own orders list.
   - `/shop/account/orders/[id]` — single order detail (quote snapshot
     + status + contact + notes), ownership-scoped at server render.
+  - `/shop/account/invoices/[id]` — invoice detail (supplier snapshot
+    + amounts + derived status + "PDF downloaden" link). Ownership-scoped
+    at server render.
 - `src/app/layout.tsx` resolves the tenant from the `host` header
   against the in-memory registry and wraps in `<TenantProvider>`
 
