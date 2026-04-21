@@ -1,0 +1,78 @@
+'use client';
+import { useRef, useState } from 'react';
+import { upload } from '@vercel/blob/client';
+import { Button } from '@/components/ui/button';
+
+interface Props {
+  label: string;
+  value: string | null;
+  onChange: (url: string | null) => void;
+  tenantId: string;
+  slug: string;
+}
+
+/** Single-image upload control for product hero images. Direct-to-Blob
+ *  via the signed-token endpoint at /api/admin/uploads/images. */
+export function HeroImageUploadField({ label, value, onChange, tenantId, slug }: Props) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleFile(file: File) {
+    setBusy(true);
+    setError(null);
+    try {
+      const ext = file.name.split('.').pop() ?? 'bin';
+      const blob = await upload(
+        `images/${tenantId}/${slug}-hero-${Date.now()}.${ext}`,
+        file,
+        { access: 'public', handleUploadUrl: '/api/admin/uploads/images' },
+      );
+      onChange(blob.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'upload_failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-medium">{label}</label>
+      <div className="flex items-center gap-3">
+        {value ? (
+          <img src={value} alt="" className="h-24 w-24 rounded-md border object-cover" />
+        ) : (
+          <div className="h-24 w-24 rounded-md border border-dashed" />
+        )}
+        <div className="flex flex-col gap-1">
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void handleFile(f);
+            }}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() => inputRef.current?.click()}
+          >
+            {busy ? '…' : value ? 'Vervangen' : 'Uploaden'}
+          </Button>
+          {value && (
+            <Button type="button" variant="ghost" size="sm" onClick={() => onChange(null)}>
+              Verwijderen
+            </Button>
+          )}
+        </div>
+      </div>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
