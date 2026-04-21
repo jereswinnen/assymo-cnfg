@@ -1,9 +1,10 @@
 import { headers } from 'next/headers';
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { db } from '@/db/client';
-import { orders } from '@/db/schema';
+import { orders, invoices, tenants } from '@/db/schema';
 import { user } from '@/db/auth-schema';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageTitle } from '@/components/admin/PageTitle';
@@ -12,6 +13,7 @@ import { OrderStatusBadge } from '@/components/admin/OrderStatusBadge';
 import { OrderStatusControl } from '@/components/admin/OrderStatusControl';
 import { OrderQuoteTable } from '@/components/admin/OrderQuoteTable';
 import { OrderContactCard } from '@/components/admin/OrderContactCard';
+import { IssueInvoiceDialog } from '@/components/admin/IssueInvoiceDialog';
 import { t } from '@/lib/i18n';
 import type { OrderStatus } from '@/domain/orders';
 
@@ -46,6 +48,17 @@ export default async function OrderDetailPage({
   }
 
   const order = row.order;
+
+  const [invoice] = await db
+    .select({ id: invoices.id, number: invoices.number })
+    .from(invoices)
+    .where(eq(invoices.orderId, order.id))
+    .limit(1);
+  const [tenantRow] = await db
+    .select()
+    .from(tenants)
+    .where(eq(tenants.id, order.tenantId))
+    .limit(1);
 
   return (
     <div className="space-y-6">
@@ -91,6 +104,32 @@ export default async function OrderDetailPage({
           <OrderQuoteTable snapshot={order.quoteSnapshot} />
         </CardContent>
       </Card>
+
+      {invoice ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('admin.invoice.detail.downloadPdf')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Link
+              href={`/admin/invoices/${invoice.id}`}
+              className="underline"
+            >
+              {invoice.number}
+            </Link>
+          </CardContent>
+        </Card>
+      ) : (
+        order.status === 'accepted' &&
+        tenantRow && (
+          <IssueInvoiceDialog
+            orderId={order.id}
+            defaultCustomerName={order.contactName}
+            defaultVatRate={tenantRow.invoicing.vatRate}
+            defaultPaymentTermDays={tenantRow.invoicing.paymentTermDays}
+          />
+        )
+      )}
     </div>
   );
 }
