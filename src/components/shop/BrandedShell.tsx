@@ -21,11 +21,11 @@ interface Props {
  *  injects brand CSS vars. Used by `/shop/*` routes and by the
  *  configurator root. */
 export async function BrandedShell({ variant = 'shop', children }: Props) {
-  const hostHeader = (await headers()).get('host');
-  const tenantRow = await resolveTenantByHostOrDefault(hostHeader);
+  const hdrs = await headers();
+  const tenantRow = await resolveTenantByHostOrDefault(hdrs.get('host'));
   const branding = tenantRow?.branding ?? DEFAULT_ASSYMO_BRANDING;
 
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await auth.api.getSession({ headers: hdrs });
   const signedIn =
     session?.user?.userType === 'client'
       ? { name: session.user.name ?? null, email: session.user.email }

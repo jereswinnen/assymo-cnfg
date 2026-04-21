@@ -5,8 +5,8 @@ import { t } from '@/lib/i18n';
 
 interface Props {
   branding: Branding;
-  /** When null, the "sign in" link is shown. When set, the account
-   *  dropdown trigger is shown. */
+  /** When null, the "sign in" link is shown. When set, the caller's
+   *  email is rendered as a link to /shop/account. */
   signedIn: { name: string | null; email: string } | null;
   /** Slim variant for the configurator — drops the auth slot entirely
    *  so the canvas owns the viewport. */
@@ -24,9 +24,14 @@ export function ShopHeader({ branding, signedIn, variant = 'shop' }: Props) {
         className="flex items-center gap-2 text-sm font-medium hover:opacity-80 transition-opacity"
       >
         {branding.logoUrl && (
+          // alt="" because the displayName sibling span already names
+          // the link — the image is decorative. Partner tenants using
+          // an external https logo URL will need a matching entry in
+          // next.config.ts `images.remotePatterns`; today's seed uses
+          // a local `/logo-*.svg` path.
           <Image
             src={branding.logoUrl}
-            alt={branding.displayName}
+            alt=""
             width={28}
             height={28}
             className="h-7 w-auto"
