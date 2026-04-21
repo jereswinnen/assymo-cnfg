@@ -41,9 +41,9 @@ Pure TypeScript. No React, no three.js, no zustand. Safe to import from API rout
 - `config/` — the canonical `ConfigData` contract + versioning (`CONFIG_VERSION`), base58 codec, `migrateConfig` for legacy input, pure `mutations.ts` (used by stores and future API), `validateConfig` returning stable error codes
 - `pricing/` — `PriceBook` (per-tenant scalar dials) + `calculateTotalQuote`; line items are structured `{ labelKey, labelParams }` so UIs format labels at render time
 - `orders/` — pure order types (`OrderStatus`, `OrderQuoteSnapshot`, `OrderConfigSnapshot`, `OrderRecord`), state machine (`ALLOWED_TRANSITIONS`, `validateOrderTransition`, `allowedNextStatuses`), and `buildQuoteSnapshot` / `buildConfigSnapshot` for freezing the priced quote + ConfigData at submit time
-- `catalog/` — per-tenant material catalog types + validators (`MaterialRow`, `MaterialCategory`, `validateMaterialCreate`, `validateMaterialPatch`, slug helpers). Consumed by admin API routes, the `TenantContext.catalog.materials` field, and every material-aware helper in `materials/`. Products land in Phase 5.5.2.
+- `catalog/` — per-tenant material + product catalog types + validators (`MaterialRow`, `ProductRow`, `validateMaterialCreate/Patch`, `validateProductCreate/Patch`, `applyProductDefaults`, `filterMaterialsForProduct`, `clampDimensions`, slug helpers). Products are starter kits built on `overkapping` / `berging`; `paal` + `muur` stay engine primitives. Consumed by admin + shop API routes, the configurator hydration logic, and `TenantContext.catalog.{materials, products}`.
 - `materials/` — per-category view types (`WallCatalogEntry` etc.), row→view converters (`buildWallCatalog` …), `getAtom`, `getAtomColor`, `getEffectiveWallMaterial`, `getEffectiveDoorMaterial`. All helpers take `MaterialRow[]` — framework-free, zero global state. Hardcoded material registry removed in Phase 5.5.1; DB-backed catalog is the single source of truth.
-- `tenant/` — `TenantContext` with `priceBook` + `branding` + `invoicing` + `catalog: { materials: MaterialRow[] }`; host-based resolver; `brandingToCssVars` + `cssVarsToInlineBlock` for the branded shell; `validateBrandingPatch`, `validateInvoicingPatch` for admin PATCH validation. Phase 4.5's `enabledMaterials` allow-list was absorbed by row ownership in the `materials` table.
+- `tenant/` — `TenantContext` with `priceBook` + `branding` + `invoicing` + `catalog: { materials: MaterialRow[], products: ProductRow[] }`; host-based resolver; `brandingToCssVars` + `cssVarsToInlineBlock` for the branded shell; `validateBrandingPatch`, `validateInvoicingPatch` for admin PATCH validation. Phase 4.5's `enabledMaterials` allow-list was absorbed by row ownership in the `materials` table.
 - `invoicing/` — pure numbering (`formatInvoiceNumber`), VAT math (`computeInvoiceAmounts`), payment-status derivation (`derivePaymentStatus`), supplier-snapshot builder, and patch validators (`validateIssueInvoiceInput`, `validatePaymentInput`). All framework-free; consumed by the admin API + PDF renderer.
 
 ### `src/lib/` — browser-coupled
@@ -58,7 +58,7 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
 
 ### `src/db/`
 
-- `schema.ts` — Drizzle table definitions for domain tables. `schema.ts` gained a `materials` table (per-tenant catalog rows; unique on `(tenant_id, category, slug)`; soft-delete via `archived_at`). `tenants.enabled_materials` was dropped — row ownership replaces allow-listing. `tenants`
+- `schema.ts` — Drizzle table definitions for domain tables. `schema.ts` gained a `materials` table (per-tenant catalog rows; unique on `(tenant_id, category, slug)`; soft-delete via `archived_at`). `tenants.enabled_materials` was dropped — row ownership replaces allow-listing. Also gained a `products` table in Phase 5.5.2 — per-tenant starter kits with `kind` (`overkapping | berging`), `defaults` + `constraints` jsonb, hero image, base price, sort order, soft-delete via `archived_at`, unique on `(tenant_id, slug)`. `tenants`
   holds the seeded per-brand context (`priceBook`, `branding`, `invoicing` as jsonb); `configs`
   holds saved scenes with their base58 `code` and the canonical
   `ConfigData` in `data`; `tenant_hosts` maps request hosts to tenants
@@ -82,7 +82,7 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   tries exact host, bare host (no port), and the leftmost subdomain
   label against `tenant_hosts`. Wrapped in React `cache()` so the
   root layout + any API routes in the same request share one query.
-  Also exports `getTenantMaterials(tenantId)` (cached) and `materialDbRowToDomain(row)`; the root layout passes the full material list into `TenantProvider` as `catalog.materials`.
+  Also exports `getTenantMaterials(tenantId)` + `getTenantProducts(tenantId)` (both cached) and `materialDbRowToDomain(row)` + `productDbRowToDomain(row)`; the root layout passes both lists into `TenantProvider` as `catalog.{materials, products}`.
 - `auth-schema.ts` — generated by Better Auth's CLI. Re-run
   `npx @better-auth/cli generate --config src/lib/auth.ts --output src/db/auth-schema.ts`
   after changing `src/lib/auth.ts` (additionalFields, plugins). Holds
@@ -94,12 +94,12 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   the in-memory `@/domain/tenant` registry for now).
 - `migrations/` — committed SQL. Never edit a migration by hand after
   it's applied in any environment; write a follow-up migration instead.
-- `seed.ts` — idempotent upsert of the `assymo` tenant from `DEFAULT_PRICE_BOOK`, its host aliases, and every entry in `seedData.ts` as a `materials` row. When `BLOB_READ_WRITE_TOKEN` is present it uploads texture files from `public/textures/` via `@vercel/blob` and stores the returned URLs on each row; missing token = textures left null with a warning.
+- `seed.ts` — idempotent upsert of the `assymo` tenant from `DEFAULT_PRICE_BOOK`, its host aliases, and every entry in `seedData.ts` as a `materials` row. When `BLOB_READ_WRITE_TOKEN` is present it uploads texture files from `public/textures/` via `@vercel/blob` and stores the returned URLs on each row; missing token = textures left null with a warning. Also seeds two example products for the assymo tenant (Standaard Overkapping 4×3, Standaard Berging 3×3) on first run; subsequent runs are idempotent.
 - `seedData.ts` — one-time migration bridge carrying the pre-Phase-5.5.1 atoms + per-object catalogs as a static `SeedMaterialInput[]`. Consumed only by `seed.ts`. Slated for deletion once every environment has seeded (5.5.3 cleanup).
 
 ### Routes
 
-- `src/app/(configurator)/` — current app
+- `/` renders a tenant-branded landing page with a product grid + "Bouw van nul" tile (falls through to `/configurator` when the tenant has zero products). `/configurator` renders the 3D configurator; `/configurator?product=<slug>` hydrates one building from the product's defaults on first mount. The route group `src/app/(configurator)/` now lives under `/configurator`.
 - `src/app/api/configs/` — `POST` (save a share code) + `GET [code]`
   (fetch decoded config + priced quote). Both resolve the tenant via
   `src/lib/apiTenant.ts`, which combines the host-based resolver with
@@ -156,6 +156,8 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   - `GET /api/admin/clients/[id]` — client detail + their orders
   - `GET|POST /api/admin/materials` + `GET|PATCH|DELETE /api/admin/materials/[id]` + `POST /api/admin/materials/[id]/restore` — per-tenant material CRUD; soft-delete preserves historical orders. `super_admin` may scope via `?tenantId=` query.
   - `POST /api/admin/uploads/textures` — Vercel Blob signed-upload endpoint; `@vercel/blob/client.handleUpload`; upload paths namespaced `textures/<tenantId>/…`.
+  - `GET|POST /api/admin/products` + `GET|PATCH|DELETE /api/admin/products/[id]` + `POST /api/admin/products/[id]/restore` + `PATCH /api/admin/products/reorder` — per-tenant product CRUD + bulk reorder. super_admin may scope via `?tenantId=`.
+  - `POST /api/admin/uploads/images` — Vercel Blob signed-upload endpoint for hero images; paths namespaced `images/<tenantId>/…`.
 - `src/app/api/shop/*` — public + client-facing API.
   - `POST /api/shop/orders` — public, host-scoped. Takes
     `{ code, contact: { email, name, phone?, notes? } }`, snapshots the
@@ -178,6 +180,8 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   - `GET /api/shop/invoices/[id]` — client-only, scoped to the order's
     `customerId === session.user.id`. Returns 404 for both "not found"
     and "not yours".
+  - `GET /api/shop/products` — unauthenticated, host-scoped list of non-archived products (feeds the `/` landing grid).
+  - `GET /api/shop/products/[slug]` — unauthenticated detail-by-slug (for deep-linking into the configurator).
 - `src/app/api/invoices/[id]/pdf/` — `GET` streams `application/pdf`.
   Session-scoped: business-side requires `super_admin` OR `tenant_admin`
   with matching `invoice.tenantId`; client-side requires
@@ -191,6 +195,7 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   sidebar, header, content, and a bottom-mounted `<Toaster />`. The
   authed tree now also ships `/admin/invoices` (list + detail) and
   `/admin/catalog/materials` — list + create + edit pages using stock shadcn Table + Form. Texture uploads via `@vercel/blob/client.upload` → `/api/admin/uploads/textures`.
+  - `/admin/catalog/products` — list (dnd-kit sortable), create, edit. Forms include dimensions + per-slot defaults + per-slot allow-list multi-selects + hero-image upload.
 - `src/app/shop/` — client account tree. Mirrors admin's split: a
   sibling `sign-in/` (unauthenticated-only guard that bounces already-
   signed-in users) and an `(authed)` group with a session guard that
@@ -211,6 +216,7 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
 - **Shadcn primitives in their NATIVE form.** Never restyle button/dialog/
   sidebar/etc. Add new primitives via `pnpm dlx shadcn@latest add [name]`.
   Animations come from `tw-animate-css` (imported in `globals.css`).
+- **Drag reorder:** `@dnd-kit/core` + `@dnd-kit/sortable` (+ `@dnd-kit/utilities`) are sanctioned non-shadcn deps used only for drag-reorder of table rows (e.g. `/admin/catalog/products`). Import via the standard shadcn `Table` primitives wrapped in `DndContext` + `SortableContext`.
 - **Sidebar:** `src/components/admin/Sidebar.tsx` uses the shadcn `Sidebar`
   primitive with `collapsible="offcanvas"` + `<SidebarRail />`. Footer is
   the user avatar + dropdown (sign-out lives there). Nav items take a
