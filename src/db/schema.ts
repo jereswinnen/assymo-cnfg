@@ -19,6 +19,12 @@ import type {
 } from '@/domain/invoicing';
 import type { PriceBook } from '@/domain/pricing';
 import type { Branding, Currency, Locale, TenantInvoicing } from '@/domain/tenant';
+import type {
+  MaterialCategory,
+  MaterialFlags,
+  MaterialPricing,
+  MaterialTextures,
+} from '@/domain/catalog';
 
 /** Tenants — one row per white-label brand. Columns mirror the in-memory
  *  TenantContext. `id` is the stable slug used everywhere (URL lookup,
@@ -195,3 +201,36 @@ export type NewInvoiceRow = typeof invoices.$inferInsert;
 export type InvoiceNumberRow = typeof invoiceNumbers.$inferSelect;
 export type PaymentRow = typeof payments.$inferSelect;
 export type NewPaymentRow = typeof payments.$inferInsert;
+
+/** Materials — per-tenant catalog rows that feed the configurator's
+ *  wall / roof-cover / roof-trim / floor / door pickers. Slugs are
+ *  unique per (tenant, category). See `@/domain/catalog` for validators
+ *  and the `MaterialRow` transport type. Historical orders reference
+ *  materials by slug inside `configSnapshot` — deletion is soft
+ *  (`archived_at`) to keep them renderable. */
+export const materials = pgTable(
+  'materials',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .references(() => tenants.id, { onDelete: 'cascade' })
+      .notNull(),
+    category: text('category').$type<MaterialCategory>().notNull(),
+    slug: text('slug').notNull(),
+    name: text('name').notNull(),
+    color: text('color').notNull(),
+    textures: jsonb('textures').$type<MaterialTextures>(),
+    tileSize: jsonb('tile_size').$type<[number, number]>(),
+    pricing: jsonb('pricing').$type<MaterialPricing>().notNull(),
+    flags: jsonb('flags').$type<MaterialFlags>().notNull().default({}),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex('materials_tenant_category_slug_idx').on(t.tenantId, t.category, t.slug),
+    index('materials_tenant_id_idx').on(t.tenantId),
+  ],
+);
+
+export type MaterialDbRow = typeof materials.$inferSelect;
