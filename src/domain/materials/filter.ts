@@ -1,47 +1,95 @@
-import type { BaseCatalogEntry } from './types';
+import type { MaterialCategory, MaterialRow } from '@/domain/catalog';
+import type {
+  WallCatalogEntry,
+  RoofTrimCatalogEntry,
+  RoofCoveringCatalogEntry,
+  FloorCatalogEntry,
+  DoorCatalogEntry,
+} from './types';
 
-/** Slugs that must always show in pickers regardless of tenant filtering.
- *  `geen` is the "no floor" sentinel — hiding it would break the floor
- *  picker when a building has no floor (isVoid). */
-export const ALWAYS_ENABLED_SLUGS = ['geen'] as const satisfies readonly string[];
+/** Slugs that must always be available regardless of admin choices.
+ *  Today only `geen` (the void-floor sentinel), because hiding it would
+ *  leave the configurator with no "no floor" option. */
+export const ALWAYS_ENABLED_SLUGS: readonly string[] = ['geen'];
 
-/** Pure predicate: can this tenant use this material slug?
- *  `enabled === null` means unrestricted — all slugs allowed. */
-export function isMaterialEnabled(
-  slug: string,
-  enabled: readonly string[] | null,
-): boolean {
-  if (enabled === null) return true;
-  if ((ALWAYS_ENABLED_SLUGS as readonly string[]).includes(slug)) return true;
-  return enabled.includes(slug);
+function rowsByCategory(
+  materials: MaterialRow[],
+  category: MaterialCategory,
+): MaterialRow[] {
+  return materials.filter((m) => m.category === category && m.archivedAt === null);
 }
 
-/** Filter a per-category catalog against a tenant's enabled list.
- *  Null input returns the catalog reference verbatim (useful for
- *  memoisation in the browser). Sentinels in ALWAYS_ENABLED_SLUGS
- *  are preserved even when absent from the enabled list. */
-export function filterCatalog<T extends BaseCatalogEntry>(
-  catalog: readonly T[],
-  enabled: readonly string[] | null,
-): readonly T[] {
-  if (enabled === null) return catalog;
-  const allowed = new Set<string>(enabled);
-  for (const s of ALWAYS_ENABLED_SLUGS) allowed.add(s);
-  return catalog.filter((entry) => allowed.has(entry.atomId));
+function rowToWall(m: MaterialRow): WallCatalogEntry {
+  return {
+    atomId: m.slug,
+    pricePerSqm: m.pricing.perSqm ?? 0,
+    ...(m.flags.clearsOpenings ? { clearsOpenings: true } : {}),
+  };
 }
 
-/** Like filterCatalog, but always keeps the currently-selected slug
- *  visible in the picker (even if it has been disabled for the tenant
- *  after the scene was created). Lets existing scenes stay editable
- *  without being forced onto a different material. */
-export function filterCatalogAllowing<T extends BaseCatalogEntry>(
+function rowToRoofTrim(m: MaterialRow): RoofTrimCatalogEntry {
+  return { atomId: m.slug };
+}
+
+function rowToRoofCover(m: MaterialRow): RoofCoveringCatalogEntry {
+  return { atomId: m.slug, pricePerSqm: m.pricing.perSqm ?? 0 };
+}
+
+function rowToFloor(m: MaterialRow): FloorCatalogEntry {
+  return {
+    atomId: m.slug,
+    pricePerSqm: m.pricing.perSqm ?? 0,
+    ...(m.flags.isVoid ? { isVoid: true } : {}),
+  };
+}
+
+function rowToDoor(m: MaterialRow): DoorCatalogEntry {
+  return { atomId: m.slug, surcharge: m.pricing.surcharge ?? 0 };
+}
+
+export function buildWallCatalog(materials: MaterialRow[]): WallCatalogEntry[] {
+  return rowsByCategory(materials, 'wall').map(rowToWall);
+}
+export function buildRoofTrimCatalog(materials: MaterialRow[]): RoofTrimCatalogEntry[] {
+  return rowsByCategory(materials, 'roof-trim').map(rowToRoofTrim);
+}
+export function buildRoofCoverCatalog(materials: MaterialRow[]): RoofCoveringCatalogEntry[] {
+  return rowsByCategory(materials, 'roof-cover').map(rowToRoofCover);
+}
+export function buildFloorCatalog(materials: MaterialRow[]): FloorCatalogEntry[] {
+  return rowsByCategory(materials, 'floor').map(rowToFloor);
+}
+export function buildDoorCatalog(materials: MaterialRow[]): DoorCatalogEntry[] {
+  return rowsByCategory(materials, 'door').map(rowToDoor);
+}
+
+/** Given a built catalog and the current selection, keep the current
+ *  selection visible even when archived (so existing scenes still
+ *  render). The catalog already excludes archived entries; this helper
+ *  adds the current entry back in when missing. */
+export function filterCatalogAllowing<T extends { atomId: string }>(
   catalog: readonly T[],
-  enabled: readonly string[] | null,
-  currentAtomId: string | null,
-): readonly T[] {
-  if (enabled === null) return catalog;
-  const allowed = new Set<string>(enabled);
-  for (const s of ALWAYS_ENABLED_SLUGS) allowed.add(s);
-  if (currentAtomId) allowed.add(currentAtomId);
-  return catalog.filter((entry) => allowed.has(entry.atomId));
+  fallbackSlug: string | null,
+  materials: MaterialRow[],
+  category: MaterialCategory,
+  toView: (m: MaterialRow) => T,
+): T[] {
+  if (!fallbackSlug) return [...catalog];
+  if (catalog.some((e) => e.atomId === fallbackSlug)) return [...catalog];
+  const archivedRow = materials.find(
+    (m) => m.category === category && m.slug === fallbackSlug,
+  );
+  if (!archivedRow) return [...catalog];
+  return [toView(archivedRow), ...catalog];
+}
+
+/** Colour lookup used by pickers + canvas — always returns something
+ *  (neutral grey fallback if the slug doesn't resolve). */
+export function getAtomColor(materials: MaterialRow[], slug: string): string {
+  return materials.find((m) => m.slug === slug)?.color ?? '#808080';
+}
+
+/** Full-row lookup used when rendering needs textures + tileSize. */
+export function getAtom(materials: MaterialRow[], slug: string): MaterialRow | null {
+  return materials.find((m) => m.slug === slug) ?? null;
 }

@@ -1,5 +1,3 @@
-import type { MaterialSlug } from './atoms';
-
 /** Primitives shared across all object-type catalogs. Maps 1:1 to a future
  *  `materials` DB table row. */
 export interface MaterialAtom {
@@ -25,7 +23,7 @@ export interface MaterialAtom {
 /** Per-object catalog entry — references an atom by slug and adds
  *  object-specific context. Each object type has its own entry shape. */
 export interface BaseCatalogEntry {
-  atomId: MaterialSlug;
+  atomId: string;
 }
 
 export interface WallCatalogEntry extends BaseCatalogEntry {
