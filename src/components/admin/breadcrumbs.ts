@@ -14,6 +14,7 @@ const STATIC_LABELS: Record<string, string> = {
   '/admin/clients': 'admin.nav.clients',
   '/admin/tenants': 'admin.nav.tenants',
   '/admin/users': 'admin.nav.users',
+  '/admin/registry': 'admin.nav.registry',
 };
 
 /** Resolve breadcrumbs for a pathname.

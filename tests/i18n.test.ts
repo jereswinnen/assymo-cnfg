@@ -34,4 +34,11 @@ describe('t()', () => {
       '2026-04-21',
     );
   });
+
+  it('exposes admin.registry.* keys used by the materials admin', () => {
+    expect(t('admin.nav.registry')).toBe('Materialen');
+    expect(t('admin.registry.title')).toBe('Materialen');
+    expect(t('admin.registry.group.wall')).toBe('Wandmaterialen');
+    expect(t('admin.registry.sharedSlugHint')).toContain('meerdere');
+  });
 });

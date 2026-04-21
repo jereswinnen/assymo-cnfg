@@ -2,7 +2,7 @@
 
 import { useConfigStore } from '@/store/useConfigStore';
 import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
-import { FLOOR_CATALOG } from '@/domain/materials';
+import { useTenantCatalogs } from '@/lib/useTenantCatalogs';
 import { t } from '@/lib/i18n';
 import SectionLabel from '@/components/ui/SectionLabel';
 import MaterialSelect from '@/components/ui/MaterialSelect';
@@ -16,6 +16,7 @@ export default function FloorConfigSection() {
       : null,
   );
   const updateBuildingFloor = useConfigStore((s) => s.updateBuildingFloor);
+  const { floor: floorCatalog } = useTenantCatalogs({ floor: floorMaterialId });
 
   if (!selectedBuildingId || floorMaterialId === null) {
     return (
@@ -29,7 +30,7 @@ export default function FloorConfigSection() {
     <div className="space-y-2">
       <SectionLabel>{t('floor.material')}</SectionLabel>
       <MaterialSelect
-        catalog={FLOOR_CATALOG}
+        catalog={floorCatalog}
         value={floorMaterialId}
         onChange={(atomId) =>
           updateBuildingFloor(selectedBuildingId, {

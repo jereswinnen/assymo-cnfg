@@ -41,8 +41,8 @@ Pure TypeScript. No React, no three.js, no zustand. Safe to import from API rout
 - `config/` — the canonical `ConfigData` contract + versioning (`CONFIG_VERSION`), base58 codec, `migrateConfig` for legacy input, pure `mutations.ts` (used by stores and future API), `validateConfig` returning stable error codes
 - `pricing/` — `PriceBook` (per-tenant scalar dials) + `calculateTotalQuote`; line items are structured `{ labelKey, labelParams }` so UIs format labels at render time
 - `orders/` — pure order types (`OrderStatus`, `OrderQuoteSnapshot`, `OrderConfigSnapshot`, `OrderRecord`), state machine (`ALLOWED_TRANSITIONS`, `validateOrderTransition`, `allowedNextStatuses`), and `buildQuoteSnapshot` / `buildConfigSnapshot` for freezing the priced quote + ConfigData at submit time
-- `materials/` — `MATERIALS_REGISTRY` + per-object catalogs (wall/roof/floor/door) + attachment-chain resolution helpers
-- `tenant/` — `TenantContext` with `priceBook` + `branding`; host-based resolver; `brandingToCssVars` + `cssVarsToInlineBlock` for the branded shell
+- `materials/` — `MATERIALS_REGISTRY` + per-object catalogs (wall/roof/floor/door) + attachment-chain resolution helpers + `filterCatalog` / `filterCatalogAllowing` / `isMaterialEnabled` for tenant-scoped material allow-listing (null = unrestricted, `[]` = nothing enabled, sentinel `geen` always enabled)
+- `tenant/` — `TenantContext` with `priceBook` + `branding` + `enabledMaterials` (material allow-list); host-based resolver; `brandingToCssVars` + `cssVarsToInlineBlock` for the branded shell; `validateEnabledMaterialsPatch` for admin PATCH validation
 
 ### `src/lib/` — browser-coupled
 
@@ -57,7 +57,8 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
 ### `src/db/`
 
 - `schema.ts` — Drizzle table definitions for domain tables. `tenants`
-  holds the seeded per-brand context (`priceBook` and `branding` as jsonb); `configs`
+  holds the seeded per-brand context (`priceBook` and `branding` as jsonb,
+  `enabledMaterials` as a nullable text[] material allow-list); `configs`
   holds saved scenes with their base58 `code` and the canonical
   `ConfigData` in `data`; `tenant_hosts` maps request hosts to tenants
   (hostname PK, tenantId FK with cascade delete). `orders` rows freeze
@@ -113,6 +114,9 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
     merges over the stored jsonb
   - `PATCH /api/admin/tenants/[id]/branding` — super_admin any,
     tenant_admin own; update tenant branding (displayName, colors, logo)
+  - `PATCH /api/admin/tenants/[id]/enabled-materials` — super_admin any,
+    tenant_admin own; validates against `validateEnabledMaterialsPatch`.
+    `null` = unrestricted; `[]` = nothing; populated string[] = allow-list.
   - `GET /api/admin/users` — list business users in scope
   - `POST /api/admin/users` — super_admin can create any user in any
     tenant at any role; tenant_admin is pinned to its own tenant and
@@ -148,7 +152,10 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   group (session-guarded shell, all real pages live here) and a sibling
   `sign-in/` (no guard so the magic-link form can render). The `(authed)`
   layout wraps in `AdminHeaderProvider` + `SidebarProvider`, renders the
-  sidebar, header, content, and a bottom-mounted `<Toaster />`.
+  sidebar, header, content, and a bottom-mounted `<Toaster />`. The
+  authed tree now also ships `/admin/registry` (tenant_admin only —
+  super_admin edits per-tenant via the Materials section on
+  `/admin/tenants/[id]`).
 - `src/app/shop/` — client account tree. Mirrors admin's split: a
   sibling `sign-in/` (unauthenticated-only guard that bounces already-
   signed-in users) and an `(authed)` group with a session guard that
@@ -248,7 +255,7 @@ can recolour without touching component code.
 Anything that varies per brand lives on `TenantContext` — never in module-scope constants. Currently one tenant (`assymo`, seeded in `src/domain/tenant/tenants.ts`); the lookup table handles both subdomain and custom-domain mapping. When adding a feature:
 
 - Price numbers → `priceBook` on `TenantContext`
-- Material availability → future `materialCatalog` on `TenantContext` (not yet wired — global registry for now)
+- Material availability → `enabledMaterials: string[] | null` on `TenantContext`; configurator pickers read via `useTenantCatalogs()` (in `src/lib/`), which memoises per-category catalogs filtered by `filterCatalogAllowing`. Null = unrestricted; the atom registry itself stays global so disabled materials still render in legacy scenes.
 - UI copy → i18n overlay via tenant later; for now `src/lib/i18n.ts` is the source
 
 ## Conventions

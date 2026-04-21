@@ -3,6 +3,7 @@
 import { useConfigStore } from '@/store/useConfigStore';
 import { useUIStore } from "@/store/useUIStore";
 import { WALL_CATALOG, getEffectiveWallMaterial } from '@/domain/materials';
+import { useTenantCatalogs } from '@/lib/useTenantCatalogs';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import SectionLabel from '@/components/ui/SectionLabel';
@@ -15,6 +16,14 @@ export default function SurfaceProperties() {
   const selectedElement = useUIStore((s) => s.selectedElement);
   const buildings = useConfigStore((s) => s.buildings);
   const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
+  const selectedWall = selectedElement?.type === 'wall'
+    ? (() => {
+        const b = buildings.find((bb) => bb.id === selectedElement.buildingId);
+        const cfg = b?.walls[selectedElement.id as WallId];
+        return cfg && b ? getEffectiveWallMaterial(cfg, b) : null;
+      })()
+    : null;
+  const { wall: wallCatalog } = useTenantCatalogs({ wall: selectedWall });
 
   if (!selectedElement || selectedElement.type !== 'wall') {
     return (
@@ -60,7 +69,7 @@ export default function SurfaceProperties() {
           </label>
         </div>
         <MaterialSelect
-          catalog={WALL_CATALOG}
+          catalog={wallCatalog}
           value={effectiveMaterial}
           disabled={wallCfg.materialId === undefined}
           onChange={(atomId) => {
