@@ -9,6 +9,7 @@ import { HostsSection } from '@/components/admin/HostsSection';
 import { BrandingSection } from '@/components/admin/BrandingSection';
 import { PriceBookSection } from '@/components/admin/PriceBookSection';
 import { MaterialsSection } from '@/components/admin/MaterialsSection';
+import { InvoicingSection } from '@/components/admin/InvoicingSection';
 import { PageTitle } from '@/components/admin/PageTitle';
 
 export default async function TenantDetailPage({
@@ -37,6 +38,7 @@ export default async function TenantDetailPage({
         tenantId={tenant.id}
         initialEnabledMaterials={tenant.enabledMaterials}
       />
+      <InvoicingSection tenantId={tenant.id} initialInvoicing={tenant.invoicing} />
     </div>
   );
 }
