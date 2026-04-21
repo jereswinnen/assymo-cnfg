@@ -25,12 +25,14 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const isNonEmptyString = (v: unknown): v is string =>
   typeof v === 'string' && v.trim().length > 0;
 
-/** List the signed-in client's own orders, newest-first. Tenant scope
- *  is implicit: a client user belongs to exactly one tenant, and we
- *  filter by their `customerId`, so cross-tenant leakage is impossible. */
+/** List the signed-in client's own orders, newest-first. We filter on
+ *  both `customerId` AND `tenantId` so isolation is a query-level
+ *  guarantee, not an application-layer invariant — a future bug that
+ *  mis-assigned a customerId could never cross a tenant boundary here. */
 export const GET = withSession(async (session) => {
   requireClient(session);
   const clientId = session.user.id;
+  const tenantId = (session.user.tenantId as string | null) ?? '__none__';
 
   const rows = await db
     .select({
@@ -43,7 +45,7 @@ export const GET = withSession(async (session) => {
       createdAt: orders.createdAt,
     })
     .from(orders)
-    .where(eq(orders.customerId, clientId))
+    .where(and(eq(orders.customerId, clientId), eq(orders.tenantId, tenantId)))
     .orderBy(desc(orders.createdAt));
 
   return NextResponse.json({ orders: rows });

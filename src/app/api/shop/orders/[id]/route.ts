@@ -13,11 +13,18 @@ interface Ctx { params: Promise<{ id: string }> }
 export const GET = withSession(async (session, _req, { params }: Ctx) => {
   requireClient(session);
   const { id } = await params;
+  const tenantId = (session.user.tenantId as string | null) ?? '__none__';
 
   const [row] = await db
     .select()
     .from(orders)
-    .where(and(eq(orders.id, id), eq(orders.customerId, session.user.id)))
+    .where(
+      and(
+        eq(orders.id, id),
+        eq(orders.customerId, session.user.id),
+        eq(orders.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   if (!row) {

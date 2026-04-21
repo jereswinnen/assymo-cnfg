@@ -14,11 +14,18 @@ export default async function ShopOrderDetailPage({ params }: Props) {
   const { id } = await params;
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) notFound();
+  const tenantId = (session.user.tenantId as string | null) ?? '__none__';
 
   const [row] = await db
     .select()
     .from(orders)
-    .where(and(eq(orders.id, id), eq(orders.customerId, session.user.id)))
+    .where(
+      and(
+        eq(orders.id, id),
+        eq(orders.customerId, session.user.id),
+        eq(orders.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   if (!row) notFound();

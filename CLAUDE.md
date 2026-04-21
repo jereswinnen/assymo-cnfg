@@ -42,7 +42,7 @@ Pure TypeScript. No React, no three.js, no zustand. Safe to import from API rout
 - `pricing/` — `PriceBook` (per-tenant scalar dials) + `calculateTotalQuote`; line items are structured `{ labelKey, labelParams }` so UIs format labels at render time
 - `orders/` — pure order types (`OrderStatus`, `OrderQuoteSnapshot`, `OrderConfigSnapshot`, `OrderRecord`), state machine (`ALLOWED_TRANSITIONS`, `validateOrderTransition`, `allowedNextStatuses`), and `buildQuoteSnapshot` / `buildConfigSnapshot` for freezing the priced quote + ConfigData at submit time
 - `materials/` — `MATERIALS_REGISTRY` + per-object catalogs (wall/roof/floor/door) + attachment-chain resolution helpers
-- `tenant/` — `TenantContext` with `priceBook`; host-based resolver
+- `tenant/` — `TenantContext` with `priceBook` + `branding`; host-based resolver; `brandingToCssVars` + `cssVarsToInlineBlock` for the branded shell
 
 ### `src/lib/` — browser-coupled
 
