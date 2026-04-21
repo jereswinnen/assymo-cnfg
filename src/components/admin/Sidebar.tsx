@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   LogOutIcon,
   Package,
+  Palette,
   Receipt,
   Store,
   Users,
@@ -134,6 +135,25 @@ export function Sidebar({ role, tenantId, name, email }: Props) {
             </SidebarGroupContent>
           </SidebarGroup>
         )}
+        <SidebarGroup>
+          <SidebarGroupLabel>{t('admin.nav.catalog')}</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === '/admin/catalog/materials' || pathname.startsWith('/admin/catalog/materials/')}
+                  tooltip={t('admin.nav.catalog.materials')}
+                >
+                  <Link href="/admin/catalog/materials">
+                    <Palette />
+                    <span>{t('admin.nav.catalog.materials')}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
