@@ -1,9 +1,10 @@
 import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
-import { and, eq } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
-import { orders } from '@/db/schema';
+import { invoices, orders, payments as paymentsTable } from '@/db/schema';
 import { auth } from '@/lib/auth';
+import { derivePaymentStatus, type PaymentStatus } from '@/domain/invoicing';
 import { ClientOrderDetail } from '@/components/shop/ClientOrderDetail';
 
 interface Props {
@@ -30,6 +31,22 @@ export default async function ShopOrderDetailPage({ params }: Props) {
 
   if (!row) notFound();
 
+  const [invoice] = await db
+    .select()
+    .from(invoices)
+    .where(eq(invoices.orderId, row.id))
+    .limit(1);
+
+  let invoiceStatus: PaymentStatus = 'unpaid';
+  if (invoice) {
+    const paymentRows = await db
+      .select()
+      .from(paymentsTable)
+      .where(eq(paymentsTable.invoiceId, invoice.id))
+      .orderBy(asc(paymentsTable.paidAt));
+    invoiceStatus = derivePaymentStatus(invoice.totalCents, paymentRows);
+  }
+
   return (
     <ClientOrderDetail
       order={{
@@ -42,6 +59,16 @@ export default async function ShopOrderDetailPage({ params }: Props) {
         quoteSnapshot: row.quoteSnapshot,
         submittedAt: row.submittedAt ? row.submittedAt.toISOString() : null,
       }}
+      invoice={
+        invoice
+          ? {
+              id: invoice.id,
+              number: invoice.number,
+              totalCents: invoice.totalCents,
+            }
+          : null
+      }
+      invoiceStatus={invoice ? invoiceStatus : undefined}
     />
   );
 }

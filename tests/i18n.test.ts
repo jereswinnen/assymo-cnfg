@@ -48,4 +48,10 @@ describe('t()', () => {
     expect(t('invoice.pdf.vat', { rate: '21' })).toContain('21%');
     expect(t('payment.status.paid')).toBe('Betaald');
   });
+
+  it('exposes shop.order.invoice.* keys used by the order-detail Factuur card', () => {
+    expect(t('shop.order.invoice.title')).toBe('Factuur');
+    expect(t('shop.order.invoice.none')).toBe('Nog geen factuur opgemaakt.');
+    expect(t('shop.order.invoice.linkLabel')).toBe('Factuur bekijken');
+  });
 });

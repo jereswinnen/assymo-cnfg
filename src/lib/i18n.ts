@@ -507,6 +507,7 @@ const nl: Record<string, string> = {
   'shop.invoice.section.payments': 'Betalingen',
   'shop.order.invoice.title': 'Factuur',
   'shop.order.invoice.none': 'Nog geen factuur opgemaakt.',
+  'shop.order.invoice.linkLabel': 'Factuur bekijken',
   // PDF labels
   'invoice.pdf.title': 'FACTUUR',
   'invoice.pdf.number': 'Factuurnummer',
