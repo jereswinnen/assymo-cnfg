@@ -87,6 +87,12 @@ export interface BuildingEntity {
    *  follows the global material. Cleared when the pole is moved away from
    *  any snap target. */
   attachedTo?: string;
+  /** Set when the building was spawned from a Product (Phase 5.5.2).
+   *  Drives per-product material-picker filtering and dimension clamps.
+   *  Null for primitives (paal/muur) and free-build (Bouw van nul)
+   *  buildings. Rides along into `configSnapshot` at order submit so
+   *  historical orders record which product spawned each building. */
+  sourceProductId?: string;
 }
 
 export interface SnapConnection {
