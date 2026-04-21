@@ -61,7 +61,8 @@ Each module is a slice: `src/domain/<name>/` (pure) + `src/db/schema/<name>.ts` 
 
 | Module | Owns | Status |
 |---|---|---|
-| `tenant` | tenants, hosts, price book, branding, material catalog | mostly built |
+| `tenant` | tenants, hosts, price book, branding | mostly built |
+| `catalog` | per-tenant materials (DB + Blob textures) + products (starter kits) | new (Phase 5.5) |
 | `auth` | Better Auth + userType/role/scope guards | mostly built; adds `userType` |
 | `orders` | order lifecycle, state machine, quote snapshot | new (Phase 2) |
 | `invoices` | invoices, numbering, payments | new (Phase 5) |
@@ -241,6 +242,16 @@ Each phase ends in something deployable.
 - PDF generation — react-pdf or print-to-pdf; decide in phase research.
 - `/admin/invoices/*` + `/shop/account/invoices/[id]` (PDF download).
 
+### Phase 5.5 — Catalog (Products + Materials + Pricing)
+
+Replace the hardcoded material registry and per-object catalog arrays with tenant-owned DB-backed Materials and Products (starter kits). Every tenant — Assymo first — authors its own catalog through the admin; the configurator reads from the catalog instead of from TypeScript constants. Prerequisite for real commerce on any tenant, including Assymo. See the dedicated design: `docs/superpowers/specs/2026-04-21-phase-5.5-catalog-design.md`.
+
+Three internal sub-phases, each independently shippable:
+
+- **5.5.1 — Materials to DB + texture uploads.** New `materials` table (tenant-scoped, discriminated by `category`). `@vercel/blob` wiring for textures. Admin CRUD UI at `/admin/catalog/materials`. Seed Assymo by uploading `/public/textures/*.jpg` to Blob and writing rows. Configurator reads from DB via `TenantContext.catalog.materials`. Delete `src/domain/materials/atoms.ts` + `catalogs/*.ts`. Drop `tenants.enabled_materials` (Phase 4.5 absorbed — the existence of a row is the allow-list).
+- **5.5.2 — Products + landing UX.** New `products` table (`kind: 'overkapping'|'berging'` only; `paal`/`muur` stay engine primitives). Admin CRUD at `/admin/catalog/products` with `@dnd-kit` drag-reorder. Landing page `/` becomes a branded product grid + "Bouw van nul" CTA; the configurator moves to `/configurator`. `sourceProductId` on `BuildingEntity` + per-product constraints (allow-listed materials per slot, min/max dimensions) enforced at runtime. Tray reorganisation: Bouwsets + Losse elementen.
+- **5.5.3 — Hardening + cleanup.** Delete legacy defaults (`DEFAULT_BUILDING`, `getDefaultWalls`, `DEFAULT_WALL`). Replace the bit-packed `encodeState`/`decodeState` share codes with server-minted `nanoid(10)` IDs on `configs.code` + content-hash dedup (`configs.data` already holds the jsonb). Retire `/public/textures/`. Admin UX polish + full Assymo catalog content pass.
+
 ### Phase 6 — Online payments (deferred)
 
 Today, clients pay by manual bank transfer; Phase 5 covers that via `payments.method='manual'`. Phase 6 lands when the business is ready for online payments. The `payments` table and `method` column are already shaped to absorb a provider with no schema change.
@@ -281,4 +292,8 @@ Tick a box when the phase is merged to `main` and deployed. Each phase has its o
 - [x] Phase 4 — Webshop shell + client account — [plan](../plans/2026-04-21-phase-4-webshop-shell.md)
   - [x] Phase 4.5 — Material catalog filtering — [plan](../plans/2026-04-21-phase-4.5-material-catalog.md)
 - [x] Phase 5 — Invoices — [plan](../plans/2026-04-21-phase-5-invoices.md)
+- [ ] Phase 5.5 — Catalog (Products + Materials + Pricing) — [design](./2026-04-21-phase-5.5-catalog-design.md)
+  - [ ] Phase 5.5.1 — Materials to DB + texture uploads
+  - [ ] Phase 5.5.2 — Products + landing UX
+  - [ ] Phase 5.5.3 — Hardening + share-code refactor + cleanup
 - [ ] Phase 6 — Online payments (deferred until business-ready)
