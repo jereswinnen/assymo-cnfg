@@ -81,13 +81,11 @@ export default function OrderSubmitDialog() {
   }, [mappedError, form]);
 
   const onSubmit = async (values: ContactFormValues) => {
+    // Re-parse to pick up zod's transforms (trim, lowercase,
+    // empty→undefined) — RHF's input type still reflects the
+    // pre-transform shape.
     const parsed = contactFormSchema.parse(values);
-    await submit({
-      name: parsed.name,
-      email: parsed.email,
-      phone: parsed.phone,
-      notes: parsed.notes,
-    });
+    await submit(parsed);
   };
 
   const handleOpenChange = (next: boolean) => {
