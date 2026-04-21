@@ -5,16 +5,20 @@ import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import { exportFloorPlan } from '@/components/schematic/exportFloorPlan';
 import { t } from '@/lib/i18n';
 import { useTenant } from '@/lib/TenantProvider';
+import { applyProductDefaults } from '@/domain/catalog';
 import { RotateCcw, Download } from 'lucide-react';
 import ConfigCodeDialog from './ConfigCodeDialog';
 import OrderSubmitDialog from './OrderSubmitDialog';
 import type { BuildingType } from '@/domain/building';
 
-const CATALOG_ITEMS: { type: BuildingType; icon: string }[] = [
-  { type: 'berging', icon: '🏠' },
-  { type: 'overkapping', icon: '☂️' },
+const PRIMITIVE_ITEMS: { type: BuildingType; icon: string }[] = [
   { type: 'paal', icon: '📍' },
   { type: 'muur', icon: '🧱' },
+];
+
+const STRUCTURAL_ITEMS: { type: BuildingType; icon: string }[] = [
+  { type: 'berging', icon: '🏠' },
+  { type: 'overkapping', icon: '☂️' },
 ];
 
 export default function ObjectsTab() {
@@ -26,31 +30,104 @@ export default function ObjectsTab() {
   const selectBuilding = useUIStore((s) => s.selectBuilding);
   const resetConfig = useConfigStore((s) => s.resetConfig);
   const viewMode = useUIStore((s) => s.viewMode);
+  const { catalog } = useTenant();
+  const hasProducts = catalog.products.length > 0;
 
   const handleDragStart = (e: React.DragEvent, type: BuildingType) => {
     e.dataTransfer.setData('application/building-type', type);
     e.dataTransfer.effectAllowed = 'copy';
   };
 
+  const canAdd = viewMode !== '3d';
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        {/* Catalog grid */}
+        {/* Hint text */}
+        <p className="text-xs text-muted-foreground uppercase tracking-wider">
+          {canAdd ? t('sidebar.catalog.dragHint') : t('sidebar.catalog.switchTo2D')}
+        </p>
+
+        {/* Bouwsets — product cards (shown only when tenant has products) */}
+        {hasProducts && (
+          <div>
+            <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">
+              {t('configurator.tray.kits')}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {catalog.products.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  disabled={!canAdd}
+                  onClick={() => {
+                    if (!canAdd) return;
+                    const defaults = applyProductDefaults(p);
+                    addBuilding(p.kind, undefined, defaults);
+                  }}
+                  className={`rounded-lg border border-border p-2 text-left select-none transition-all ${
+                    canAdd
+                      ? 'hover:border-primary/40 hover:bg-primary/5 cursor-pointer'
+                      : 'opacity-50 cursor-not-allowed'
+                  }`}
+                >
+                  {p.heroImage && (
+                    <img
+                      src={p.heroImage}
+                      alt=""
+                      className="mb-2 aspect-[4/3] w-full rounded object-cover"
+                    />
+                  )}
+                  <div className="text-xs font-medium text-foreground">{p.name}</div>
+                  {p.basePriceCents > 0 && (
+                    <div className="text-[11px] text-muted-foreground">
+                      {t('landing.product.fromPrice', { amount: Math.floor(p.basePriceCents / 100).toString() })}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Losse elementen — primitives (paal + muur always; overkapping + berging as fallback) */}
         <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
-            {viewMode !== '3d' ? t('sidebar.catalog.dragHint') : t('sidebar.catalog.switchTo2D')}
+          <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">
+            {t('configurator.tray.primitives')}
           </p>
           <div className="grid grid-cols-2 gap-2">
-            {CATALOG_ITEMS.map(({ type, icon }) => (
+            {/* Paal + Muur are always shown */}
+            {PRIMITIVE_ITEMS.map(({ type, icon }) => (
               <div
                 key={type}
-                draggable={viewMode !== '3d'}
+                draggable={canAdd}
                 onDragStart={(e) => handleDragStart(e, type)}
                 onClick={() => {
-                  if (viewMode !== '3d') addBuilding(type);
+                  if (canAdd) addBuilding(type);
                 }}
                 className={`flex flex-col items-center gap-1 rounded-lg border border-border p-3 select-none transition-all ${
-                  viewMode !== '3d'
+                  canAdd
+                    ? 'cursor-grab hover:border-primary/40 hover:bg-primary/5'
+                    : 'opacity-50 cursor-not-allowed'
+                }`}
+              >
+                <span className="text-xl">{icon}</span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {t(`building.name.${type}`)}
+                </span>
+              </div>
+            ))}
+            {/* Overkapping + Berging: shown only when no products (fallback) */}
+            {!hasProducts && STRUCTURAL_ITEMS.map(({ type, icon }) => (
+              <div
+                key={type}
+                draggable={canAdd}
+                onDragStart={(e) => handleDragStart(e, type)}
+                onClick={() => {
+                  if (canAdd) addBuilding(type);
+                }}
+                className={`flex flex-col items-center gap-1 rounded-lg border border-border p-3 select-none transition-all ${
+                  canAdd
                     ? 'cursor-grab hover:border-primary/40 hover:bg-primary/5'
                     : 'opacity-50 cursor-not-allowed'
                 }`}
