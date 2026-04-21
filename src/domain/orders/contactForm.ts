@@ -30,12 +30,14 @@ export const contactFormSchema = z.object({
     }),
   notes: z
     .string()
-    .max(1000, { message: 'configurator.submit.validation.notes.tooLong' })
     .optional()
     .transform((v) => {
       if (v === undefined) return undefined;
       const trimmed = v.trim();
       return trimmed.length === 0 ? undefined : trimmed;
+    })
+    .refine((v) => v === undefined || v.length <= 1000, {
+      message: 'configurator.submit.validation.notes.tooLong',
     }),
 });
 
@@ -71,8 +73,6 @@ function detailToFieldError(
       // missing or malformed — surface the format message (the stronger
       // of the two) so users always see something actionable.
       return { field: 'email', key: 'configurator.submit.validation.email.format' };
-    case 'contact.phone':
-      return { field: 'phone', key: 'configurator.submit.validation.email.format' };
     case 'contact.notes':
       return { field: 'notes', key: 'configurator.submit.validation.notes.tooLong' };
     default:

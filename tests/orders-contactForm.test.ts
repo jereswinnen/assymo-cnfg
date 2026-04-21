@@ -101,6 +101,17 @@ describe('contactFormSchema', () => {
     expect(parsed.phone).toBeUndefined();
     expect(parsed.notes).toBeUndefined();
   });
+
+  it('accepts whitespace-padded notes up to 1000 non-whitespace chars', () => {
+    // The trim transform runs BEFORE the 1000-char refine, so padding
+    // cannot push an otherwise-valid note over the limit.
+    const result = contactFormSchema.safeParse({
+      name: 'Ada',
+      email: 'a@b.c',
+      notes: '  ' + 'x'.repeat(1000) + '  ',
+    });
+    expect(result.success).toBe(true);
+  });
 });
 
 describe('mapShopOrdersErrorCode', () => {
@@ -129,6 +140,18 @@ describe('mapShopOrdersErrorCode', () => {
       email: 'configurator.submit.validation.email.format',
       name: 'configurator.submit.validation.name.required',
     });
+  });
+
+  it('does not create field errors for unmapped validation_failed details', () => {
+    // `contact.phone` is not mapped today (no phone i18n key yet); `code`
+    // is server-synthesised and never a user-input field. Neither should
+    // surface as a field error.
+    const mapped = mapShopOrdersErrorCode('validation_failed', [
+      'contact.phone',
+      'code',
+    ]);
+    expect(mapped.i18nKey).toBe('configurator.submit.error.validation_failed');
+    expect(mapped.fieldErrors).toBeUndefined();
   });
 
   it('falls back to the unknown key for unrecognised codes', () => {
