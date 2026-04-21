@@ -1,7 +1,14 @@
 import { cache } from 'react';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db } from './client';
-import { tenantHosts, tenants, type TenantRow } from './schema';
+import {
+  materials as materialsTable,
+  tenantHosts,
+  tenants,
+  type MaterialDbRow,
+  type TenantRow,
+} from './schema';
+import type { MaterialRow } from '@/domain/catalog';
 import { DEFAULT_TENANT_ID, candidateHostKeys } from '@/domain/tenant';
 
 /** Resolve a tenant row by host header, trying exact/bare/subdomain
@@ -41,4 +48,41 @@ export async function resolveTenantByHostOrDefault(
   host: string | null | undefined,
 ): Promise<TenantRow | null> {
   return (await resolveTenantByHost(host)) ?? getTenantById(DEFAULT_TENANT_ID);
+}
+
+/** All non-archived materials for a tenant. Cached per-request so the
+ *  layout + any API handler in the same request share one query. */
+export const getTenantMaterials = cache(
+  async (tenantId: string): Promise<MaterialDbRow[]> => {
+    return db
+      .select()
+      .from(materialsTable)
+      .where(
+        and(
+          eq(materialsTable.tenantId, tenantId),
+          isNull(materialsTable.archivedAt),
+        ),
+      );
+  },
+);
+
+/** Convert a DB row into the domain-level `MaterialRow` transport type
+ *  consumed by TenantContext, pickers, pricing, and canvas. Dates are
+ *  ISO strings on the domain side. */
+export function materialDbRowToDomain(r: MaterialDbRow): MaterialRow {
+  return {
+    id: r.id,
+    tenantId: r.tenantId,
+    category: r.category,
+    slug: r.slug,
+    name: r.name,
+    color: r.color,
+    textures: r.textures ?? null,
+    tileSize: r.tileSize ?? null,
+    pricing: r.pricing,
+    flags: r.flags,
+    archivedAt: r.archivedAt ? r.archivedAt.toISOString() : null,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+  };
 }
