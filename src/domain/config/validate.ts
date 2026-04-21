@@ -17,6 +17,7 @@ import {
   getWallLength,
 } from '@/domain/building';
 import { getAtom } from '@/domain/materials';
+import type { MaterialRow } from '@/domain/catalog';
 import type { ConfigData } from './types';
 
 /** Machine-readable error codes. Keeping them stable across schema
@@ -54,9 +55,13 @@ function validateMaterial(
   slug: string | undefined,
   path: string,
   errors: ValidationError[],
+  materials: MaterialRow[],
 ): void {
   if (slug === undefined) return;
-  if (!getAtom(slug)) {
+  // When no materials are provided, skip slug validation (e.g. tests that
+  // don't exercise material checking).
+  if (materials.length === 0) return;
+  if (!getAtom(materials, slug)) {
     errors.push({
       path,
       code: 'unknown_material',
@@ -71,9 +76,10 @@ function validateWall(
   wall: WallConfig,
   basePath: string,
   errors: ValidationError[],
+  materials: MaterialRow[],
 ): void {
-  validateMaterial(wall.materialId, `${basePath}.materialId`, errors);
-  validateMaterial(wall.doorMaterialId, `${basePath}.doorMaterialId`, errors);
+  validateMaterial(wall.materialId, `${basePath}.materialId`, errors, materials);
+  validateMaterial(wall.doorMaterialId, `${basePath}.doorMaterialId`, errors, materials);
 
   const wallLength = getWallLength(wallId, building.dimensions);
   const usableLen = wallLength - 2 * EDGE_CLEARANCE;
@@ -140,6 +146,7 @@ function validateBuilding(
   b: BuildingEntity,
   index: number,
   errors: ValidationError[],
+  materials: MaterialRow[],
 ): void {
   const base = `buildings[${index}]`;
   const c = getConstraints(b.type);
@@ -167,20 +174,20 @@ function validateBuilding(
     });
   }
 
-  validateMaterial(b.primaryMaterialId, `${base}.primaryMaterialId`, errors);
-  validateMaterial(b.floor.materialId, `${base}.floor.materialId`, errors);
+  validateMaterial(b.primaryMaterialId, `${base}.primaryMaterialId`, errors, materials);
+  validateMaterial(b.floor.materialId, `${base}.floor.materialId`, errors, materials);
 
   const availableWalls = getAvailableWallIds(b.type);
   for (const wallId of availableWalls) {
     const wall = b.walls[wallId];
     if (!wall) continue;
-    validateWall(b, wallId, wall, `${base}.walls.${wallId}`, errors);
+    validateWall(b, wallId, wall, `${base}.walls.${wallId}`, errors, materials);
   }
 }
 
-function validateRoof(roof: RoofConfig, errors: ValidationError[]): void {
-  validateMaterial(roof.coveringId, 'roof.coveringId', errors);
-  validateMaterial(roof.trimMaterialId, 'roof.trimMaterialId', errors);
+function validateRoof(roof: RoofConfig, errors: ValidationError[], materials: MaterialRow[]): void {
+  validateMaterial(roof.coveringId, 'roof.coveringId', errors, materials);
+  validateMaterial(roof.trimMaterialId, 'roof.trimMaterialId', errors, materials);
 
   const maxPitch = roof.type === 'flat' ? 0 : MAX_PITCH;
   if (roof.pitch < MIN_PITCH || roof.pitch > maxPitch) {
@@ -227,8 +234,11 @@ function validateConnections(
 }
 
 /** Run every validation rule over a config and collect errors. Empty array
- *  means the config is safe to render, price, and persist. */
-export function validateConfig(cfg: ConfigData): ValidationError[] {
+ *  means the config is safe to render, price, and persist.
+ *  Pass `materials` to enable material-slug validation (API routes and
+ *  server-side checks). Omit (or pass `[]`) to skip slug checks — safe
+ *  for pure structural tests and legacy call-sites. */
+export function validateConfig(cfg: ConfigData, materials: MaterialRow[] = []): ValidationError[] {
   const errors: ValidationError[] = [];
 
   const ids = new Set<string>();
@@ -242,7 +252,7 @@ export function validateConfig(cfg: ConfigData): ValidationError[] {
       });
     }
     ids.add(b.id);
-    validateBuilding(b, i, errors);
+    validateBuilding(b, i, errors, materials);
   }
 
   const hasStructural = cfg.buildings.some(
@@ -257,12 +267,12 @@ export function validateConfig(cfg: ConfigData): ValidationError[] {
   }
 
   validateConnections(cfg.connections, ids, errors);
-  validateRoof(cfg.roof, errors);
+  validateRoof(cfg.roof, errors, materials);
 
   return errors;
 }
 
 /** Convenience: true iff the config has no validation errors. */
-export function isConfigValid(cfg: ConfigData): boolean {
-  return validateConfig(cfg).length === 0;
+export function isConfigValid(cfg: ConfigData, materials: MaterialRow[] = []): boolean {
+  return validateConfig(cfg, materials).length === 0;
 }

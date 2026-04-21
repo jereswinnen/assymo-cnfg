@@ -3,18 +3,20 @@
 import { useEffect, useMemo } from 'react';
 import { MeshStandardMaterial, TextureLoader, RepeatWrapping, SRGBColorSpace, LinearSRGBColorSpace } from 'three';
 import { getAtom, getAtomColor } from '@/domain/materials';
+import { useTenant } from '@/lib/TenantProvider';
 
 /** Timber-frame pole material. Shared by TimberFrame (overkapping posts +
  *  fascia) and the standalone Paal so both track the primary material
  *  identically, including PBR textures. */
 export function usePoleMaterial(materialId: string): MeshStandardMaterial {
-  const atom = getAtom(materialId);
+  const { catalog: { materials } } = useTenant();
+  const atom = getAtom(materials, materialId);
 
   const material = useMemo(() => {
     const loader = new TextureLoader();
     const paths = atom?.textures ?? null;
     const tile = atom?.tileSize ?? [2, 2];
-    const baseColor = getAtomColor(materialId);
+    const baseColor = getAtomColor(materials, materialId);
 
     if (!paths) {
       return new MeshStandardMaterial({

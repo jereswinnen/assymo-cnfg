@@ -10,6 +10,7 @@ import {
   WIN_MIN_SIZE,
 } from '@/domain/building';
 import { getAtomColor, getEffectiveWallMaterial } from '@/domain/materials';
+import { useTenant } from '@/lib/TenantProvider';
 import { t } from '@/lib/i18n';
 import type { WallId } from '@/domain/building';
 
@@ -19,6 +20,7 @@ interface WallElevationProps {
 }
 
 export default function WallElevation({ buildingId, wallId }: WallElevationProps) {
+  const { catalog: { materials } } = useTenant();
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
   const buildings = useConfigStore((s) => s.buildings);
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
@@ -288,7 +290,7 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
 
   const wallLength = getWallLength(wallId, building.dimensions);
   const wallHeight = getEffectiveHeight(building, defaultHeight);
-  const wallColor = getAtomColor(getEffectiveWallMaterial(wallCfg, building, buildings));
+  const wallColor = getAtomColor(materials, getEffectiveWallMaterial(wallCfg, building, buildings));
 
   const windows = wallCfg.windows ?? [];
 

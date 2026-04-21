@@ -1,3 +1,5 @@
+'use client';
+
 import {
   WALL_THICKNESS,
   DOUBLE_DOOR_W,
@@ -7,6 +9,7 @@ import {
   getWallLength,
 } from '@/domain/building';
 import { getAtomColor } from '@/domain/materials';
+import { useTenant } from '@/lib/TenantProvider';
 import type {
   BuildingDimensions,
   WallConfig,
@@ -129,9 +132,10 @@ function SolidWall({
   isSelected: boolean;
   onWallClick?: () => void;
 }) {
+  const { catalog: { materials } } = useTenant();
   const { cx, cy, orientation, length, flipSign } = geom;
   const isH = orientation === 'h';
-  const fillColor = isSelected ? '#3b82f6' : getAtomColor(cfg.materialId ?? primaryMaterialId);
+  const fillColor = isSelected ? '#3b82f6' : getAtomColor(materials, cfg.materialId ?? primaryMaterialId);
   const fillOpacity = isSelected ? 0.5 : 0.35;
   const strokeColor = isSelected ? '#2563eb' : '#444';
 

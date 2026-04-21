@@ -7,6 +7,7 @@ import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore } from "@/store/useUIStore";
 import { WALL_THICKNESS, resolveOpeningPositions, getWallLength } from '@/domain/building';
 import { getAtomColor, getEffectiveWallMaterial, getEffectiveDoorMaterial } from '@/domain/materials';
+import { useTenant } from '@/lib/TenantProvider';
 import { useWallTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
 import { WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT } from '@/domain/building';
@@ -39,6 +40,7 @@ interface WallProps {
 }
 
 export default function Wall({ wallId }: WallProps) {
+  const { catalog: { materials } } = useTenant();
   const meshRef = useRef<Mesh>(null);
 
   const buildingId = useBuildingId();
@@ -59,7 +61,7 @@ export default function Wall({ wallId }: WallProps) {
   const materialId = wallCfg && building
     ? getEffectiveWallMaterial(wallCfg, building, buildings)
     : 'brick';
-  const color = getAtomColor(materialId);
+  const color = getAtomColor(materials, materialId);
 
   const wallLength = getWallLength(wallId, dimensions);
   const texture = useWallTexture(materialId, wallLength, height);

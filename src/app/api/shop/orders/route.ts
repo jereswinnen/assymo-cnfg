@@ -7,6 +7,7 @@ import { migrateConfig, validateConfig } from '@/domain/config';
 import { buildConfigSnapshot, buildQuoteSnapshot } from '@/domain/orders';
 import { auth } from '@/lib/auth';
 import { resolveApiTenant } from '@/lib/apiTenant';
+import { getTenantMaterials, materialDbRowToDomain } from '@/db/resolveTenant';
 import { requireClient } from '@/lib/auth-guards';
 import { withSession } from '@/lib/auth-session';
 
@@ -119,6 +120,8 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Snapshot the priced quote ───────────────────────────────────
+  const materialRows = await getTenantMaterials(tenant.id);
+  const materials = materialRows.map(materialDbRowToDomain);
   const quoteSnapshot = buildQuoteSnapshot({
     code,
     buildings: migrated.buildings,
@@ -126,6 +129,7 @@ export async function POST(req: NextRequest) {
     priceBook: tenant.priceBook,
     defaultHeight: migrated.defaultHeight,
     currency: tenant.currency,
+    materials,
   });
   const configSnapshot = buildConfigSnapshot(code, migrated);
 

@@ -3,6 +3,9 @@ import { buildQuoteSnapshot } from '@/domain/orders';
 import { DEFAULT_PRICE_BOOK } from '@/domain/pricing';
 import { makeConfig } from './fixtures';
 
+// Empty array: tests here don't exercise material-pricing; passing [] is fine.
+const NO_MATERIALS = [] as const;
+
 const SAMPLE_CODE = 'TEST_CODE_123';
 
 describe('buildQuoteSnapshot', () => {
@@ -15,6 +18,7 @@ describe('buildQuoteSnapshot', () => {
       priceBook: DEFAULT_PRICE_BOOK,
       defaultHeight: config.defaultHeight,
       currency: 'EUR',
+      materials: [...NO_MATERIALS],
     });
     expect(snap.items).toHaveLength(1);
     expect(snap.items[0].code).toBe(SAMPLE_CODE);
@@ -35,6 +39,7 @@ describe('buildQuoteSnapshot', () => {
       priceBook: DEFAULT_PRICE_BOOK,
       defaultHeight: config.defaultHeight,
       currency: 'EUR',
+      materials: [...NO_MATERIALS],
     });
     expect(Number.isInteger(snap.totalCents)).toBe(true);
     for (const item of snap.items) {
@@ -52,6 +57,7 @@ describe('buildQuoteSnapshot', () => {
       priceBook: pb,
       defaultHeight: config.defaultHeight,
       currency: 'EUR',
+      materials: [...NO_MATERIALS],
     });
     pb.postPrice = 999_999;
     expect(snap.priceBook.postPrice).not.toBe(999_999);

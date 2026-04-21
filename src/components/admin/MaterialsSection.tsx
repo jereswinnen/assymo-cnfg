@@ -5,16 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import {
-  WALL_CATALOG,
-  ROOF_TRIM_CATALOG,
-  ROOF_COVERING_CATALOG,
-  FLOOR_CATALOG,
-  DOOR_CATALOG,
-  ALWAYS_ENABLED_SLUGS,
-  MATERIALS_REGISTRY,
-  type BaseCatalogEntry,
-} from '@/domain/materials';
+import { ALWAYS_ENABLED_SLUGS, type BaseCatalogEntry } from '@/domain/materials';
+import { MATERIALS_REGISTRY } from '@/domain/materials/atoms';
+import { WALL_CATALOG } from '@/domain/materials/catalogs/wall';
+import { ROOF_TRIM_CATALOG } from '@/domain/materials/catalogs/roof-trim';
+import { ROOF_COVERING_CATALOG } from '@/domain/materials/catalogs/roof-cover';
+import { FLOOR_CATALOG } from '@/domain/materials/catalogs/floor';
+import { DOOR_CATALOG } from '@/domain/materials/catalogs/door';
 import { t } from '@/lib/i18n';
 
 interface Props {

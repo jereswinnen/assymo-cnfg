@@ -6,6 +6,7 @@ import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/domain/building';
 import { getConstraints, DOOR_W, DOUBLE_DOOR_W, WIN_W, xToFraction, clampOpeningPosition, fractionToX, getWallLength, autoPoleLayout } from '@/domain/building';
 import { getEffectivePrimaryMaterial, getAtomColor } from '@/domain/materials';
+import { useTenant } from '@/lib/TenantProvider';
 import { t } from '@/lib/i18n';
 import SchematicPosts from './SchematicPosts';
 import SchematicWalls, { getWallGeometries } from './SchematicWalls';
@@ -150,6 +151,7 @@ function ResizeHandles({
 }
 
 export default function SchematicView() {
+  const { catalog: { materials } } = useTenant();
   const buildings = useConfigStore((s) => s.buildings);
   const connections = useConfigStore((s) => s.connections);
   const selectedElement = useUIStore((s) => s.selectedElement);
@@ -1596,7 +1598,7 @@ export default function SchematicView() {
             const cx = p.position[0] + p.dimensions.width / 2;
             const cz = p.position[1] + p.dimensions.depth / 2;
             const isSelected = selectedBuildingIds.includes(p.id) || previewSelectedIds.has(p.id);
-            const poleColor = getAtomColor(getEffectivePrimaryMaterial(p, buildings));
+            const poleColor = getAtomColor(materials, getEffectivePrimaryMaterial(p, buildings));
             return (
               <g
                 key={p.id}

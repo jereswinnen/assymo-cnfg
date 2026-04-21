@@ -10,30 +10,27 @@ import { calculateTotalQuote } from '@/domain/pricing';
 import type { PriceBook } from '@/domain/pricing';
 import type { MaterialRow } from '@/domain/catalog';
 
-// TODO(5.5.1/T14): wire materials from TenantContext/resolver
-const MATERIALS_PLACEHOLDER: MaterialRow[] = [];
-
-function wallMaterialLabel(id: string): string {
-  const atom = getAtom(id);
-  return atom ? t(atom.labelKey) : id;
+function wallMaterialLabel(materials: MaterialRow[], id: string): string {
+  const atom = getAtom(materials, id);
+  return atom ? atom.name : id;
 }
 
-function roofCoveringLabel(id: string): string {
-  const atom = getAtom(id);
-  return atom ? t(atom.labelKey) : id;
+function roofCoveringLabel(materials: MaterialRow[], id: string): string {
+  const atom = getAtom(materials, id);
+  return atom ? atom.name : id;
 }
 
-function floorMaterialLabel(id: string): string {
-  const atom = getAtom(id);
-  return atom ? t(atom.labelKey) : id;
+function floorMaterialLabel(materials: MaterialRow[], id: string): string {
+  const atom = getAtom(materials, id);
+  return atom ? atom.name : id;
 }
 
-function doorMaterialLabel(id: string): string {
-  const atom = getAtom(id);
-  return atom ? t(atom.labelKey) : id;
+function doorMaterialLabel(materials: MaterialRow[], id: string): string {
+  const atom = getAtom(materials, id);
+  return atom ? atom.name : id;
 }
 
-function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHeight: number, priceBook: PriceBook): string {
+function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHeight: number, priceBook: PriceBook, materials: MaterialRow[]): string {
   const rows: string[] = [];
 
   const row = (label: string, value: string) =>
@@ -62,17 +59,17 @@ function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHei
       rows.push(row(t('dim.width'), `${b.dimensions.width.toFixed(1)} m`));
       rows.push(row(t('dim.depth'), `${b.dimensions.depth.toFixed(1)} m`));
       rows.push(row(t('dim.height'), `${effectiveH.toFixed(1)} m`));
-      rows.push(row(t('floor.material'), floorMaterialLabel(b.floor.materialId)));
+      rows.push(row(t('floor.material'), floorMaterialLabel(materials, b.floor.materialId)));
 
       const wallIds = getAvailableWallIds(b.type);
       const activeWallIds = wallIds.filter((id) => b.walls[id]);
       for (const id of activeWallIds) {
         const w = b.walls[id];
         if (!w) continue;
-        const parts: string[] = [wallMaterialLabel(w.materialId ?? b.primaryMaterialId)];
+        const parts: string[] = [wallMaterialLabel(materials, w.materialId ?? b.primaryMaterialId)];
         if (w.hasDoor) {
           const size = t(`surface.doorSize.${w.doorSize}`);
-          const mat = doorMaterialLabel(w.doorMaterialId ?? b.primaryMaterialId);
+          const mat = doorMaterialLabel(materials, w.doorMaterialId ?? b.primaryMaterialId);
           const withWindow = w.doorHasWindow ? `, ${t('surface.doorHasWindow').toLowerCase()}` : '';
           parts.push(`${t('surface.door')}: ${size} (${mat}${withWindow})`);
         }
@@ -87,13 +84,13 @@ function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHei
   // Shared roof
   rows.push(`<tr><td colspan="2" style="padding:12px 0 6px;font-weight:600;font-size:14px;border-bottom:1px solid #eee">${t('section.3')}</td></tr>`);
   rows.push(row(t('roofType.label'), t(`roofType.${roof.type}`)));
-  rows.push(row(t('roof.covering'), roofCoveringLabel(roof.coveringId)));
+  rows.push(row(t('roof.covering'), roofCoveringLabel(materials, roof.coveringId)));
   if (roof.hasSkylight) {
     rows.push(row(t('roof.skylight'), 'Ja'));
   }
 
   // Quote
-  const { lineItems, total } = calculateTotalQuote(buildings, roof, priceBook, MATERIALS_PLACEHOLDER, defaultHeight);
+  const { lineItems, total } = calculateTotalQuote(buildings, roof, priceBook, materials, defaultHeight);
   rows.push(`<tr><td colspan="2" style="padding:12px 0 6px;font-weight:600;font-size:14px;border-bottom:1px solid #eee">${t('section.6')}</td></tr>`);
   for (const item of lineItems) {
     rows.push(row(t(item.labelKey, item.labelParams), `€${item.total.toFixed(0)}`));
@@ -103,12 +100,12 @@ function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHei
   return rows.join('\n');
 }
 
-export function exportFloorPlan(buildings: BuildingEntity[], connections: SnapConnection[], roof: RoofConfig, priceBook: PriceBook, defaultHeight: number = 3) {
+export function exportFloorPlan(buildings: BuildingEntity[], connections: SnapConnection[], roof: RoofConfig, priceBook: PriceBook, materials: MaterialRow[], defaultHeight: number = 3) {
   const svgEl = document.querySelector('.schematic-svg');
   if (!svgEl) return;
   const svgMarkup = svgEl.outerHTML;
 
-  const specRows = buildSpecRows(buildings, roof, defaultHeight, priceBook);
+  const specRows = buildSpecRows(buildings, roof, defaultHeight, priceBook, materials);
   const configCode = encodeState(buildings, connections, roof, defaultHeight);
   const title = `${t('app.title')} — ${t('schematic.title')}`;
   const date = new Date().toLocaleDateString('nl-NL', {

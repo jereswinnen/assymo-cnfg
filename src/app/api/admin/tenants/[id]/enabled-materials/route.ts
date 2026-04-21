@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { tenants } from '@/db/schema';
 import { validateEnabledMaterialsPatch } from '@/domain/tenant';
@@ -39,14 +39,17 @@ export const PATCH = withSession(
       return NextResponse.json({ error: 'tenant_not_found' }, { status: 404 });
     }
 
+    // NOTE(5.5.1): enabledMaterials column was migrated to per-material
+    // archivedAt on the materials table. This endpoint is preserved for
+    // backwards-compat but is now a no-op on the tenant row itself.
+    // T23 will repurpose or remove it.
+    void enabledMaterials; // validated above — kept for future use
+
     const [updated] = await db
-      .update(tenants)
-      .set({
-        enabledMaterials: enabledMaterials ?? null,
-        updatedAt: sql`now()`,
-      })
+      .select()
+      .from(tenants)
       .where(eq(tenants.id, id))
-      .returning();
+      .limit(1);
 
     return NextResponse.json({ tenant: updated });
   },

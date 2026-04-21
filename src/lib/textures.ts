@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { TextureLoader, RepeatWrapping, SRGBColorSpace, LinearSRGBColorSpace } from 'three';
 import type { Texture } from 'three';
 import { getAtom } from '@/domain/materials';
+import { useTenant } from '@/lib/TenantProvider';
 
 const loader = new TextureLoader();
 const textureCache = new Map<string, Texture>();
@@ -33,7 +34,8 @@ export function useWallTexture(
   wallWidth: number,
   wallHeight: number,
 ): PBRTextures | null {
-  const atom = getAtom(materialId);
+  const { catalog: { materials } } = useTenant();
+  const atom = getAtom(materials, materialId);
   const paths = atom?.textures ?? null;
   const tileSize = atom?.tileSize ?? null;
 
@@ -74,7 +76,8 @@ export function useDoorTexture(
   panelWidth: number,
   panelHeight: number,
 ): PBRTextures | null {
-  const atom = getAtom(materialId);
+  const { catalog: { materials } } = useTenant();
+  const atom = getAtom(materials, materialId);
   const paths = atom?.textures ?? null;
   // Tile size matches the surrounding wall so the door texture reads continuous.
   const tileSize = atom?.tileSize ?? [1.5, 1.5];
@@ -116,7 +119,8 @@ export function useRoofTexture(
   roofWidth: number,
   roofDepth: number,
 ): PBRTextures | null {
-  const atom = getAtom(coveringId);
+  const { catalog: { materials } } = useTenant();
+  const atom = getAtom(materials, coveringId);
   const paths = atom?.textures ?? null;
   const tileSize = atom?.tileSize ?? null;
 
@@ -159,7 +163,8 @@ export function useFloorTexture(
   floorWidth: number,
   floorDepth: number,
 ): FloorPBR | null {
-  const atom = getAtom(materialId);
+  const { catalog: { materials } } = useTenant();
+  const atom = getAtom(materials, materialId);
   const paths = atom?.textures ?? null;
   const tileSize = atom?.tileSize ?? null;
 

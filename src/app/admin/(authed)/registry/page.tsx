@@ -46,7 +46,7 @@ export default async function AdminRegistryPage() {
       </div>
       <MaterialsSection
         tenantId={tenant.id}
-        initialEnabledMaterials={tenant.enabledMaterials}
+        initialEnabledMaterials={null}
       />
     </div>
   );

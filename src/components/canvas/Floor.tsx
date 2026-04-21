@@ -3,10 +3,12 @@
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore } from '@/store/useConfigStore';
 import { getAtomColor } from '@/domain/materials';
+import { useTenant } from '@/lib/TenantProvider';
 import { useFloorTexture } from '@/lib/textures';
 import { POST_SIZE } from '@/domain/building';
 
 export default function Floor() {
+  const { catalog: { materials } } = useTenant();
   const buildingId = useBuildingId();
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
 
@@ -28,7 +30,7 @@ export default function Floor() {
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} receiveShadow>
       <planeGeometry args={[floorWidth, floorDepth]} />
       <meshStandardMaterial
-        color={pbr ? '#ffffff' : getAtomColor(materialId)}
+        color={pbr ? '#ffffff' : getAtomColor(materials, materialId)}
         map={pbr?.map ?? undefined}
         normalMap={pbr?.normalMap ?? undefined}
         roughnessMap={pbr?.roughnessMap ?? undefined}

@@ -9,6 +9,8 @@ import { createDoorPanelWithWindowGeo } from './wallGeometry';
 import { DOOR_H, DOOR_DEPTH, FRAME_T, FRAME_D } from './wallGeometry';
 import type { DoorSwing, DoorSize } from '@/domain/building';
 import { getAtomColor } from '@/domain/materials';
+import type { MaterialRow } from '@/domain/catalog';
+import { useTenant } from '@/lib/TenantProvider';
 
 // Door panel material configs for the legacy fixed-set (wood/aluminium/pvc/staal).
 // Cladding atoms (vurenvert, bevelhorz, etc.) fall back to a wood-like config —
@@ -22,10 +24,10 @@ const DOOR_MAT_CFG: Record<string, { color: string; tint: string; metalness: num
 
 const DEFAULT_DOOR_MAT = { tint: '#ffffff', metalness: 0.1, roughness: 0.7, envMapIntensity: 0.3 };
 
-function resolveDoorMatCfg(matId: string) {
+function resolveDoorMatCfg(matId: string, materials: MaterialRow[]) {
   const cfg = DOOR_MAT_CFG[matId];
   if (cfg) return cfg;
-  return { ...DEFAULT_DOOR_MAT, color: getAtomColor(matId) };
+  return { ...DEFAULT_DOOR_MAT, color: getAtomColor(materials, matId) };
 }
 
 // Handle materials: dark for wood-like, light for hard finishes.
@@ -76,12 +78,13 @@ interface DoorMeshProps {
 }
 
 export default function DoorMesh({ x, height, swing, doorSize, doorHasWindow, doorMaterialId, doorMirror = false }: DoorMeshProps) {
+  const { catalog: { materials } } = useTenant();
   const doorY = DOOR_H / 2;
   const dh = Math.min(DOOR_H, height - 0.1);
   const panelW = doorSize === 'dubbel' ? DOUBLE_DOOR_W / 2 : DOOR_W;
   const totalW = doorSize === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W;
   const hMat = getHandleMat(doorMaterialId);
-  const mc = resolveDoorMatCfg(doorMaterialId);
+  const mc = resolveDoorMatCfg(doorMaterialId, materials);
   const doorTex = useDoorTexture(doorMaterialId, panelW, dh);
   const panelColor = doorTex ? mc.tint : mc.color;
 

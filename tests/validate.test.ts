@@ -1,7 +1,36 @@
 import { describe, it, expect } from 'vite-plus/test';
 import { isConfigValid, validateConfig } from '@/domain/config';
 import { DEFAULT_WALL } from '@/domain/building';
+import type { MaterialRow } from '@/domain/catalog';
 import { makeBuilding, makeConfig, makeRoof } from './fixtures';
+
+/** Minimal material fixture: a couple of real slugs so validateConfig can
+ *  detect an unknown slug like 'unobtainium'. */
+function makeRow(slug: string, category: MaterialRow['category']): MaterialRow {
+  return {
+    id: slug,
+    tenantId: 'test',
+    category,
+    slug,
+    name: slug,
+    color: '#000',
+    textures: null,
+    tileSize: null,
+    pricing: {},
+    flags: {},
+    archivedAt: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+const FIXTURE_MATERIALS: MaterialRow[] = [
+  makeRow('wood', 'wall'),
+  makeRow('brick', 'wall'),
+  makeRow('beton', 'floor'),
+  makeRow('pannen', 'roof-cover'),
+  makeRow('aluminium', 'roof-trim'),
+];
 
 describe('validateConfig', () => {
   it('accepts the default config', () => {
@@ -20,7 +49,7 @@ describe('validateConfig', () => {
     const cfg = makeConfig({
       buildings: [makeBuilding({ id: 'b1', type: 'berging', primaryMaterialId: 'unobtainium' })],
     });
-    const errors = validateConfig(cfg);
+    const errors = validateConfig(cfg, FIXTURE_MATERIALS);
     expect(errors.some((e) => e.code === 'unknown_material')).toBe(true);
   });
 

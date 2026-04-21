@@ -36,7 +36,7 @@ export default async function TenantDetailPage({
       <PriceBookSection tenantId={tenant.id} initialPriceBook={tenant.priceBook} />
       <MaterialsSection
         tenantId={tenant.id}
-        initialEnabledMaterials={tenant.enabledMaterials}
+        initialEnabledMaterials={null}
       />
       <InvoicingSection tenantId={tenant.id} initialInvoicing={tenant.invoicing} />
     </div>

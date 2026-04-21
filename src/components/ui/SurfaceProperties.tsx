@@ -2,7 +2,7 @@
 
 import { useConfigStore } from '@/store/useConfigStore';
 import { useUIStore } from "@/store/useUIStore";
-import { WALL_CATALOG, getEffectiveWallMaterial } from '@/domain/materials';
+import { getEffectiveWallMaterial } from '@/domain/materials';
 import { useTenantCatalogs } from '@/lib/useTenantCatalogs';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -41,7 +41,7 @@ export default function SurfaceProperties() {
 
   const label = t(`wall.${wallId}`);
   const effectiveMaterial = building ? getEffectiveWallMaterial(wallCfg, building) : 'wood';
-  const currentWallEntry = WALL_CATALOG.find(e => e.atomId === effectiveMaterial);
+  const currentWallEntry = wallCatalog.find(e => e.atomId === effectiveMaterial);
   const isGlass = currentWallEntry?.clearsOpenings === true;
 
   function handleChange(field: string, value: unknown) {
@@ -74,7 +74,7 @@ export default function SurfaceProperties() {
           disabled={wallCfg.materialId === undefined}
           onChange={(atomId) => {
             handleChange('materialId', atomId);
-            const entry = WALL_CATALOG.find(e => e.atomId === atomId);
+            const entry = wallCatalog.find(e => e.atomId === atomId);
             if (entry?.clearsOpenings) {
               handleChange('hasDoor', false);
               handleChange('windows', []);

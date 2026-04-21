@@ -144,7 +144,7 @@ function SidebarFooter({ resetConfig, viewMode }: { resetConfig: () => void; vie
         <OrderSubmitDialog />
         {viewMode !== '3d' && (
           <button
-            onClick={() => exportFloorPlan(buildings, connections, roof, tenant.priceBook, defaultHeight)}
+            onClick={() => exportFloorPlan(buildings, connections, roof, tenant.priceBook, tenant.catalog.materials, defaultHeight)}
             className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <Download className="h-3.5 w-3.5" />

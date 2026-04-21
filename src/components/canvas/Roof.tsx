@@ -7,6 +7,7 @@ import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore } from "@/store/useUIStore";
 import { BEAM_H, WALL_THICKNESS } from '@/domain/building';
 import { getAtomColor } from '@/domain/materials';
+import { useTenant } from '@/lib/TenantProvider';
 import { useRoofTexture, useWallTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
 
@@ -14,6 +15,7 @@ const EPDM_THICKNESS = 0.02;
 const ROOF_EDGE = 0.12; // must match TimberFrame
 
 export default function Roof() {
+  const { catalog: { materials } } = useTenant();
   const meshRef = useRef<Mesh>(null);
 
   const buildingId = useBuildingId();
@@ -27,7 +29,7 @@ export default function Roof() {
   const { width, depth } = building?.dimensions ?? { width: 8, depth: 4 };
   const height = building ? getEffectiveHeight(building, defaultHeight) : 3;
   const roofPitch = roof.pitch;
-  const color = getAtomColor(roof.coveringId);
+  const color = getAtomColor(materials, roof.coveringId);
 
   const isSelected = selectedElement?.type === 'roof';
   const roofTexture = useRoofTexture(roof.coveringId, width, depth);
@@ -221,6 +223,7 @@ const FASCIA_TEXTURE_TINT: Record<string, string> = {
 };
 
 function FasciaBoardMesh({ board, materialId }: { board: FasciaBoard; materialId: string }) {
+  const { catalog: { materials } } = useTenant();
   const texture = useWallTexture(materialId, board.length, FASCIA_HEIGHT);
   const isGlass = materialId === 'glass';
   const tint = FASCIA_TEXTURE_TINT[materialId] ?? '#ffffff';
@@ -230,7 +233,7 @@ function FasciaBoardMesh({ board, materialId }: { board: FasciaBoard; materialId
       <boxGeometry args={board.size} />
       <meshStandardMaterial
         key={texture ? 'textured' : 'flat'}
-        color={texture ? tint : getAtomColor(materialId)}
+        color={texture ? tint : getAtomColor(materials, materialId)}
         map={texture?.map ?? undefined}
         normalMap={texture?.normalMap ?? undefined}
         roughnessMap={texture?.roughnessMap ?? undefined}
