@@ -6,13 +6,13 @@ import type { TenantContext } from '@/domain/tenant';
 const Ctx = createContext<TenantContext | null>(null);
 
 export function TenantProvider({
-  tenant,
+  value,
   children,
 }: {
-  tenant: TenantContext;
+  value: TenantContext;
   children: ReactNode;
 }) {
-  return <Ctx.Provider value={tenant}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
 export function useTenant(): TenantContext {
