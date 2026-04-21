@@ -2,7 +2,7 @@
 
 import { useConfigStore } from '@/store/useConfigStore';
 import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
-import { WALL_CATALOG } from '@/domain/materials';
+import { useTenantCatalogs } from '@/lib/useTenantCatalogs';
 import { t } from '@/lib/i18n';
 import SectionLabel from '@/components/ui/SectionLabel';
 import MaterialSelect from '@/components/ui/MaterialSelect';
@@ -17,6 +17,7 @@ export default function BuildingMaterialSection() {
       : null,
   );
   const setBuildingPrimaryMaterial = useConfigStore((s) => s.setBuildingPrimaryMaterial);
+  const { wall: wallCatalog } = useTenantCatalogs({ wall: primaryMaterialId });
 
   if (!selectedBuildingId || !primaryMaterialId) {
     return (
@@ -30,7 +31,7 @@ export default function BuildingMaterialSection() {
     <div className="space-y-2">
       <SectionLabel>{t('material.primary')}</SectionLabel>
       <MaterialSelect
-        catalog={WALL_CATALOG}
+        catalog={wallCatalog}
         value={primaryMaterialId}
         onChange={(atomId) => setBuildingPrimaryMaterial(selectedBuildingId, atomId)}
         showPrice
