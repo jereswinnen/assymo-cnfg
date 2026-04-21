@@ -277,7 +277,7 @@ Tick a box when the phase is merged to `main` and deployed. Each phase has its o
 
 - [x] Phase 1 — Admin foundation — [plan](../plans/2026-04-17-phase-1-admin-foundation.md)
 - [x] Phase 2 — Orders — [plan](../plans/2026-04-17-phase-2-orders.md)
-- [ ] Phase 3 — Configurator submit
+- [x] Phase 3 — Configurator submit — [plan](../plans/2026-04-21-phase-3-configurator-submit.md)
 - [ ] Phase 4 — Webshop shell + client account
   - [ ] Phase 4.5 — Material catalog filtering
 - [ ] Phase 5 — Invoices
