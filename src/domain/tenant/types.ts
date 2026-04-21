@@ -1,4 +1,4 @@
-import type { MaterialRow } from '@/domain/catalog';
+import type { MaterialRow, ProductRow } from '@/domain/catalog';
 import type { PriceBook } from '@/domain/pricing';
 import type { Branding } from './branding';
 import type { TenantInvoicing } from './invoicing';
@@ -22,5 +22,6 @@ export interface TenantContext {
   invoicing: TenantInvoicing;
   catalog: {
     materials: MaterialRow[];
+    products: ProductRow[];
   };
 }

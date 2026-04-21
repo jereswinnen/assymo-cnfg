@@ -3,7 +3,9 @@ import { headers } from 'next/headers';
 import {
   resolveTenantByHostOrDefault,
   getTenantMaterials,
+  getTenantProducts,
   materialDbRowToDomain,
+  productDbRowToDomain,
 } from '@/db/resolveTenant';
 import { TenantProvider } from '@/lib/TenantProvider';
 import type { TenantContext } from '@/domain/tenant';
@@ -19,18 +21,21 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  const tenantRow = await resolveTenantByHostOrDefault((await headers()).get('host'));
+}: Readonly<{ children: React.ReactNode }>) {
+  const hdrs = await headers();
+  const tenantRow = await resolveTenantByHostOrDefault(hdrs.get('host'));
   if (!tenantRow) {
     throw new Error(
       'No tenant resolved for this host and no default tenant in DB. Run `pnpm db:seed` to create the assymo tenant.',
     );
   }
 
-  const materialRows = await getTenantMaterials(tenantRow.id);
+  const [materialRows, productRows] = await Promise.all([
+    getTenantMaterials(tenantRow.id),
+    getTenantProducts(tenantRow.id),
+  ]);
   const materials = materialRows.map(materialDbRowToDomain);
+  const products = productRows.map(productDbRowToDomain);
 
   const tenantContext: TenantContext = {
     id: tenantRow.id,
@@ -40,7 +45,7 @@ export default async function RootLayout({
     priceBook: tenantRow.priceBook,
     branding: tenantRow.branding,
     invoicing: tenantRow.invoicing,
-    catalog: { materials },
+    catalog: { materials, products },
   };
 
   return (
