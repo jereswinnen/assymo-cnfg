@@ -16,4 +16,10 @@ export interface TenantContext {
   currency: Currency;
   priceBook: PriceBook;
   branding: Branding;
+  /** Allow-list of material slugs. `null` = unrestricted (all registry
+   *  materials allowed). `[]` = explicitly nothing. Populated array =
+   *  only these slugs show up in pickers. Sentinels in
+   *  `ALWAYS_ENABLED_SLUGS` (currently `geen`) are added transparently
+   *  by `filterCatalog` and do not need to be included. */
+  enabledMaterials: string[] | null;
 }

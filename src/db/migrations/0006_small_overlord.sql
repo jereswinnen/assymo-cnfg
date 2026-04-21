@@ -1,0 +1,1 @@
+ALTER TABLE "tenants" ADD COLUMN "enabled_materials" text[];

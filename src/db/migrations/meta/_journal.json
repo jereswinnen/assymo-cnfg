@@ -43,6 +43,13 @@
       "when": 1776430795809,
       "tag": "0005_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776762717979,
+      "tag": "0006_small_overlord",
+      "breakpoints": true
     }
   ]
 }
