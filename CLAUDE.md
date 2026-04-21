@@ -94,7 +94,8 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   the in-memory `@/domain/tenant` registry for now).
 - `migrations/` — committed SQL. Never edit a migration by hand after
   it's applied in any environment; write a follow-up migration instead.
-- `seed.ts` — upsert of the `assymo` tenant from `DEFAULT_PRICE_BOOK`.
+- `seed.ts` — idempotent upsert of the `assymo` tenant from `DEFAULT_PRICE_BOOK`, its host aliases, and every entry in `seedData.ts` as a `materials` row. When `BLOB_READ_WRITE_TOKEN` is present it uploads texture files from `public/textures/` via `@vercel/blob` and stores the returned URLs on each row; missing token = textures left null with a warning.
+- `seedData.ts` — one-time migration bridge carrying the pre-Phase-5.5.1 atoms + per-object catalogs as a static `SeedMaterialInput[]`. Consumed only by `seed.ts`. Slated for deletion once every environment has seeded (5.5.3 cleanup).
 
 ### Routes
 
