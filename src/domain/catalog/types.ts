@@ -18,7 +18,9 @@ export interface MaterialTextures {
 }
 
 /** Per-category pricing shape. Only the fields relevant to the category
- *  are present; validators enforce this. */
+ *  are present. Per-category field presence is enforced by the
+ *  `validateMaterialCreate` / `validateMaterialPatch` helpers in
+ *  `src/domain/catalog/material.ts`. */
 export interface MaterialPricing {
   /** €/m² for wall / roof-cover / floor. */
   perSqm?: number;
@@ -27,7 +29,9 @@ export interface MaterialPricing {
 }
 
 /** Per-category behaviour flags. Only the fields relevant to the category
- *  are present; validators enforce this. */
+ *  are present. Per-category field presence is enforced by the
+ *  `validateMaterialCreate` / `validateMaterialPatch` helpers in
+ *  `src/domain/catalog/material.ts`. */
 export interface MaterialFlags {
   /** Wall only: selecting this material clears doors and windows on the wall. */
   clearsOpenings?: boolean;
