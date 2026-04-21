@@ -25,7 +25,7 @@ export default function SurfaceProperties() {
         return cfg ? getEffectiveWallMaterial(cfg, selectedBuilding) : null;
       })()
     : null;
-  const { wall: wallCatalog } = useTenantCatalogs(
+  const { wall: wallCatalog, sourceProduct } = useTenantCatalogs(
     { wall: selectedWall },
     selectedBuilding?.sourceProductId,
   );
@@ -88,6 +88,11 @@ export default function SurfaceProperties() {
           showPrice
           ariaLabel={t('surface.material')}
         />
+        {sourceProduct?.constraints.allowedMaterialsBySlot?.wallCladding?.length ? (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t('configurator.picker.kitRestricted')}
+          </p>
+        ) : null}
         {wallCfg.materialId === undefined && (
           <p className="text-[11px] text-muted-foreground italic">{t('material.inherit')}</p>
         )}

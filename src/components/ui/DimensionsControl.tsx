@@ -3,8 +3,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
+import { useTenant } from '@/lib/TenantProvider';
 import { t } from '@/lib/i18n';
 import { getConstraints } from '@/domain/building';
+import { clampDimensions } from '@/domain/catalog';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -118,6 +120,7 @@ export default function DimensionsControl() {
   const setDefaultHeight = useConfigStore((s) => s.setDefaultHeight);
   const setHeightOverride = useConfigStore((s) => s.setHeightOverride);
   const setOrientation = useConfigStore((s) => s.setOrientation);
+  const { catalog } = useTenant();
 
   if (!building || !selectedBuildingId) {
     return (
@@ -135,17 +138,33 @@ export default function DimensionsControl() {
   const hasHeightOverride = building.heightOverride !== null;
   const constraints = getConstraints(building.type);
 
+  // Resolve product constraints when a sourceProductId is set.
+  const product = building.sourceProductId
+    ? catalog.products.find((p) => p.id === building.sourceProductId) ?? null
+    : null;
+
+  // Effective slider bounds: product constraint takes priority over global defaults.
+  const widthMin  = product?.constraints.minWidth  ?? constraints.width.min;
+  const widthMax  = product?.constraints.maxWidth  ?? constraints.width.max;
+  const depthMin  = product?.constraints.minDepth  ?? constraints.depth.min;
+  const depthMax  = product?.constraints.maxDepth  ?? constraints.depth.max;
+  const heightMin = product?.constraints.minHeight ?? constraints.height.min;
+  const heightMax = product?.constraints.maxHeight ?? constraints.height.max;
+
   return (
     <div className="space-y-4">
       {(isStructural || isMuur) && (
         <SliderRow
           label={t('dim.width')}
           value={dimensions.width}
-          min={constraints.width.min}
-          max={constraints.width.max}
+          min={widthMin}
+          max={widthMax}
           step={constraints.width.step}
           unit="m"
-          onChange={(v) => updateBuildingDimensions(selectedBuildingId, { width: v })}
+          onChange={(v) => {
+            const { width } = clampDimensions({ width: v }, product);
+            updateBuildingDimensions(selectedBuildingId, { width: width ?? v });
+          }}
         />
       )}
 
@@ -153,11 +172,14 @@ export default function DimensionsControl() {
         <SliderRow
           label={t('dim.depth')}
           value={dimensions.depth}
-          min={constraints.depth.min}
-          max={constraints.depth.max}
+          min={depthMin}
+          max={depthMax}
           step={constraints.depth.step}
           unit="m"
-          onChange={(v) => updateBuildingDimensions(selectedBuildingId, { depth: v })}
+          onChange={(v) => {
+            const { depth } = clampDimensions({ depth: v }, product);
+            updateBuildingDimensions(selectedBuildingId, { depth: depth ?? v });
+          }}
         />
       )}
 
@@ -165,21 +187,27 @@ export default function DimensionsControl() {
         <SliderRow
           label={t('dim.height')}
           value={effectiveHeight}
-          min={constraints.height.min}
-          max={constraints.height.max}
+          min={heightMin}
+          max={heightMax}
           step={constraints.height.step}
           unit="m"
-          onChange={(v) => setDefaultHeight(v)}
+          onChange={(v) => {
+            const { height } = clampDimensions({ height: v }, product);
+            setDefaultHeight(height ?? v);
+          }}
         />
       ) : (
         <SliderRow
           label={t('dim.height')}
           value={effectiveHeight}
-          min={constraints.height.min}
-          max={constraints.height.max}
+          min={heightMin}
+          max={heightMax}
           step={constraints.height.step}
           unit="m"
-          onChange={(v) => setHeightOverride(selectedBuildingId, v)}
+          onChange={(v) => {
+            const { height } = clampDimensions({ height: v }, product);
+            setHeightOverride(selectedBuildingId, height ?? v);
+          }}
           badge={hasHeightOverride ? t('dim.height.override') : t('dim.height.default')}
           onReset={hasHeightOverride ? () => setHeightOverride(selectedBuildingId, null) : undefined}
         />

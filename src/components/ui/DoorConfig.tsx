@@ -30,7 +30,7 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
   const effectiveDoor = wallCfg && building
     ? getEffectiveDoorMaterial(wallCfg, building)
     : null;
-  const { door: doorCatalog } = useTenantCatalogs(
+  const { door: doorCatalog, sourceProduct } = useTenantCatalogs(
     { door: effectiveDoor },
     building?.sourceProductId,
   );
@@ -120,6 +120,11 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
                   onChange={(atomId) => handleChange('doorMaterialId', atomId as DoorMaterialId)}
                   ariaLabel={t('surface.doorMaterial')}
                 />
+                {sourceProduct?.constraints.allowedMaterialsBySlot?.door?.length ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t('configurator.picker.kitRestricted')}
+                  </p>
+                ) : null}
                 {wallCfg.doorMaterialId === undefined && (
                   <p className="text-[11px] text-muted-foreground italic">{t('material.inherit')}</p>
                 )}

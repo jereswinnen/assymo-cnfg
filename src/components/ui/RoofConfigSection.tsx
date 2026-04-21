@@ -14,7 +14,7 @@ export default function RoofConfigSection() {
   const updateRoof = useConfigStore((s) => s.updateRoof);
   const buildings = useConfigStore((s) => s.buildings);
   const productBuilding = buildings.find((b) => b.sourceProductId);
-  const { roofTrim, roofCover } = useTenantCatalogs(
+  const { roofTrim, roofCover, sourceProduct } = useTenantCatalogs(
     {
       roofTrim: roof.trimMaterialId,
       roofCover: roof.coveringId,
@@ -33,6 +33,11 @@ export default function RoofConfigSection() {
           showPrice
           ariaLabel={t('roof.covering')}
         />
+        {sourceProduct?.constraints.allowedMaterialsBySlot?.roofCovering?.length ? (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t('configurator.picker.kitRestricted')}
+          </p>
+        ) : null}
       </div>
 
       <div className="space-y-2">
@@ -43,6 +48,11 @@ export default function RoofConfigSection() {
           onChange={(atomId) => updateRoof({ trimMaterialId: atomId })}
           ariaLabel={t('roof.trimColor')}
         />
+        {sourceProduct?.constraints.allowedMaterialsBySlot?.roofTrim?.length ? (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t('configurator.picker.kitRestricted')}
+          </p>
+        ) : null}
       </div>
 
       <div className="flex items-center gap-2">

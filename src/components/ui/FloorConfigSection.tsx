@@ -17,7 +17,7 @@ export default function FloorConfigSection() {
   );
   const floorMaterialId = selectedBuilding?.floor.materialId ?? null;
   const updateBuildingFloor = useConfigStore((s) => s.updateBuildingFloor);
-  const { floor: floorCatalog } = useTenantCatalogs(
+  const { floor: floorCatalog, sourceProduct } = useTenantCatalogs(
     { floor: floorMaterialId },
     selectedBuilding?.sourceProductId,
   );
@@ -44,6 +44,11 @@ export default function FloorConfigSection() {
         showPrice
         ariaLabel={t('floor.material')}
       />
+      {sourceProduct?.constraints.allowedMaterialsBySlot?.floor?.length ? (
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t('configurator.picker.kitRestricted')}
+        </p>
+      ) : null}
     </div>
   );
 }

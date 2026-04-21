@@ -18,7 +18,7 @@ export default function BuildingMaterialSection() {
   );
   const primaryMaterialId = selectedBuilding?.primaryMaterialId ?? null;
   const setBuildingPrimaryMaterial = useConfigStore((s) => s.setBuildingPrimaryMaterial);
-  const { wall: wallCatalog } = useTenantCatalogs(
+  const { wall: wallCatalog, sourceProduct } = useTenantCatalogs(
     { wall: primaryMaterialId },
     selectedBuilding?.sourceProductId,
   );
@@ -41,6 +41,11 @@ export default function BuildingMaterialSection() {
         showPrice
         ariaLabel={t('material.primary')}
       />
+      {sourceProduct?.constraints.allowedMaterialsBySlot?.wallCladding?.length ? (
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t('configurator.picker.kitRestricted')}
+        </p>
+      ) : null}
       <p className="text-[11px] text-muted-foreground leading-snug">
         {t('material.primary.help')}
       </p>
