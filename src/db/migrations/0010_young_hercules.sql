@@ -1,0 +1,1 @@
+ALTER TABLE "tenants" DROP COLUMN "enabled_materials";
