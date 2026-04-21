@@ -384,6 +384,46 @@ const nl: Record<string, string> = {
   'configurator.submit.success.emailFallback':
     'De bevestigingsmail kon niet worden verzonden. Geen zorgen — we hebben je aanvraag ontvangen en nemen snel contact op.',
   'configurator.submit.success.close': 'Sluiten',
+  // Shop — sign-in
+  'shop.signIn.title': 'Inloggen bij je account',
+  'shop.signIn.lead':
+    'Vul je e-mailadres in — we sturen je een link om in te loggen.',
+  'shop.signIn.email': 'E-mailadres',
+  'shop.signIn.submit': 'Stuur inloglink',
+  'shop.signIn.sent':
+    'Check je inbox — we hebben je een inloglink gestuurd.',
+  'shop.signIn.error': 'Inloggen mislukt. Probeer het opnieuw.',
+  'shop.signIn.backToConfigurator': 'Terug naar de configurator',
+  // Shop — shell / navigation
+  'shop.nav.account': 'Mijn account',
+  'shop.nav.orders': 'Mijn bestellingen',
+  'shop.nav.signOut': 'Uitloggen',
+  'shop.nav.signIn': 'Inloggen',
+  // Shop — footer
+  'shop.footer.contact': 'Contact',
+  'shop.footer.vat': 'BTW',
+  // Shop — account / orders list
+  'shop.account.title': 'Mijn bestellingen',
+  'shop.account.empty':
+    'Je hebt nog geen bestellingen. Ga terug naar de configurator om je eerste aanvraag te plaatsen.',
+  'shop.account.backToConfigurator': 'Naar de configurator',
+  'shop.account.col.id': 'Referentie',
+  'shop.account.col.status': 'Status',
+  'shop.account.col.total': 'Totaal',
+  'shop.account.col.submittedAt': 'Ingediend',
+  // Shop — order detail
+  'shop.order.title': 'Bestelling {id}',
+  'shop.order.backLink': '← Terug naar mijn bestellingen',
+  'shop.order.section.status': 'Status',
+  'shop.order.section.quote': 'Offerte',
+  'shop.order.section.contact': 'Contactgegevens',
+  'shop.order.section.notes': 'Opmerking',
+  'shop.order.submittedAt': 'Ingediend op {date}',
+  'shop.order.noNotes': 'Geen opmerking opgegeven.',
+  'shop.order.nextSteps':
+    'We nemen binnen één werkdag contact met je op. Zodra we je offerte bevestigen, zie je de status hier wijzigen naar "Offerte verstuurd".',
+  // Shop — fetch errors
+  'shop.error.loading': 'Kon je bestellingen niet laden. Vernieuw de pagina.',
 };
 
 export function t(

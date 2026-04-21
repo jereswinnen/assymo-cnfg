@@ -1,4 +1,5 @@
 import type { PriceBook } from '@/domain/pricing';
+import type { Branding } from './branding';
 
 /** Tenant-scoped configuration injected into every domain function that
  *  depends on brand, locale, or catalog decisions. Anything that varies
@@ -14,4 +15,5 @@ export interface TenantContext {
   locale: Locale;
   currency: Currency;
   priceBook: PriceBook;
+  branding: Branding;
 }

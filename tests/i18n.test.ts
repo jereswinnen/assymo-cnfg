@@ -25,4 +25,13 @@ describe('t()', () => {
       t('configurator.submit.success.emailHint', { email: 'a@b.c' }),
     ).toContain('a@b.c');
   });
+
+  it('exposes shop.* keys used by the webshop shell', () => {
+    expect(t('shop.signIn.title')).toBe('Inloggen bij je account');
+    expect(t('shop.account.title')).toBe('Mijn bestellingen');
+    expect(t('shop.order.title', { id: 'abc' })).toBe('Bestelling abc');
+    expect(t('shop.order.submittedAt', { date: '2026-04-21' })).toContain(
+      '2026-04-21',
+    );
+  });
 });

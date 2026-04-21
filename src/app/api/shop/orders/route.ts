@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { configs, orders } from '@/db/schema';
 import { user } from '@/db/auth-schema';
@@ -7,6 +7,8 @@ import { migrateConfig, validateConfig } from '@/domain/config';
 import { buildConfigSnapshot, buildQuoteSnapshot } from '@/domain/orders';
 import { auth } from '@/lib/auth';
 import { resolveApiTenant } from '@/lib/apiTenant';
+import { requireClient } from '@/lib/auth-guards';
+import { withSession } from '@/lib/auth-session';
 
 interface ContactBody {
   email?: unknown;
@@ -22,6 +24,32 @@ interface PostBody {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const isNonEmptyString = (v: unknown): v is string =>
   typeof v === 'string' && v.trim().length > 0;
+
+/** List the signed-in client's own orders, newest-first. We filter on
+ *  both `customerId` AND `tenantId` so isolation is a query-level
+ *  guarantee, not an application-layer invariant — a future bug that
+ *  mis-assigned a customerId could never cross a tenant boundary here. */
+export const GET = withSession(async (session) => {
+  requireClient(session);
+  const clientId = session.user.id;
+  const tenantId = (session.user.tenantId as string | null) ?? '__none__';
+
+  const rows = await db
+    .select({
+      id: orders.id,
+      code: orders.code,
+      status: orders.status,
+      totalCents: orders.totalCents,
+      currency: orders.currency,
+      submittedAt: orders.submittedAt,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .where(and(eq(orders.customerId, clientId), eq(orders.tenantId, tenantId)))
+    .orderBy(desc(orders.createdAt));
+
+  return NextResponse.json({ orders: rows });
+});
 
 /** Public endpoint: anyone with a valid share code + contact details
  *  can submit an order. The tenant is derived from the request host
