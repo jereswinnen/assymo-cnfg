@@ -138,12 +138,26 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
     dialog (see "Configurator submit flow" below) calls this endpoint
     as the second leg of a two-POST chain: `POST /api/configs` first,
     then `POST /api/shop/orders` with the returned code.
+  - `GET /api/shop/orders` — client-only (`requireClient`), returns
+    the caller's own orders newest-first.
+  - `GET /api/shop/orders/[id]` — client-only, strictly scoped to
+    `customerId === session.user.id`. Returns 404 for both "not
+    found" and "not yours" to avoid leaking existence of another
+    client's order.
 - `src/app/admin/` — business management UI. Split into a `(authed)` route
   group (session-guarded shell, all real pages live here) and a sibling
   `sign-in/` (no guard so the magic-link form can render). The `(authed)`
   layout wraps in `AdminHeaderProvider` + `SidebarProvider`, renders the
   sidebar, header, content, and a bottom-mounted `<Toaster />`.
-- Reserved top-level route segments for `shop/`, more `api/*`
+- `src/app/shop/` — client account tree. Mirrors admin's split: a
+  sibling `sign-in/` (unauthenticated-only guard that bounces already-
+  signed-in users) and an `(authed)` group with a session guard that
+  redirects business users to `/admin`. The `(authed)` layout wraps in
+  `<BrandedShell variant="shop">` + a `<Toaster />`. Pages:
+  - `/shop/sign-in` — magic-link form, `callbackURL=/shop/account`.
+  - `/shop/account` — client's own orders list.
+  - `/shop/account/orders/[id]` — single order detail (quote snapshot
+    + status + contact + notes), ownership-scoped at server render.
 - `src/app/layout.tsx` resolves the tenant from the `host` header
   against the in-memory registry and wraps in `<TenantProvider>`
 
@@ -204,6 +218,30 @@ persistence — closing the dialog discards the form state. The shipped
 shadcn `FormMessage` renders `error.message` verbatim, so the dialog
 uses a local `TranslatedFormMessage` wrapper that runs the i18n key
 through `t()`.
+
+## Branded shell
+
+Every public-facing route (`/`, `/shop/*`) renders inside
+`<BrandedShell>` (in `src/components/shop/BrandedShell.tsx`). The shell:
+
+1. Resolves the tenant from the `Host` header via
+   `resolveTenantByHostOrDefault` (same path as the root layout).
+2. Resolves the current session so the header can render an
+   account/sign-in link.
+3. Converts `branding.primaryColor` + `branding.accentColor` to a
+   `:root { --brand-primary: …; --brand-accent: …; }` block via
+   `brandingToCssVars` + `cssVarsToInlineBlock` (pure, in
+   `@/domain/tenant/cssVars`) and injects it via
+   `dangerouslySetInnerHTML`. Safe because branding colours pass
+   through `validateBrandingPatch` before being stored.
+4. Renders `<ShopHeader>` + `{children}` + `<ShopFooter>` (the
+   `configurator` variant drops the footer so the canvas owns the
+   viewport).
+
+The configurator canvas itself stays unbranded — only the wrapper
+varies. Tenant-specific accents (future) should use
+`bg-[var(--brand-primary)]` / `text-[var(--brand-accent)]` so admins
+can recolour without touching component code.
 
 ## White-label / multi-tenant
 
