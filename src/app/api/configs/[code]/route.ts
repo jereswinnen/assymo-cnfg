@@ -4,7 +4,11 @@ import { db } from '@/db/client';
 import { configs } from '@/db/schema';
 import { migrateConfig } from '@/domain/config';
 import { calculateTotalQuote } from '@/domain/pricing';
+import type { MaterialRow } from '@/domain/catalog';
 import { resolveApiTenant } from '@/lib/apiTenant';
+
+// TODO(5.5.1/T14): wire materials from TenantContext/resolver
+const MATERIALS_PLACEHOLDER: MaterialRow[] = [];
 
 /** Fetch a saved config by its share code, migrated to the current
  *  schema version and priced against the tenant's current priceBook
@@ -35,6 +39,7 @@ export async function GET(
     migrated.buildings,
     migrated.roof,
     tenant.priceBook,
+    MATERIALS_PLACEHOLDER,
     migrated.defaultHeight,
   );
 

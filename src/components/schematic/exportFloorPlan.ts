@@ -8,6 +8,10 @@ import {
 import { getAtom } from '@/domain/materials';
 import { calculateTotalQuote } from '@/domain/pricing';
 import type { PriceBook } from '@/domain/pricing';
+import type { MaterialRow } from '@/domain/catalog';
+
+// TODO(5.5.1/T14): wire materials from TenantContext/resolver
+const MATERIALS_PLACEHOLDER: MaterialRow[] = [];
 
 function wallMaterialLabel(id: string): string {
   const atom = getAtom(id);
@@ -89,7 +93,7 @@ function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHei
   }
 
   // Quote
-  const { lineItems, total } = calculateTotalQuote(buildings, roof, priceBook, defaultHeight);
+  const { lineItems, total } = calculateTotalQuote(buildings, roof, priceBook, MATERIALS_PLACEHOLDER, defaultHeight);
   rows.push(`<tr><td colspan="2" style="padding:12px 0 6px;font-weight:600;font-size:14px;border-bottom:1px solid #eee">${t('section.6')}</td></tr>`);
   for (const item of lineItems) {
     rows.push(row(t(item.labelKey, item.labelParams), `€${item.total.toFixed(0)}`));

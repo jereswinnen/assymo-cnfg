@@ -7,7 +7,36 @@ import {
   wallNetArea,
 } from '@/domain/pricing';
 import { DEFAULT_WALL } from '@/domain/building';
+import type { MaterialRow } from '@/domain/catalog';
 import { makeBuilding, makeConfig, makeRoof } from './fixtures';
+
+function row(o: Partial<MaterialRow> & Pick<MaterialRow, 'category' | 'slug' | 'pricing'>): MaterialRow {
+  return {
+    id: 'x',
+    tenantId: 't',
+    name: o.slug,
+    color: '#808080',
+    textures: null,
+    tileSize: null,
+    flags: {},
+    archivedAt: null,
+    createdAt: '',
+    updatedAt: '',
+    ...o,
+  };
+}
+
+/** Minimal material rows covering every slug the default test fixtures reference. */
+const FIXTURE_MATERIALS: MaterialRow[] = [
+  row({ category: 'wall', slug: 'wood', pricing: { perSqm: 45 } }),
+  row({ category: 'wall', slug: 'glass', pricing: { perSqm: 120 }, flags: { clearsOpenings: true } }),
+  row({ category: 'roof-cover', slug: 'epdm', pricing: { perSqm: 35 } }),
+  row({ category: 'roof-cover', slug: 'dakpannen', pricing: { perSqm: 55 } }),
+  row({ category: 'floor', slug: 'geen', pricing: { perSqm: 0 }, flags: { isVoid: true } }),
+  row({ category: 'floor', slug: 'beton', pricing: { perSqm: 30 } }),
+  row({ category: 'floor', slug: 'hout', pricing: { perSqm: 55 } }),
+  row({ category: 'door', slug: 'wood', pricing: { surcharge: 0 } }),
+];
 
 describe('calculateTotalQuote', () => {
   it('returns a positive total for the default berging', () => {
@@ -16,6 +45,7 @@ describe('calculateTotalQuote', () => {
       cfg.buildings,
       cfg.roof,
       DEFAULT_PRICE_BOOK,
+      FIXTURE_MATERIALS,
       cfg.defaultHeight,
     );
     expect(total).toBeGreaterThan(0);
@@ -28,6 +58,7 @@ describe('calculateTotalQuote', () => {
       cfg.buildings,
       cfg.roof,
       DEFAULT_PRICE_BOOK,
+      FIXTURE_MATERIALS,
       cfg.defaultHeight,
     );
     for (const item of lineItems) {
@@ -44,6 +75,7 @@ describe('calculateTotalQuote', () => {
       cfg.buildings,
       cfg.roof,
       DEFAULT_PRICE_BOOK,
+      FIXTURE_MATERIALS,
       cfg.defaultHeight,
     );
     expect(total).toBe(DEFAULT_PRICE_BOOK.postPrice);
@@ -66,8 +98,8 @@ describe('calculateTotalQuote', () => {
         }),
       ],
     });
-    const a = calculateTotalQuote(withoutDoor.buildings, withoutDoor.roof, DEFAULT_PRICE_BOOK, withoutDoor.defaultHeight).total;
-    const b = calculateTotalQuote(withDoor.buildings, withDoor.roof, DEFAULT_PRICE_BOOK, withDoor.defaultHeight).total;
+    const a = calculateTotalQuote(withoutDoor.buildings, withoutDoor.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, withoutDoor.defaultHeight).total;
+    const b = calculateTotalQuote(withDoor.buildings, withDoor.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, withDoor.defaultHeight).total;
     expect(b).toBeGreaterThan(a);
     expect(b - a).toBeLessThan(DEFAULT_PRICE_BOOK.doorBase.enkel);
   });
@@ -75,8 +107,8 @@ describe('calculateTotalQuote', () => {
   it('adds skylight flat fee when roof has skylight', () => {
     const base = makeConfig();
     const withSkylight = makeConfig({ roof: makeRoof({ hasSkylight: true }) });
-    const a = calculateTotalQuote(base.buildings, base.roof, DEFAULT_PRICE_BOOK, base.defaultHeight).total;
-    const b = calculateTotalQuote(withSkylight.buildings, withSkylight.roof, DEFAULT_PRICE_BOOK, withSkylight.defaultHeight).total;
+    const a = calculateTotalQuote(base.buildings, base.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, base.defaultHeight).total;
+    const b = calculateTotalQuote(withSkylight.buildings, withSkylight.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, withSkylight.defaultHeight).total;
     expect(b - a).toBe(DEFAULT_PRICE_BOOK.skylightFee);
   });
 
@@ -87,8 +119,8 @@ describe('calculateTotalQuote', () => {
     const thick = makeConfig({
       roof: makeRoof({ insulation: true, insulationThickness: 200 }),
     });
-    const a = calculateTotalQuote(thin.buildings, thin.roof, DEFAULT_PRICE_BOOK, thin.defaultHeight).total;
-    const b = calculateTotalQuote(thick.buildings, thick.roof, DEFAULT_PRICE_BOOK, thick.defaultHeight).total;
+    const a = calculateTotalQuote(thin.buildings, thin.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, thin.defaultHeight).total;
+    const b = calculateTotalQuote(thick.buildings, thick.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, thick.defaultHeight).total;
     expect(b).toBeGreaterThan(a);
   });
 
@@ -100,6 +132,7 @@ describe('calculateTotalQuote', () => {
       cfg.buildings,
       cfg.roof,
       DEFAULT_PRICE_BOOK,
+      FIXTURE_MATERIALS,
       cfg.defaultHeight,
     );
     const posts = lineItems.find((i) => i.labelKey === 'quote.posts');

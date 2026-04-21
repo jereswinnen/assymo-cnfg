@@ -2,6 +2,7 @@ import type { BuildingEntity, RoofConfig } from '@/domain/building';
 import { calculateTotalQuote, type PriceBook } from '@/domain/pricing';
 import type { ConfigData } from '@/domain/config';
 import type { Currency } from '@/domain/tenant';
+import type { MaterialRow } from '@/domain/catalog';
 import type {
   OrderConfigSnapshot,
   OrderQuoteSnapshot,
@@ -14,6 +15,8 @@ interface BuildQuoteSnapshotInput {
   priceBook: PriceBook;
   defaultHeight: number;
   currency: Currency;
+  // TODO(5.5.1/T14): wire materials from TenantContext/resolver
+  materials?: MaterialRow[];
   /** Override for tests; defaults to `Date.now()`. */
   now?: () => Date;
 }
@@ -24,11 +27,15 @@ const eurosToCents = (eur: number): number => Math.round(eur * 100);
  *  every order has exactly one item; this shape lets us add a cart in
  *  the future without a schema migration. The priceBook is deep-cloned
  *  so the snapshot is immune to subsequent mutations of the source. */
+// TODO(5.5.1/T14): wire materials from TenantContext/resolver
+const MATERIALS_PLACEHOLDER: MaterialRow[] = [];
+
 export function buildQuoteSnapshot(input: BuildQuoteSnapshotInput): OrderQuoteSnapshot {
   const { lineItems, total } = calculateTotalQuote(
     input.buildings,
     input.roof,
     input.priceBook,
+    input.materials ?? MATERIALS_PLACEHOLDER,
     input.defaultHeight,
   );
   const subtotalCents = eurosToCents(total);
