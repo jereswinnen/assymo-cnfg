@@ -10,13 +10,17 @@ import type { FloorMaterialId } from '@/domain/building';
 
 export default function FloorConfigSection() {
   const selectedBuildingId = useUIStore(selectSingleBuildingId);
-  const floorMaterialId = useConfigStore((s) =>
+  const selectedBuilding = useConfigStore((s) =>
     selectedBuildingId
-      ? s.buildings.find(b => b.id === selectedBuildingId)?.floor.materialId ?? null
+      ? s.buildings.find(b => b.id === selectedBuildingId) ?? null
       : null,
   );
+  const floorMaterialId = selectedBuilding?.floor.materialId ?? null;
   const updateBuildingFloor = useConfigStore((s) => s.updateBuildingFloor);
-  const { floor: floorCatalog } = useTenantCatalogs({ floor: floorMaterialId });
+  const { floor: floorCatalog } = useTenantCatalogs(
+    { floor: floorMaterialId },
+    selectedBuilding?.sourceProductId,
+  );
 
   if (!selectedBuildingId || floorMaterialId === null) {
     return (

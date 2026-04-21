@@ -16,14 +16,19 @@ export default function SurfaceProperties() {
   const selectedElement = useUIStore((s) => s.selectedElement);
   const buildings = useConfigStore((s) => s.buildings);
   const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
-  const selectedWall = selectedElement?.type === 'wall'
+  const selectedBuilding = selectedElement?.type === 'wall'
+    ? buildings.find((bb) => bb.id === selectedElement.buildingId) ?? null
+    : null;
+  const selectedWall = selectedElement?.type === 'wall' && selectedBuilding
     ? (() => {
-        const b = buildings.find((bb) => bb.id === selectedElement.buildingId);
-        const cfg = b?.walls[selectedElement.id as WallId];
-        return cfg && b ? getEffectiveWallMaterial(cfg, b) : null;
+        const cfg = selectedBuilding.walls[selectedElement.id as WallId];
+        return cfg ? getEffectiveWallMaterial(cfg, selectedBuilding) : null;
       })()
     : null;
-  const { wall: wallCatalog } = useTenantCatalogs({ wall: selectedWall });
+  const { wall: wallCatalog } = useTenantCatalogs(
+    { wall: selectedWall },
+    selectedBuilding?.sourceProductId,
+  );
 
   if (!selectedElement || selectedElement.type !== 'wall') {
     return (

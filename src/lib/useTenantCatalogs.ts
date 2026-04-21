@@ -14,6 +14,10 @@ import {
   type FloorCatalogEntry,
   type DoorCatalogEntry,
 } from '@/domain/materials';
+import {
+  filterMaterialsForProduct,
+  type ProductRow,
+} from '@/domain/catalog';
 
 interface CurrentSelections {
   /** Currently selected wall/primary material — kept visible even if
@@ -31,24 +35,34 @@ export interface TenantCatalogs {
   roofCover: readonly RoofCoveringCatalogEntry[];
   floor: readonly FloorCatalogEntry[];
   door: readonly DoorCatalogEntry[];
+  /** Resolved product when the hook was called with a matching
+   *  `sourceProductId`. Useful for UI affordances like "Beperkt door
+   *  bouwset" chips. Null when unconstrained. */
+  sourceProduct: ProductRow | null;
 }
 
-/** Returns the five per-category catalogs derived from the tenant's
- *  DB-backed `materials` rows. Signature preserved from Phase 4.5 so
- *  consumers don't change. Pass the current selection per category so
- *  it stays visible in the picker even if the admin has since archived
- *  the material. Phase 5.5.2 will add an optional `sourceProductId`
- *  argument to narrow by product constraints — not present yet. */
-export function useTenantCatalogs(current: CurrentSelections = {}): TenantCatalogs {
+export function useTenantCatalogs(
+  current: CurrentSelections = {},
+  sourceProductId?: string,
+): TenantCatalogs {
   const { catalog } = useTenant();
   const materials = catalog.materials;
+  const sourceProduct = sourceProductId
+    ? catalog.products.find((p) => p.id === sourceProductId) ?? null
+    : null;
 
   return useMemo(() => {
-    const wall = buildWallCatalog(materials);
-    const roofTrim = buildRoofTrimCatalog(materials);
-    const roofCover = buildRoofCoverCatalog(materials);
-    const floor = buildFloorCatalog(materials);
-    const door = buildDoorCatalog(materials);
+    const wallMats  = filterMaterialsForProduct(materials, sourceProduct, 'wallCladding');
+    const rtrimMats = filterMaterialsForProduct(materials, sourceProduct, 'roofTrim');
+    const rcovMats  = filterMaterialsForProduct(materials, sourceProduct, 'roofCovering');
+    const floorMats = filterMaterialsForProduct(materials, sourceProduct, 'floor');
+    const doorMats  = filterMaterialsForProduct(materials, sourceProduct, 'door');
+
+    const wall      = buildWallCatalog(wallMats);
+    const roofTrim  = buildRoofTrimCatalog(rtrimMats);
+    const roofCover = buildRoofCoverCatalog(rcovMats);
+    const floor     = buildFloorCatalog(floorMats);
+    const door      = buildDoorCatalog(doorMats);
 
     return {
       wall: filterCatalogAllowing(
@@ -79,6 +93,7 @@ export function useTenantCatalogs(current: CurrentSelections = {}): TenantCatalo
         door, current.door ?? null, materials, 'door',
         (m) => ({ atomId: m.slug, surcharge: m.pricing.surcharge ?? 0 }),
       ),
+      sourceProduct,
     };
-  }, [materials, current.wall, current.roofTrim, current.roofCover, current.floor, current.door]);
+  }, [materials, sourceProduct, current.wall, current.roofTrim, current.roofCover, current.floor, current.door]);
 }

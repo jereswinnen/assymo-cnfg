@@ -11,13 +11,17 @@ import MaterialSelect from '@/components/ui/MaterialSelect';
  *  doors, poles, and fascia inherit from when they have no override. */
 export default function BuildingMaterialSection() {
   const selectedBuildingId = useUIStore(selectSingleBuildingId);
-  const primaryMaterialId = useConfigStore((s) =>
+  const selectedBuilding = useConfigStore((s) =>
     selectedBuildingId
-      ? s.buildings.find(b => b.id === selectedBuildingId)?.primaryMaterialId ?? null
+      ? s.buildings.find(b => b.id === selectedBuildingId) ?? null
       : null,
   );
+  const primaryMaterialId = selectedBuilding?.primaryMaterialId ?? null;
   const setBuildingPrimaryMaterial = useConfigStore((s) => s.setBuildingPrimaryMaterial);
-  const { wall: wallCatalog } = useTenantCatalogs({ wall: primaryMaterialId });
+  const { wall: wallCatalog } = useTenantCatalogs(
+    { wall: primaryMaterialId },
+    selectedBuilding?.sourceProductId,
+  );
 
   if (!selectedBuildingId || !primaryMaterialId) {
     return (

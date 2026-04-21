@@ -30,7 +30,10 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
   const effectiveDoor = wallCfg && building
     ? getEffectiveDoorMaterial(wallCfg, building)
     : null;
-  const { door: doorCatalog } = useTenantCatalogs({ door: effectiveDoor });
+  const { door: doorCatalog } = useTenantCatalogs(
+    { door: effectiveDoor },
+    building?.sourceProductId,
+  );
 
   if (!wallCfg || !building) return null;
 

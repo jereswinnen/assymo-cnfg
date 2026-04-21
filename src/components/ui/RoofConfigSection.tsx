@@ -12,10 +12,15 @@ import type { RoofCoveringId } from '@/domain/building';
 export default function RoofConfigSection() {
   const roof = useConfigStore((s) => s.roof);
   const updateRoof = useConfigStore((s) => s.updateRoof);
-  const { roofTrim, roofCover } = useTenantCatalogs({
-    roofTrim: roof.trimMaterialId,
-    roofCover: roof.coveringId,
-  });
+  const buildings = useConfigStore((s) => s.buildings);
+  const productBuilding = buildings.find((b) => b.sourceProductId);
+  const { roofTrim, roofCover } = useTenantCatalogs(
+    {
+      roofTrim: roof.trimMaterialId,
+      roofCover: roof.coveringId,
+    },
+    productBuilding?.sourceProductId,
+  );
 
   return (
     <div className="space-y-5">
