@@ -8,3 +8,4 @@ export * from './catalogs/roof-cover';
 export * from './catalogs/floor';
 export * from './catalogs/door';
 export * from './resolve';
+export * from './filter';
