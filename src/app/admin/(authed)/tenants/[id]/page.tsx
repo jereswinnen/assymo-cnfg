@@ -8,6 +8,7 @@ import { TenantDetailsSection } from '@/components/admin/TenantDetailsSection';
 import { HostsSection } from '@/components/admin/HostsSection';
 import { BrandingSection } from '@/components/admin/BrandingSection';
 import { PriceBookSection } from '@/components/admin/PriceBookSection';
+import { MaterialsSection } from '@/components/admin/MaterialsSection';
 import { PageTitle } from '@/components/admin/PageTitle';
 
 export default async function TenantDetailPage({
@@ -32,6 +33,10 @@ export default async function TenantDetailPage({
       <HostsSection tenantId={tenant.id} initialHosts={hosts} />
       <BrandingSection tenantId={tenant.id} initialBranding={tenant.branding} />
       <PriceBookSection tenantId={tenant.id} initialPriceBook={tenant.priceBook} />
+      <MaterialsSection
+        tenantId={tenant.id}
+        initialEnabledMaterials={tenant.enabledMaterials}
+      />
     </div>
   );
 }
