@@ -17,4 +17,12 @@ describe('t()', () => {
   it('leaves placeholders intact when the param is missing', () => {
     expect(t('quote.posts')).toContain('{count}');
   });
+
+  it('exposes configurator.submit.* keys used by the submit modal', () => {
+    expect(t('configurator.submit.cta')).toBe('In winkelmandje');
+    expect(t('configurator.submit.dialog.title')).toBe('Bestelling plaatsen');
+    expect(
+      t('configurator.submit.success.emailHint', { email: 'a@b.c' }),
+    ).toContain('a@b.c');
+  });
 });

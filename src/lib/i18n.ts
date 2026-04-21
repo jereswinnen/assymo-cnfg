@@ -329,6 +329,61 @@ const nl: Record<string, string> = {
   'email.orderConfirmation.claimCta': 'Bekijk mijn bestelling',
   'email.orderConfirmation.footer':
     'Vragen? Antwoord op deze e-mail of bel ons.',
+
+  // Configurator — "in winkelmandje" submit flow
+  'configurator.submit.cta': 'In winkelmandje',
+  'configurator.submit.cta.disabled': 'Voeg eerst een object toe',
+  'configurator.submit.dialog.title': 'Bestelling plaatsen',
+  'configurator.submit.dialog.description':
+    'Laat je gegevens achter; wij sturen je binnen één werkdag een offerte op maat.',
+  'configurator.submit.field.name.label': 'Naam',
+  'configurator.submit.field.name.placeholder': 'Voor- en achternaam',
+  'configurator.submit.field.email.label': 'E-mail',
+  'configurator.submit.field.email.placeholder': 'naam@voorbeeld.be',
+  'configurator.submit.field.phone.label': 'Telefoon',
+  'configurator.submit.field.phone.placeholder': '+32 …',
+  'configurator.submit.field.phone.optional': '(optioneel)',
+  'configurator.submit.field.notes.label': 'Opmerking',
+  'configurator.submit.field.notes.placeholder':
+    'Extra wensen, bereikbaarheid, …',
+  'configurator.submit.field.notes.optional': '(optioneel)',
+  'configurator.submit.cancel': 'Annuleren',
+  'configurator.submit.submit': 'Verstuur aanvraag',
+  'configurator.submit.submitting': 'Bezig met verzenden…',
+  // Client-side validation messages (zod → field error)
+  'configurator.submit.validation.name.required': 'Vul je naam in.',
+  'configurator.submit.validation.email.required': 'Vul je e-mailadres in.',
+  'configurator.submit.validation.email.format': 'Ongeldig e-mailadres.',
+  'configurator.submit.validation.notes.tooLong':
+    'Houd het kort (max. 1000 tekens).',
+  // Server error codes from POST /api/shop/orders and POST /api/configs
+  'configurator.submit.error.validation_failed':
+    'Controleer de ingevulde gegevens.',
+  'configurator.submit.error.config_not_found':
+    'We konden je configuratie niet terugvinden. Probeer opnieuw.',
+  'configurator.submit.error.config_invalid':
+    'De configuratie bevat een fout. Pas je ontwerp aan en probeer opnieuw.',
+  'configurator.submit.error.email_in_use_by_business':
+    'Dit e-mailadres hoort bij een zakelijk account. Gebruik een ander adres of log in.',
+  'configurator.submit.error.unknown_tenant':
+    'We kunnen je winkel niet identificeren. Vernieuw de pagina en probeer opnieuw.',
+  'configurator.submit.error.invalid_code':
+    'De opgeslagen configuratie is ongeldig. Vernieuw de pagina en probeer opnieuw.',
+  'configurator.submit.error.network':
+    'Netwerkfout. Controleer je verbinding en probeer opnieuw.',
+  'configurator.submit.error.unknown':
+    'Er ging iets mis. Probeer het later opnieuw.',
+  // Confirmation screen
+  'configurator.submit.success.title': 'Bedankt voor je aanvraag!',
+  'configurator.submit.success.lead':
+    'We nemen binnen één werkdag contact met je op met een offerte op maat.',
+  'configurator.submit.success.orderIdLabel': 'Referentie',
+  'configurator.submit.success.totalLabel': 'Geschatte totaal',
+  'configurator.submit.success.emailHint':
+    'We hebben een bevestiging gestuurd naar {email}. Daarin vind je een link om je account aan te maken en de status te volgen.',
+  'configurator.submit.success.emailFallback':
+    'De bevestigingsmail kon niet worden verzonden. Geen zorgen — we hebben je aanvraag ontvangen en nemen snel contact op.',
+  'configurator.submit.success.close': 'Sluiten',
 };
 
 export function t(
