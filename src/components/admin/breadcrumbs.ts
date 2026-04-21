@@ -11,6 +11,7 @@ export interface Crumb {
 const STATIC_LABELS: Record<string, string> = {
   '/admin': 'admin.nav.dashboard',
   '/admin/orders': 'admin.nav.orders',
+  '/admin/invoices': 'admin.nav.invoices',
   '/admin/clients': 'admin.nav.clients',
   '/admin/tenants': 'admin.nav.tenants',
   '/admin/users': 'admin.nav.users',
