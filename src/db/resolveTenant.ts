@@ -3,12 +3,14 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { db } from './client';
 import {
   materials as materialsTable,
+  products as productsTable,
   tenantHosts,
   tenants,
   type MaterialDbRow,
+  type ProductDbRow,
   type TenantRow,
 } from './schema';
-import type { MaterialRow } from '@/domain/catalog';
+import type { MaterialRow, ProductRow } from '@/domain/catalog';
 import { DEFAULT_TENANT_ID, candidateHostKeys } from '@/domain/tenant';
 
 /** Resolve a tenant row by host header, trying exact/bare/subdomain
@@ -81,6 +83,46 @@ export function materialDbRowToDomain(r: MaterialDbRow): MaterialRow {
     tileSize: r.tileSize ?? null,
     pricing: r.pricing,
     flags: r.flags,
+    archivedAt: r.archivedAt ? r.archivedAt.toISOString() : null,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+  };
+}
+
+/** All non-archived products for a tenant, sorted by `sort_order` then
+ *  by name for stable rendering. Cached per-request so the layout and
+ *  any API handlers in the same request share one round-trip. */
+export const getTenantProducts = cache(
+  async (tenantId: string): Promise<ProductDbRow[]> => {
+    return db
+      .select()
+      .from(productsTable)
+      .where(
+        and(
+          eq(productsTable.tenantId, tenantId),
+          isNull(productsTable.archivedAt),
+        ),
+      )
+      .orderBy(productsTable.sortOrder, productsTable.name);
+  },
+);
+
+/** Map a DB row into the domain `ProductRow` transport type. Timestamps
+ *  become ISO strings; jsonb fields pass through (Drizzle deserialises
+ *  via the `.$type<T>()` cast). */
+export function productDbRowToDomain(r: ProductDbRow): ProductRow {
+  return {
+    id: r.id,
+    tenantId: r.tenantId,
+    kind: r.kind,
+    slug: r.slug,
+    name: r.name,
+    description: r.description ?? null,
+    heroImage: r.heroImage ?? null,
+    defaults: r.defaults,
+    constraints: r.constraints,
+    basePriceCents: r.basePriceCents,
+    sortOrder: r.sortOrder,
     archivedAt: r.archivedAt ? r.archivedAt.toISOString() : null,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
