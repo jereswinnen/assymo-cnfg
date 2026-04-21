@@ -1,3 +1,8 @@
+/* Tenant brand CSS variables (--brand-primary, --brand-accent) are
+ * injected at request time by <BrandedShell> from the resolved tenant's
+ * `branding` jsonb. They are NOT declared here — BrandedShell writes an
+ * inline :root block ahead of children. Consumers use them via
+ * Tailwind arbitrary values, e.g. `text-[var(--brand-primary)]`. */
 @import "tailwindcss";
 @import "shadcn/tailwind.css";
 @import "tw-animate-css";
