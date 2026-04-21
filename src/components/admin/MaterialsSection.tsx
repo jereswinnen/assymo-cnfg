@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -48,6 +48,9 @@ function buildSlugCatalogCount(): Map<string, number> {
   return m;
 }
 
+const slugCatalogCount = buildSlugCatalogCount();
+const sentinelSlugs = new Set<string>(ALWAYS_ENABLED_SLUGS);
+
 export function MaterialsSection({ tenantId, initialEnabledMaterials }: Props) {
   const [unrestricted, setUnrestricted] = useState(initialEnabledMaterials === null);
   // When `unrestricted`, the set is a ghost copy: we keep whatever the
@@ -61,12 +64,6 @@ export function MaterialsSection({ tenantId, initialEnabledMaterials }: Props) {
   });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-
-  const slugCatalogCount = useMemo(buildSlugCatalogCount, []);
-  const sentinelSlugs = useMemo(
-    () => new Set<string>(ALWAYS_ENABLED_SLUGS),
-    [],
-  );
 
   function toggle(slug: string, checked: boolean) {
     setEnabledSet((prev) => {
@@ -92,10 +89,10 @@ export function MaterialsSection({ tenantId, initialEnabledMaterials }: Props) {
       },
     );
     setBusy(false);
-    if (res.ok) setMsg(t('admin.registry.saved'));
+    if (res.ok) setMsg(t('admin.tenant.saved'));
     else {
       const data = await res.json().catch(() => ({}));
-      setMsg(t('admin.registry.saveError', { error: data.error ?? res.status }));
+      setMsg(t('admin.tenant.saveError', { error: data.error ?? res.status }));
     }
   }
 
@@ -105,8 +102,6 @@ export function MaterialsSection({ tenantId, initialEnabledMaterials }: Props) {
         <CardTitle>{t('admin.tenant.section.materials')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <p className="text-sm text-muted-foreground">{t('admin.registry.lead')}</p>
-
         <div className="flex items-start gap-3 rounded-lg border border-border p-3">
           <Switch
             id="unrestricted"

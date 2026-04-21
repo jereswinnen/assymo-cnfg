@@ -39,6 +39,6 @@ describe('t()', () => {
     expect(t('admin.nav.registry')).toBe('Materialen');
     expect(t('admin.registry.title')).toBe('Materialen');
     expect(t('admin.registry.group.wall')).toBe('Wandmaterialen');
-    expect(t('admin.registry.saveError', { error: 'boom' })).toContain('boom');
+    expect(t('admin.registry.sharedSlugHint')).toContain('meerdere');
   });
 });

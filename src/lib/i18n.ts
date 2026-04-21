@@ -440,8 +440,6 @@ const nl: Record<string, string> = {
   'admin.registry.group.door': 'Deuren',
   'admin.registry.sharedSlugHint':
     'Dit materiaal komt in meerdere categorieën voor — aan/uit zetten geldt overal.',
-  'admin.registry.saved': 'Materialenlijst opgeslagen.',
-  'admin.registry.saveError': 'Opslaan mislukt ({error}).',
   'admin.registry.noTenant':
     'Je bent super_admin zonder eigen tenant. Open een tenantdetailpagina om materialen te beheren.',
 };
