@@ -3,6 +3,7 @@ import type {
   BuildingDimensions,
   BuildingType,
   FloorConfig,
+  FloorMaterialId,
   Orientation,
   PolesConfig,
   RoofConfig,
@@ -22,6 +23,7 @@ import {
   WALL_DIMENSIONS,
   getDefaultWalls,
 } from '@/domain/building';
+import type { ProductBuildingDefaults } from '@/domain/catalog';
 import type { ConfigData } from './types';
 import { CONFIG_VERSION } from './types';
 
@@ -64,17 +66,66 @@ export function addBuilding(
   cfg: ConfigData,
   type: BuildingType,
   position?: [number, number],
+  productDefaults?: ProductBuildingDefaults,
 ): { cfg: ConfigData; id: string } {
   let resolvedPos: [number, number] = position ?? [0, 0];
   if (!position && cfg.buildings.length > 0) {
     const maxX = Math.max(...cfg.buildings.map((e) => e.position[0] + e.dimensions.width));
     resolvedPos = [maxX + 2, 0];
   }
-  const building = createBuilding(type, resolvedPos);
-  return {
-    cfg: { ...cfg, buildings: [...cfg.buildings, building] },
-    id: building.id,
-  };
+
+  let building: BuildingEntity;
+  if (productDefaults) {
+    const baseDims = type === 'paal'
+      ? { ...POLE_DIMENSIONS }
+      : type === 'muur'
+      ? { ...WALL_DIMENSIONS }
+      : { ...DEFAULT_DIMENSIONS };
+
+    const defaultFloor: FloorConfig =
+      (type === 'berging' || type === 'overkapping')
+        ? { materialId: 'beton' }
+        : { ...DEFAULT_FLOOR };
+
+    building = {
+      id: crypto.randomUUID(),
+      type,
+      position: resolvedPos,
+      dimensions: {
+        width:  productDefaults.dimensions.width  ?? baseDims.width,
+        depth:  productDefaults.dimensions.depth  ?? baseDims.depth,
+        height: productDefaults.dimensions.height ?? baseDims.height,
+      },
+      primaryMaterialId: productDefaults.primaryMaterialId ?? DEFAULT_PRIMARY_MATERIAL,
+      walls: getDefaultWalls(type),
+      hasCornerBraces: false,
+      floor: productDefaults.floor
+        ? { materialId: productDefaults.floor.materialId as FloorMaterialId }
+        : defaultFloor,
+      orientation: 'horizontal',
+      heightOverride: null,
+      sourceProductId: productDefaults.sourceProductId,
+    };
+  } else {
+    building = createBuilding(type, resolvedPos);
+  }
+
+  const nextCfg: ConfigData = { ...cfg, buildings: [...cfg.buildings, building] };
+
+  // Roof is scene-level. Only apply product roof defaults on the first building.
+  if (productDefaults?.roof && cfg.buildings.length === 0) {
+    nextCfg.roof = {
+      ...cfg.roof,
+      ...(productDefaults.roof.coveringId
+        ? { coveringId: productDefaults.roof.coveringId as typeof cfg.roof.coveringId }
+        : {}),
+      ...(productDefaults.roof.trimMaterialId
+        ? { trimMaterialId: productDefaults.roof.trimMaterialId }
+        : {}),
+    };
+  }
+
+  return { cfg: nextCfg, id: building.id };
 }
 
 /** Remove a building, keeping at least one structural (non-paal, non-muur).

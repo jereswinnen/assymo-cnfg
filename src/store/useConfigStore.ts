@@ -14,6 +14,7 @@ import type {
   WallId,
   WallSide,
 } from '@/domain/building';
+import type { ProductBuildingDefaults } from '@/domain/catalog';
 import {
   addBuilding as mAddBuilding,
   isWallHiddenByConnection as mIsWallHiddenByConnection,
@@ -47,7 +48,11 @@ export function getEffectiveHeight(building: BuildingEntity, defaultHeight: numb
 }
 
 interface ConfigStore extends ConfigData {
-  addBuilding: (type: BuildingType, position?: [number, number]) => string;
+  addBuilding: (type: BuildingType, position?: [number, number], productDefaults?: ProductBuildingDefaults) => string;
+  /** Atomically clear the default initial scene and spawn a single product-
+   *  backed building at the origin. Intended for the ?product= hydration
+   *  path only — not for general use. */
+  replaceWithProduct: (productDefaults: ProductBuildingDefaults) => string;
   removeBuilding: (id: string) => void;
   updateBuildingPositions: (updates: { id: string; position: [number, number] }[]) => void;
   updateBuildingDimensions: (id: string, dims: Partial<BuildingDimensions>) => void;
@@ -83,8 +88,18 @@ export const useConfigStore = create<ConfigStore>()(
     (set, get) => ({
       ...initialConfig,
 
-      addBuilding: (type, position) => {
-        const { cfg, id } = mAddBuilding(get(), type, position);
+      addBuilding: (type, position, productDefaults) => {
+        const { cfg, id } = mAddBuilding(get(), type, position, productDefaults);
+        set(cfg);
+        useUIStore.getState().selectBuilding(id);
+        return id;
+      },
+
+      replaceWithProduct: (productDefaults) => {
+        // Start from the initial config but with an empty buildings list so
+        // addBuilding sees `cfg.buildings.length === 0` and applies roof defaults.
+        const empty = { ...makeInitialConfig(), buildings: [] };
+        const { cfg, id } = mAddBuilding(empty, productDefaults.type, [0, 0], productDefaults);
         set(cfg);
         useUIStore.getState().selectBuilding(id);
         return id;

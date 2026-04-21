@@ -1,9 +1,14 @@
 'use client';
 
+import { Suspense, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 import Sidebar from '@/components/ui/ConfiguratorSidebar';
 import SchematicView from '@/components/schematic/SchematicView';
 import { useUIStore } from '@/store/useUIStore';
+import { useConfigStore } from '@/store/useConfigStore';
+import { useTenant } from '@/lib/TenantProvider';
+import { applyProductDefaults } from '@/domain/catalog';
 import { t } from '@/lib/i18n';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useGPUQuality } from '@/hooks/useGPUQuality';
@@ -12,6 +17,29 @@ const BuildingScene = dynamic(
   () => import('@/components/canvas/BuildingScene'),
   { ssr: false },
 );
+
+/** Reads ?product= from the URL and on first mount replaces the default
+ *  initial scene with a building spawned from that product's defaults.
+ *  Extracted into its own component because useSearchParams() requires a
+ *  Suspense boundary in the App Router. */
+function ProductHydration() {
+  const { catalog } = useTenant();
+  const params = useSearchParams();
+  const productSlug = params.get('product');
+  const replaceWithProduct = useConfigStore((s) => s.replaceWithProduct);
+
+  useEffect(() => {
+    if (!productSlug) return;
+    const product = catalog.products.find((p) => p.slug === productSlug);
+    if (!product) return;
+    const defaults = applyProductDefaults(product);
+    replaceWithProduct(defaults);
+    // Only run once on initial mount with ?product=.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return null;
+}
 
 function ViewToggle() {
   const viewMode = useUIStore((s) => s.viewMode);
@@ -96,6 +124,10 @@ export default function ConfiguratorClient() {
   // double-count the header and cause vertical overflow.
   return (
     <div className="relative h-full flex">
+      {/* Hydrate the scene from ?product=<slug> when the store is empty. */}
+      <Suspense fallback={null}>
+        <ProductHydration />
+      </Suspense>
       {viewMode === 'split' ? (
         <>
           <div className="w-1/2 relative border-r border-black/10">
