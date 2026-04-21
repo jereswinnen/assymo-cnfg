@@ -280,5 +280,5 @@ Tick a box when the phase is merged to `main` and deployed. Each phase has its o
 - [x] Phase 3 — Configurator submit — [plan](../plans/2026-04-21-phase-3-configurator-submit.md)
 - [x] Phase 4 — Webshop shell + client account — [plan](../plans/2026-04-21-phase-4-webshop-shell.md)
   - [x] Phase 4.5 — Material catalog filtering — [plan](../plans/2026-04-21-phase-4.5-material-catalog.md)
-- [ ] Phase 5 — Invoices
+- [ ] Phase 5 — Invoices — [plan](../plans/2026-04-21-phase-5-invoices.md)
 - [ ] Phase 6 — Online payments (deferred until business-ready)
