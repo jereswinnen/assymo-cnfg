@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
 import { clampOpeningPosition, DOOR_W, DOUBLE_DOOR_W, getWallLength, WIN_W } from '@/domain/building';
-import { DOOR_CATALOG, getEffectiveDoorMaterial } from '@/domain/materials';
+import { getEffectiveDoorMaterial } from '@/domain/materials';
+import { useTenantCatalogs } from '@/lib/useTenantCatalogs';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -26,6 +27,10 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
   const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
   const [expanded, setExpanded] = useState(false);
+  const effectiveDoor = wallCfg && building
+    ? getEffectiveDoorMaterial(wallCfg, building)
+    : null;
+  const { door: doorCatalog } = useTenantCatalogs({ door: effectiveDoor });
 
   if (!wallCfg || !building) return null;
 
@@ -106,7 +111,7 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
                   </label>
                 </div>
                 <MaterialSelect
-                  catalog={DOOR_CATALOG}
+                  catalog={doorCatalog}
                   value={getEffectiveDoorMaterial(wallCfg, building)}
                   disabled={wallCfg.doorMaterialId === undefined}
                   onChange={(atomId) => handleChange('doorMaterialId', atomId as DoorMaterialId)}
