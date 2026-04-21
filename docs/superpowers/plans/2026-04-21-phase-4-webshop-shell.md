@@ -1589,23 +1589,21 @@ git commit -m "docs(CLAUDE.md): add /shop tree + branded shell docs (Phase 4)"
 
 This is the LAST task — only tick the box once everything is merged. If the merge happens later, do this step in the same PR so docs and code stay in lockstep.
 
-- [ ] **Step 1: Update the Progress section**
+- [ ] **Step 1: Flip the Progress checkbox**
 
-In the `## Progress` block at the bottom of the spec, change:
+The plan link was already added to the spec when Phase 4 started (commit `e4e21f7`). The Progress block currently reads:
 
 ```markdown
-- [ ] Phase 4 — Webshop shell + client account
+- [ ] Phase 4 — Webshop shell + client account — [plan](../plans/2026-04-21-phase-4-webshop-shell.md)
   - [ ] Phase 4.5 — Material catalog filtering
 ```
 
-to:
+Change the Phase 4 checkbox only (leave Phase 4.5 unticked — it is a separate future plan):
 
 ```markdown
 - [x] Phase 4 — Webshop shell + client account — [plan](../plans/2026-04-21-phase-4-webshop-shell.md)
   - [ ] Phase 4.5 — Material catalog filtering
 ```
-
-Keep the Phase 4.5 child box unticked — it is a separate future plan.
 
 - [ ] **Step 2: Commit**
 
