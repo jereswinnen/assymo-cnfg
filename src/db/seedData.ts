@@ -1,10 +1,16 @@
 import type { MaterialCategory } from '@/domain/catalog';
 import type { MaterialPricing, MaterialFlags, MaterialTextures } from '@/domain/catalog';
 
-/** Static input for the seed. Every row here becomes a `materials` row
- *  for the Assymo tenant on first seed. Do NOT import from
- *  `@/domain/materials/atoms` or `catalogs/` — those files are deleted
- *  in Wave 7. Content here is a verbatim snapshot. */
+/**
+ * Static input for the seed. Every row here becomes a `materials` row
+ * for the Assymo tenant on first seed. Content is a verbatim snapshot
+ * of the pre-Phase-5.5.1 hardcoded atoms + per-object catalog arrays
+ * that used to live in `src/domain/materials/atoms.ts` and
+ * `src/domain/materials/catalogs/*.ts` (both deleted).
+ *
+ * TODO(5.5.3): delete this file once every environment has seeded.
+ * Consumed only by `src/db/seed.ts`.
+ */
 
 export interface SeedMaterialInput {
   category: MaterialCategory;

@@ -60,8 +60,6 @@ async function main() {
       priceBook: DEFAULT_PRICE_BOOK,
       branding: DEFAULT_ASSYMO_BRANDING,
       invoicing: DEFAULT_ASSYMO_INVOICING,
-      // enabledMaterials omitted -> NULL (unrestricted). The assymo tenant
-      // is the catalog owner and always sees every registered material.
     })
     .onConflictDoUpdate({
       target: tenants.id,

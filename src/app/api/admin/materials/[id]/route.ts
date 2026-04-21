@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, ne, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { materials } from '@/db/schema';
 import { materialDbRowToDomain } from '@/db/resolveTenant';
@@ -63,6 +63,47 @@ export const PATCH = withSession(
         { error: 'validation_failed', details: shape.errors },
         { status: 422 },
       );
+    }
+
+    // Void-conflict: at most one active isVoid floor per tenant. Re-check
+    // on PATCH because the admin can toggle the flag on an existing row.
+    if (
+      existing.category === 'floor' &&
+      shape.value.flags?.isVoid === true
+    ) {
+      const competing = await db
+        .select({ id: materials.id })
+        .from(materials)
+        .where(
+          and(
+            eq(materials.tenantId, existing.tenantId),
+            eq(materials.category, 'floor'),
+            isNull(materials.archivedAt),
+            ne(materials.id, existing.id),
+          ),
+        );
+      const conflict = competing.some((r) => r.id);
+      // Only block if another ACTIVE row already has isVoid. We don't know
+      // their flags from the id-only select, so fetch the full rows to check.
+      if (conflict) {
+        const others = await db
+          .select()
+          .from(materials)
+          .where(
+            and(
+              eq(materials.tenantId, existing.tenantId),
+              eq(materials.category, 'floor'),
+              isNull(materials.archivedAt),
+              ne(materials.id, existing.id),
+            ),
+          );
+        if (others.some((r) => r.flags?.isVoid === true)) {
+          return NextResponse.json(
+            { error: 'validation_failed', details: [{ field: 'flags', code: 'void_conflict' }] },
+            { status: 422 },
+          );
+        }
+      }
     }
 
     try {
