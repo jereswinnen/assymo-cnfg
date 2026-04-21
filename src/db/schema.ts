@@ -24,6 +24,9 @@ import type {
   MaterialFlags,
   MaterialPricing,
   MaterialTextures,
+  ProductConstraints,
+  ProductDefaults,
+  ProductKind,
 } from '@/domain/catalog';
 
 /** Tenants — one row per white-label brand. Columns mirror the in-memory
@@ -232,3 +235,36 @@ export const materials = pgTable(
 );
 
 export type MaterialDbRow = typeof materials.$inferSelect;
+
+/** Products — per-tenant starter kits built on `overkapping` or `berging`
+ *  primitives. See `@/domain/catalog` for validators + transport types.
+ *  Slugs are unique per tenant. Soft-delete via `archived_at` so
+ *  historical orders (which reference `sourceProductId` inside
+ *  `configSnapshot`) stay re-renderable. */
+export const products = pgTable(
+  'products',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .references(() => tenants.id, { onDelete: 'cascade' })
+      .notNull(),
+    kind: text('kind').$type<ProductKind>().notNull(),
+    slug: text('slug').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    heroImage: text('hero_image'),
+    defaults: jsonb('defaults').$type<ProductDefaults>().notNull().default({}),
+    constraints: jsonb('constraints').$type<ProductConstraints>().notNull().default({}),
+    basePriceCents: integer('base_price_cents').notNull().default(0),
+    sortOrder: integer('sort_order').notNull().default(0),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex('products_tenant_slug_idx').on(t.tenantId, t.slug),
+    index('products_tenant_id_sort_idx').on(t.tenantId, t.sortOrder),
+  ],
+);
+
+export type ProductDbRow = typeof products.$inferSelect;
