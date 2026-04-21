@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vite-plus/test';
+import { describe, it, expect } from 'vite-plus/test';
 import { submitOrder } from '@/components/ui/useSubmitOrder';
 
 type FetchMock = (input: string, init?: RequestInit) => Promise<Response>;
