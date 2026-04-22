@@ -1,25 +1,3 @@
-/** Primitives shared across all object-type catalogs. Maps 1:1 to a future
- *  `materials` DB table row. */
-export interface MaterialAtom {
-  /** Stable slug (kebab or snake). Becomes DB `slug` column. */
-  id: string;
-  /** i18n key for the human-readable name. */
-  labelKey: string;
-  /** Fallback colour if no texture, or tint colour when texture present. */
-  color: string;
-  /** Optional PBR texture set. */
-  textures?: {
-    color: string;
-    normal: string;
-    roughness: string;
-  };
-  /** Meters each texture tile covers (controls repeat density). */
-  tileSize?: [number, number];
-  /** Soft-delete placeholder. Admin will set this; configurator treats
-   *  non-null as "hide from picker, still render in existing configs". */
-  archivedAt?: string | null;
-}
-
 /** Per-object catalog entry — references an atom by slug and adds
  *  object-specific context. Each object type has its own entry shape. */
 export interface BaseCatalogEntry {

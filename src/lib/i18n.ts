@@ -424,24 +424,6 @@ const nl: Record<string, string> = {
     'We nemen binnen één werkdag contact met je op. Zodra we je offerte bevestigen, zie je de status hier wijzigen naar "Offerte verstuurd".',
   // Shop — fetch errors
   'shop.error.loading': 'Kon je bestellingen niet laden. Vernieuw de pagina.',
-  // Admin — registry / materials
-  'admin.nav.registry': 'Materialen',
-  'admin.tenant.section.materials': 'Materialen',
-  'admin.registry.title': 'Materialen',
-  'admin.registry.lead':
-    'Kies welke materialen in de configurator getoond worden voor deze tenant.',
-  'admin.registry.unrestricted.label': 'Alle materialen tonen',
-  'admin.registry.unrestricted.help':
-    'Schakel uit om een eigen selectie te kiezen. Uit = alleen aangevinkte materialen zijn beschikbaar.',
-  'admin.registry.group.wall': 'Wandmaterialen',
-  'admin.registry.group.roofCover': 'Dakbedekking',
-  'admin.registry.group.roofTrim': 'Daktrim',
-  'admin.registry.group.floor': 'Vloeren',
-  'admin.registry.group.door': 'Deuren',
-  'admin.registry.sharedSlugHint':
-    'Dit materiaal komt in meerdere categorieën voor — aan/uit zetten geldt overal.',
-  'admin.registry.noTenant':
-    'Je bent super_admin zonder eigen tenant. Open een tenantdetailpagina om materialen te beheren.',
   // Admin — sidebar + invoices
   'admin.nav.invoices': 'Facturen',
   // Admin — tenant section heading

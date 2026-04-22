@@ -79,10 +79,10 @@ function validateDefaults(
   return out;
 }
 
-// TODO(Phase 5.5.3): product constraint dimensions (`minWidth` etc.) are
-// currently bounded to [0, 40]; this intentionally overrides the engine's
-// stricter per-type limits in `@/domain/building`. If/when we re-align,
-// clamp constraint values to the kind's engine max during validation.
+// Product constraint dimensions (`minWidth` etc.) are bounded to [0, 40] —
+// intentionally wider than the engine's per-type caps so tenants can ship
+// larger kits without a schema change. Runtime dimension clamping still
+// enforces the engine caps.
 function validateConstraints(
   value: unknown,
   errors: ProductValidationFieldError[],

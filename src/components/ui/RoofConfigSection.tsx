@@ -13,12 +13,10 @@ export default function RoofConfigSection() {
   const roof = useConfigStore((s) => s.roof);
   const updateRoof = useConfigStore((s) => s.updateRoof);
   const buildings = useConfigStore((s) => s.buildings);
-  // TODO(Phase 5.5.3): multi-product roof-constraint strategy.
-  // Roof is scene-level, but products can each carry their own roofCovering
-  // / roofTrim allow-list. With multiple product-sourced buildings, we apply
-  // the first one's constraints — second product's roof constraints are
-  // silently ignored. Expected usage today is one structural product per
-  // scene; revisit when that pattern doesn't hold.
+  // Roof is scene-level, but products can each carry their own roofCovering /
+  // roofTrim allow-list. With multiple product-sourced buildings we apply the
+  // first one's constraints — expected usage today is one structural product
+  // per scene. Revisit when multi-product scenes become common.
   const productBuilding = buildings.find((b) => b.sourceProductId);
   const { roofTrim, roofCover, sourceProduct } = useTenantCatalogs(
     {

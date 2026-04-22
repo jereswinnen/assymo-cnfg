@@ -7,11 +7,6 @@ import type {
   DoorCatalogEntry,
 } from './types';
 
-/** Slugs that must always be available regardless of admin choices.
- *  Today only `geen` (the void-floor sentinel), because hiding it would
- *  leave the configurator with no "no floor" option. */
-export const ALWAYS_ENABLED_SLUGS: readonly string[] = ['geen'];
-
 function rowsByCategory(
   materials: MaterialRow[],
   category: MaterialCategory,

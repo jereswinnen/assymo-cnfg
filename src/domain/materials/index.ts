@@ -5,7 +5,6 @@ export type {
   FloorCatalogEntry,
   DoorCatalogEntry,
   BaseCatalogEntry,
-  MaterialAtom,
 } from './types';
 export * from './filter';
 export * from './resolve';
