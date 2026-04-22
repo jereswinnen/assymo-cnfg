@@ -15,6 +15,10 @@ interface Props {
   /** Blob path prefix. Must match what the server-side signed-token
    *  endpoint expects (e.g. 'images', 'supplier'). Defaults to 'images'. */
   pathPrefix?: string;
+  /** Preview fit mode. 'cover' (default) zooms to fill — right for
+   *  product/hero photography. 'contain' fits inside without cropping
+   *  — right for logos with transparent padding. */
+  previewFit?: 'cover' | 'contain';
 }
 
 /** Single-image upload control for product hero images. Direct-to-Blob
@@ -28,6 +32,7 @@ export function HeroImageUploadField({
   slug,
   uploadUrl = '/api/admin/uploads/images',
   pathPrefix = 'images',
+  previewFit = 'cover',
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -56,7 +61,11 @@ export function HeroImageUploadField({
       <label className="text-sm font-medium">{label}</label>
       <div className="flex items-center gap-3">
         {value ? (
-          <img src={value} alt="" className="h-24 w-24 rounded-md border object-cover" />
+          <img
+            src={value}
+            alt=""
+            className={`h-24 w-24 rounded-md border ${previewFit === 'contain' ? 'object-contain p-1 bg-muted/30' : 'object-cover'}`}
+          />
         ) : (
           <div className="h-24 w-24 rounded-md border border-dashed" />
         )}

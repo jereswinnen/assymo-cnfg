@@ -51,6 +51,7 @@ export function BrandingSection({ tenantId, initialBranding }: Props) {
           onChange={(url) => set('logoUrl', url ?? '')}
           tenantId={tenantId}
           slug="logo"
+          previewFit="contain"
         />
         <div className="grid grid-cols-2 gap-4">
           <ColorPickerField
