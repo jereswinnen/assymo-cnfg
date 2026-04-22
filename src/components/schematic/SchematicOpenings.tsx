@@ -7,6 +7,7 @@ import {
   fractionToX,
 } from '@/domain/building';
 import type { WallConfig, DoorSwing, BuildingDimensions } from '@/domain/building';
+import type { SupplierProductRow } from '@/domain/supplier';
 import { getWallGeometries } from './SchematicWalls';
 import type { WallGeom } from './SchematicWalls';
 
@@ -18,6 +19,8 @@ interface SchematicOpeningsProps {
   offsetX: number;
   offsetY: number;
   buildingId?: string;
+  /** Non-archived supplier products for dim overrides + SKU labels. */
+  supplierProducts?: SupplierProductRow[];
   onOpeningPointerDown?: (
     e: React.PointerEvent,
     info: { buildingId: string; wallId: string; type: 'door' | 'window'; windowIndex?: number },
@@ -37,6 +40,7 @@ export default function SchematicOpenings({
   offsetX,
   offsetY,
   buildingId,
+  supplierProducts = [],
   onOpeningPointerDown,
   dragPreview,
 }: SchematicOpeningsProps) {
@@ -52,7 +56,15 @@ export default function SchematicOpenings({
         if (!cfg) return null;
 
         const ds = cfg.doorSize ?? 'enkel';
-        const dw = ds === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W;
+
+        // Resolve supplier door product for dimension override
+        const doorSupplierProduct = cfg.doorSupplierProductId
+          ? supplierProducts.find(p => p.id === cfg.doorSupplierProductId) ?? null
+          : null;
+        const dw = doorSupplierProduct
+          ? doorSupplierProduct.widthMm / 1000
+          : ds === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W;
+
         const { doorX, windowXs } = resolveOpeningPositions(
           g.length,
           cfg.hasDoor ? (cfg.doorPosition ?? 0.5) : null,
@@ -99,10 +111,18 @@ export default function SchematicOpenings({
                       geom={g}
                       localDoorX={localDoorX}
                       doorWidth={dw}
-                      isDouble={ds === 'dubbel'}
+                      isDouble={ds === 'dubbel' && !doorSupplierProduct}
                       swing={cfg.doorSwing ?? 'dicht'}
                       mirror={cfg.doorMirror ?? false}
                     />
+                    {/* Supplier SKU label */}
+                    {doorSupplierProduct && (
+                      <SupplierLabel
+                        geom={g}
+                        localX={localDoorX}
+                        label={doorSupplierProduct.sku}
+                      />
+                    )}
                   </g>
 
                   {/* Ghost preview for door */}
@@ -112,7 +132,7 @@ export default function SchematicOpenings({
                         geom={g}
                         localDoorX={fractionToX(g.length, wallPreview!.fraction) * g.flipSign}
                         doorWidth={dw}
-                        isDouble={ds === 'dubbel'}
+                        isDouble={ds === 'dubbel' && !doorSupplierProduct}
                         swing={cfg.doorSwing ?? 'dicht'}
                         mirror={cfg.doorMirror ?? false}
                       />
@@ -127,7 +147,13 @@ export default function SchematicOpenings({
               const localWinX = wx * g.flipSign;
               const isWindowDragged = wallPreview?.type === 'window' && wallPreview.windowIndex === i;
               const winOpacity = isWindowDragged ? 0.3 : 1;
-              const winWidth = (cfg.windows ?? [])[i]?.width ?? WIN_W;
+              const winData = (cfg.windows ?? [])[i];
+              const winSupplierProduct = winData?.supplierProductId
+                ? supplierProducts.find(p => p.id === winData.supplierProductId) ?? null
+                : null;
+              const winWidth = winSupplierProduct
+                ? winSupplierProduct.widthMm / 1000
+                : winData?.width ?? WIN_W;
 
               return (
                 <g key={i}>
@@ -152,6 +178,14 @@ export default function SchematicOpenings({
                   {/* Original window (faded when dragging) */}
                   <g opacity={winOpacity}>
                     <WindowSymbol geom={g} localWinX={localWinX} winWidth={winWidth} />
+                    {/* Supplier SKU label */}
+                    {winSupplierProduct && (
+                      <SupplierLabel
+                        geom={g}
+                        localX={localWinX}
+                        label={winSupplierProduct.sku}
+                      />
+                    )}
                   </g>
 
                   {/* Ghost preview for window */}
@@ -311,6 +345,28 @@ function DoubleDoorArcs({
       <line x1={doorCX} y1={bHinge} x2={doorCX + sweepX} y2={bHinge} strokeWidth={0.03} />
       <path d={`M ${doorCX} ${doorCY} A ${r} ${r} 0 0 ${1 - sweep} ${doorCX + sweepX} ${bHinge}`} strokeWidth={0.02} strokeDasharray="0.08 0.05" />
     </g>
+  );
+}
+
+/** Small SKU label rendered next to a supplier-sourced opening. */
+function SupplierLabel({ geom, localX, label }: { geom: WallGeom; localX: number; label: string }) {
+  const { cx, cy, orientation } = geom;
+  const LABEL_OFFSET = 0.18;
+  const x = orientation === 'h' ? cx + localX : cx + LABEL_OFFSET;
+  const y = orientation === 'h' ? cy - LABEL_OFFSET : cy + localX;
+  return (
+    <text
+      x={x}
+      y={y}
+      fontSize={0.12}
+      fill="#7c3aed"
+      textAnchor="middle"
+      dominantBaseline="middle"
+      fontFamily="monospace"
+      pointerEvents="none"
+    >
+      {label}
+    </text>
   );
 }
 

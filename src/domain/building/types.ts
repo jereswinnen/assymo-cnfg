@@ -22,6 +22,7 @@ export interface WallWindow {
   width: number;       // meters
   height: number;      // meters
   sillHeight: number;  // meters from ground to bottom of window
+  supplierProductId?: string | null;
 }
 
 export interface WallConfig {
@@ -37,6 +38,7 @@ export interface WallConfig {
   doorPosition: number;
   doorSwing: DoorSwing;
   doorMirror?: boolean;
+  doorSupplierProductId?: string | null;
   windows: WallWindow[];
 }
 

@@ -24,6 +24,8 @@ import {
   resetBuildingPoles as mResetBuildingPoles,
   resetBuildingToDefaults as mResetBuildingToDefaults,
   setBuildingPrimaryMaterial as mSetBuildingPrimaryMaterial,
+  setWallDoorSupplierProduct as mSetWallDoorSupplierProduct,
+  setWallWindowSupplierProduct as mSetWallWindowSupplierProduct,
   setConnections as mSetConnections,
   setDefaultHeight as mSetDefaultHeight,
   setHeightOverride as mSetHeightOverride,
@@ -66,6 +68,9 @@ interface ConfigStore extends ConfigData {
   updateBuildingPoles: (id: string, poles: PolesConfig) => void;
   resetBuildingPoles: (id: string) => void;
   resetBuildingToDefaults: (id: string, defaults: ProductBuildingDefaults) => void;
+
+  setDoorSupplierProduct: (buildingId: string, wallSide: WallSide, id: string | null) => void;
+  setWindowSupplierProduct: (buildingId: string, wallSide: WallSide, windowId: string, id: string | null) => void;
 
   setConnections: (conns: SnapConnection[]) => void;
   toggleConnectionOpen: (aId: string, sideA: WallSide, bId: string, sideB: WallSide) => void;
@@ -134,6 +139,11 @@ export const useConfigStore = create<ConfigStore>()(
       updateBuildingPoles: (id, poles) => set(mUpdateBuildingPoles(get(), id, poles)),
       resetBuildingPoles: (id) => set(mResetBuildingPoles(get(), id)),
       resetBuildingToDefaults: (id, defaults) => set(mResetBuildingToDefaults(get(), id, defaults)),
+
+      setDoorSupplierProduct: (buildingId, wallSide, id) =>
+        set(mSetWallDoorSupplierProduct(get(), buildingId, wallSide, id)),
+      setWindowSupplierProduct: (buildingId, wallSide, windowId, id) =>
+        set(mSetWallWindowSupplierProduct(get(), buildingId, wallSide, windowId, id)),
 
       setConnections: (conns) => set(mSetConnections(get(), conns)),
       toggleConnectionOpen: (aId, sideA, bId, sideB) =>

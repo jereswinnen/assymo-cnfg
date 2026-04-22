@@ -4,8 +4,12 @@ import {
   resolveTenantByHostOrDefault,
   getTenantMaterials,
   getTenantProducts,
+  getTenantSuppliers,
+  getTenantSupplierProducts,
   materialDbRowToDomain,
   productDbRowToDomain,
+  supplierDbRowToDomain,
+  supplierProductDbRowToDomain,
 } from '@/db/resolveTenant';
 import { TenantProvider } from '@/lib/TenantProvider';
 import type { TenantContext } from '@/domain/tenant';
@@ -30,12 +34,17 @@ export default async function RootLayout({
     );
   }
 
-  const [materialRows, productRows] = await Promise.all([
-    getTenantMaterials(tenantRow.id),
-    getTenantProducts(tenantRow.id),
-  ]);
+  const [materialRows, productRows, supplierRows, supplierProductRows] =
+    await Promise.all([
+      getTenantMaterials(tenantRow.id),
+      getTenantProducts(tenantRow.id),
+      getTenantSuppliers(tenantRow.id),
+      getTenantSupplierProducts(tenantRow.id),
+    ]);
   const materials = materialRows.map(materialDbRowToDomain);
   const products = productRows.map(productDbRowToDomain);
+  const supplierList = supplierRows.map(supplierDbRowToDomain);
+  const supplierProductList = supplierProductRows.map(supplierProductDbRowToDomain);
 
   const tenantContext: TenantContext = {
     id: tenantRow.id,
@@ -46,6 +55,7 @@ export default async function RootLayout({
     branding: tenantRow.branding,
     invoicing: tenantRow.invoicing,
     catalog: { materials, products },
+    supplierCatalog: { suppliers: supplierList, products: supplierProductList },
   };
 
   return (

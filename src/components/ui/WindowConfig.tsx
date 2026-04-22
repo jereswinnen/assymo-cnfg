@@ -1,12 +1,15 @@
 'use client';
 
 import { useConfigStore } from '@/store/useConfigStore';
+import { useTenant } from '@/lib/TenantProvider';
 import { t } from '@/lib/i18n';
 import {
   WIN_W, WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT,
   getWallLength, findBestNewPosition, DOOR_W, DOUBLE_DOOR_W,
   EDGE_CLEARANCE, OPENING_GAP,
 } from '@/domain/building';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import { Plus, X } from 'lucide-react';
 import type { WallId, WallWindow } from '@/domain/building';
 
@@ -22,6 +25,12 @@ export default function WindowConfig({ wallId, buildingId }: WindowConfigProps) 
   });
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
   const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
+  const setWindowSupplierProduct = useConfigStore((s) => s.setWindowSupplierProduct);
+
+  const { supplierCatalog } = useTenant();
+  const supplierWindows = supplierCatalog.products.filter(
+    (p) => p.kind === 'window' && p.archivedAt === null,
+  );
 
   if (!wallCfg || !building) return null;
 
@@ -73,29 +82,137 @@ export default function WindowConfig({ wallId, buildingId }: WindowConfigProps) 
         )}
       </div>
       {hasWindows && (
-        <div className="space-y-1">
+        <div className="space-y-2">
           {windows.map((win, i) => {
             const w = win.width ?? WIN_W_DEFAULT;
             const h = win.height ?? WIN_H_DEFAULT;
+            const mode = win.supplierProductId ? 'catalog' : 'custom';
+            const activeProduct = win.supplierProductId
+              ? supplierCatalog.products.find(p => p.id === win.supplierProductId) ?? null
+              : null;
+            const activeSupplier = activeProduct
+              ? supplierCatalog.suppliers.find(s => s.id === activeProduct.supplierId) ?? null
+              : null;
+
+            const dimLabel = activeProduct
+              ? `${activeProduct.widthMm} × ${activeProduct.heightMm} mm`
+              : `${(w * 100).toFixed(0)} × ${(h * 100).toFixed(0)}`;
+
             return (
               <div
                 key={win.id}
-                className="flex items-center justify-between rounded-lg border border-border/50 bg-background px-3 py-2"
+                className="rounded-lg border border-border/50 bg-background overflow-hidden"
               >
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-4 rounded-sm border border-sky-300 bg-sky-50" />
-                  <span className="text-sm">Raam {i + 1}</span>
+                {/* Header row */}
+                <div className="flex items-center justify-between px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-4 rounded-sm border border-sky-300 bg-sky-50" />
+                    <span className="text-sm">Raam {i + 1}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {dimLabel}
+                    </span>
+                    <button
+                      onClick={() => removeWindow(win.id)}
+                      className="text-muted-foreground/50 hover:text-destructive transition-colors p-0.5 -mr-1"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {(w * 100).toFixed(0)} × {(h * 100).toFixed(0)}
-                  </span>
-                  <button
-                    onClick={() => removeWindow(win.id)}
-                    className="text-muted-foreground/50 hover:text-destructive transition-colors p-0.5 -mr-1"
+
+                {/* Mode tabs */}
+                <div className="border-t border-border/50 px-3 py-2 bg-muted/20">
+                  <Tabs
+                    value={mode}
+                    onValueChange={(v) => {
+                      if (v === 'custom') {
+                        setWindowSupplierProduct(buildingId, wallId, win.id, null);
+                      }
+                    }}
                   >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+                    <TabsList className="w-full">
+                      <TabsTrigger value="custom" className="flex-1 text-xs">
+                        {t('configurator.window.tab.custom')}
+                      </TabsTrigger>
+                      <TabsTrigger value="catalog" className="flex-1 text-xs">
+                        {t('configurator.window.tab.catalog')}
+                      </TabsTrigger>
+                    </TabsList>
+
+                    {/* Eigen keuze — no extra controls for now; dimensions are fixed presets */}
+                    <TabsContent value="custom" className="mt-2">
+                      <p className="text-[11px] text-muted-foreground">
+                        {t('configurator.supplier.picker.dimensions', { width: Math.round(w * 1000), height: Math.round(h * 1000) })}
+                      </p>
+                    </TabsContent>
+
+                    {/* Uit catalogus */}
+                    <TabsContent value="catalog" className="mt-2 space-y-2">
+                      {supplierWindows.length === 0 ? (
+                        <p className="text-xs text-muted-foreground py-1">
+                          {t('configurator.supplier.picker.empty')}
+                        </p>
+                      ) : (
+                        <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                          {supplierWindows.map((prod) => {
+                            const supplier = supplierCatalog.suppliers.find(s => s.id === prod.supplierId);
+                            const isSelected = win.supplierProductId === prod.id;
+                            return (
+                              <Card
+                                key={prod.id}
+                                className={`cursor-pointer transition-colors ${isSelected ? 'ring-2 ring-primary border-primary' : 'hover:bg-muted/30'}`}
+                                onClick={() => setWindowSupplierProduct(buildingId, wallId, win.id, prod.id)}
+                              >
+                                <CardContent className="p-2 flex gap-2 items-start">
+                                  {prod.heroImage ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                      src={prod.heroImage}
+                                      alt={prod.name}
+                                      className="w-10 h-10 object-cover rounded shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded bg-muted shrink-0" />
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-medium truncate">{prod.name}</p>
+                                    {supplier && (
+                                      <p className="text-[11px] text-muted-foreground truncate">{supplier.name}</p>
+                                    )}
+                                    <p className="text-[11px] text-muted-foreground">
+                                      {t('configurator.supplier.picker.dimensions', { width: prod.widthMm, height: prod.heightMm })}
+                                    </p>
+                                    <p className="text-[11px] font-medium">
+                                      {t('configurator.supplier.picker.price', { price: (prod.priceCents / 100).toFixed(0) })}
+                                    </p>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {activeProduct && activeSupplier && (
+                        <p className="text-[11px] text-muted-foreground">
+                          {t('configurator.supplier.lockInfo', {
+                            supplier: activeSupplier.name,
+                            width: activeProduct.widthMm,
+                            height: activeProduct.heightMm,
+                          })}
+                        </p>
+                      )}
+                      {win.supplierProductId && (
+                        <button
+                          onClick={() => setWindowSupplierProduct(buildingId, wallId, win.id, null)}
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors underline"
+                        >
+                          {t('configurator.supplier.clearSelection')}
+                        </button>
+                      )}
+                    </TabsContent>
+                  </Tabs>
                 </div>
               </div>
             );

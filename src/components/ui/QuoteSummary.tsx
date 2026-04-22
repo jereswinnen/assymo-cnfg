@@ -10,7 +10,7 @@ export default function QuoteSummary() {
   const buildings = useConfigStore((s) => s.buildings);
   const roof = useConfigStore((s) => s.roof);
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
-  const { lineItems, total } = calculateTotalQuote(buildings, roof, tenant.priceBook, tenant.catalog.materials, defaultHeight);
+  const { lineItems, total } = calculateTotalQuote(buildings, roof, tenant.priceBook, tenant.catalog.materials, defaultHeight, tenant.supplierCatalog.products);
 
   return (
     <div className="space-y-3">

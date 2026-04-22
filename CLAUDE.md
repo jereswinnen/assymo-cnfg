@@ -43,8 +43,9 @@ Pure TypeScript. No React, no three.js, no zustand. Safe to import from API rout
 - `orders/` — pure order types (`OrderStatus`, `OrderQuoteSnapshot`, `OrderConfigSnapshot`, `OrderRecord`), state machine (`ALLOWED_TRANSITIONS`, `validateOrderTransition`, `allowedNextStatuses`), and `buildQuoteSnapshot` / `buildConfigSnapshot` for freezing the priced quote + ConfigData at submit time
 - `catalog/` — per-tenant material + product catalog types + validators (`MaterialRow`, `ProductRow`, `validateMaterialCreate/Patch`, `validateProductCreate/Patch`, `applyProductDefaults`, `filterMaterialsForProduct`, `clampDimensions`, slug helpers). Products are starter kits built on `overkapping` / `berging`; `paal` + `muur` stay engine primitives. Consumed by admin + shop API routes, the configurator hydration logic, and `TenantContext.catalog.{materials, products}`.
 - `materials/` — per-category view types (`WallCatalogEntry` etc.), row→view converters (`buildWallCatalog` …), `getAtom`, `getAtomColor`, `getEffectiveWallMaterial`, `getEffectiveDoorMaterial`. All helpers take `MaterialRow[]` — framework-free, zero global state. Hardcoded material registry removed in Phase 5.5.1; DB-backed catalog is the single source of truth.
-- `tenant/` — `TenantContext` with `priceBook` + `branding` + `invoicing` + `catalog: { materials: MaterialRow[], products: ProductRow[] }`; host-based resolver; `brandingToCssVars` + `cssVarsToInlineBlock` for the branded shell; `validateBrandingPatch`, `validateInvoicingPatch` for admin PATCH validation. Phase 4.5's `enabledMaterials` allow-list was absorbed by row ownership in the `materials` table.
+- `tenant/` — `TenantContext` with `priceBook` + `branding` + `invoicing` + `catalog: { materials: MaterialRow[], products: ProductRow[] }` + `supplierCatalog: { suppliers: SupplierRow[], products: SupplierProductRow[] }`; host-based resolver; `brandingToCssVars` + `cssVarsToInlineBlock` for the branded shell; `validateBrandingPatch`, `validateInvoicingPatch` for admin PATCH validation. Phase 4.5's `enabledMaterials` allow-list was absorbed by row ownership in the `materials` table.
 - `invoicing/` — pure numbering (`formatInvoiceNumber`), VAT math (`computeInvoiceAmounts`), payment-status derivation (`derivePaymentStatus`), supplier-snapshot builder, and patch validators (`validateIssueInvoiceInput`, `validatePaymentInput`). All framework-free; consumed by the admin API + PDF renderer.
+- `supplier/` — per-tenant supplier catalog. Types (`SupplierRow`, `SupplierProductRow`), validators (`validateSupplierCreate/Patch`, `validateSupplierProductCreate/Patch`, `validateDoorMeta`, `validateWindowMeta`), quote line-item helpers, snapshot builder, and geometry placement validator (`validateSupplierPlacements`). `SupplierProductRow.kind` is `'door' | 'window'` — extensible to more kinds (shutter/skylight/etc.) by adding an enum value + meta validator, no schema migration needed.
 
 ### `src/lib/` — browser-coupled
 
@@ -58,7 +59,7 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
 
 ### `src/db/`
 
-- `schema.ts` — Drizzle table definitions for domain tables. `schema.ts` gained a `materials` table (per-tenant catalog rows; unique on `(tenant_id, category, slug)`; soft-delete via `archived_at`). `tenants.enabled_materials` was dropped — row ownership replaces allow-listing. Also gained a `products` table in Phase 5.5.2 — per-tenant starter kits with `kind` (`overkapping | berging`), `defaults` + `constraints` jsonb, hero image, base price, sort order, soft-delete via `archived_at`, unique on `(tenant_id, slug)`. `tenants`
+- `schema.ts` — Drizzle table definitions for domain tables. `schema.ts` gained a `materials` table (per-tenant catalog rows; unique on `(tenant_id, category, slug)`; soft-delete via `archived_at`). `tenants.enabled_materials` was dropped — row ownership replaces allow-listing. Also gained a `products` table in Phase 5.5.2 — per-tenant starter kits with `kind` (`overkapping | berging`), `defaults` + `constraints` jsonb, hero image, base price, sort order, soft-delete via `archived_at`, unique on `(tenant_id, slug)`. Phase 5.7 added `suppliers` (per-tenant supplier envelope, unique on `(tenant_id, slug)`, soft-delete) and `supplier_products` (polymorphic leaves — unique on `(tenant_id, kind, sku)`, `kind`='door'|'window', `meta` jsonb kind-specific, FK supplier_id RESTRICT — can't delete a supplier while products reference it). `tenants`
   holds the seeded per-brand context (`priceBook`, `branding`, `invoicing` as jsonb); `configs`
   holds saved scenes with their server-minted short `code` (nanoid from a base58 alphabet), a `content_hash` used to dedupe identical scenes per tenant, and the canonical `ConfigData` in `data`; `tenant_hosts` maps request hosts to tenants
   (hostname PK, tenantId FK with cascade delete). `orders` rows freeze
@@ -155,6 +156,10 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   - `POST /api/admin/uploads/textures` — Vercel Blob signed-upload endpoint; `@vercel/blob/client.handleUpload`; upload paths namespaced `textures/<tenantId>/…`.
   - `GET|POST /api/admin/products` + `GET|PATCH|DELETE /api/admin/products/[id]` + `POST /api/admin/products/[id]/restore` + `PATCH /api/admin/products/reorder` — per-tenant product CRUD + bulk reorder. super_admin may scope via `?tenantId=`.
   - `POST /api/admin/uploads/images` — Vercel Blob signed-upload endpoint for hero images; paths namespaced `images/<tenantId>/…`.
+  - `GET|POST /api/admin/suppliers` + `GET|PATCH|DELETE /api/admin/suppliers/[id]` + `POST /api/admin/suppliers/[id]/restore` — tenant-scoped supplier CRUD.
+  - `GET|POST /api/admin/suppliers/[id]/products` + `PATCH /api/admin/suppliers/[id]/products/reorder` — supplier's products list + bulk reorder.
+  - `GET|PATCH|DELETE /api/admin/supplier-products/[pid]` + `POST /api/admin/supplier-products/[pid]/restore` — individual product operations. PATCH enforces `kind` immutability.
+  - `POST /api/admin/uploads/supplier-images` — Blob signed upload; path namespaced `supplier/<tenantId>/…`.
 - `src/app/api/shop/*` — public + client-facing API.
   - `POST /api/shop/orders` — public, host-scoped. Takes
     `{ code, contact: { email, name, phone?, notes? } }`, snapshots the
@@ -179,6 +184,7 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
     and "not yours".
   - `GET /api/shop/products` — unauthenticated, host-scoped list of non-archived products (feeds the `/` landing grid).
   - `GET /api/shop/products/[slug]` — unauthenticated detail-by-slug (for deep-linking into the configurator).
+  - `GET /api/shop/supplier-products?kind=door|window` — public, host-scoped list of active (non-archived) supplier products. Excludes products whose supplier is archived.
 - `src/app/api/invoices/[id]/pdf/` — `GET` streams `application/pdf`.
   Session-scoped: business-side requires `super_admin` OR `tenant_admin`
   with matching `invoice.tenantId`; client-side requires
@@ -213,7 +219,8 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
 - **Shadcn primitives in their NATIVE form.** Never restyle button/dialog/
   sidebar/etc. Add new primitives via `pnpm dlx shadcn@latest add [name]`.
   Animations come from `tw-animate-css` (imported in `globals.css`).
-- **Drag reorder:** `@dnd-kit/core` + `@dnd-kit/sortable` (+ `@dnd-kit/utilities`) are sanctioned non-shadcn deps used only for drag-reorder of table rows (e.g. `/admin/catalog/products`). Import via the standard shadcn `Table` primitives wrapped in `DndContext` + `SortableContext`.
+- **Drag reorder:** `@dnd-kit/core` + `@dnd-kit/sortable` (+ `@dnd-kit/utilities`) are sanctioned non-shadcn deps used only for drag-reorder of table rows (e.g. `/admin/catalog/products`, `/admin/catalog/suppliers/[id]/products`). Import via the standard shadcn `Table` primitives wrapped in `DndContext` + `SortableContext`.
+- **Catalog route group:** `/admin/catalog/` includes `/suppliers/...` — supplier list, create, edit, with a nested supplier-products table (dnd-kit reorder, per-supplier). `SupplierForm.tsx` handles contact + logo; `SupplierProductForm.tsx` handles kind-specific meta fields.
 - **Sidebar:** `src/components/admin/Sidebar.tsx` uses the shadcn `Sidebar`
   primitive with `collapsible="offcanvas"` + `<SidebarRail />`. Footer is
   the user avatar + dropdown (sign-out lives there). Nav items take a
@@ -249,6 +256,14 @@ chains two POSTs:
 2. `POST /api/shop/orders` with `{ code, contact }` — the server
    snapshots the priced quote, auto-creates (or reuses) the `client`
    user, and fires the magic-link email.
+
+Supplier refs + geometry validated at submit: non-existent or archived
+`doorSupplierProductId` / window `supplierProductId` reject with 422
+(`supplier_product_not_found` / `supplier_product_archived`); oversized
+placements reject as `supplier_placement_too_tall` /
+`supplier_placement_too_wide`. Orders freeze the full supplier product
+row inside `quoteSnapshot.items[].lineItems[i].supplierProduct` so
+historical orders are stable against catalog drift.
 
 On 201, the dialog swaps to a confirmation view showing the order ID,
 estimated total, and "we reach out within 1 werkdag" copy. Server

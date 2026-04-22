@@ -404,6 +404,55 @@ export function resetBuildingToDefaults(
   };
 }
 
+/** Set (or clear) the supplier product overriding a wall's door.
+ *  Setting to a non-null id puts the door in "Uit catalogus" mode;
+ *  material-based fields (doorMaterialId, doorSize, etc.) are
+ *  preserved so switching modes round-trips cleanly. */
+export function setWallDoorSupplierProduct(
+  state: ConfigData,
+  buildingId: string,
+  wallSide: WallSide,
+  supplierProductId: string | null,
+): ConfigData {
+  return mapBuilding(state, buildingId, (b) => ({
+    ...b,
+    walls: {
+      ...b.walls,
+      [wallSide]: {
+        ...(b.walls[wallSide] ?? BLANK_WALL),
+        doorSupplierProductId: supplierProductId,
+      },
+    },
+  }));
+}
+
+/** Set (or clear) the supplier product overriding a specific window on a wall.
+ *  Setting to a non-null id puts the window in "Uit catalogus" mode;
+ *  material-based dimensions are preserved for round-trip switching. */
+export function setWallWindowSupplierProduct(
+  state: ConfigData,
+  buildingId: string,
+  wallSide: WallSide,
+  windowId: string,
+  supplierProductId: string | null,
+): ConfigData {
+  return mapBuilding(state, buildingId, (b) => {
+    const wall = b.walls[wallSide] ?? BLANK_WALL;
+    return {
+      ...b,
+      walls: {
+        ...b.walls,
+        [wallSide]: {
+          ...wall,
+          windows: (wall.windows ?? []).map((w) =>
+            w.id === windowId ? { ...w, supplierProductId } : w,
+          ),
+        },
+      },
+    };
+  });
+}
+
 /** True iff the wall is opened-up by a snap connection (no wall drawn). */
 export function isWallHiddenByConnection(
   cfg: ConfigData,

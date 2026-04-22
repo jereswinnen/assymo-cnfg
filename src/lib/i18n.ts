@@ -389,6 +389,14 @@ const nl: Record<string, string> = {
     'Netwerkfout. Controleer je verbinding en probeer opnieuw.',
   'configurator.submit.error.unknown':
     'Er ging iets mis. Probeer het later opnieuw.',
+  'configurator.submit.error.supplier_product_not_found':
+    'Een geselecteerd leveranciersproduct is niet langer beschikbaar. Pas je ontwerp aan en probeer opnieuw.',
+  'configurator.submit.error.supplier_product_archived':
+    'Een geselecteerd leveranciersproduct is niet meer leverbaar. Pas je ontwerp aan en probeer opnieuw.',
+  'configurator.submit.error.supplier_placement_too_tall':
+    'Een geselecteerde deur of raam is te hoog voor de wand. Pas de maten aan en probeer opnieuw.',
+  'configurator.submit.error.supplier_placement_too_wide':
+    'Een geselecteerde deur of raam is te breed voor de wand. Pas de maten aan en probeer opnieuw.',
   // Confirmation screen
   'configurator.submit.success.title': 'Bedankt voor je aanvraag!',
   'configurator.submit.success.lead':
@@ -654,6 +662,7 @@ const nl: Record<string, string> = {
   'admin.catalog.form.section.basics': 'Basis',
   'admin.catalog.form.section.options': 'Opties',
   'admin.catalog.form.section.priceSort': 'Prijs & volgorde',
+  'admin.catalog.form.section.dimensionsPrice': 'Afmetingen & prijs',
 
   'admin.catalog.materials.field.tileWidth': 'Tegel breedte (m)',
   'admin.catalog.materials.field.tileHeight': 'Tegel hoogte (m)',
@@ -721,6 +730,152 @@ const nl: Record<string, string> = {
   'invoice.pdf.status.partial': 'Deels betaald',
   'invoice.pdf.status.paid': 'Betaald',
   'invoice.pdf.status.overpaid': 'Teveel betaald',
+
+  // Admin — catalog nav (suppliers)
+  'admin.nav.catalog.suppliers': 'Leveranciers',
+
+  // Admin — catalog / suppliers
+  'admin.catalog.suppliers.title': 'Leveranciers',
+  'admin.catalog.suppliers.new': 'Nieuwe leverancier',
+  'admin.catalog.suppliers.edit': 'Leverancier bewerken',
+  'admin.catalog.suppliers.empty': 'Nog geen leveranciers. Maak er een aan om te beginnen.',
+
+  'admin.catalog.suppliers.column.name':    'Naam',
+  'admin.catalog.suppliers.column.slug':    'Slug',
+  'admin.catalog.suppliers.column.contact': 'Contact',
+  'admin.catalog.suppliers.column.status':  'Status',
+
+  'admin.catalog.suppliers.status.active':   'Actief',
+  'admin.catalog.suppliers.status.archived': 'Gearchiveerd',
+
+  'admin.catalog.suppliers.field.name':            'Naam',
+  'admin.catalog.suppliers.field.slug':            'Slug',
+  'admin.catalog.suppliers.field.logo':            'Logo',
+  'admin.catalog.suppliers.field.contact.email':   'E-mailadres',
+  'admin.catalog.suppliers.field.contact.phone':   'Telefoonnummer',
+  'admin.catalog.suppliers.field.contact.website': 'Website',
+  'admin.catalog.suppliers.field.notes':           'Notities',
+
+  'admin.catalog.suppliers.action.save':    'Opslaan',
+  'admin.catalog.suppliers.action.cancel':  'Annuleren',
+  'admin.catalog.suppliers.action.archive': 'Archiveren',
+  'admin.catalog.suppliers.action.restore': 'Herstellen',
+  'admin.catalog.suppliers.action.edit':    'Bewerken',
+
+  'admin.catalog.suppliers.archive.title':       'Leverancier archiveren?',
+  'admin.catalog.suppliers.archive.description':
+    'De leverancier wordt gearchiveerd. Bestaande producten blijven bewaard.',
+
+  'admin.catalog.suppliers.toast.saved':          'Opgeslagen',
+  'admin.catalog.suppliers.toast.archived':       'Gearchiveerd',
+  'admin.catalog.suppliers.toast.saveFailed':     'Opslaan mislukt',
+  'admin.catalog.suppliers.toast.archiveFailed':  'Archiveren mislukt',
+
+  'admin.catalog.suppliers.error.name_required':  'Naam is verplicht (max. 100 tekens)',
+  'admin.catalog.suppliers.error.slug_invalid':   'Ongeldige slug (alleen kleine letters, cijfers en koppeltekens)',
+  'admin.catalog.suppliers.error.slug_taken':     'Deze slug is al in gebruik',
+  'admin.catalog.suppliers.error.contact_invalid':'Ongeldig contactgegeven (e-mail, telefoon of website)',
+  'admin.catalog.suppliers.error.logo_url_invalid':'Logo URL is ongeldig',
+  'admin.catalog.suppliers.error.notes_invalid':  'Notities zijn ongeldig',
+
+  // Admin — catalog / supplier products (nested under a supplier)
+  'admin.catalog.supplierProducts.title':   'Producten',
+  'admin.catalog.supplierProducts.new':     'Nieuw product',
+  'admin.catalog.supplierProducts.edit':    'Product bewerken',
+  'admin.catalog.supplierProducts.empty':   'Nog geen producten voor deze leverancier.',
+
+  'admin.catalog.supplierProducts.column.name':   'Naam',
+  'admin.catalog.supplierProducts.column.kind':   'Type',
+  'admin.catalog.supplierProducts.column.sku':    'SKU',
+  'admin.catalog.supplierProducts.column.size':   'Afmeting',
+  'admin.catalog.supplierProducts.column.price':  'Prijs',
+  'admin.catalog.supplierProducts.column.status': 'Status',
+
+  'admin.catalog.supplierProducts.status.active':   'Actief',
+  'admin.catalog.supplierProducts.status.archived': 'Gearchiveerd',
+
+  'admin.catalog.supplierProducts.kind.door':   'Deur',
+  'admin.catalog.supplierProducts.kind.window': 'Raam',
+
+  'admin.catalog.supplierProducts.field.kind':         'Type',
+  'admin.catalog.supplierProducts.field.sku':          'SKU',
+  'admin.catalog.supplierProducts.field.name':         'Naam',
+  'admin.catalog.supplierProducts.field.heroImage':    'Afbeelding',
+  'admin.catalog.supplierProducts.field.widthMm':      'Breedte (mm)',
+  'admin.catalog.supplierProducts.field.heightMm':     'Hoogte (mm)',
+  'admin.catalog.supplierProducts.field.price':        'Prijs (€)',
+  'admin.catalog.supplierProducts.field.sortOrder':    'Volgorde',
+
+  // Door-specific fields
+  'admin.catalog.supplierProducts.field.swingDirection':         'Scharnier richting',
+  'admin.catalog.supplierProducts.field.swingDirection.inward':  'Naar binnen',
+  'admin.catalog.supplierProducts.field.swingDirection.outward': 'Naar buiten',
+  'admin.catalog.supplierProducts.field.swingDirection.none':    'Geen / schuifdeur',
+  'admin.catalog.supplierProducts.field.lockType':               'Slottype',
+  'admin.catalog.supplierProducts.field.lockType.cylinder':      'Cilinder',
+  'admin.catalog.supplierProducts.field.lockType.multipoint':    'Meerpunts',
+  'admin.catalog.supplierProducts.field.lockType.none':          'Geen',
+  'admin.catalog.supplierProducts.field.glazing':                'Beglazing (deur)',
+  'admin.catalog.supplierProducts.field.glazing.solid':          'Massief',
+  'admin.catalog.supplierProducts.field.glazing.glass-panel':    'Glasluik',
+  'admin.catalog.supplierProducts.field.glazing.half-glass':     'Half glas',
+  'admin.catalog.supplierProducts.field.rValue':                 'R-waarde (m²K/W)',
+
+  // Window-specific fields
+  'admin.catalog.supplierProducts.field.glazingType':            'Beglazing (raam)',
+  'admin.catalog.supplierProducts.field.glazingType.double':     'Dubbel',
+  'admin.catalog.supplierProducts.field.glazingType.triple':     'Driedubbel',
+  'admin.catalog.supplierProducts.field.glazingType.single':     'Enkel',
+  'admin.catalog.supplierProducts.field.uValue':                 'U-waarde (W/m²K)',
+  'admin.catalog.supplierProducts.field.frameMaterial':          'Kozijnmateriaal',
+  'admin.catalog.supplierProducts.field.openable':               'Te openen',
+
+  // Shared
+  'admin.catalog.supplierProducts.field.leadTimeDays': 'Levertijd (dagen)',
+
+  'admin.catalog.supplierProducts.action.save':    'Opslaan',
+  'admin.catalog.supplierProducts.action.cancel':  'Annuleren',
+  'admin.catalog.supplierProducts.action.archive': 'Archiveren',
+  'admin.catalog.supplierProducts.action.restore': 'Herstellen',
+  'admin.catalog.supplierProducts.action.edit':    'Bewerken',
+
+  'admin.catalog.supplierProducts.archive.title':       'Product archiveren?',
+  'admin.catalog.supplierProducts.archive.description':
+    'Het product wordt gearchiveerd. Historische bestellingen blijven bewaard.',
+
+  'admin.catalog.supplierProducts.toast.saved':         'Opgeslagen',
+  'admin.catalog.supplierProducts.toast.archived':      'Gearchiveerd',
+  'admin.catalog.supplierProducts.toast.saveFailed':    'Opslaan mislukt',
+  'admin.catalog.supplierProducts.toast.archiveFailed': 'Archiveren mislukt',
+  'admin.catalog.supplierProducts.toast.reorderFailed': 'Volgorde opslaan mislukt',
+
+  'admin.catalog.supplierProducts.error.sku_required':    'SKU is verplicht',
+  'admin.catalog.supplierProducts.error.sku_taken':       'Deze SKU is al in gebruik voor dit type',
+  'admin.catalog.supplierProducts.error.name_missing':    'Naam is verplicht',
+  'admin.catalog.supplierProducts.error.width_invalid':   'Breedte moet een positief geheel getal zijn (max. 10.000 mm)',
+  'admin.catalog.supplierProducts.error.height_invalid':  'Hoogte moet een positief geheel getal zijn (max. 10.000 mm)',
+  'admin.catalog.supplierProducts.error.price_invalid':   'Prijs moet een niet-negatief geheel getal zijn (in cent)',
+  'admin.catalog.supplierProducts.error.kind_invalid':    'Type is ongeldig',
+  'admin.catalog.supplierProducts.error.meta_invalid':    'Meta-gegevens zijn ongeldig',
+  'admin.catalog.supplierProducts.error.hero_image_invalid': 'Afbeelding-URL is ongeldig',
+  'admin.catalog.supplierProducts.error.sort_order_invalid': 'Volgorde moet een niet-negatief geheel getal zijn',
+
+  // Configurator — supplier product picker (door + window tabs)
+  'configurator.door.tab.custom':   'Eigen keuze',
+  'configurator.door.tab.catalog':  'Uit catalogus',
+  'configurator.window.tab.custom': 'Eigen keuze',
+  'configurator.window.tab.catalog':'Uit catalogus',
+  'configurator.supplier.picker.empty':      'Geen producten beschikbaar voor deze categorie',
+  'configurator.supplier.picker.dimensions': '{width} × {height} mm',
+  'configurator.supplier.picker.price':      '€{price}',
+  'configurator.supplier.lockInfo':          'Afmetingen bepaald door {supplier}: {width} × {height} mm',
+  'configurator.supplier.clearSelection':    'Terug naar eigen keuze',
+  'schematic.supplier.label':               '{sku}',
+
+  // Quote line items for supplier products
+  'quote.line.supplierDoor':    'Deur — {name} ({sku})',
+  'quote.line.supplierWindow':  'Raam — {name} ({sku})',
+  'quote.line.supplierMissing': 'Ontbrekend product ({id})',
 };
 
 export function t(

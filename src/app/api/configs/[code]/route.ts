@@ -5,7 +5,12 @@ import { configs } from '@/db/schema';
 import { migrateConfig } from '@/domain/config';
 import { calculateTotalQuote } from '@/domain/pricing';
 import { resolveApiTenant } from '@/lib/apiTenant';
-import { getTenantMaterials, materialDbRowToDomain } from '@/db/resolveTenant';
+import {
+  getTenantMaterials,
+  materialDbRowToDomain,
+  getTenantSupplierProducts,
+  supplierProductDbRowToDomain,
+} from '@/db/resolveTenant';
 
 /** Fetch a saved config by its short share code. Data is served from
  *  `row.data` (authoritative) and migrated on-read; the code column is
@@ -33,14 +38,19 @@ export async function GET(
 
   const row = rows[0];
   const migrated = migrateConfig(row.data);
-  const materialRows = await getTenantMaterials(tenant.id);
+  const [materialRows, supplierProductRows] = await Promise.all([
+    getTenantMaterials(tenant.id),
+    getTenantSupplierProducts(tenant.id),
+  ]);
   const materials = materialRows.map(materialDbRowToDomain);
+  const supplierProducts = supplierProductRows.map(supplierProductDbRowToDomain);
   const { lineItems, total } = calculateTotalQuote(
     migrated.buildings,
     migrated.roof,
     tenant.priceBook,
     materials,
     migrated.defaultHeight,
+    supplierProducts,
   );
 
   return NextResponse.json({

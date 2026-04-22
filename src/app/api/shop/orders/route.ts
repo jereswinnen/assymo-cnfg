@@ -7,7 +7,13 @@ import { migrateConfig, validateConfig } from '@/domain/config';
 import { buildConfigSnapshot, buildQuoteSnapshot } from '@/domain/orders';
 import { auth } from '@/lib/auth';
 import { resolveApiTenant } from '@/lib/apiTenant';
-import { getTenantMaterials, materialDbRowToDomain } from '@/db/resolveTenant';
+import {
+  getTenantMaterials,
+  materialDbRowToDomain,
+  getTenantSupplierProducts,
+  supplierProductDbRowToDomain,
+} from '@/db/resolveTenant';
+import { validateSupplierPlacements } from '@/domain/supplier';
 import { requireClient } from '@/lib/auth-guards';
 import { withSession } from '@/lib/auth-session';
 
@@ -119,9 +125,91 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Snapshot the priced quote ───────────────────────────────────
-  const materialRows = await getTenantMaterials(tenant.id);
+  // ── Resolve materials + supplier products ───────────────────────
+  const [materialRows, allSupplierProductRows] = await Promise.all([
+    getTenantMaterials(tenant.id),
+    getTenantSupplierProducts(tenant.id),
+  ]);
   const materials = materialRows.map(materialDbRowToDomain);
+  // Include archived rows for the existence/archive checks below; pricing
+  // and placements only consider non-archived rows separately.
+  const allSupplierProductDbRows = allSupplierProductRows;
+
+  // ── Supplier ref validation ──────────────────────────────────────
+  // Collect all referenced supplier product IDs from the config
+  const referencedIds = new Set<string>();
+  for (const building of migrated.buildings) {
+    for (const wallCfg of Object.values(building.walls)) {
+      if (!wallCfg) continue;
+      if (wallCfg.doorSupplierProductId) referencedIds.add(wallCfg.doorSupplierProductId);
+      for (const win of wallCfg.windows ?? []) {
+        if (win.supplierProductId) referencedIds.add(win.supplierProductId);
+      }
+    }
+  }
+
+  if (referencedIds.size > 0) {
+    // Fetch ALL supplier products (including archived) for existence check.
+    // getTenantSupplierProducts only returns non-archived; we need to check
+    // existence separately. Re-query without the archivedAt filter.
+    const { db } = await import('@/db/client');
+    const { supplierProducts: supplierProductsTable } = await import('@/db/schema');
+    const { eq, inArray } = await import('drizzle-orm');
+    const refIds = [...referencedIds];
+    const allRows = await db
+      .select()
+      .from(supplierProductsTable)
+      .where(
+        refIds.length === 1
+          ? eq(supplierProductsTable.id, refIds[0])
+          : inArray(supplierProductsTable.id, refIds),
+      );
+    const foundIds = new Map(allRows.map((r) => [r.id, r]));
+
+    for (const id of referencedIds) {
+      const row = foundIds.get(id);
+      if (!row) {
+        return NextResponse.json(
+          { error: 'supplier_product_not_found', details: { id } },
+          { status: 422 },
+        );
+      }
+      if (row.archivedAt !== null) {
+        return NextResponse.json(
+          { error: 'supplier_product_archived', details: { id } },
+          { status: 422 },
+        );
+      }
+    }
+  }
+
+  // ── Geometry placement validation ────────────────────────────────
+  const activeSupplierProducts = allSupplierProductDbRows.map(supplierProductDbRowToDomain);
+  const placementIssues = validateSupplierPlacements(
+    migrated.buildings,
+    activeSupplierProducts,
+    migrated.defaultHeight,
+  );
+  if (placementIssues.length > 0) {
+    const first = placementIssues[0];
+    const errorCode = first.code === 'too_tall'
+      ? 'supplier_placement_too_tall'
+      : 'supplier_placement_too_wide';
+    return NextResponse.json(
+      {
+        error: errorCode,
+        details: {
+          buildingId: first.buildingId,
+          wallSide: first.wallSide,
+          productId: first.productId,
+          ...first.details,
+        },
+      },
+      { status: 422 },
+    );
+  }
+
+  // ── Snapshot the priced quote ───────────────────────────────────
   const quoteSnapshot = buildQuoteSnapshot({
     code,
     buildings: migrated.buildings,
@@ -130,6 +218,7 @@ export async function POST(req: NextRequest) {
     defaultHeight: migrated.defaultHeight,
     currency: tenant.currency,
     materials,
+    supplierProducts: activeSupplierProducts,
   });
   const configSnapshot = buildConfigSnapshot(code, migrated);
 

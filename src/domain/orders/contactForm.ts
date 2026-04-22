@@ -56,6 +56,14 @@ const ERROR_CODE_KEYS: Record<string, string> = {
   unknown_tenant: 'configurator.submit.error.unknown_tenant',
   invalid_code: 'configurator.submit.error.invalid_code',
   network: 'configurator.submit.error.network',
+  supplier_product_not_found:
+    'configurator.submit.error.supplier_product_not_found',
+  supplier_product_archived:
+    'configurator.submit.error.supplier_product_archived',
+  supplier_placement_too_tall:
+    'configurator.submit.error.supplier_placement_too_tall',
+  supplier_placement_too_wide:
+    'configurator.submit.error.supplier_placement_too_wide',
 };
 
 /** Map a single `details[]` entry from the shop-orders validation

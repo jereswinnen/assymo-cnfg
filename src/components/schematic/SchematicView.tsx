@@ -151,7 +151,7 @@ function ResizeHandles({
 }
 
 export default function SchematicView() {
-  const { catalog: { materials } } = useTenant();
+  const { catalog: { materials }, supplierCatalog } = useTenant();
   const buildings = useConfigStore((s) => s.buildings);
   const connections = useConfigStore((s) => s.connections);
   const selectedElement = useUIStore((s) => s.selectedElement);
@@ -1407,6 +1407,7 @@ export default function SchematicView() {
                     offsetX={ox + width / 2}
                     offsetY={oz + depth / 2}
                     buildingId={b.id}
+                    supplierProducts={supplierCatalog.products}
                     onOpeningPointerDown={onOpeningPointerDown}
                     dragPreview={openingDragPreview}
                   />
@@ -1569,6 +1570,7 @@ export default function SchematicView() {
                     offsetX={wallOffsetX}
                     offsetY={wallOffsetY}
                     buildingId={w.id}
+                    supplierProducts={supplierCatalog.products}
                     onOpeningPointerDown={onOpeningPointerDown}
                     dragPreview={openingDragPreview}
                   />
