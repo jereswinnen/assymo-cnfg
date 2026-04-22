@@ -189,10 +189,10 @@ const nl: Record<string, string> = {
   'code.currentLabel': 'Uw configuratiecode',
   'code.copy': 'Kopieer',
   'code.copied': 'Gekopieerd!',
-  'code.loadTitle': 'Code laden',
-  'code.loadPlaceholder': 'Voer code in...',
-  'code.load': 'Laden',
-  'code.invalidCode': 'Ongeldige code',
+  'code.save': 'Code opslaan',
+  'code.saveHint': 'Klik opslaan om deze configuratie een korte deelcode te geven.',
+  'code.shareHint': 'Deel deze code met je klant — ze kunnen je scène openen via de link.',
+  'code.saveFailed': 'Opslaan mislukt. Probeer opnieuw.',
 
   // Admin shell
   'admin.title': 'Beheer',
