@@ -67,7 +67,7 @@ function Row({
 
   async function handleRestore() {
     const res = await fetch(
-      `/api/admin/suppliers/${supplierId}/products/${product.id}/restore`,
+      `/api/admin/supplier-products/${product.id}/restore`,
       { method: 'POST' },
     );
     if (!res.ok) {

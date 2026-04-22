@@ -193,7 +193,7 @@ export function SupplierProductForm({
     const url =
       mode === 'create'
         ? `/api/admin/suppliers/${supplierId}/products`
-        : `/api/admin/suppliers/${supplierId}/products/${initial!.id}`;
+        : `/api/admin/supplier-products/${initial!.id}`;
     const method = mode === 'create' ? 'POST' : 'PATCH';
 
     const res = await fetch(url, {
@@ -229,7 +229,7 @@ export function SupplierProductForm({
   async function archive() {
     if (!initial) return;
     const res = await fetch(
-      `/api/admin/suppliers/${supplierId}/products/${initial.id}`,
+      `/api/admin/supplier-products/${initial.id}`,
       { method: 'DELETE' },
     );
     if (!res.ok) {
