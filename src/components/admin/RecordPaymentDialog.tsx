@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
@@ -26,6 +26,16 @@ interface Props {
 }
 
 const QUICK_PERCENTS = [25, 50, 75, 100] as const;
+// Matches server + derivePaymentStatus: tiny rounding drift is accepted.
+const TOLERANCE_CENTS = 1;
+
+function fmtCents(cents: number): string {
+  return (cents / 100).toLocaleString('nl-BE', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+  });
+}
 
 /** Accept "1234,56" or "1234.56"; blank → 0. Returns cents. */
 function parseEuroToCents(input: string): number {
@@ -48,11 +58,35 @@ export function RecordPaymentDialog({ invoiceId, totalCents }: Props) {
   const [providerRef, setProviderRef] = useState('');
   const [note, setNote] = useState('');
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [remainingCents, setRemainingCents] = useState(totalCents);
+
+  // Refresh the remaining amount every time the dialog opens so the
+  // operator sees a live figure even if other tabs recorded payments.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetch(`/api/admin/invoices/${invoiceId}`);
+      if (!res.ok || cancelled) return;
+      const data = (await res.json()) as {
+        payments: { amountCents: number }[];
+      };
+      const paid = data.payments.reduce((a, p) => a + p.amountCents, 0);
+      if (!cancelled) setRemainingCents(totalCents - paid);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, invoiceId, totalCents]);
+
+  const amountCents = parseEuroToCents(amountEur);
+  const exceedsRemaining =
+    amountCents > 0 && amountCents > remainingCents + TOLERANCE_CENTS;
+  const fullyPaid = remainingCents <= TOLERANCE_CENTS;
 
   async function submit() {
     setBusy(true);
     setError(null);
-    const amountCents = parseEuroToCents(amountEur);
     const res = await fetch(`/api/admin/invoices/${invoiceId}/payments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -74,11 +108,22 @@ export function RecordPaymentDialog({ invoiceId, totalCents }: Props) {
       return;
     }
     const data = await res.json().catch(() => ({}));
+    if (data.error === 'amount_exceeds_total') {
+      const remaining = data.details?.remainingCents ?? remainingCents;
+      setRemainingCents(remaining);
+      setError(
+        t('admin.recordPayment.exceedsRemaining', {
+          remaining: fmtCents(Math.max(remaining, 0)),
+        }),
+      );
+      return;
+    }
     setError(t('admin.tenant.saveError', { error: data.error ?? res.status }));
   }
 
   function setFromPercent(pct: number) {
-    const cents = Math.round((totalCents * pct) / 100);
+    const base = Math.max(remainingCents, 0);
+    const cents = Math.round((base * pct) / 100);
     setAmountEur(centsToEuroInput(cents));
   }
 
@@ -102,7 +147,22 @@ export function RecordPaymentDialog({ invoiceId, totalCents }: Props) {
                 placeholder="0,00"
                 value={amountEur}
                 onChange={(e) => setAmountEur(e.target.value)}
+                aria-invalid={exceedsRemaining || undefined}
               />
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>
+                  {t('admin.recordPayment.remaining', {
+                    remaining: fmtCents(Math.max(remainingCents, 0)),
+                  })}
+                </span>
+              </div>
+              {exceedsRemaining && (
+                <p className="text-sm text-destructive">
+                  {t('admin.recordPayment.exceedsRemaining', {
+                    remaining: fmtCents(Math.max(remainingCents, 0)),
+                  })}
+                </p>
+              )}
               <div className="flex flex-wrap gap-1">
                 {QUICK_PERCENTS.map((p) => (
                   <Button
@@ -111,6 +171,7 @@ export function RecordPaymentDialog({ invoiceId, totalCents }: Props) {
                     variant="outline"
                     size="sm"
                     onClick={() => setFromPercent(p)}
+                    disabled={fullyPaid}
                   >
                     {p}%
                   </Button>
@@ -162,7 +223,10 @@ export function RecordPaymentDialog({ invoiceId, totalCents }: Props) {
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
         <DialogFooter>
-          <Button onClick={submit} disabled={busy || !amountEur}>
+          <Button
+            onClick={submit}
+            disabled={busy || !amountEur || exceedsRemaining || fullyPaid}
+          >
             {t('admin.recordPayment.submit')}
           </Button>
         </DialogFooter>

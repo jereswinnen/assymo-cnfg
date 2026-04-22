@@ -491,6 +491,9 @@ const nl: Record<string, string> = {
   'admin.recordPayment.providerRef': 'Bankreferentie (optioneel)',
   'admin.recordPayment.note': 'Nota (optioneel)',
   'admin.recordPayment.submit': 'Registreren',
+  'admin.recordPayment.remaining': 'Nog te betalen: {remaining}',
+  'admin.recordPayment.exceedsRemaining':
+    'Bedrag overschrijdt het openstaande saldo ({remaining}).',
   // Admin — payment status
   'payment.status.unpaid': 'Onbetaald',
   'payment.status.partial': 'Deels betaald',

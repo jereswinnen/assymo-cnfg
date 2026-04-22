@@ -7,6 +7,10 @@ import { validatePaymentInput } from '@/domain/invoicing';
 import { requireBusiness, requireTenantScope } from '@/lib/auth-guards';
 import { withSession } from '@/lib/auth-session';
 
+// Matches the ±1 cent tolerance used in derivePaymentStatus so a
+// payment that rounds exactly to the total is accepted.
+const TOLERANCE_CENTS = 1;
+
 export const POST = withSession(async (session, req, ctx: { params: Promise<{ id: string }> }) => {
   requireBusiness(session, ['super_admin', 'tenant_admin']);
   const { id: invoiceId } = await ctx.params;
@@ -25,6 +29,26 @@ export const POST = withSession(async (session, req, ctx: { params: Promise<{ id
   const [invoice] = await db.select().from(invoices).where(eq(invoices.id, invoiceId)).limit(1);
   if (!invoice) return NextResponse.json({ error: 'invoice_not_found' }, { status: 404 });
   requireTenantScope(session, invoice.tenantId);
+
+  const existing = await db
+    .select({ amountCents: payments.amountCents })
+    .from(payments)
+    .where(eq(payments.invoiceId, invoiceId));
+  const paidCents = existing.reduce((a, p) => a + p.amountCents, 0);
+  const remainingCents = invoice.totalCents - paidCents;
+  if (value.amountCents > remainingCents + TOLERANCE_CENTS) {
+    return NextResponse.json(
+      {
+        error: 'amount_exceeds_total',
+        details: {
+          totalCents: invoice.totalCents,
+          paidCents,
+          remainingCents,
+        },
+      },
+      { status: 422 },
+    );
+  }
 
   const [payment] = await db
     .insert(payments)
