@@ -1,8 +1,16 @@
 import { describe, it, expect } from 'vite-plus/test';
 import { isConfigValid, validateConfig } from '@/domain/config';
-import { DEFAULT_WALL } from '@/domain/building';
 import type { MaterialRow } from '@/domain/catalog';
 import { makeBuilding, makeConfig, makeRoof } from './fixtures';
+
+const BLANK_WALL = {
+  hasDoor: false,
+  doorSize: 'enkel' as const,
+  doorHasWindow: false,
+  doorPosition: 0.5,
+  doorSwing: 'naar_buiten' as const,
+  windows: [],
+};
 
 /** Minimal material fixture: a couple of real slugs so validateConfig can
  *  detect an unknown slug like 'unobtainium'. */
@@ -82,10 +90,10 @@ describe('validateConfig', () => {
           type: 'berging',
           dimensions: { width: 1.2, depth: 4, height: 2.6 },
           walls: {
-            front: { ...DEFAULT_WALL, hasDoor: true, doorSize: 'dubbel' },
-            back: { ...DEFAULT_WALL },
-            left: { ...DEFAULT_WALL },
-            right: { ...DEFAULT_WALL },
+            front: { ...BLANK_WALL, hasDoor: true, doorSize: 'dubbel' },
+            back: { ...BLANK_WALL },
+            left: { ...BLANK_WALL },
+            right: { ...BLANK_WALL },
           },
         }),
       ],

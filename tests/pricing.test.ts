@@ -6,9 +6,17 @@ import {
   roofTotalArea,
   wallNetArea,
 } from '@/domain/pricing';
-import { DEFAULT_WALL } from '@/domain/building';
 import type { MaterialRow } from '@/domain/catalog';
 import { makeBuilding, makeConfig, makeRoof } from './fixtures';
+
+const BLANK_WALL = {
+  hasDoor: false,
+  doorSize: 'enkel' as const,
+  doorHasWindow: false,
+  doorPosition: 0.5,
+  doorSwing: 'naar_buiten' as const,
+  windows: [],
+};
 
 function row(o: Partial<MaterialRow> & Pick<MaterialRow, 'category' | 'slug' | 'pricing'>): MaterialRow {
   return {
@@ -183,12 +191,12 @@ describe('wallNetArea', () => {
   });
 
   it('equals gross area for a wall with no door or windows', () => {
-    const area = wallNetArea('front', building, { ...DEFAULT_WALL }, 2.6);
+    const area = wallNetArea('front', building, { ...BLANK_WALL }, 2.6);
     expect(area).toBeCloseTo(4 * 2.6, 4);
   });
 
   it('subtracts a single-door cutout', () => {
-    const area = wallNetArea('front', building, { ...DEFAULT_WALL, hasDoor: true }, 2.6);
+    const area = wallNetArea('front', building, { ...BLANK_WALL, hasDoor: true }, 2.6);
     expect(area).toBeLessThan(4 * 2.6);
   });
 
@@ -197,7 +205,7 @@ describe('wallNetArea', () => {
       'front',
       building,
       {
-        ...DEFAULT_WALL,
+        ...BLANK_WALL,
         windows: [{ id: 'w', position: 0.5, width: 1.2, height: 1.0, sillHeight: 1.2 }],
       },
       2.6,
@@ -210,7 +218,7 @@ describe('wallNetArea', () => {
     const area = wallNetArea(
       'left',
       makeBuilding({ id: 'b1', type: 'berging', dimensions: { width: 4, depth: 1, height: 2.6 } }),
-      { ...DEFAULT_WALL, hasDoor: true, doorSize: 'dubbel' },
+      { ...BLANK_WALL, hasDoor: true, doorSize: 'dubbel' },
       2.6,
     );
     expect(area).toBeGreaterThanOrEqual(0);
