@@ -150,7 +150,7 @@ describe('validateSupplierProductCreate', () => {
 
   it('rejects a non-object body', () => {
     const { errors } = validateSupplierProductCreate(null);
-    expect(errors).toContain('body');
+    expect(errors).toContain(SUPPLIER_ERROR_CODES.bodyInvalid);
   });
 
   it('rejects missing supplierId', () => {
@@ -279,6 +279,6 @@ describe('validateSupplierProductPatch', () => {
 
   it('rejects non-object body on patch', () => {
     const { errors } = validateSupplierProductPatch(42);
-    expect(errors).toContain('body');
+    expect(errors).toContain(SUPPLIER_ERROR_CODES.bodyInvalid);
   });
 });

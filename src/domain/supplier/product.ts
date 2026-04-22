@@ -4,6 +4,7 @@ import {
   type SupplierProductKind,
   type WindowMeta,
 } from './types';
+import { isObject, isNonNegativeInt, isPositiveInt } from './_validation';
 
 const SUPPLIER_PRODUCT_KINDS: readonly SupplierProductKind[] = ['door', 'window'];
 const DIM_MAX_MM = 10_000;
@@ -28,20 +29,8 @@ export interface SupplierProductCreateInput {
 
 export type SupplierProductPatchInput = Partial<Omit<SupplierProductCreateInput, 'supplierId' | 'kind'>>;
 
-function isObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
-
 function isKind(v: unknown): v is SupplierProductKind {
   return typeof v === 'string' && (SUPPLIER_PRODUCT_KINDS as readonly string[]).includes(v);
-}
-
-function isPositiveInt(v: unknown, max: number): v is number {
-  return typeof v === 'number' && Number.isInteger(v) && v > 0 && v <= max;
-}
-
-function isNonNegativeInt(v: unknown): v is number {
-  return typeof v === 'number' && Number.isInteger(v) && v >= 0;
 }
 
 const DOOR_SWING_VALUES = ['inward', 'outward', 'none'] as const;
@@ -159,7 +148,7 @@ export function validateWindowMeta(meta: unknown): Validated<WindowMeta> {
 export function validateSupplierProductCreate(
   input: unknown,
 ): Validated<SupplierProductCreateInput> {
-  if (!isObject(input)) return { value: null, errors: ['body'] };
+  if (!isObject(input)) return { value: null, errors: [SUPPLIER_ERROR_CODES.bodyInvalid] };
   const errors: string[] = [];
 
   const { supplierId, kind, sku, name, heroImage, widthMm, heightMm, priceCents, meta, sortOrder } =
@@ -178,7 +167,7 @@ export function validateSupplierProductCreate(
     errors.push(SUPPLIER_ERROR_CODES.nameMissing);
   }
   if (heroImage !== null && heroImage !== undefined && typeof heroImage !== 'string') {
-    errors.push(SUPPLIER_ERROR_CODES.metaInvalid);
+    errors.push(SUPPLIER_ERROR_CODES.heroImageInvalid);
   }
   if (!isPositiveInt(widthMm, DIM_MAX_MM)) {
     errors.push(SUPPLIER_ERROR_CODES.widthInvalid);
@@ -213,7 +202,7 @@ export function validateSupplierProductCreate(
   let sortOrderOut = 0;
   if (sortOrder !== undefined) {
     if (!isNonNegativeInt(sortOrder)) {
-      errors.push(SUPPLIER_ERROR_CODES.metaInvalid);
+      errors.push(SUPPLIER_ERROR_CODES.sortOrderInvalid);
     } else {
       sortOrderOut = sortOrder as number;
     }
@@ -241,7 +230,7 @@ export function validateSupplierProductCreate(
 export function validateSupplierProductPatch(
   input: unknown,
 ): Validated<SupplierProductPatchInput> {
-  if (!isObject(input)) return { value: null, errors: ['body'] };
+  if (!isObject(input)) return { value: null, errors: [SUPPLIER_ERROR_CODES.bodyInvalid] };
   const errors: string[] = [];
   const out: SupplierProductPatchInput = {};
 
@@ -266,7 +255,7 @@ export function validateSupplierProductPatch(
     if (h === null) {
       out.heroImage = null;
     } else if (typeof h !== 'string') {
-      errors.push(SUPPLIER_ERROR_CODES.metaInvalid);
+      errors.push(SUPPLIER_ERROR_CODES.heroImageInvalid);
     } else {
       out.heroImage = h;
     }
@@ -307,7 +296,7 @@ export function validateSupplierProductPatch(
   }
   if ('sortOrder' in input) {
     if (!isNonNegativeInt(input.sortOrder)) {
-      errors.push(SUPPLIER_ERROR_CODES.metaInvalid);
+      errors.push(SUPPLIER_ERROR_CODES.sortOrderInvalid);
     } else {
       out.sortOrder = input.sortOrder as number;
     }

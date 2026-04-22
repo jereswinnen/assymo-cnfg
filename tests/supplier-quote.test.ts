@@ -39,6 +39,7 @@ describe('getSupplierDoorLineItem', () => {
     const item = getSupplierDoorLineItem('missing-id', []);
     expect(item?.labelKey).toBe('quote.line.supplierMissing');
     expect(item?.labelParams.id).toBe('missing-id');
+    expect(item?.labelParams.kind).toBe('door');
     expect(item?.total).toBe(0);
   });
 
@@ -46,6 +47,7 @@ describe('getSupplierDoorLineItem', () => {
     const products = [makeProduct({ archivedAt: new Date('2026-03-01') })];
     const item = getSupplierDoorLineItem('prod-1', products);
     expect(item?.labelKey).toBe('quote.line.supplierMissing');
+    expect(item?.labelParams.kind).toBe('door');
     expect(item?.total).toBe(0);
   });
 });
@@ -62,6 +64,7 @@ describe('getSupplierWindowLineItem', () => {
   it('returns a stub when the product is missing', () => {
     const item = getSupplierWindowLineItem('ghost-id', []);
     expect(item?.labelKey).toBe('quote.line.supplierMissing');
+    expect(item?.labelParams.kind).toBe('window');
     expect(item?.total).toBe(0);
   });
 });

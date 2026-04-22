@@ -47,7 +47,7 @@ describe('validateSupplierCreate', () => {
 
   it('rejects a non-object body', () => {
     const { errors } = validateSupplierCreate(null);
-    expect(errors).toContain('body');
+    expect(errors).toContain(SUPPLIER_ERROR_CODES.bodyInvalid);
   });
 
   it('rejects missing name', () => {
@@ -163,6 +163,6 @@ describe('validateSupplierPatch', () => {
 
   it('rejects non-object body on patch', () => {
     const { errors } = validateSupplierPatch('string');
-    expect(errors).toContain('body');
+    expect(errors).toContain(SUPPLIER_ERROR_CODES.bodyInvalid);
   });
 });

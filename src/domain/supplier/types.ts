@@ -35,10 +35,6 @@ export interface WindowMeta {
   leadTimeDays?: number;
 }
 
-export type SupplierProductMeta =
-  | { kind: 'door'; meta: DoorMeta }
-  | { kind: 'window'; meta: WindowMeta };
-
 export interface SupplierProductRow {
   id: string;
   tenantId: string;
@@ -62,6 +58,9 @@ export const SUPPLIER_ERROR_CODES = {
   nameRequired: 'name_required',
   slugInvalid: 'slug_invalid',
   contactInvalid: 'contact_invalid',
+  logoUrlInvalid: 'logo_url_invalid',
+  notesInvalid: 'notes_invalid',
+  bodyInvalid: 'body_invalid',
   skuRequired: 'sku_required',
   nameMissing: 'name_missing',
   widthInvalid: 'width_invalid',
@@ -69,5 +68,7 @@ export const SUPPLIER_ERROR_CODES = {
   priceInvalid: 'price_invalid',
   kindInvalid: 'kind_invalid',
   metaInvalid: 'meta_invalid',
+  heroImageInvalid: 'hero_image_invalid',
+  sortOrderInvalid: 'sort_order_invalid',
   supplierIdRequired: 'supplier_id_required',
 } as const;

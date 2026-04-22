@@ -26,7 +26,7 @@ export function getSupplierDoorLineItem(
   if (!product) {
     return {
       labelKey: 'quote.line.supplierMissing',
-      labelParams: { id: productId },
+      labelParams: { id: productId, kind: 'door' },
       total: 0,
       source: { kind: 'supplierProduct', productId, sku: '' },
     };
@@ -47,7 +47,7 @@ export function getSupplierWindowLineItem(
   if (!product) {
     return {
       labelKey: 'quote.line.supplierMissing',
-      labelParams: { id: productId },
+      labelParams: { id: productId, kind: 'window' },
       total: 0,
       source: { kind: 'supplierProduct', productId, sku: '' },
     };

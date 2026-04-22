@@ -1,4 +1,5 @@
 import { SUPPLIER_ERROR_CODES, type SupplierContact } from './types';
+import { isObject } from './_validation';
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -18,10 +19,6 @@ export type SupplierPatchInput = Partial<SupplierCreateInput>;
 interface Validated<T> {
   value: T | null;
   errors: string[];
-}
-
-function isObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
 /** Normalise a free-form string into a slug-candidate: lowercase, replace
@@ -70,7 +67,7 @@ function validateContact(value: unknown, errors: string[]): SupplierContact | un
 }
 
 export function validateSupplierCreate(input: unknown): Validated<SupplierCreateInput> {
-  if (!isObject(input)) return { value: null, errors: ['body'] };
+  if (!isObject(input)) return { value: null, errors: [SUPPLIER_ERROR_CODES.bodyInvalid] };
   const errors: string[] = [];
 
   const { name, slug, logoUrl, contact, notes } = input as Record<string, unknown>;
@@ -82,11 +79,11 @@ export function validateSupplierCreate(input: unknown): Validated<SupplierCreate
     errors.push(SUPPLIER_ERROR_CODES.slugInvalid);
   }
   if (logoUrl !== null && logoUrl !== undefined && typeof logoUrl !== 'string') {
-    errors.push(SUPPLIER_ERROR_CODES.contactInvalid);
+    errors.push(SUPPLIER_ERROR_CODES.logoUrlInvalid);
   }
   const contactOut = validateContact(contact ?? {}, errors);
   if (notes !== null && notes !== undefined && typeof notes !== 'string') {
-    errors.push(SUPPLIER_ERROR_CODES.contactInvalid);
+    errors.push(SUPPLIER_ERROR_CODES.notesInvalid);
   }
 
   if (errors.length > 0) return { value: null, errors };
@@ -104,7 +101,7 @@ export function validateSupplierCreate(input: unknown): Validated<SupplierCreate
 }
 
 export function validateSupplierPatch(input: unknown): Validated<SupplierPatchInput> {
-  if (!isObject(input)) return { value: null, errors: ['body'] };
+  if (!isObject(input)) return { value: null, errors: [SUPPLIER_ERROR_CODES.bodyInvalid] };
   const errors: string[] = [];
   const out: SupplierPatchInput = {};
 
@@ -129,7 +126,7 @@ export function validateSupplierPatch(input: unknown): Validated<SupplierPatchIn
     if (l === null) {
       out.logoUrl = null;
     } else if (typeof l !== 'string') {
-      errors.push(SUPPLIER_ERROR_CODES.contactInvalid);
+      errors.push(SUPPLIER_ERROR_CODES.logoUrlInvalid);
     } else {
       out.logoUrl = l;
     }
@@ -143,7 +140,7 @@ export function validateSupplierPatch(input: unknown): Validated<SupplierPatchIn
     if (n === null) {
       out.notes = null;
     } else if (typeof n !== 'string') {
-      errors.push(SUPPLIER_ERROR_CODES.contactInvalid);
+      errors.push(SUPPLIER_ERROR_CODES.notesInvalid);
     } else {
       out.notes = n;
     }
