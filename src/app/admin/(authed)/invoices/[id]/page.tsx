@@ -130,7 +130,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>{t('admin.invoice.detail.payments')}</span>
-            <RecordPaymentDialog invoiceId={invoice.id} />
+            <RecordPaymentDialog invoiceId={invoice.id} totalCents={invoice.totalCents} />
           </CardTitle>
         </CardHeader>
         <CardContent>
