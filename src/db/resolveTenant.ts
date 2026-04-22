@@ -4,6 +4,8 @@ import { db } from './client';
 import {
   materials as materialsTable,
   products as productsTable,
+  suppliers as suppliersTable,
+  supplierProducts as supplierProductsTable,
   tenantHosts,
   tenants,
   type MaterialDbRow,
@@ -131,6 +133,42 @@ export function productDbRowToDomain(r: ProductDbRow): ProductRow {
     updatedAt: r.updatedAt.toISOString(),
   };
 }
+
+/** All non-archived suppliers for a tenant, sorted by name for stable
+ *  rendering. Cached per-request so the layout and any API handler in
+ *  the same request share one round-trip. */
+export const getTenantSuppliers = cache(
+  async (tenantId: string): Promise<SupplierDbRow[]> => {
+    return db
+      .select()
+      .from(suppliersTable)
+      .where(
+        and(
+          eq(suppliersTable.tenantId, tenantId),
+          isNull(suppliersTable.archivedAt),
+        ),
+      )
+      .orderBy(suppliersTable.name);
+  },
+);
+
+/** All non-archived supplier products for a tenant, sorted by
+ *  `sort_order` then name. Cached per-request so the layout + API
+ *  handlers share one round-trip. */
+export const getTenantSupplierProducts = cache(
+  async (tenantId: string): Promise<SupplierProductDbRow[]> => {
+    return db
+      .select()
+      .from(supplierProductsTable)
+      .where(
+        and(
+          eq(supplierProductsTable.tenantId, tenantId),
+          isNull(supplierProductsTable.archivedAt),
+        ),
+      )
+      .orderBy(supplierProductsTable.sortOrder, supplierProductsTable.name);
+  },
+);
 
 /** Map a DB row into the domain `SupplierRow` transport type. The
  *  `contact` jsonb field passes through as-is (typed via `.$type<>()`);
