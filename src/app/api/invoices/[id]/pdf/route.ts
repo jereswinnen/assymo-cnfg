@@ -5,7 +5,7 @@ import { db } from '@/db/client';
 import { invoices, orders, payments } from '@/db/schema';
 import { derivePaymentStatus, type InvoiceRecord, type PaymentStatus } from '@/domain/invoicing';
 import type { OrderRecord } from '@/domain/orders';
-import type { Role } from '@/lib/auth-guards';
+import type { UserKind } from '@/lib/auth-guards';
 import { renderInvoicePdfStream } from '@/lib/renderInvoicePdf';
 
 export const runtime = 'nodejs';
@@ -25,14 +25,13 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const [order] = await db.select().from(orders).where(eq(orders.id, invoice.orderId)).limit(1);
   if (!order) return new Response(null, { status: 404 });
 
-  const userType = session.user.userType as 'business' | 'client' | null;
-  if (userType === 'business') {
-    const role = session.user.role as Role;
+  const kind = session.user.kind as UserKind | null;
+  if (kind === 'super_admin' || kind === 'tenant_admin') {
     const sessionTenantId = session.user.tenantId as string | null;
-    if (role !== 'super_admin' && sessionTenantId !== invoice.tenantId) {
+    if (kind !== 'super_admin' && sessionTenantId !== invoice.tenantId) {
       return new Response(null, { status: 404 });
     }
-  } else if (userType === 'client') {
+  } else if (kind === 'client') {
     if (order.customerId !== session.user.id) {
       return new Response(null, { status: 404 });
     }

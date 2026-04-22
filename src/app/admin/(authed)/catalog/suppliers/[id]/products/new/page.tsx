@@ -27,7 +27,7 @@ export default async function NewSupplierProductPage({
   if (!row) notFound();
 
   if (
-    session?.user?.role !== 'super_admin' &&
+    session?.user?.kind !== 'super_admin' &&
     row.tenantId !== session?.user?.tenantId
   ) {
     notFound();

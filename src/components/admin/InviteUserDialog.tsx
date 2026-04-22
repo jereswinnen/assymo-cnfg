@@ -21,17 +21,17 @@ import {
 import { t } from '@/lib/i18n';
 
 interface Props {
-  actorRole: 'super_admin' | 'tenant_admin';
+  actorKind: 'super_admin' | 'tenant_admin';
   actorTenantId: string | null;
   tenantOptions: { id: string; displayName: string }[];
 }
 
-export function InviteUserDialog({ actorRole, actorTenantId, tenantOptions }: Props) {
+export function InviteUserDialog({ actorKind, actorTenantId, tenantOptions }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState<'super_admin' | 'tenant_admin'>('tenant_admin');
+  const [kind, setKind] = useState<'super_admin' | 'tenant_admin'>('tenant_admin');
   const [tenantId, setTenantId] = useState<string>(actorTenantId ?? '');
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -46,8 +46,8 @@ export function InviteUserDialog({ actorRole, actorTenantId, tenantOptions }: Pr
       body: JSON.stringify({
         email,
         name,
-        role,
-        tenantId: role === 'super_admin' ? null : tenantId,
+        kind,
+        tenantId: kind === 'super_admin' ? null : tenantId,
       }),
     });
     setBusy(false);
@@ -92,23 +92,23 @@ export function InviteUserDialog({ actorRole, actorTenantId, tenantOptions }: Pr
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="role">{t('admin.users.invite.role')}</Label>
+            <Label htmlFor="kind">{t('admin.users.invite.role')}</Label>
             <Select
-              value={role}
-              onValueChange={(v) => setRole(v as 'super_admin' | 'tenant_admin')}
+              value={kind}
+              onValueChange={(v) => setKind(v as 'super_admin' | 'tenant_admin')}
             >
-              <SelectTrigger id="role" className="w-full">
+              <SelectTrigger id="kind" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="tenant_admin">{t('admin.role.tenant_admin')}</SelectItem>
-                {actorRole === 'super_admin' && (
+                {actorKind === 'super_admin' && (
                   <SelectItem value="super_admin">{t('admin.role.super_admin')}</SelectItem>
                 )}
               </SelectContent>
             </Select>
           </div>
-          {actorRole === 'super_admin' && role !== 'super_admin' && (
+          {actorKind === 'super_admin' && kind !== 'super_admin' && (
             <div className="space-y-2">
               <Label htmlFor="tenantId">{t('admin.users.invite.tenant')}</Label>
               <Select value={tenantId} onValueChange={setTenantId}>

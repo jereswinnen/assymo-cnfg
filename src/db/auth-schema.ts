@@ -13,12 +13,9 @@ export const user = pgTable("user", {
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
   tenantId: text("tenant_id"),
-  role: text("role", { enum: ["super_admin", "tenant_admin"] }).default(
-    "tenant_admin",
-  ),
-  userType: text("user_type", { enum: ["business", "client"] })
-    .default("business")
-    .notNull(),
+  kind: text("kind", {
+    enum: ["super_admin", "tenant_admin", "client"],
+  }).notNull(),
 });
 
 export const session = pgTable(

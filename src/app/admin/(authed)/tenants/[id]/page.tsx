@@ -16,10 +16,10 @@ export default async function TenantDetailPage({
 }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = (await auth.api.getSession({ headers: await headers() }))!;
-  const role = session.user.role as string;
+  const kind = session.user.kind as string;
   const userTenant = session.user.tenantId as string | null;
 
-  if (role !== 'super_admin' && userTenant !== id) redirect('/admin');
+  if (kind !== 'super_admin' && userTenant !== id) redirect('/admin');
 
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, id)).limit(1);
   if (!tenant) notFound();

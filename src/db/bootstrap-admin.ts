@@ -50,14 +50,14 @@ async function main() {
     await db
       .update(user)
       .set({
-        tenantId,
-        role: 'super_admin',
+        tenantId: null,
+        kind: 'super_admin',
         emailVerified: true,
         ...(nameOverride ? { name: nameOverride } : {}),
       })
       .where(eq(user.id, existing[0].id));
     console.log(
-      `Promoted existing user ${email}${nameOverride ? ` (${nameOverride})` : ''} → super_admin in tenant "${tenantId}"`,
+      `Promoted existing user ${email}${nameOverride ? ` (${nameOverride})` : ''} → super_admin`,
     );
   } else {
     const id = crypto.randomUUID();
@@ -67,12 +67,12 @@ async function main() {
       email: email!,
       name,
       emailVerified: true,
-      tenantId,
-      role: 'super_admin',
+      tenantId: null,
+      kind: 'super_admin',
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    console.log(`Created user ${email} (${name}) → super_admin in tenant "${tenantId}"`);
+    console.log(`Created user ${email} (${name}) → super_admin`);
   }
 
   // Trigger a magic-link email so the user can sign in right away.

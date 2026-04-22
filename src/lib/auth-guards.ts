@@ -1,16 +1,15 @@
 import type { Session } from './auth';
 
-export type Role = 'super_admin' | 'tenant_admin';
-export type UserType = 'business' | 'client';
+export type UserKind = 'super_admin' | 'tenant_admin' | 'client';
+export type BusinessKind = 'super_admin' | 'tenant_admin';
 
-export const ALL_ROLES = ['super_admin', 'tenant_admin'] as const satisfies readonly Role[];
-export const ALL_USER_TYPES = ['business', 'client'] as const satisfies readonly UserType[];
+export const ALL_USER_KINDS = ['super_admin', 'tenant_admin', 'client'] as const satisfies readonly UserKind[];
+export const ALL_BUSINESS_KINDS = ['super_admin', 'tenant_admin'] as const satisfies readonly BusinessKind[];
 
 export type AuthErrorCode =
   | 'unauthenticated'
-  | 'forbidden_role'
-  | 'forbidden_tenant'
-  | 'forbidden_user_type';
+  | 'forbidden_kind'
+  | 'forbidden_tenant';
 
 export class AuthError extends Error {
   constructor(
@@ -21,40 +20,27 @@ export class AuthError extends Error {
   }
 }
 
-/** Require the session's user role to be one of the given values. */
-export function requireRole(session: Session, roles: readonly Role[]): void {
-  const role = session.user.role as Role | null | undefined;
-  if (!role || !roles.includes(role)) {
-    throw new AuthError('forbidden_role', 403);
+export function requireKind(session: Session, kinds: readonly UserKind[]): void {
+  const kind = session.user.kind as UserKind | null | undefined;
+  if (!kind || !kinds.includes(kind)) {
+    throw new AuthError('forbidden_kind', 403);
   }
+}
+
+export function requireBusiness(session: Session, kinds: readonly BusinessKind[]): void {
+  requireKind(session, kinds);
+}
+
+export function requireClient(session: Session): void {
+  requireKind(session, ['client']);
 }
 
 /** Tenant-scope check. super_admin bypasses; everyone else must match
  *  their own tenantId. */
 export function requireTenantScope(session: Session, tenantId: string): void {
-  const role = session.user.role as Role | null | undefined;
-  if (role === 'super_admin') return;
+  const kind = session.user.kind as UserKind | null | undefined;
+  if (kind === 'super_admin') return;
   if (session.user.tenantId !== tenantId) {
     throw new AuthError('forbidden_tenant', 403);
-  }
-}
-
-/** Require a business userType + an allowed business role. Used by
- *  every /api/admin/* endpoint. */
-export function requireBusiness(session: Session, roles: readonly Role[]): void {
-  const userType = session.user.userType as UserType | null | undefined;
-  if (userType !== 'business') {
-    throw new AuthError('forbidden_user_type', 403);
-  }
-  requireRole(session, roles);
-}
-
-/** Require a client userType. Used by every /api/shop/* endpoint
- *  (added in Phase 2 — guard ships here so the API and UI can
- *  rely on it consistently). */
-export function requireClient(session: Session): void {
-  const userType = session.user.userType as UserType | null | undefined;
-  if (userType !== 'client') {
-    throw new AuthError('forbidden_user_type', 403);
   }
 }

@@ -1,46 +1,45 @@
 import { describe, it, expect } from 'vite-plus/test';
 import {
   AuthError,
-  requireRole,
+  requireKind,
   requireTenantScope,
   requireBusiness,
   requireClient,
-  type UserType,
+  type UserKind,
 } from '@/lib/auth-guards';
 import type { Session } from '@/lib/auth';
 
 function mkSession(
-  role: string | null,
+  kind: UserKind | null,
   tenantId: string | null,
-  userType: UserType | null = 'business',
 ): Session {
   return {
     session: {} as Session['session'],
-    user: { role, tenantId, userType } as Session['user'],
+    user: { kind, tenantId } as Session['user'],
   };
 }
 
-describe('requireRole', () => {
-  it('passes when the role is allowed', () => {
+describe('requireKind', () => {
+  it('passes when the kind is allowed', () => {
     expect(() =>
-      requireRole(mkSession('super_admin', null), ['super_admin']),
+      requireKind(mkSession('super_admin', null), ['super_admin']),
     ).not.toThrow();
   });
 
-  it('throws forbidden_role when the role is not in the list', () => {
+  it('throws forbidden_kind when the kind is not in the list', () => {
     try {
-      requireRole(mkSession('tenant_admin', 'assymo'), ['super_admin']);
+      requireKind(mkSession('tenant_admin', 'assymo'), ['super_admin']);
       expect.fail('should have thrown');
     } catch (err) {
       expect(err).toBeInstanceOf(AuthError);
-      expect((err as AuthError).code).toBe('forbidden_role');
+      expect((err as AuthError).code).toBe('forbidden_kind');
       expect((err as AuthError).status).toBe(403);
     }
   });
 
-  it('throws when the user has no role at all', () => {
+  it('throws when the user has no kind at all', () => {
     expect(() =>
-      requireRole(mkSession(null, 'assymo'), ['tenant_admin']),
+      requireKind(mkSession(null, 'assymo'), ['tenant_admin']),
     ).toThrow(AuthError);
   });
 });
@@ -69,27 +68,33 @@ describe('requireTenantScope', () => {
 });
 
 describe('requireBusiness', () => {
-  it('passes for a business user with an allowed role', () => {
+  it('passes for a tenant_admin with an allowed kind', () => {
     expect(() =>
-      requireBusiness(mkSession('tenant_admin', 'assymo', 'business'), ['tenant_admin']),
+      requireBusiness(mkSession('tenant_admin', 'assymo'), ['tenant_admin']),
     ).not.toThrow();
   });
 
-  it('throws forbidden_user_type when the user is a client', () => {
+  it('passes for a super_admin with an allowed kind', () => {
+    expect(() =>
+      requireBusiness(mkSession('super_admin', null), ['super_admin', 'tenant_admin']),
+    ).not.toThrow();
+  });
+
+  it('throws forbidden_kind when the user is a client', () => {
     try {
-      requireBusiness(mkSession('tenant_admin', 'assymo', 'client'), ['tenant_admin']);
+      requireBusiness(mkSession('client', 'assymo'), ['tenant_admin']);
       expect.fail('should have thrown');
     } catch (err) {
-      expect((err as AuthError).code).toBe('forbidden_user_type');
+      expect((err as AuthError).code).toBe('forbidden_kind');
     }
   });
 
-  it('throws forbidden_role when the role is not allowed', () => {
+  it('throws forbidden_kind when the kind is not allowed', () => {
     try {
-      requireBusiness(mkSession('tenant_admin', 'assymo', 'business'), ['super_admin']);
+      requireBusiness(mkSession('tenant_admin', 'assymo'), ['super_admin']);
       expect.fail('should have thrown');
     } catch (err) {
-      expect((err as AuthError).code).toBe('forbidden_role');
+      expect((err as AuthError).code).toBe('forbidden_kind');
     }
   });
 });
@@ -97,16 +102,16 @@ describe('requireBusiness', () => {
 describe('requireClient', () => {
   it('passes for a client user', () => {
     expect(() =>
-      requireClient(mkSession(null, 'assymo', 'client')),
+      requireClient(mkSession('client', 'assymo')),
     ).not.toThrow();
   });
 
-  it('throws forbidden_user_type for a business user', () => {
+  it('throws forbidden_kind for a business user', () => {
     try {
-      requireClient(mkSession('tenant_admin', 'assymo', 'business'));
+      requireClient(mkSession('tenant_admin', 'assymo'));
       expect.fail('should have thrown');
     } catch (err) {
-      expect((err as AuthError).code).toBe('forbidden_user_type');
+      expect((err as AuthError).code).toBe('forbidden_kind');
     }
   });
 });

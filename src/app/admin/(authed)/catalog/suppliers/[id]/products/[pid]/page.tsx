@@ -22,7 +22,7 @@ export default async function EditSupplierProductPage({
   if (!supplierRow) notFound();
 
   if (
-    session?.user?.role !== 'super_admin' &&
+    session?.user?.kind !== 'super_admin' &&
     supplierRow.tenantId !== session?.user?.tenantId
   ) {
     notFound();

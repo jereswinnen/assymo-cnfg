@@ -27,7 +27,7 @@ export async function BrandedShell({ variant = 'shop', children }: Props) {
 
   const session = await auth.api.getSession({ headers: hdrs });
   const signedIn =
-    session?.user?.userType === 'client'
+    session?.user?.kind === 'client'
       ? { name: session.user.name ?? null, email: session.user.email }
       : null;
 

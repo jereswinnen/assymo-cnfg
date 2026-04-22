@@ -3,14 +3,14 @@ import { desc, eq } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { orders } from '@/db/schema';
 import { user } from '@/db/auth-schema';
-import { requireBusiness, type Role } from '@/lib/auth-guards';
+import { requireBusiness, type BusinessKind } from '@/lib/auth-guards';
 import { withSession } from '@/lib/auth-session';
 
 /** List orders in scope, newest first. Joined to user.email/name so the
  *  admin table can render "claimed by" without a second round-trip. */
 export const GET = withSession(async (session) => {
   requireBusiness(session, ['super_admin', 'tenant_admin']);
-  const actorRole = session.user.role as Role;
+  const actorKind = session.user.kind as BusinessKind;
   const actorTenantId = session.user.tenantId as string | null;
 
   const fields = {
@@ -30,7 +30,7 @@ export const GET = withSession(async (session) => {
   } as const;
 
   const rows =
-    actorRole === 'super_admin'
+    actorKind === 'super_admin'
       ? await db
           .select(fields)
           .from(orders)

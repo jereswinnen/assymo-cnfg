@@ -32,16 +32,9 @@ export const auth = betterAuth({
         required: false,
         input: false,
       },
-      role: {
-        type: ['super_admin', 'tenant_admin'] as const,
-        required: false,
-        defaultValue: 'tenant_admin',
-        input: false,
-      },
-      userType: {
-        type: ['business', 'client'] as const,
+      kind: {
+        type: ['super_admin', 'tenant_admin', 'client'] as const,
         required: true,
-        defaultValue: 'business',
         input: false,
       },
     },

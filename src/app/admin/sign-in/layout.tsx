@@ -7,6 +7,6 @@ import { auth } from '@/lib/auth';
 
 export default async function SignInLayout({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (session && session.user.userType === 'business') redirect('/admin');
+  if (session && (session.user.kind === 'super_admin' || session.user.kind === 'tenant_admin')) redirect('/admin');
   return <div className="min-h-screen flex items-center justify-center bg-neutral-50">{children}</div>;
 }

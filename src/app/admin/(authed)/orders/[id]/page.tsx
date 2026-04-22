@@ -24,7 +24,7 @@ export default async function OrderDetailPage({
 }) {
   const { id } = await params;
   const session = (await auth.api.getSession({ headers: await headers() }))!;
-  const role = session.user.role as string;
+  const kind = session.user.kind as string;
   const actorTenantId = session.user.tenantId as string | null;
 
   const [row] = await db
@@ -43,7 +43,7 @@ export default async function OrderDetailPage({
     .limit(1);
 
   if (!row) notFound();
-  if (role !== 'super_admin' && row.order.tenantId !== actorTenantId) {
+  if (kind !== 'super_admin' && row.order.tenantId !== actorTenantId) {
     redirect('/admin/orders');
   }
 

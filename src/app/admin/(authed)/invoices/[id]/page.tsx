@@ -14,7 +14,7 @@ import { PageTitle } from '@/components/admin/PageTitle';
 import { InvoicePaymentsList } from '@/components/admin/InvoicePaymentsList';
 import { RecordPaymentDialog } from '@/components/admin/RecordPaymentDialog';
 import { t } from '@/lib/i18n';
-import type { Role } from '@/lib/auth-guards';
+import type { BusinessKind } from '@/lib/auth-guards';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -34,7 +34,7 @@ function fmtDate(d: Date | string): string {
 export default async function InvoiceDetailPage({ params }: Props) {
   const { id } = await params;
   const session = (await auth.api.getSession({ headers: await headers() }))!;
-  const role = session.user.role as Role;
+  const kind = session.user.kind as BusinessKind;
   const sessionTenantId = session.user.tenantId as string | null;
 
   const [invoice] = await db
@@ -43,7 +43,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
     .where(eq(invoices.id, id))
     .limit(1);
   if (!invoice) notFound();
-  if (role !== 'super_admin' && sessionTenantId !== invoice.tenantId)
+  if (kind !== 'super_admin' && sessionTenantId !== invoice.tenantId)
     notFound();
 
   const [order] = await db

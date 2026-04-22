@@ -14,7 +14,7 @@ interface Row {
   id: string;
   email: string;
   name: string | null;
-  role: string;
+  kind: string;
   tenantId: string | null;
 }
 
@@ -49,7 +49,7 @@ export function UsersTable() {
           <TableRow key={u.id}>
             <TableCell>{u.email}</TableCell>
             <TableCell>{u.name ?? '—'}</TableCell>
-            <TableCell>{t(`admin.role.${u.role}`)}</TableCell>
+            <TableCell>{t(`admin.role.${u.kind}`)}</TableCell>
             <TableCell className="font-mono text-xs">{u.tenantId ?? '—'}</TableCell>
           </TableRow>
         ))}

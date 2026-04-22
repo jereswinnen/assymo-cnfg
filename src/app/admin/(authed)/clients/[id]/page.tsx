@@ -19,7 +19,7 @@ export default async function ClientDetailPage({
 }) {
   const { id } = await params;
   const session = (await auth.api.getSession({ headers: await headers() }))!;
-  const role = session.user.role as string;
+  const kind = session.user.kind as string;
   const actorTenantId = session.user.tenantId as string | null;
 
   const [client] = await db
@@ -28,7 +28,7 @@ export default async function ClientDetailPage({
       email: user.email,
       name: user.name,
       emailVerified: user.emailVerified,
-      userType: user.userType,
+      kind: user.kind,
       tenantId: user.tenantId,
       createdAt: user.createdAt,
     })
@@ -36,8 +36,8 @@ export default async function ClientDetailPage({
     .where(eq(user.id, id))
     .limit(1);
 
-  if (!client || client.userType !== 'client') notFound();
-  if (role !== 'super_admin' && client.tenantId !== actorTenantId) {
+  if (!client || client.kind !== 'client') notFound();
+  if (kind !== 'super_admin' && client.tenantId !== actorTenantId) {
     redirect('/admin/clients');
   }
 

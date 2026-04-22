@@ -10,7 +10,7 @@ export default async function AdminDashboard() {
   // Layout already guarantees a business session.
   const session = (await auth.api.getSession({ headers: await headers() }))!;
   const tenantId = session.user.tenantId as string | null;
-  const role = session.user.role as string;
+  const kind = session.user.kind as string;
 
   const [tenant] = tenantId
     ? await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1)
@@ -24,7 +24,7 @@ export default async function AdminDashboard() {
       <Card>
         <CardHeader><CardTitle>Account</CardTitle></CardHeader>
         <CardContent className="text-sm text-neutral-700 space-y-1">
-          <p>{t('admin.dashboard.role', { role: t(`admin.role.${role}`) })}</p>
+          <p>{t('admin.dashboard.role', { role: t(`admin.role.${kind}`) })}</p>
           {tenant && <p>{t('admin.dashboard.tenant', { tenant: tenant.displayName })}</p>}
         </CardContent>
       </Card>

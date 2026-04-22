@@ -23,7 +23,7 @@ export default async function EditMaterialPage({
 
   // Scope check: tenant_admin may only edit materials in their own tenant.
   if (
-    session?.user?.role !== 'super_admin' &&
+    session?.user?.kind !== 'super_admin' &&
     row.tenantId !== session?.user?.tenantId
   ) {
     notFound();

@@ -19,7 +19,7 @@ export const GET = withSession(
         email: user.email,
         name: user.name,
         emailVerified: user.emailVerified,
-        userType: user.userType,
+        kind: user.kind,
         tenantId: user.tenantId,
         createdAt: user.createdAt,
       })
@@ -27,7 +27,7 @@ export const GET = withSession(
       .where(eq(user.id, id))
       .limit(1);
 
-    if (!client || client.userType !== 'client') {
+    if (!client || client.kind !== 'client') {
       return NextResponse.json({ error: 'client_not_found' }, { status: 404 });
     }
     if (!client.tenantId) {

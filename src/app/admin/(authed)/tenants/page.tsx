@@ -9,7 +9,7 @@ import { PageHeaderActions } from '@/components/admin/PageHeaderActions';
 
 export default async function TenantsPage() {
   const session = (await auth.api.getSession({ headers: await headers() }))!;
-  if (session.user.role !== 'super_admin') redirect('/admin');
+  if (session.user.kind !== 'super_admin') redirect('/admin');
 
   const rows = await db.select().from(tenants);
 

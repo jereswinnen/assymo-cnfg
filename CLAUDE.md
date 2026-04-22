@@ -9,7 +9,7 @@ Interactive 3D configurator for Assymo garden structures — overkapping (open c
 - Zustand + zundo (state + undo/redo)
 - Tailwind v4, shadcn, radix-ui, lucide-react
 - Neon Postgres + Drizzle ORM + `@neondatabase/serverless` (HTTP driver)
-- Better Auth (email+password + magic link via Resend); users carry `userType: 'business' | 'client'`, with `/api/admin/*` requiring `userType=business`
+- Better Auth (email+password + magic link via Resend); users carry `kind: 'super_admin' | 'tenant_admin' | 'client'`; `/api/admin/*` requires `kind` in `['super_admin', 'tenant_admin']`; `/api/shop/*` requires `kind='client'`
 - Vite+ (test runner only — does NOT replace Next's bundler)
 
 ## Package Manager
@@ -87,7 +87,9 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   `npx @better-auth/cli generate --config src/lib/auth.ts --output src/db/auth-schema.ts`
   after changing `src/lib/auth.ts` (additionalFields, plugins). Holds
   `user`, `session`, `account`, `verification`. User has a nullable
-  `tenantId` and a `role` of `super_admin | tenant_admin`.
+  `tenantId` and a single `kind: 'super_admin' | 'tenant_admin' | 'client'` column.
+  A DB CHECK constraint enforces `super_admin → tenant_id IS NULL`, while
+  `tenant_admin` and `client` require `tenant_id IS NOT NULL`.
 - `client.ts` — Drizzle client wired to Neon HTTP. Merges both schemas
   so a single `db` instance covers everything. Imported by route
   handlers; not used in RSC layouts (tenant layout resolver stays in
@@ -107,8 +109,8 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   `src/lib/auth.ts`. In dev, magic links log to the server console
   when `RESEND_API_KEY` is empty; set the key to actually send.
 - `src/app/api/admin/*` — authenticated admin API. All routes go
-  through `withSession` from `@/lib/auth-session` and check role via
-  `requireRole` / tenant scope via `requireTenantScope` (both in
+  through `withSession` from `@/lib/auth-session` and check kind via
+  `requireBusiness(session, kinds)` / tenant scope via `requireTenantScope` (both in
   `@/lib/auth-guards`, which is framework-free and tested alone).
   Current endpoints:
   - `GET  /api/admin/tenants/current` — any authenticated session
@@ -150,7 +152,7 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   - `GET /api/admin/orders/[id]` — scoped detail (joined with customer)
   - `PATCH /api/admin/orders/[id]/status` — validated transition via
     `validateOrderTransition` from `@/domain/orders`
-  - `GET /api/admin/clients` — list `userType='client'` users in scope
+  - `GET /api/admin/clients` — list `kind='client'` users in scope
   - `GET /api/admin/clients/[id]` — client detail + their orders
   - `GET|POST /api/admin/materials` + `GET|PATCH|DELETE /api/admin/materials/[id]` + `POST /api/admin/materials/[id]/restore` — per-tenant material CRUD; soft-delete preserves historical orders. `super_admin` may scope via `?tenantId=` query.
   - `POST /api/admin/uploads/textures` — Vercel Blob signed-upload endpoint; `@vercel/blob/client.handleUpload`; upload paths namespaced `textures/<tenantId>/…`.
@@ -323,7 +325,7 @@ Anything that varies per brand lives on `TenantContext` — never in module-scop
 - **`crypto.randomUUID()`** is used for building IDs (client) and decoded window IDs — keep Node 20+ assumptions.
 - **DB is source of truth** for tenants, hosts, and priceBooks. Every tenant lookup (layout, API routes, admin API) goes through `resolveTenantByHost` / `getTenantById` in `@/db/resolveTenant`. The `@/domain/tenant` folder keeps only pure host-normalization helpers and the `DEFAULT_TENANT_ID` constant — no hardcoded host map.
 - **Global-unique emails across tenants.** A user belongs to exactly one tenant (`user.tenantId`). super_admins can carry `tenantId=null`.
-- **Auth guards are split**: `@/lib/auth-guards` stays pure (no auth/DB imports, testable stand-alone). `@/lib/auth-session` holds the runtime-coupled `requireSession` / `withSession`.
+- **Auth guards are split**: `@/lib/auth-guards` stays pure (no auth/DB imports, testable stand-alone). `@/lib/auth-session` holds the runtime-coupled `requireSession` / `withSession`. Guards: `requireBusiness(session, kinds: BusinessKind[])`, `requireClient(session)`, `requireTenantScope(session, tenantId)`. `UserKind = 'super_admin' | 'tenant_admin' | 'client'`; `BusinessKind = 'super_admin' | 'tenant_admin'`.
 - **Order state machine** lives in `@/domain/orders/transitions.ts`.
   Allowed transitions: `submitted → quoted | cancelled`,
   `quoted → accepted | cancelled`, `accepted → cancelled`,

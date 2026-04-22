@@ -1,18 +1,18 @@
 import { NextResponse } from 'next/server';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, or } from 'drizzle-orm';
 import { db } from '@/db/client';
 import { tenants } from '@/db/schema';
 import { user } from '@/db/auth-schema';
 import { auth } from '@/lib/auth';
-import { AuthError, requireBusiness, type Role } from '@/lib/auth-guards';
+import { AuthError, requireBusiness, type BusinessKind } from '@/lib/auth-guards';
 import { withSession } from '@/lib/auth-session';
 
-const CREATABLE_ROLES: readonly Role[] = ['super_admin', 'tenant_admin'];
+const CREATABLE_KINDS: readonly BusinessKind[] = ['super_admin', 'tenant_admin'];
 
 interface CreateUserBody {
   email?: unknown;
   name?: unknown;
-  role?: unknown;
+  kind?: unknown;
   tenantId?: unknown;
 }
 
@@ -26,7 +26,7 @@ function isNonEmptyString(v: unknown): v is string {
  *  link so the new user can start a session without a password. */
 export const POST = withSession(async (session, req) => {
   requireBusiness(session, ['super_admin', 'tenant_admin']);
-  const actorRole = session.user.role as Role;
+  const actorKind = session.user.kind as BusinessKind;
   const actorTenantId = session.user.tenantId as string | null | undefined;
 
   let body: CreateUserBody;
@@ -39,8 +39,8 @@ export const POST = withSession(async (session, req) => {
   const errors: string[] = [];
   if (!isNonEmptyString(body.email)) errors.push('email');
   if (!isNonEmptyString(body.name)) errors.push('name');
-  if (!isNonEmptyString(body.role) || !CREATABLE_ROLES.includes(body.role as Role)) {
-    errors.push('role');
+  if (!isNonEmptyString(body.kind) || !CREATABLE_KINDS.includes(body.kind as BusinessKind)) {
+    errors.push('kind');
   }
   if (body.tenantId !== undefined && body.tenantId !== null && !isNonEmptyString(body.tenantId)) {
     errors.push('tenantId');
@@ -51,7 +51,7 @@ export const POST = withSession(async (session, req) => {
 
   const email = (body.email as string).toLowerCase();
   const name = body.name as string;
-  const role = body.role as Role;
+  const kind = body.kind as BusinessKind;
   const requestedTenantId =
     typeof body.tenantId === 'string' && body.tenantId.length > 0
       ? body.tenantId
@@ -60,12 +60,12 @@ export const POST = withSession(async (session, req) => {
   // Authorization: tenant_admin can only act within its own tenant and
   // cannot grant super_admin. super_admin can do anything.
   let tenantId: string | null;
-  if (actorRole === 'super_admin') {
+  if (actorKind === 'super_admin') {
     tenantId = requestedTenantId;
   } else {
     // tenant_admin
-    if (role === 'super_admin') {
-      throw new AuthError('forbidden_role', 403);
+    if (kind === 'super_admin') {
+      throw new AuthError('forbidden_kind', 403);
     }
     if (requestedTenantId !== null && requestedTenantId !== actorTenantId) {
       throw new AuthError('forbidden_tenant', 403);
@@ -78,7 +78,7 @@ export const POST = withSession(async (session, req) => {
   }
 
   // Non-super_admin users must belong to a tenant.
-  if (role !== 'super_admin' && !tenantId) {
+  if (kind !== 'super_admin' && !tenantId) {
     return NextResponse.json(
       { error: 'validation_failed', details: ['tenantId'] },
       { status: 422 },
@@ -111,8 +111,7 @@ export const POST = withSession(async (session, req) => {
       name,
       emailVerified: true,
       tenantId,
-      role,
-      userType: 'business' as const,
+      kind,
       createdAt: now,
       updatedAt: now,
     })
@@ -120,7 +119,7 @@ export const POST = withSession(async (session, req) => {
       id: user.id,
       email: user.email,
       name: user.name,
-      role: user.role,
+      kind: user.kind,
       tenantId: user.tenantId,
       createdAt: user.createdAt,
     });
@@ -150,14 +149,14 @@ export const POST = withSession(async (session, req) => {
  *  Phase 2). */
 export const GET = withSession(async (session) => {
   requireBusiness(session, ['super_admin', 'tenant_admin']);
-  const actorRole = session.user.role as Role;
+  const actorKind = session.user.kind as BusinessKind;
   const actorTenantId = session.user.tenantId as string | null;
 
   const fields = {
     id: user.id,
     email: user.email,
     name: user.name,
-    role: user.role,
+    kind: user.kind,
     tenantId: user.tenantId,
     createdAt: user.createdAt,
   } as const;
@@ -166,10 +165,11 @@ export const GET = withSession(async (session) => {
   // tenant_admin sees only its own tenant. The '__none__' fallback
   // ensures a malformed tenant_admin without a tenantId returns an
   // empty list rather than crashing the query.
+  const businessKindsFilter = or(eq(user.kind, 'super_admin'), eq(user.kind, 'tenant_admin'))!;
   const where =
-    actorRole === 'super_admin'
-      ? eq(user.userType, 'business')
-      : and(eq(user.userType, 'business'), eq(user.tenantId, actorTenantId ?? '__none__'));
+    actorKind === 'super_admin'
+      ? businessKindsFilter
+      : and(businessKindsFilter, eq(user.tenantId, actorTenantId ?? '__none__'));
 
   const rows = await db.select(fields).from(user).where(where);
 

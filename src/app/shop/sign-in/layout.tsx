@@ -12,8 +12,8 @@ export default async function ShopSignInLayout({
   children: React.ReactNode;
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (session?.user?.userType === 'client') redirect('/shop/account');
-  if (session?.user?.userType === 'business') redirect('/admin');
+  if (session?.user?.kind === 'client') redirect('/shop/account');
+  if (session?.user?.kind === 'super_admin' || session?.user?.kind === 'tenant_admin') redirect('/admin');
 
   return (
     <BrandedShell variant="shop">

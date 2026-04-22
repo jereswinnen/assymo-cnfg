@@ -6,7 +6,7 @@ import { Header } from '@/components/admin/Header';
 import { AdminHeaderProvider } from '@/components/admin/AdminHeaderContext';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
-import type { Role, UserType } from '@/lib/auth-guards';
+import type { BusinessKind } from '@/lib/auth-guards';
 
 export default async function AdminAuthedLayout({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -15,19 +15,18 @@ export default async function AdminAuthedLayout({ children }: { children: React.
     redirect('/admin/sign-in');
   }
 
-  const userType = session.user.userType as UserType | null;
-  if (userType !== 'business') {
+  const kind = session.user.kind as BusinessKind | 'client' | null;
+  if (kind === 'client' || !kind) {
     redirect('/shop/account');
   }
 
-  const role = session.user.role as Role;
   const tenantId = session.user.tenantId as string | null;
   const name = session.user.name ?? session.user.email;
 
   return (
     <AdminHeaderProvider>
       <SidebarProvider>
-        <Sidebar role={role} tenantId={tenantId} name={name} email={session.user.email} />
+        <Sidebar kind={kind} tenantId={tenantId} name={name} email={session.user.email} />
         <SidebarInset>
           <Header />
           <div className="flex flex-1 flex-col p-4">{children}</div>

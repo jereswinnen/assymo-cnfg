@@ -235,7 +235,7 @@ export async function POST(req: NextRequest) {
 
   let customerId: string;
   if (existingUser) {
-    if (existingUser.userType !== 'client') {
+    if (existingUser.kind !== 'client') {
       return NextResponse.json(
         { error: 'email_in_use_by_business' },
         { status: 409 },
@@ -251,12 +251,7 @@ export async function POST(req: NextRequest) {
       name,
       emailVerified: false,
       tenantId: tenant.id,
-      // `role` is NOT NULL in auth-schema with default 'tenant_admin'.
-      // Clients don't use roles; this satisfies the column constraint
-      // without granting any business permission (the requireBusiness
-      // guard checks userType FIRST, so role on a client is unreachable).
-      role: 'tenant_admin',
-      userType: 'client' as const,
+      kind: 'client' as const,
       createdAt: now,
       updatedAt: now,
     });

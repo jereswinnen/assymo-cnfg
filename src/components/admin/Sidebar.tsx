@@ -40,11 +40,11 @@ import {
 } from '@/components/ui/sidebar';
 import { signOut } from '@/lib/auth-client';
 import { t } from '@/lib/i18n';
-import type { Role } from '@/lib/auth-guards';
+import type { BusinessKind } from '@/lib/auth-guards';
 import type { LucideIcon } from 'lucide-react';
 
 interface Props {
-  role: Role;
+  kind: BusinessKind;
   tenantId: string | null;
   name: string;
   email: string;
@@ -54,7 +54,7 @@ interface NavItem {
   href: string;
   labelKey: string;
   icon: LucideIcon;
-  visible: (role: Role) => boolean;
+  visible: (kind: BusinessKind) => boolean;
 }
 
 const ITEMS: NavItem[] = [
@@ -62,7 +62,7 @@ const ITEMS: NavItem[] = [
   { href: '/admin/orders', labelKey: 'admin.nav.orders', icon: ClipboardList, visible: () => true },
   { href: '/admin/invoices', labelKey: 'admin.nav.invoices', icon: Receipt, visible: () => true },
   { href: '/admin/clients', labelKey: 'admin.nav.clients', icon: Contact2, visible: () => true },
-  { href: '/admin/tenants', labelKey: 'admin.nav.tenants', icon: Building2, visible: (r) => r === 'super_admin' },
+  { href: '/admin/tenants', labelKey: 'admin.nav.tenants', icon: Building2, visible: (k) => k === 'super_admin' },
   { href: '/admin/users', labelKey: 'admin.nav.users', icon: Users, visible: () => true },
 ];
 
@@ -76,11 +76,11 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-export function Sidebar({ role, tenantId, name, email }: Props) {
+export function Sidebar({ kind, tenantId, name, email }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const { isMobile } = useSidebar();
-  const items = ITEMS.filter((i) => i.visible(role));
+  const items = ITEMS.filter((i) => i.visible(kind));
   const ownTenantHref = tenantId ? `/admin/tenants/${tenantId}` : null;
   const initials = getInitials(name) || '..';
 
@@ -114,7 +114,7 @@ export function Sidebar({ role, tenantId, name, email }: Props) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {role === 'tenant_admin' && ownTenantHref && (
+        {kind === 'tenant_admin' && ownTenantHref && (
           <SidebarGroup>
             <SidebarGroupLabel>{t('admin.nav.tenant')}</SidebarGroupLabel>
             <SidebarGroupContent>
