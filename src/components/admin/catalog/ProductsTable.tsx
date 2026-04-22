@@ -150,7 +150,7 @@ export function ProductsTable({ products }: { products: ProductRow[] }) {
       body: JSON.stringify({ orderedIds: nextIds }),
     });
     if (!res.ok) {
-      toast.error('Volgorde opslaan mislukt');
+      toast.error(t('admin.catalog.products.toast.reorderFailed'));
       setItems(products); // revert local optimistic state
       return;
     }

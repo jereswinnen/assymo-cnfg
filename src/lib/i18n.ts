@@ -649,6 +649,40 @@ const nl: Record<string, string> = {
   'admin.catalog.products.error.allowed_material_not_found': 'Toegestaan materiaal bestaat niet in deze categorie',
   'admin.catalog.products.error.constraints_invalid':        'Ongeldige grenzen (min ≤ max, slugs moeten bestaan)',
 
+  // Admin — catalog / form sections + actions
+  'admin.catalog.form.section.basics': 'Basis',
+  'admin.catalog.form.section.options': 'Opties',
+  'admin.catalog.form.section.priceSort': 'Prijs & volgorde',
+
+  'admin.catalog.materials.field.tileWidth': 'Tegel breedte (m)',
+  'admin.catalog.materials.field.tileHeight': 'Tegel hoogte (m)',
+  'admin.catalog.materials.archive.title': 'Materiaal archiveren?',
+  'admin.catalog.materials.archive.description':
+    'Het materiaal blijft in historische bestellingen bewaard, maar verschijnt niet meer in de configurator.',
+  'admin.catalog.materials.toast.saved': 'Opgeslagen',
+  'admin.catalog.materials.toast.archived': 'Gearchiveerd',
+  'admin.catalog.materials.toast.saveFailed': 'Opslaan mislukt',
+  'admin.catalog.materials.toast.archiveFailed': 'Archiveren mislukt',
+  'admin.catalog.materials.field.category': 'Categorie',
+
+  'admin.catalog.products.archive.title': 'Product archiveren?',
+  'admin.catalog.products.archive.description':
+    'Historische bestellingen blijven bewaard, maar het product verschijnt niet meer op de landingspagina.',
+  'admin.catalog.products.toast.saved': 'Opgeslagen',
+  'admin.catalog.products.toast.archived': 'Gearchiveerd',
+  'admin.catalog.products.toast.saveFailed': 'Opslaan mislukt',
+  'admin.catalog.products.toast.archiveFailed': 'Archiveren mislukt',
+  'admin.catalog.products.toast.reorderFailed': 'Volgorde opslaan mislukt',
+
+  'admin.catalog.uploads.replace': 'Vervangen',
+  'admin.catalog.uploads.upload': 'Uploaden',
+  'admin.catalog.uploads.remove': 'Verwijderen',
+
+  'admin.catalog.multiselect.placeholderAll': 'Alle toegestaan',
+  'admin.catalog.multiselect.placeholderCount': '{count} geselecteerd',
+  'admin.catalog.multiselect.search': 'Zoek materiaal…',
+  'admin.catalog.multiselect.empty': 'Geen materialen gevonden.',
+
   // Landing page + configurator tray
   'landing.hero.title':         '{displayName}',
   'landing.hero.subtitle':      'Ontwerp je bouwset op maat',

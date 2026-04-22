@@ -17,6 +17,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -222,12 +229,12 @@ export function ProductForm({
           toast.error(msg);
         }
       } else {
-        toast.error('Opslaan mislukt');
+        toast.error(t('admin.catalog.products.toast.saveFailed'));
       }
       return;
     }
 
-    toast.success('Opgeslagen');
+    toast.success(t('admin.catalog.products.toast.saved'));
     router.push('/admin/catalog/products');
     router.refresh();
   }
@@ -236,10 +243,10 @@ export function ProductForm({
     if (!initial) return;
     const res = await fetch(`/api/admin/products/${initial.id}`, { method: 'DELETE' });
     if (!res.ok) {
-      toast.error('Archiveren mislukt');
+      toast.error(t('admin.catalog.products.toast.archiveFailed'));
       return;
     }
-    toast.success('Gearchiveerd');
+    toast.success(t('admin.catalog.products.toast.archived'));
     router.push('/admin/catalog/products');
     router.refresh();
   }
@@ -250,7 +257,7 @@ export function ProductForm({
         {/* Basis */}
         <Card>
           <CardHeader>
-            <CardTitle>Basis</CardTitle>
+            <CardTitle>{t('admin.catalog.form.section.basics')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {mode === 'create' && (
@@ -260,18 +267,20 @@ export function ProductForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('admin.catalog.products.field.kind')}</FormLabel>
-                    <FormControl>
-                      <select
-                        {...field}
-                        className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-                      >
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
                         {PRODUCT_KINDS.map((k) => (
-                          <option key={k} value={k}>
+                          <SelectItem key={k} value={k}>
                             {t(`admin.catalog.products.kind.${k}`)}
-                          </option>
+                          </SelectItem>
                         ))}
-                      </select>
-                    </FormControl>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -400,20 +409,24 @@ export function ProductForm({
                     <FormLabel>
                       {t(`admin.catalog.products.field.${labelKey}`)}
                     </FormLabel>
-                    <FormControl>
-                      <select
-                        className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(e.target.value || null)}
-                      >
-                        <option value="">—</option>
+                    <Select
+                      value={field.value ?? '__none__'}
+                      onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="—" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="__none__">—</SelectItem>
                         {byCategory(cat).map((m) => (
-                          <option key={m.slug} value={m.slug}>
+                          <SelectItem key={m.slug} value={m.slug}>
                             {m.name}
-                          </option>
+                          </SelectItem>
                         ))}
-                      </select>
-                    </FormControl>
+                      </SelectContent>
+                    </Select>
                   </FormItem>
                 )}
               />
@@ -495,7 +508,7 @@ export function ProductForm({
         {/* Prijs & volgorde */}
         <Card>
           <CardHeader>
-            <CardTitle>Prijs &amp; volgorde</CardTitle>
+            <CardTitle>{t('admin.catalog.form.section.priceSort')}</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-4">
             <FormField
@@ -561,10 +574,11 @@ export function ProductForm({
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Product archiveren?</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    {t('admin.catalog.products.archive.title')}
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
-                    Historische bestellingen blijven bewaard, maar het product verschijnt niet
-                    meer op de landingspagina.
+                    {t('admin.catalog.products.archive.description')}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
