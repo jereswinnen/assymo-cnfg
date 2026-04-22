@@ -99,6 +99,13 @@
       "when": 1776844000000,
       "tag": "0013_unified_materials",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1776855190641,
+      "tag": "0014_supplier_catalog",
+      "breakpoints": true
     }
   ]
 }

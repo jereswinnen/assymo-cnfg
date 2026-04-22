@@ -6,6 +6,7 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  uuid,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import type { ConfigData } from '@/domain/config';
@@ -29,6 +30,12 @@ import type {
   ProductDefaults,
   ProductKind,
 } from '@/domain/catalog';
+import type {
+  DoorMeta,
+  SupplierContact,
+  SupplierProductKind,
+  WindowMeta,
+} from '@/domain/supplier';
 
 /** Tenants — one row per white-label brand. Columns mirror the in-memory
  *  TenantContext. `id` is the stable slug used everywhere (URL lookup,
@@ -278,3 +285,67 @@ export const products = pgTable(
 );
 
 export type ProductDbRow = typeof products.$inferSelect;
+
+/** Suppliers — per-tenant vendor directory. Each row represents one
+ *  supplier from which `supplier_products` are sourced. Slugs are unique
+ *  per tenant. Soft-delete via `archived_at`. `contact` is a flexible
+ *  jsonb object typed as `SupplierContact` at the app layer. */
+export const suppliers = pgTable(
+  'suppliers',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: text('tenant_id')
+      .references(() => tenants.id, { onDelete: 'cascade' })
+      .notNull(),
+    slug: text('slug').notNull(),
+    name: text('name').notNull(),
+    logoUrl: text('logo_url'),
+    contact: jsonb('contact').$type<SupplierContact>().notNull().default({}),
+    notes: text('notes'),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex('suppliers_tenant_slug_idx').on(t.tenantId, t.slug),
+  ],
+);
+
+export type SupplierDbRow = typeof suppliers.$inferSelect;
+
+/** Supplier products — per-tenant catalog of doors and windows sourced
+ *  from a `suppliers` row. `kind` is extensible ('door' | 'window' today).
+ *  `meta` is a kind-specific jsonb object validated at the app layer.
+ *  Unique on (tenant_id, kind, sku). Soft-delete via `archived_at`.
+ *  FK to `suppliers(id)` uses RESTRICT to prevent orphaning products. */
+export const supplierProducts = pgTable(
+  'supplier_products',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: text('tenant_id')
+      .references(() => tenants.id, { onDelete: 'cascade' })
+      .notNull(),
+    supplierId: uuid('supplier_id')
+      .references(() => suppliers.id, { onDelete: 'restrict' })
+      .notNull(),
+    kind: text('kind').$type<SupplierProductKind>().notNull(),
+    sku: text('sku').notNull(),
+    name: text('name').notNull(),
+    heroImage: text('hero_image'),
+    widthMm: integer('width_mm').notNull(),
+    heightMm: integer('height_mm').notNull(),
+    priceCents: integer('price_cents').notNull().default(0),
+    meta: jsonb('meta').$type<DoorMeta | WindowMeta>().notNull().default({}),
+    sortOrder: integer('sort_order').notNull().default(0),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex('supplier_products_tenant_kind_sku_idx').on(t.tenantId, t.kind, t.sku),
+    index('idx_supplier_products_tenant_supplier').on(t.tenantId, t.supplierId),
+    index('idx_supplier_products_tenant_kind').on(t.tenantId, t.kind),
+  ],
+);
+
+export type SupplierProductDbRow = typeof supplierProducts.$inferSelect;
