@@ -148,7 +148,8 @@ export const PRODUCT_SLOT_TO_CATEGORY: Record<ProductSlot, MaterialCategory> = {
  *  (copied here to avoid a reverse-dependency). `materials` keys are
  *  material slugs referencing rows in the same tenant's `materials`
  *  table. Every field is optional — missing defaults fall back to the
- *  engine's own `DEFAULT_WALL`/`DEFAULT_ROOF` legacy (removed in 5.5.3). */
+ *  engine's default geometry. Constraints on the product side still
+ *  hydrate walls/roof from the catalog row. */
 export interface ProductDefaults {
   width?: number;
   depth?: number;
