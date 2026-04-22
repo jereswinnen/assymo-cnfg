@@ -20,7 +20,7 @@ const DEMO_SUPPLIER = {
   slug: 'demo',
   name: 'Assymo Demo Leverancier',
   logoUrl: null,
-  contact: { email: 'demo@assymo.be', phone: null, website: null },
+  contact: { email: 'demo@assymo.be' },
   notes: 'Seeded demo supplier — voor developmentstests en UX-verkenning.',
 };
 
@@ -210,17 +210,15 @@ async function main() {
   if (existingSupplier) {
     supplierId = existingSupplier.id;
   } else {
-    const newId = crypto.randomUUID();
-    await db.insert(suppliers).values({
-      id: newId,
+    const insertResult = await db.insert(suppliers).values({
       tenantId: TENANT_ID,
       slug: DEMO_SUPPLIER.slug,
       name: DEMO_SUPPLIER.name,
       logoUrl: DEMO_SUPPLIER.logoUrl,
       contact: DEMO_SUPPLIER.contact,
       notes: DEMO_SUPPLIER.notes,
-    });
-    supplierId = newId;
+    }).returning({ id: suppliers.id });
+    supplierId = insertResult[0]!.id;
   }
 
   let supplierProductsInserted = 0;
