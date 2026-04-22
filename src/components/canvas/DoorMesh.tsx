@@ -1,8 +1,8 @@
 'use client';
 
 import { useRef, useMemo, useEffect } from 'react';
-import { Group, MeshStandardMaterial, MathUtils } from 'three';
-import { useFrame } from '@react-three/fiber';
+import { Group, MeshStandardMaterial, MathUtils, ClampToEdgeWrapping, TextureLoader } from 'three';
+import { useFrame, useLoader } from '@react-three/fiber';
 import { DOUBLE_DOOR_W, DOOR_W } from '@/domain/building';
 import { useDoorTexture } from '@/lib/textures';
 import { createDoorPanelWithWindowGeo } from './wallGeometry';
@@ -10,6 +10,7 @@ import { DOOR_H, DOOR_DEPTH, FRAME_T, FRAME_D } from './wallGeometry';
 import type { DoorSwing, DoorSize } from '@/domain/building';
 import { getAtomColor } from '@/domain/materials';
 import type { MaterialRow } from '@/domain/catalog';
+import type { SupplierProductRow } from '@/domain/supplier';
 import { useTenant } from '@/lib/TenantProvider';
 
 // Door panel material configs for the legacy fixed-set (wood/aluminium/pvc/staal).
@@ -75,9 +76,92 @@ interface DoorMeshProps {
   doorHasWindow: boolean;
   doorMaterialId: string;
   doorMirror?: boolean;
+  supplierProduct?: SupplierProductRow;
 }
 
-export default function DoorMesh({ x, height, swing, doorSize, doorHasWindow, doorMaterialId, doorMirror = false }: DoorMeshProps) {
+/** Renders a supplier door using its fixed width × height and optional hero image. */
+function SupplierDoorMesh({ x, supplierProduct, swing }: { x: number; supplierProduct: SupplierProductRow; swing: DoorSwing }) {
+  const w = supplierProduct.widthMm / 1000;
+  const h = supplierProduct.heightMm / 1000;
+  const doorY = h / 2;
+
+  // Target angle for swing animation
+  let targetAngle = 0;
+  if (swing === 'naar_binnen') targetAngle = Math.PI / 3;
+  else if (swing === 'naar_buiten') targetAngle = -Math.PI / 3;
+
+  const hingeRef = useRef<Group>(null);
+  useFrame((_, delta) => {
+    const t = Math.min(1, delta * SWING_SPEED);
+    if (hingeRef.current) {
+      hingeRef.current.rotation.y = MathUtils.lerp(hingeRef.current.rotation.y, targetAngle, t);
+    }
+  });
+
+  const heroUrl = supplierProduct.heroImage;
+  // useLoader must be called unconditionally. When heroUrl is null we pass a
+  // transparent 1×1 data URI so the loader succeeds without a network request.
+  const FALLBACK_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  const texture = useLoader(TextureLoader, heroUrl ?? FALLBACK_URL);
+
+  const material = useMemo(() => {
+    const mat = new MeshStandardMaterial({ roughness: 0.6, metalness: 0.0 });
+    if (heroUrl && texture) {
+      texture.wrapS = ClampToEdgeWrapping;
+      texture.wrapT = ClampToEdgeWrapping;
+      texture.repeat.set(1, 1);
+      mat.map = texture;
+      mat.color.set('#ffffff');
+    } else {
+      mat.color.set('#888888');
+    }
+    mat.needsUpdate = true;
+    return mat;
+  }, [texture, heroUrl]);
+
+  useEffect(() => {
+    return () => { material.dispose(); };
+  }, [material]);
+
+  return (
+    <group position={[x, doorY, 0]}>
+      {/* Frame top */}
+      <mesh position={[0, h / 2 + FRAME_T / 2, 0]} material={frameMat}>
+        <boxGeometry args={[w + FRAME_T * 2, FRAME_T, FRAME_D]} />
+      </mesh>
+      {/* Frame left */}
+      <mesh position={[-w / 2 - FRAME_T / 2, 0, 0]} material={frameMat}>
+        <boxGeometry args={[FRAME_T, h + FRAME_T, FRAME_D]} />
+      </mesh>
+      {/* Frame right */}
+      <mesh position={[w / 2 + FRAME_T / 2, 0, 0]} material={frameMat}>
+        <boxGeometry args={[FRAME_T, h + FRAME_T, FRAME_D]} />
+      </mesh>
+      {/* Door panel — hinged on left */}
+      <group ref={hingeRef} position={[-w / 2, 0, 0]}>
+        <mesh position={[w / 2, 0, 0]}>
+          <boxGeometry args={[w, h, DOOR_DEPTH]} />
+          <primitive object={material} attach="material" />
+        </mesh>
+        {/* Handle */}
+        <mesh position={[w - 0.12, 0, DOOR_DEPTH / 2 + 0.01]} material={HANDLE_DARK}>
+          <boxGeometry args={[0.05, 0.2, 0.04]} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+/** Router: when supplierProduct is present delegate to SupplierDoorMesh so each
+ *  variant keeps its own stable hook ordering (no conditional hook calls). */
+export default function DoorMesh(props: DoorMeshProps) {
+  if (props.supplierProduct) {
+    return <SupplierDoorMesh x={props.x} supplierProduct={props.supplierProduct} swing={props.swing} />;
+  }
+  return <StandardDoorMesh {...props} />;
+}
+
+function StandardDoorMesh({ x, height, swing, doorSize, doorHasWindow, doorMaterialId, doorMirror = false }: DoorMeshProps) {
   const { catalog: { materials } } = useTenant();
   const doorY = DOOR_H / 2;
   const dh = Math.min(DOOR_H, height - 0.1);

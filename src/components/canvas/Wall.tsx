@@ -216,6 +216,8 @@ interface OpeningsProps {
 }
 
 function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg, effectiveDoorMaterial }: OpeningsProps) {
+  const { supplierCatalog } = useTenant();
+
   if (!wallCfg.hasDoor && (wallCfg.windows ?? []).length === 0) return null;
 
   const t = WALL_THICKNESS;
@@ -249,6 +251,11 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg, effec
     wallCfg.windows ?? [],
   );
 
+  // Resolve supplier products for door and windows
+  const doorSupplierProduct = wallCfg.doorSupplierProductId
+    ? supplierCatalog.products.find(p => p.id === wallCfg.doorSupplierProductId) ?? undefined
+    : undefined;
+
   return (
     <group position={groupPos} rotation={groupRot}>
       {wallCfg.hasDoor && (
@@ -260,10 +267,14 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg, effec
           doorHasWindow={wallCfg.doorHasWindow ?? false}
           doorMaterialId={effectiveDoorMaterial}
           doorMirror={wallCfg.doorMirror ?? false}
+          supplierProduct={doorSupplierProduct}
         />
       )}
       {windowXs.map((wx, i) => {
         const win = (wallCfg.windows ?? [])[i];
+        const windowSupplierProduct = win?.supplierProductId
+          ? supplierCatalog.products.find(p => p.id === win.supplierProductId) ?? undefined
+          : undefined;
         return (
           <WindowMesh
             key={i}
@@ -271,6 +282,7 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg, effec
             width={win?.width}
             height={win?.height}
             sillHeight={win?.sillHeight}
+            supplierProduct={windowSupplierProduct}
           />
         );
       })}
