@@ -389,6 +389,14 @@ const nl: Record<string, string> = {
     'Netwerkfout. Controleer je verbinding en probeer opnieuw.',
   'configurator.submit.error.unknown':
     'Er ging iets mis. Probeer het later opnieuw.',
+  'configurator.submit.error.supplier_product_not_found':
+    'Een geselecteerd leveranciersproduct is niet langer beschikbaar. Pas je ontwerp aan en probeer opnieuw.',
+  'configurator.submit.error.supplier_product_archived':
+    'Een geselecteerd leveranciersproduct is niet meer leverbaar. Pas je ontwerp aan en probeer opnieuw.',
+  'configurator.submit.error.supplier_placement_too_tall':
+    'Een geselecteerde deur of raam is te hoog voor de wand. Pas de maten aan en probeer opnieuw.',
+  'configurator.submit.error.supplier_placement_too_wide':
+    'Een geselecteerde deur of raam is te breed voor de wand. Pas de maten aan en probeer opnieuw.',
   // Confirmation screen
   'configurator.submit.success.title': 'Bedankt voor je aanvraag!',
   'configurator.submit.success.lead':
