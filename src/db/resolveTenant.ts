@@ -8,9 +8,12 @@ import {
   tenants,
   type MaterialDbRow,
   type ProductDbRow,
+  type SupplierDbRow,
+  type SupplierProductDbRow,
   type TenantRow,
 } from './schema';
 import type { MaterialRow, ProductRow } from '@/domain/catalog';
+import type { SupplierRow, SupplierProductRow } from '@/domain/supplier';
 import { DEFAULT_TENANT_ID, candidateHostKeys } from '@/domain/tenant';
 
 /** Resolve a tenant row by host header, trying exact/bare/subdomain
@@ -126,5 +129,46 @@ export function productDbRowToDomain(r: ProductDbRow): ProductRow {
     archivedAt: r.archivedAt ? r.archivedAt.toISOString() : null,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
+  };
+}
+
+/** Map a DB row into the domain `SupplierRow` transport type. The
+ *  `contact` jsonb field passes through as-is (typed via `.$type<>()`);
+ *  nullable text columns are coerced to null. */
+export function supplierDbRowToDomain(r: SupplierDbRow): SupplierRow {
+  return {
+    id: r.id,
+    tenantId: r.tenantId,
+    slug: r.slug,
+    name: r.name,
+    logoUrl: r.logoUrl ?? null,
+    contact: r.contact,
+    notes: r.notes ?? null,
+    archivedAt: r.archivedAt ?? null,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+  };
+}
+
+/** Map a DB row into the domain `SupplierProductRow` transport type.
+ *  The `meta` jsonb field passes through typed as `DoorMeta | WindowMeta`
+ *  (validated at the app layer). */
+export function supplierProductDbRowToDomain(r: SupplierProductDbRow): SupplierProductRow {
+  return {
+    id: r.id,
+    tenantId: r.tenantId,
+    supplierId: r.supplierId,
+    kind: r.kind,
+    sku: r.sku,
+    name: r.name,
+    heroImage: r.heroImage ?? null,
+    widthMm: r.widthMm,
+    heightMm: r.heightMm,
+    priceCents: r.priceCents,
+    meta: r.meta,
+    sortOrder: r.sortOrder,
+    archivedAt: r.archivedAt ?? null,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
   };
 }
