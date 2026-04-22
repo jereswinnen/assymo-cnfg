@@ -83,7 +83,7 @@ export function createBuilding(type: BuildingType, position: [number, number]): 
 export function makeInitialConfig(): ConfigData {
   return {
     version: CONFIG_VERSION,
-    buildings: [createBuilding('berging', [-2, -2])],
+    buildings: [],
     connections: [],
     roof: {
       type: 'flat',

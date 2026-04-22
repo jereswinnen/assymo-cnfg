@@ -7,10 +7,8 @@ describe('useConfigStore', () => {
     useConfigStore.getState().resetConfig();
   });
 
-  it('starts with exactly one structural building', () => {
-    const { buildings } = useConfigStore.getState();
-    expect(buildings).toHaveLength(1);
-    expect(buildings[0].type).toBe('berging');
+  it('starts with an empty scene', () => {
+    expect(useConfigStore.getState().buildings).toHaveLength(0);
   });
 
   it('addBuilding appends to buildings and selects the new one in UI store', () => {
@@ -20,19 +18,22 @@ describe('useConfigStore', () => {
     expect(useUIStore.getState().selectedBuildingIds).toEqual([id]);
   });
 
-  it('removeBuilding keeps at least one structural building', () => {
+  it('removeBuilding keeps at least one structural building when one remains', () => {
+    useConfigStore.getState().addBuilding('berging');
     const { buildings } = useConfigStore.getState();
     useConfigStore.getState().removeBuilding(buildings[0].id);
     expect(useConfigStore.getState().buildings).toHaveLength(1);
   });
 
   it('updateBuildingDimensions applies the patch', () => {
+    useConfigStore.getState().addBuilding('berging');
     const { buildings } = useConfigStore.getState();
     useConfigStore.getState().updateBuildingDimensions(buildings[0].id, { width: 5 });
     expect(useConfigStore.getState().buildings[0].dimensions.width).toBe(5);
   });
 
   it('temporal.undo reverts the last mutation', () => {
+    useConfigStore.getState().addBuilding('berging');
     const { buildings } = useConfigStore.getState();
     const originalWidth = buildings[0].dimensions.width;
     useConfigStore.getState().updateBuildingDimensions(buildings[0].id, { width: 7 });
@@ -40,10 +41,10 @@ describe('useConfigStore', () => {
     expect(useConfigStore.getState().buildings[0].dimensions.width).toBe(originalWidth);
   });
 
-  it('resetConfig clears any additions', () => {
+  it('resetConfig clears any additions back to empty', () => {
     useConfigStore.getState().addBuilding('paal');
     useConfigStore.getState().addBuilding('paal');
     useConfigStore.getState().resetConfig();
-    expect(useConfigStore.getState().buildings).toHaveLength(1);
+    expect(useConfigStore.getState().buildings).toHaveLength(0);
   });
 });
