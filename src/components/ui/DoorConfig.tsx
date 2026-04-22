@@ -5,10 +5,13 @@ import { useConfigStore } from '@/store/useConfigStore';
 import { clampOpeningPosition, DOOR_W, DOUBLE_DOOR_W, getWallLength, WIN_W } from '@/domain/building';
 import { getEffectiveDoorMaterial } from '@/domain/materials';
 import { useTenantCatalogs } from '@/lib/useTenantCatalogs';
+import { useTenant } from '@/lib/TenantProvider';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Card, CardContent } from '@/components/ui/card';
 import SectionLabel from '@/components/ui/SectionLabel';
 import MaterialSelect from '@/components/ui/MaterialSelect';
 import { Plus, X } from 'lucide-react';
@@ -26,6 +29,7 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
   });
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
   const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
+  const setDoorSupplierProduct = useConfigStore((s) => s.setDoorSupplierProduct);
   const [expanded, setExpanded] = useState(false);
   const effectiveDoor = wallCfg && building
     ? getEffectiveDoorMaterial(wallCfg, building)
@@ -33,6 +37,11 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
   const { door: doorCatalog, sourceProduct } = useTenantCatalogs(
     { door: effectiveDoor },
     building?.sourceProductId,
+  );
+
+  const { supplierCatalog } = useTenant();
+  const supplierDoors = supplierCatalog.products.filter(
+    (p) => p.kind === 'door' && p.archivedAt === null,
   );
 
   if (!wallCfg || !building) return null;
@@ -48,9 +57,24 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
     updateBuildingWall(buildingId, wallId, { [field]: value });
   }
 
+  const activeSupplierProduct = wallCfg.doorSupplierProductId
+    ? supplierCatalog.products.find(p => p.id === wallCfg.doorSupplierProductId) ?? null
+    : null;
+  const activeSupplier = activeSupplierProduct
+    ? supplierCatalog.suppliers.find(s => s.id === activeSupplierProduct.supplierId) ?? null
+    : null;
+
+  const mode = wallCfg.doorSupplierProductId ? 'catalog' : 'custom';
+
   const sizeLabel = wallCfg.doorSize === 'dubbel'
     ? `${(DOUBLE_DOOR_W * 100).toFixed(0)} × 210`
     : `${(DOOR_W * 100).toFixed(0)} × 210`;
+
+  const doorSummaryLabel = activeSupplierProduct
+    ? `${activeSupplierProduct.name} · ${activeSupplierProduct.widthMm} × ${activeSupplierProduct.heightMm} mm`
+    : wallCfg.doorSize === 'dubbel'
+      ? `${t('surface.doorSize.dubbel')} · ${sizeLabel}`
+      : `${t('surface.doorSize.enkel')} · ${sizeLabel}`;
 
   return (
     <div className="space-y-2">
@@ -80,7 +104,7 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground tabular-nums">
-                {wallCfg.doorSize === 'dubbel' ? t('surface.doorSize.dubbel') : t('surface.doorSize.enkel')} · {sizeLabel}
+                {doorSummaryLabel}
               </span>
               <button
                 onClick={(e) => {
@@ -97,135 +121,223 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
           {/* Expanded properties */}
           {expanded && (
             <div className="border-t border-border/50 px-3 py-3 space-y-3 bg-muted/20">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <SectionLabel>{t('surface.doorMaterial')}</SectionLabel>
-                  <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer select-none">
-                    <Checkbox
-                      checked={wallCfg.doorMaterialId !== undefined}
-                      onCheckedChange={(checked) => {
-                        handleChange(
-                          'doorMaterialId',
-                          checked ? getEffectiveDoorMaterial(wallCfg, building) : undefined,
-                        );
-                      }}
-                    />
-                    {t('material.override')}
-                  </label>
-                </div>
-                <MaterialSelect
-                  catalog={doorCatalog}
-                  value={getEffectiveDoorMaterial(wallCfg, building)}
-                  disabled={wallCfg.doorMaterialId === undefined}
-                  onChange={(atomId) => handleChange('doorMaterialId', atomId as DoorMaterialId)}
-                  category="door"
-                  ariaLabel={t('surface.doorMaterial')}
-                />
-                {sourceProduct?.constraints.allowedMaterialsBySlot?.door?.length ? (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {t('configurator.picker.kitRestricted')}
-                  </p>
-                ) : null}
-                {wallCfg.doorMaterialId === undefined && (
-                  <p className="text-[11px] text-muted-foreground italic">{t('material.inherit')}</p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <SectionLabel>{t('surface.doorSize')}</SectionLabel>
-                <div className="flex items-center gap-2">
-                  <ToggleGroup
-                    type="single"
-                    value={wallCfg.doorSize}
-                    onValueChange={(v) => { if (v) handleChange('doorSize', v); }}
-                    className="flex-1"
-                    variant="outline"
-                    size="sm"
-                  >
-                    <ToggleGroupItem value="enkel" className="flex-1 text-xs">
-                      {t('surface.doorSize.enkel')}
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="dubbel" className="flex-1 text-xs">
-                      {t('surface.doorSize.dubbel')}
-                    </ToggleGroupItem>
-                  </ToggleGroup>
-
-                  <div className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5">
-                    <Checkbox
-                      id="door-window"
-                      checked={wallCfg.doorHasWindow}
-                      onCheckedChange={(checked) => handleChange('doorHasWindow', !!checked)}
-                    />
-                    <Label htmlFor="door-window" className="cursor-pointer text-xs text-muted-foreground whitespace-nowrap">
-                      Raam
-                    </Label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <SectionLabel>{t('surface.doorPosition')}</SectionLabel>
-                <ToggleGroup
-                  type="single"
-                  value={
-                    Math.abs(wallCfg.doorPosition - linksPos) < 0.01 ? 'links'
-                      : Math.abs(wallCfg.doorPosition - rechtsPos) < 0.01 ? 'rechts'
-                      : Math.abs(wallCfg.doorPosition - 0.5) < 0.01 ? 'midden'
-                      : ''
+              <Tabs
+                value={mode}
+                onValueChange={(v) => {
+                  if (v === 'custom') {
+                    setDoorSupplierProduct(buildingId, wallId, null);
                   }
-                  onValueChange={(v) => {
-                    if (v === 'links') handleChange('doorPosition', linksPos);
-                    else if (v === 'midden') handleChange('doorPosition', 0.5);
-                    else if (v === 'rechts') handleChange('doorPosition', rechtsPos);
-                  }}
-                  className="w-full"
-                  variant="outline"
-                  size="sm"
-                >
-                  <ToggleGroupItem value="links" className="flex-1 text-xs">
-                    {t('surface.doorPosition.links')}
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="midden" className="flex-1 text-xs">
-                    {t('surface.doorPosition.midden')}
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="rechts" className="flex-1 text-xs">
-                    {t('surface.doorPosition.rechts')}
-                  </ToggleGroupItem>
-                </ToggleGroup>
-              </div>
+                }}
+              >
+                <TabsList className="w-full">
+                  <TabsTrigger value="custom" className="flex-1 text-xs">
+                    {t('configurator.door.tab.custom')}
+                  </TabsTrigger>
+                  <TabsTrigger value="catalog" className="flex-1 text-xs">
+                    {t('configurator.door.tab.catalog')}
+                  </TabsTrigger>
+                </TabsList>
 
-              <div className="space-y-1.5">
-                <SectionLabel>{t('surface.doorSwing')}</SectionLabel>
-                <ToggleGroup
-                  type="single"
-                  value={wallCfg.doorSwing}
-                  onValueChange={(v) => { if (v) handleChange('doorSwing', v); }}
-                  className="w-full"
-                  variant="outline"
-                  size="sm"
-                >
-                  <ToggleGroupItem value="dicht" className="flex-1 text-xs">
-                    {t('surface.doorSwing.dicht')}
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="naar_binnen" className="flex-1 text-xs">
-                    {t('surface.doorSwing.naar_binnen')}
-                  </ToggleGroupItem>
-                  <ToggleGroupItem value="naar_buiten" className="flex-1 text-xs">
-                    {t('surface.doorSwing.naar_buiten')}
-                  </ToggleGroupItem>
-                </ToggleGroup>
-                <label
-                  htmlFor="door-mirror"
-                  className="flex items-center gap-2 pt-1 cursor-pointer text-xs text-muted-foreground"
-                >
-                  <Checkbox
-                    id="door-mirror"
-                    checked={wallCfg.doorMirror ?? false}
-                    onCheckedChange={(checked) => handleChange('doorMirror', !!checked)}
-                  />
-                  {t('surface.doorMirror')}
-                </label>
-              </div>
+                {/* Eigen keuze tab */}
+                <TabsContent value="custom" className="space-y-3 mt-3">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <SectionLabel>{t('surface.doorMaterial')}</SectionLabel>
+                      <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer select-none">
+                        <Checkbox
+                          checked={wallCfg.doorMaterialId !== undefined}
+                          onCheckedChange={(checked) => {
+                            handleChange(
+                              'doorMaterialId',
+                              checked ? getEffectiveDoorMaterial(wallCfg, building) : undefined,
+                            );
+                          }}
+                        />
+                        {t('material.override')}
+                      </label>
+                    </div>
+                    <MaterialSelect
+                      catalog={doorCatalog}
+                      value={getEffectiveDoorMaterial(wallCfg, building)}
+                      disabled={wallCfg.doorMaterialId === undefined}
+                      onChange={(atomId) => handleChange('doorMaterialId', atomId as DoorMaterialId)}
+                      category="door"
+                      ariaLabel={t('surface.doorMaterial')}
+                    />
+                    {sourceProduct?.constraints.allowedMaterialsBySlot?.door?.length ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {t('configurator.picker.kitRestricted')}
+                      </p>
+                    ) : null}
+                    {wallCfg.doorMaterialId === undefined && (
+                      <p className="text-[11px] text-muted-foreground italic">{t('material.inherit')}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <SectionLabel>{t('surface.doorSize')}</SectionLabel>
+                    <div className="flex items-center gap-2">
+                      <ToggleGroup
+                        type="single"
+                        value={wallCfg.doorSize}
+                        onValueChange={(v) => { if (v) handleChange('doorSize', v); }}
+                        className="flex-1"
+                        variant="outline"
+                        size="sm"
+                      >
+                        <ToggleGroupItem value="enkel" className="flex-1 text-xs">
+                          {t('surface.doorSize.enkel')}
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="dubbel" className="flex-1 text-xs">
+                          {t('surface.doorSize.dubbel')}
+                        </ToggleGroupItem>
+                      </ToggleGroup>
+
+                      <div className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5">
+                        <Checkbox
+                          id="door-window"
+                          checked={wallCfg.doorHasWindow}
+                          onCheckedChange={(checked) => handleChange('doorHasWindow', !!checked)}
+                        />
+                        <Label htmlFor="door-window" className="cursor-pointer text-xs text-muted-foreground whitespace-nowrap">
+                          Raam
+                        </Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <SectionLabel>{t('surface.doorPosition')}</SectionLabel>
+                    <ToggleGroup
+                      type="single"
+                      value={
+                        Math.abs(wallCfg.doorPosition - linksPos) < 0.01 ? 'links'
+                          : Math.abs(wallCfg.doorPosition - rechtsPos) < 0.01 ? 'rechts'
+                          : Math.abs(wallCfg.doorPosition - 0.5) < 0.01 ? 'midden'
+                          : ''
+                      }
+                      onValueChange={(v) => {
+                        if (v === 'links') handleChange('doorPosition', linksPos);
+                        else if (v === 'midden') handleChange('doorPosition', 0.5);
+                        else if (v === 'rechts') handleChange('doorPosition', rechtsPos);
+                      }}
+                      className="w-full"
+                      variant="outline"
+                      size="sm"
+                    >
+                      <ToggleGroupItem value="links" className="flex-1 text-xs">
+                        {t('surface.doorPosition.links')}
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="midden" className="flex-1 text-xs">
+                        {t('surface.doorPosition.midden')}
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="rechts" className="flex-1 text-xs">
+                        {t('surface.doorPosition.rechts')}
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <SectionLabel>{t('surface.doorSwing')}</SectionLabel>
+                    <ToggleGroup
+                      type="single"
+                      value={wallCfg.doorSwing}
+                      onValueChange={(v) => { if (v) handleChange('doorSwing', v); }}
+                      className="w-full"
+                      variant="outline"
+                      size="sm"
+                    >
+                      <ToggleGroupItem value="dicht" className="flex-1 text-xs">
+                        {t('surface.doorSwing.dicht')}
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="naar_binnen" className="flex-1 text-xs">
+                        {t('surface.doorSwing.naar_binnen')}
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="naar_buiten" className="flex-1 text-xs">
+                        {t('surface.doorSwing.naar_buiten')}
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                    <label
+                      htmlFor="door-mirror"
+                      className="flex items-center gap-2 pt-1 cursor-pointer text-xs text-muted-foreground"
+                    >
+                      <Checkbox
+                        id="door-mirror"
+                        checked={wallCfg.doorMirror ?? false}
+                        onCheckedChange={(checked) => handleChange('doorMirror', !!checked)}
+                      />
+                      {t('surface.doorMirror')}
+                    </label>
+                  </div>
+                </TabsContent>
+
+                {/* Uit catalogus tab */}
+                <TabsContent value="catalog" className="mt-3 space-y-2">
+                  {supplierDoors.length === 0 ? (
+                    <p className="text-xs text-muted-foreground py-2">
+                      {t('configurator.supplier.picker.empty')}
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                      {supplierDoors.map((prod) => {
+                        const supplier = supplierCatalog.suppliers.find(s => s.id === prod.supplierId);
+                        const isSelected = wallCfg.doorSupplierProductId === prod.id;
+                        return (
+                          <Card
+                            key={prod.id}
+                            className={`cursor-pointer transition-colors ${isSelected ? 'ring-2 ring-primary border-primary' : 'hover:bg-muted/30'}`}
+                            onClick={() => setDoorSupplierProduct(buildingId, wallId, prod.id)}
+                          >
+                            <CardContent className="p-2 flex gap-2 items-start">
+                              {prod.heroImage ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={prod.heroImage}
+                                  alt={prod.name}
+                                  className="w-12 h-12 object-cover rounded shrink-0"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded bg-muted shrink-0 flex items-center justify-center">
+                                  <span className="text-[10px] text-muted-foreground">No img</span>
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-medium truncate">{prod.name}</p>
+                                {supplier && (
+                                  <p className="text-[11px] text-muted-foreground truncate">{supplier.name}</p>
+                                )}
+                                <p className="text-[11px] text-muted-foreground">
+                                  {t('configurator.supplier.picker.dimensions', { width: prod.widthMm, height: prod.heightMm })}
+                                </p>
+                                <p className="text-[11px] font-medium">
+                                  {t('configurator.supplier.picker.price', { price: (prod.priceCents / 100).toFixed(0) })}
+                                </p>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {activeSupplierProduct && activeSupplier && (
+                    <p className="text-[11px] text-muted-foreground">
+                      {t('configurator.supplier.lockInfo', {
+                        supplier: activeSupplier.name,
+                        width: activeSupplierProduct.widthMm,
+                        height: activeSupplierProduct.heightMm,
+                      })}
+                    </p>
+                  )}
+                  {wallCfg.doorSupplierProductId && (
+                    <button
+                      onClick={() => setDoorSupplierProduct(buildingId, wallId, null)}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors underline"
+                    >
+                      {t('configurator.supplier.clearSelection')}
+                    </button>
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
           )}
         </div>
