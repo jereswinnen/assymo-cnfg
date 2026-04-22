@@ -20,6 +20,8 @@ const STATIC_LABELS: Record<string, string> = {
   '/admin/catalog/materials/new': 'admin.catalog.materials.new',
   '/admin/catalog/products': 'admin.nav.catalog.products',
   '/admin/catalog/products/new': 'admin.catalog.products.new',
+  '/admin/catalog/suppliers': 'admin.nav.catalog.suppliers',
+  '/admin/catalog/suppliers/new': 'admin.catalog.suppliers.new',
 };
 
 /** Resolve breadcrumbs for a pathname.

@@ -12,6 +12,7 @@ import {
   Palette,
   Receipt,
   Store,
+  Truck,
   Users,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -159,6 +160,18 @@ export function Sidebar({ role, tenantId, name, email }: Props) {
                   <Link href="/admin/catalog/products">
                     <Boxes />
                     <span>{t('admin.nav.catalog.products')}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === '/admin/catalog/suppliers' || pathname.startsWith('/admin/catalog/suppliers/')}
+                  tooltip={t('admin.nav.catalog.suppliers')}
+                >
+                  <Link href="/admin/catalog/suppliers">
+                    <Truck />
+                    <span>{t('admin.nav.catalog.suppliers')}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
