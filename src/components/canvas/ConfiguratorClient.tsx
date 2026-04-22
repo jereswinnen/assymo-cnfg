@@ -18,23 +18,56 @@ const BuildingScene = dynamic(
   { ssr: false },
 );
 
-/** Reads ?product= from the URL and on first mount replaces the default
- *  initial scene with a building spawned from that product's defaults.
+/** Reads `?product=<slug>`, `?code=<code>`, or `?fresh=1` from the URL on
+ *  first mount and hydrates the scene accordingly. Precedence:
+ *   - `product`: instantiate one building from that product's defaults.
+ *   - `code`: fetch the saved scene from `/api/configs/[code]` and load it.
+ *   - `fresh`: reset the store to an empty canvas (used by "Bouw van nul"
+ *     so persisted state doesn't bleed in).
+ *  No-query navigation preserves whatever the persist middleware rehydrated.
  *  Extracted into its own component because useSearchParams() requires a
  *  Suspense boundary in the App Router. */
-function ProductHydration() {
+function SceneHydration() {
   const { catalog } = useTenant();
   const params = useSearchParams();
   const productSlug = params.get('product');
+  const code = params.get('code');
+  const fresh = params.get('fresh');
   const replaceWithProduct = useConfigStore((s) => s.replaceWithProduct);
+  const resetConfig = useConfigStore((s) => s.resetConfig);
+  const loadState = useConfigStore((s) => s.loadState);
 
   useEffect(() => {
-    if (!productSlug) return;
-    const product = catalog.products.find((p) => p.slug === productSlug);
-    if (!product) return;
-    const defaults = applyProductDefaults(product);
-    replaceWithProduct(defaults);
-    // Only run once on initial mount with ?product=.
+    if (productSlug) {
+      const product = catalog.products.find((p) => p.slug === productSlug);
+      if (!product) return;
+      const defaults = applyProductDefaults(product);
+      replaceWithProduct(defaults);
+      return;
+    }
+    if (code) {
+      let cancelled = false;
+      fetch(`/api/configs/${code}`)
+        .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+        .then((body) => {
+          if (cancelled) return;
+          const d = body.data as {
+            buildings: Parameters<typeof loadState>[0];
+            connections: Parameters<typeof loadState>[1];
+            roof: Parameters<typeof loadState>[2];
+            defaultHeight?: number;
+          };
+          loadState(d.buildings, d.connections, d.roof, d.defaultHeight);
+        })
+        .catch(() => {
+          // Silent fail — leaves whatever was persisted in place.
+        });
+      return () => { cancelled = true; };
+    }
+    if (fresh) {
+      resetConfig();
+    }
+    // Only run once on initial mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -126,7 +159,7 @@ export default function ConfiguratorClient() {
     <div className="relative h-full flex">
       {/* Hydrate the scene from ?product=<slug> when the store is empty. */}
       <Suspense fallback={null}>
-        <ProductHydration />
+        <SceneHydration />
       </Suspense>
       {viewMode === 'split' ? (
         <>

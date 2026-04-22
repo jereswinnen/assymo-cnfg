@@ -42,7 +42,7 @@ export function LandingGrid({ products }: { products: ProductRow[] }) {
           <h3 className="text-lg font-semibold">{t('landing.blankSlate.title')}</h3>
           <p className="text-sm text-muted-foreground">{t('landing.blankSlate.body')}</p>
           <Button asChild variant="outline">
-            <Link href="/configurator">{t('landing.blankSlate.title')}</Link>
+            <Link href="/configurator?fresh=1">{t('landing.blankSlate.title')}</Link>
           </Button>
         </CardContent>
       </Card>

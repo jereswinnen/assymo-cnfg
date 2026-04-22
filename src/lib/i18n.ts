@@ -672,6 +672,8 @@ const nl: Record<string, string> = {
   'landing.product.configure':  'Configureren',
   'landing.blankSlate.title':   'Bouw van nul',
   'landing.blankSlate.body':    'Start met een leeg canvas en bouw stap voor stap.',
+  'landing.loadCode.placeholder': 'Heb je een code? Plak hem hier.',
+  'landing.loadCode.submit':    'Open scène',
   'configurator.tray.kits':     'Bouwsets',
   'configurator.tray.primitives': 'Losse elementen',
   'configurator.building.kitChip': 'Bouwset: {name}',
