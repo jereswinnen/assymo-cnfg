@@ -1,6 +1,5 @@
 import type { BuildingEntity, RoofConfig } from '@/domain/building';
 import { t } from '@/lib/i18n';
-import { encodeState } from '@/domain/config';
 import type { SnapConnection } from '@/domain/building';
 import {
   getAvailableWallIds,
@@ -100,13 +99,13 @@ function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHei
   return rows.join('\n');
 }
 
-export function exportFloorPlan(buildings: BuildingEntity[], connections: SnapConnection[], roof: RoofConfig, priceBook: PriceBook, materials: MaterialRow[], defaultHeight: number = 3) {
+export function exportFloorPlan(buildings: BuildingEntity[], connections: SnapConnection[], roof: RoofConfig, priceBook: PriceBook, materials: MaterialRow[], defaultHeight: number = 3, shareCode?: string) {
   const svgEl = document.querySelector('.schematic-svg');
   if (!svgEl) return;
   const svgMarkup = svgEl.outerHTML;
 
   const specRows = buildSpecRows(buildings, roof, defaultHeight, priceBook, materials);
-  const configCode = encodeState(buildings, connections, roof, defaultHeight);
+  const configCode = shareCode ?? '—';
   const title = `${t('app.title')} — ${t('schematic.title')}`;
   const date = new Date().toLocaleDateString('nl-NL', {
     year: 'numeric',

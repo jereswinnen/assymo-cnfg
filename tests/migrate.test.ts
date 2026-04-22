@@ -5,7 +5,17 @@ import {
   migrateConfig,
   type LegacyBuilding,
 } from '@/domain/config';
-import { DEFAULT_PRIMARY_MATERIAL, DEFAULT_ROOF } from '@/domain/building';
+import { DEFAULT_PRIMARY_MATERIAL } from '@/domain/building';
+
+const BASE_ROOF = {
+  type: 'flat' as const,
+  pitch: 0,
+  coveringId: 'epdm' as const,
+  trimMaterialId: 'wood',
+  insulation: true,
+  insulationThickness: 150,
+  hasSkylight: false,
+};
 
 const legacyBuilding: LegacyBuilding = {
   id: 'legacy-1',
@@ -51,7 +61,7 @@ describe('migrateConfig', () => {
     const out = migrateConfig({
       buildings: [legacyBuilding],
       connections: [],
-      roof: { ...DEFAULT_ROOF },
+      roof: { ...BASE_ROOF },
     });
     expect(out.version).toBe(CONFIG_VERSION);
   });
@@ -60,7 +70,7 @@ describe('migrateConfig', () => {
     const out = migrateConfig({
       buildings: [{ ...legacyBuilding, dimensions: { width: 4, depth: 4, height: 2.8 } }],
       connections: [],
-      roof: { ...DEFAULT_ROOF },
+      roof: { ...BASE_ROOF },
     });
     expect(out.defaultHeight).toBe(2.8);
   });
@@ -69,7 +79,7 @@ describe('migrateConfig', () => {
     const out = migrateConfig({
       buildings: [{ ...legacyBuilding, id: 'p', type: 'paal' }],
       connections: [],
-      roof: { ...DEFAULT_ROOF },
+      roof: { ...BASE_ROOF },
     });
     expect(out.defaultHeight).toBe(3);
   });
@@ -78,7 +88,7 @@ describe('migrateConfig', () => {
     const out = migrateConfig({
       buildings: [legacyBuilding],
       connections: [],
-      roof: { ...DEFAULT_ROOF },
+      roof: { ...BASE_ROOF },
       defaultHeight: 2.5,
     });
     expect(out.defaultHeight).toBe(2.5);

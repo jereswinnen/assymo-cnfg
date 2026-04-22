@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
-import { encodeState } from '@/domain/config';
+import type { ConfigData } from '@/domain/config';
 
 export interface SubmitOrderContact {
   name: string;
@@ -12,7 +12,8 @@ export interface SubmitOrderContact {
 }
 
 export interface SubmitOrderInput {
-  code: string;
+  /** ConfigData being saved. Sent to /api/configs; server mints a short code. */
+  data: ConfigData;
   contact: SubmitOrderContact;
   /** Injectable fetch for tests. Defaults to `globalThis.fetch`. */
   fetch?: (input: string, init?: RequestInit) => Promise<Response>;
@@ -57,36 +58,38 @@ async function postJson<T>(
   return { status: res.status, data };
 }
 
-/** Pure (non-React) submit helper. Lives in the same file as the hook
- *  so the hook can call it directly, but exported so tests can target
- *  it without setting up React. */
-export async function submitOrder(
-  input: SubmitOrderInput,
-): Promise<SubmitOrderResult> {
-  const fetchFn = input.fetch ?? globalThis.fetch;
-
-  // Step 1 — persist the share code (idempotent per tenant, code).
+async function saveConfig(
+  data: ConfigData,
+  fetchFn: NonNullable<SubmitOrderInput['fetch']> = globalThis.fetch,
+): Promise<{ kind: 'ok'; id: string; code: string } | { kind: 'error'; code: string; details?: string[] }> {
   try {
-    const { status, data } = await postJson<{ id: string; code: string }>(
+    const { status, data: resBody } = await postJson<{ id: string; code: string }>(
       fetchFn,
       '/api/configs',
-      { code: input.code },
+      { data },
     );
-    if (status !== 200 && status !== 201) {
-      const err = data as ErrorResponseBody;
-      return {
-        kind: 'error',
-        code: typeof err.error === 'string' ? err.error : 'unknown',
-      };
+    if (status === 200 || status === 201) {
+      const ok = resBody as { id: string; code: string };
+      return { kind: 'ok', id: ok.id, code: ok.code };
     }
+    const err = resBody as ErrorResponseBody;
+    return {
+      kind: 'error',
+      code: typeof err.error === 'string' ? err.error : 'unknown',
+      details: Array.isArray(err.details)
+        ? err.details.filter((d): d is string => typeof d === 'string')
+        : undefined,
+    };
   } catch (e) {
-    if (e instanceof TypeError) {
-      return { kind: 'error', code: 'network' };
-    }
+    if (e instanceof TypeError) return { kind: 'error', code: 'network' };
     return { kind: 'error', code: 'unknown' };
   }
+}
 
-  // Step 2 — submit the order.
+async function submitOrderFromCode(
+  input: { code: string; contact: SubmitOrderContact; fetch?: SubmitOrderInput['fetch'] },
+): Promise<SubmitOrderResult> {
+  const fetchFn = input.fetch ?? globalThis.fetch;
   try {
     const { status, data } = await postJson<{
       id: string;
@@ -122,11 +125,22 @@ export async function submitOrder(
         : undefined,
     };
   } catch (e) {
-    if (e instanceof TypeError) {
-      return { kind: 'error', code: 'network' };
-    }
+    if (e instanceof TypeError) return { kind: 'error', code: 'network' };
     return { kind: 'error', code: 'unknown' };
   }
+}
+
+/** Pure (non-React) submit helper. Chains the two POSTs:
+ *  1) persist ConfigData → get short code
+ *  2) submit order with that code. */
+export async function submitOrder(
+  input: SubmitOrderInput,
+): Promise<SubmitOrderResult> {
+  const save = await saveConfig(input.data, input.fetch);
+  if (save.kind === 'error') {
+    return { kind: 'error', code: save.code, details: save.details };
+  }
+  return submitOrderFromCode({ code: save.code, contact: input.contact, fetch: input.fetch });
 }
 
 export type SubmitOrderHookState =
@@ -143,7 +157,7 @@ export type SubmitOrderHookState =
 
 export interface UseSubmitOrderReturn {
   state: SubmitOrderHookState;
-  /** Reads the current config store, encodes the state, and chains the
+  /** Reads the current config store, extracts ConfigData, and chains the
    *  two POSTs. Returns the same result object so callers can react to
    *  success inline (e.g. switch the dialog to the confirmation view)
    *  in the same tick that the component sees the updated state. */
@@ -159,10 +173,10 @@ export function useSubmitOrder(): UseSubmitOrderReturn {
   const submit = useCallback(
     async (contact: SubmitOrderContact): Promise<SubmitOrderResult> => {
       setState({ kind: 'submitting' });
-      const { buildings, connections, roof, defaultHeight } =
+      const { version, buildings, connections, roof, defaultHeight } =
         useConfigStore.getState();
-      const code = encodeState(buildings, connections, roof, defaultHeight);
-      const result = await submitOrder({ code, contact });
+      const data: ConfigData = { version, buildings, connections, roof, defaultHeight };
+      const result = await submitOrder({ data, contact });
       setState(result);
       return result;
     },

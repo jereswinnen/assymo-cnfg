@@ -189,10 +189,10 @@ const nl: Record<string, string> = {
   'code.currentLabel': 'Uw configuratiecode',
   'code.copy': 'Kopieer',
   'code.copied': 'Gekopieerd!',
-  'code.loadTitle': 'Code laden',
-  'code.loadPlaceholder': 'Voer code in...',
-  'code.load': 'Laden',
-  'code.invalidCode': 'Ongeldige code',
+  'code.save': 'Code opslaan',
+  'code.saveHint': 'Klik opslaan om deze configuratie een korte deelcode te geven.',
+  'code.shareHint': 'Deel deze code met je klant — ze kunnen je scène openen via de link.',
+  'code.saveFailed': 'Opslaan mislukt. Probeer opnieuw.',
 
   // Admin shell
   'admin.title': 'Beheer',
@@ -424,24 +424,6 @@ const nl: Record<string, string> = {
     'We nemen binnen één werkdag contact met je op. Zodra we je offerte bevestigen, zie je de status hier wijzigen naar "Offerte verstuurd".',
   // Shop — fetch errors
   'shop.error.loading': 'Kon je bestellingen niet laden. Vernieuw de pagina.',
-  // Admin — registry / materials
-  'admin.nav.registry': 'Materialen',
-  'admin.tenant.section.materials': 'Materialen',
-  'admin.registry.title': 'Materialen',
-  'admin.registry.lead':
-    'Kies welke materialen in de configurator getoond worden voor deze tenant.',
-  'admin.registry.unrestricted.label': 'Alle materialen tonen',
-  'admin.registry.unrestricted.help':
-    'Schakel uit om een eigen selectie te kiezen. Uit = alleen aangevinkte materialen zijn beschikbaar.',
-  'admin.registry.group.wall': 'Wandmaterialen',
-  'admin.registry.group.roofCover': 'Dakbedekking',
-  'admin.registry.group.roofTrim': 'Daktrim',
-  'admin.registry.group.floor': 'Vloeren',
-  'admin.registry.group.door': 'Deuren',
-  'admin.registry.sharedSlugHint':
-    'Dit materiaal komt in meerdere categorieën voor — aan/uit zetten geldt overal.',
-  'admin.registry.noTenant':
-    'Je bent super_admin zonder eigen tenant. Open een tenantdetailpagina om materialen te beheren.',
   // Admin — sidebar + invoices
   'admin.nav.invoices': 'Facturen',
   // Admin — tenant section heading
@@ -554,7 +536,12 @@ const nl: Record<string, string> = {
   'admin.catalog.materials.action.cancel':   'Annuleren',
   'admin.catalog.materials.action.archive':  'Archiveren',
   'admin.catalog.materials.action.restore':  'Herstellen',
+  'admin.catalog.materials.action.duplicate': 'Dupliceren',
   'admin.catalog.materials.action.edit':     'Bewerken',
+  'admin.catalog.materials.filter.archived.show': 'Gearchiveerde tonen',
+  'admin.catalog.materials.filter.archived.hide': 'Gearchiveerde verbergen',
+  'admin.catalog.materials.bulk.archive': 'Archiveer selectie',
+  'admin.catalog.materials.bulk.count': '{count} geselecteerd',
 
   'admin.catalog.materials.error.slug_invalid':     'Ongeldige slug (alleen kleine letters, cijfers en koppeltekens)',
   'admin.catalog.materials.error.slug_taken':       'Deze slug is al in gebruik voor deze categorie',
@@ -624,7 +611,12 @@ const nl: Record<string, string> = {
   'admin.catalog.products.action.cancel':   'Annuleren',
   'admin.catalog.products.action.archive':  'Archiveren',
   'admin.catalog.products.action.restore':  'Herstellen',
+  'admin.catalog.products.action.duplicate': 'Dupliceren',
   'admin.catalog.products.action.edit':     'Bewerken',
+  'admin.catalog.products.filter.archived.show': 'Gearchiveerde tonen',
+  'admin.catalog.products.filter.archived.hide': 'Gearchiveerde verbergen',
+  'admin.catalog.products.bulk.archive': 'Archiveer selectie',
+  'admin.catalog.products.bulk.count': '{count} geselecteerd',
 
   'admin.catalog.products.error.slug_invalid':               'Ongeldige slug (alleen kleine letters, cijfers en koppeltekens)',
   'admin.catalog.products.error.slug_taken':                 'Deze slug is al in gebruik',
@@ -638,6 +630,40 @@ const nl: Record<string, string> = {
   'admin.catalog.products.error.default_material_not_found': 'Standaardmateriaal bestaat niet in deze categorie',
   'admin.catalog.products.error.allowed_material_not_found': 'Toegestaan materiaal bestaat niet in deze categorie',
   'admin.catalog.products.error.constraints_invalid':        'Ongeldige grenzen (min ≤ max, slugs moeten bestaan)',
+
+  // Admin — catalog / form sections + actions
+  'admin.catalog.form.section.basics': 'Basis',
+  'admin.catalog.form.section.options': 'Opties',
+  'admin.catalog.form.section.priceSort': 'Prijs & volgorde',
+
+  'admin.catalog.materials.field.tileWidth': 'Tegel breedte (m)',
+  'admin.catalog.materials.field.tileHeight': 'Tegel hoogte (m)',
+  'admin.catalog.materials.archive.title': 'Materiaal archiveren?',
+  'admin.catalog.materials.archive.description':
+    'Het materiaal blijft in historische bestellingen bewaard, maar verschijnt niet meer in de configurator.',
+  'admin.catalog.materials.toast.saved': 'Opgeslagen',
+  'admin.catalog.materials.toast.archived': 'Gearchiveerd',
+  'admin.catalog.materials.toast.saveFailed': 'Opslaan mislukt',
+  'admin.catalog.materials.toast.archiveFailed': 'Archiveren mislukt',
+  'admin.catalog.materials.field.category': 'Categorie',
+
+  'admin.catalog.products.archive.title': 'Product archiveren?',
+  'admin.catalog.products.archive.description':
+    'Historische bestellingen blijven bewaard, maar het product verschijnt niet meer op de landingspagina.',
+  'admin.catalog.products.toast.saved': 'Opgeslagen',
+  'admin.catalog.products.toast.archived': 'Gearchiveerd',
+  'admin.catalog.products.toast.saveFailed': 'Opslaan mislukt',
+  'admin.catalog.products.toast.archiveFailed': 'Archiveren mislukt',
+  'admin.catalog.products.toast.reorderFailed': 'Volgorde opslaan mislukt',
+
+  'admin.catalog.uploads.replace': 'Vervangen',
+  'admin.catalog.uploads.upload': 'Uploaden',
+  'admin.catalog.uploads.remove': 'Verwijderen',
+
+  'admin.catalog.multiselect.placeholderAll': 'Alle toegestaan',
+  'admin.catalog.multiselect.placeholderCount': '{count} geselecteerd',
+  'admin.catalog.multiselect.search': 'Zoek materiaal…',
+  'admin.catalog.multiselect.empty': 'Geen materialen gevonden.',
 
   // Landing page + configurator tray
   'landing.hero.title':         '{displayName}',

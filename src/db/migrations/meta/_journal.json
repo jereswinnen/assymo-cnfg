@@ -85,6 +85,13 @@
       "when": 1776798742732,
       "tag": "0011_vengeful_karen_page",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1776836614282,
+      "tag": "0012_easy_kulan_gath",
+      "breakpoints": true
     }
   ]
 }

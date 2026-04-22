@@ -2,56 +2,61 @@
 
 import { useState, useCallback } from 'react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
-import { QrCode, Copy, Check, X } from 'lucide-react';
+import { QrCode, Copy, Check, X, Loader2 } from 'lucide-react';
 import { useConfigStore } from '@/store/useConfigStore';
-import { encodeState, decodeState, formatCode } from '@/domain/config';
+import type { ConfigData } from '@/domain/config';
 import { t } from '@/lib/i18n';
 
 export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = {}) {
+  const version = useConfigStore((s) => s.version);
   const buildings = useConfigStore((s) => s.buildings);
   const connections = useConfigStore((s) => s.connections);
   const roof = useConfigStore((s) => s.roof);
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
-  const loadState = useConfigStore((s) => s.loadState);
 
   const [open, setOpen] = useState(false);
+  const [code, setCode] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [inputValue, setInputValue] = useState('');
-  const [error, setError] = useState('');
 
-  const currentCode = open ? encodeState(buildings, connections, roof, defaultHeight) : '';
+  const handleSave = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const data: ConfigData = { version, buildings, connections, roof, defaultHeight };
+      const res = await fetch('/api/configs', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ data }),
+      });
+      if (!res.ok) {
+        setError(t('code.saveFailed'));
+        return;
+      }
+      const body = (await res.json()) as { code: string };
+      setCode(body.code);
+    } catch {
+      setError(t('code.saveFailed'));
+    } finally {
+      setBusy(false);
+    }
+  }, [version, buildings, connections, roof, defaultHeight]);
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(currentCode).then(() => {
+    if (!code) return;
+    navigator.clipboard.writeText(code).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }, [currentCode]);
-
-  const handleInputChange = (val: string) => {
-    const raw = val.replace(/[^0-9a-zA-Z]/g, '');
-    setInputValue(formatCode(raw));
-    setError('');
-  };
-
-  const handleLoad = () => {
-    try {
-      const { buildings: b, connections: c, roof: r, defaultHeight: dh } = decodeState(inputValue);
-      loadState(b, c, r, dh);
-      setInputValue('');
-      setError('');
-      setOpen(false);
-    } catch {
-      setError(t('code.invalidCode'));
-    }
-  };
+  }, [code]);
 
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
     if (isOpen) {
+      setCode(null);
+      setError(null);
       setCopied(false);
-      setInputValue('');
-      setError('');
     }
   };
 
@@ -82,62 +87,48 @@ export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = 
             </DialogPrimitive.Close>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">
-              {t('code.currentLabel')}
-            </label>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 rounded-lg bg-muted px-3 py-2.5 font-mono text-sm tracking-wider select-all break-all">
-                {currentCode}
+          {code ? (
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">
+                {t('code.currentLabel')}
+              </label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 rounded-lg bg-muted px-3 py-2.5 font-mono text-sm tracking-wider select-all break-all">
+                  {code}
+                </div>
+                <button
+                  onClick={handleCopy}
+                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-3.5 w-3.5" />
+                      {t('code.copied')}
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5" />
+                      {t('code.copy')}
+                    </>
+                  )}
+                </button>
               </div>
-              <button
-                onClick={handleCopy}
-                className="shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                {copied ? (
-                  <>
-                    <Check className="h-3.5 w-3.5" />
-                    {t('code.copied')}
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3.5 w-3.5" />
-                    {t('code.copy')}
-                  </>
-                )}
-              </button>
+              <p className="text-xs text-muted-foreground">{t('code.shareHint')}</p>
             </div>
-          </div>
-
-          <div className="my-5 h-px bg-border" />
-
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">
-              {t('code.loadTitle')}
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => handleInputChange(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && inputValue) handleLoad();
-                }}
-                placeholder={t('code.loadPlaceholder')}
-                className="flex-1 rounded-lg border border-input bg-background px-3 py-2.5 font-mono text-sm tracking-wider placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">{t('code.saveHint')}</p>
               <button
-                onClick={handleLoad}
-                disabled={!inputValue}
-                className="shrink-0 rounded-lg px-4 py-2.5 text-xs font-medium bg-muted text-foreground hover:bg-muted/80 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                onClick={handleSave}
+                disabled={busy}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 disabled:pointer-events-none transition-colors"
               >
-                {t('code.load')}
+                {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {t('code.save')}
               </button>
+              {error && <p className="text-xs text-destructive">{error}</p>}
             </div>
-            {error && (
-              <p className="text-xs text-destructive">{error}</p>
-            )}
-          </div>
+          )}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

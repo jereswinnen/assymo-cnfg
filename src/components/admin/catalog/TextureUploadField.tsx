@@ -68,7 +68,11 @@ export function TextureUploadField({ label, value, onChange, tenantId, slug, slo
             disabled={busy}
             onClick={() => inputRef.current?.click()}
           >
-            {busy ? '…' : value ? 'Vervangen' : 'Uploaden'}
+            {busy
+              ? '…'
+              : value
+                ? t('admin.catalog.uploads.replace')
+                : t('admin.catalog.uploads.upload')}
           </Button>
           {value && (
             <Button
@@ -77,7 +81,7 @@ export function TextureUploadField({ label, value, onChange, tenantId, slug, slo
               size="sm"
               onClick={() => onChange(null)}
             >
-              Verwijderen
+              {t('admin.catalog.uploads.remove')}
             </Button>
           )}
         </div>

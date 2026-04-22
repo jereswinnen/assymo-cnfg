@@ -3,9 +3,18 @@ import type {
   RoofConfig,
   SnapConnection,
 } from '@/domain/building';
-import { DEFAULT_ROOF } from '@/domain/building';
 import type { ConfigData } from '@/domain/config';
 import { CONFIG_VERSION } from '@/domain/config';
+
+const DEFAULT_FIXTURE_ROOF: RoofConfig = {
+  type: 'flat',
+  pitch: 0,
+  coveringId: 'epdm',
+  trimMaterialId: 'wood',
+  insulation: true,
+  insulationThickness: 150,
+  hasSkylight: false,
+};
 
 /** Deterministic test fixtures — avoid crypto.randomUUID() so snapshots
  *  and assertions stay stable. */
@@ -26,50 +35,25 @@ export function makeBuilding(
 }
 
 export function makeRoof(overrides: Partial<RoofConfig> = {}): RoofConfig {
-  return { ...DEFAULT_ROOF, ...overrides };
+  return { ...DEFAULT_FIXTURE_ROOF, ...overrides };
 }
 
 export function makeConfig(overrides: Partial<ConfigData> = {}): ConfigData {
+  const blankWall = {
+    hasDoor: false,
+    doorSize: 'enkel' as const,
+    doorHasWindow: false,
+    doorPosition: 0.5,
+    doorSwing: 'naar_buiten' as const,
+    windows: [],
+  };
   return {
     version: CONFIG_VERSION,
     buildings: [
       makeBuilding({
         id: 'b1',
         type: 'berging',
-        walls: {
-          front: {
-            hasDoor: false,
-            doorSize: 'enkel',
-            doorHasWindow: false,
-            doorPosition: 0.5,
-            doorSwing: 'naar_buiten',
-            windows: [],
-          },
-          back: {
-            hasDoor: false,
-            doorSize: 'enkel',
-            doorHasWindow: false,
-            doorPosition: 0.5,
-            doorSwing: 'naar_buiten',
-            windows: [],
-          },
-          left: {
-            hasDoor: false,
-            doorSize: 'enkel',
-            doorHasWindow: false,
-            doorPosition: 0.5,
-            doorSwing: 'naar_buiten',
-            windows: [],
-          },
-          right: {
-            hasDoor: false,
-            doorSize: 'enkel',
-            doorHasWindow: false,
-            doorPosition: 0.5,
-            doorSwing: 'naar_buiten',
-            windows: [],
-          },
-        },
+        walls: { front: { ...blankWall }, back: { ...blankWall }, left: { ...blankWall }, right: { ...blankWall } },
       }),
     ],
     connections: [],

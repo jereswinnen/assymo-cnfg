@@ -7,9 +7,10 @@ import { calculateTotalQuote } from '@/domain/pricing';
 import { resolveApiTenant } from '@/lib/apiTenant';
 import { getTenantMaterials, materialDbRowToDomain } from '@/db/resolveTenant';
 
-/** Fetch a saved config by its share code, migrated to the current
- *  schema version and priced against the tenant's current priceBook
- *  (so price changes in the admin show up immediately). */
+/** Fetch a saved config by its short share code. Data is served from
+ *  `row.data` (authoritative) and migrated on-read; the code column is
+ *  opaque. Prices against the tenant's current priceBook so admin price
+ *  changes show up immediately. */
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ code: string }> },

@@ -1,7 +1,5 @@
 import type {
   BuildingDimensions,
-  WallConfig,
-  RoofConfig,
   FloorConfig,
   BuildingType,
   WallId,
@@ -16,61 +14,13 @@ export const DEFAULT_DIMENSIONS: BuildingDimensions = {
 
 export const DOUBLE_DOOR_W = 1.6;
 
-// Default wall config — materialId/doorMaterialId omitted so new walls
-// inherit from the building's primaryMaterialId.
-export const DEFAULT_WALL: WallConfig = {
-  hasDoor: false,
-  doorSize: 'enkel',
-  doorHasWindow: false,
-  doorPosition: 0.5,
-  doorSwing: 'naar_buiten',
-  doorMirror: false,
-  windows: [],
-};
-
 /** Default building primary material — applied to walls/poles/fascia
  *  whenever no override is set. */
 export const DEFAULT_PRIMARY_MATERIAL = 'wood';
 
-// Default roof config
-export const DEFAULT_ROOF: RoofConfig = {
-  type: 'flat',
-  pitch: 0,
-  coveringId: 'epdm',
-  trimMaterialId: 'wood',
-  insulation: true,
-  insulationThickness: 150,
-  hasSkylight: false,
-};
-
 export const DEFAULT_FLOOR: FloorConfig = {
   materialId: 'geen',
 };
-
-// Generate default walls for a given building type
-export function getDefaultWalls(type: BuildingType): Record<string, WallConfig> {
-  switch (type) {
-    case 'overkapping':
-      return {};
-    case 'berging':
-      return {
-        front: { ...DEFAULT_WALL },
-        back: { ...DEFAULT_WALL },
-        left: { ...DEFAULT_WALL },
-        right: { ...DEFAULT_WALL },
-      };
-    case 'paal':
-      return {};
-    case 'muur':
-      return {
-        front: { ...DEFAULT_WALL },
-      };
-    default: {
-      const _exhaustive: never = type;
-      return _exhaustive;
-    }
-  }
-}
 
 // Available wall IDs for each building type
 export function getAvailableWallIds(type: BuildingType): WallId[] {

@@ -35,13 +35,6 @@ describe('t()', () => {
     );
   });
 
-  it('exposes admin.registry.* keys used by the materials admin', () => {
-    expect(t('admin.nav.registry')).toBe('Materialen');
-    expect(t('admin.registry.title')).toBe('Materialen');
-    expect(t('admin.registry.group.wall')).toBe('Wandmaterialen');
-    expect(t('admin.registry.sharedSlugHint')).toContain('meerdere');
-  });
-
   it('exposes admin.invoices + invoice.pdf keys used by Phase 5', () => {
     expect(t('admin.nav.invoices')).toBe('Facturen');
     expect(t('admin.invoicing.form.bankIban')).toBe('IBAN');

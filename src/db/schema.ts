@@ -47,23 +47,28 @@ export const tenants = pgTable('tenants', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-/** Saved configurator scenes. Every configuration a user saves, shares, or
- *  submits as part of an order lands here. `code` is the base58 share
- *  code (what lives in URLs); `data` is the canonical JSON we serve back
- *  and price. `version` mirrors CONFIG_VERSION at save time so we know
- *  which migrator to apply on read. */
+/** Saved configurator scenes. `code` is a server-minted nanoid(10) short
+ *  ID; `data` is the canonical ConfigData we serve back and price;
+ *  `content_hash` is SHA-256 of `canonicalizeConfig(data)` and drives
+ *  per-tenant dedup — saving the same scene twice returns the existing
+ *  row. `version` mirrors CONFIG_VERSION at save time so migrations apply
+ *  on read. */
 export const configs = pgTable(
   'configs',
   {
     id: text('id').primaryKey(),
     tenantId: text('tenant_id').references(() => tenants.id).notNull(),
     code: text('code').notNull(),
+    contentHash: text('content_hash').notNull(),
     data: jsonb('data').$type<ConfigData>().notNull(),
     version: integer('version').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [uniqueIndex('configs_tenant_code_idx').on(t.tenantId, t.code)],
+  (t) => [
+    uniqueIndex('configs_tenant_code_idx').on(t.tenantId, t.code),
+    uniqueIndex('configs_tenant_content_hash_idx').on(t.tenantId, t.contentHash),
+  ],
 );
 
 /** Hosts that resolve to a given tenant — exact match (`assymo.be`),

@@ -17,15 +17,43 @@ import {
   DEFAULT_DIMENSIONS,
   DEFAULT_FLOOR,
   DEFAULT_PRIMARY_MATERIAL,
-  DEFAULT_ROOF,
-  DEFAULT_WALL,
   POLE_DIMENSIONS,
   WALL_DIMENSIONS,
-  getDefaultWalls,
 } from '@/domain/building';
 import type { ProductBuildingDefaults } from '@/domain/catalog';
 import type { ConfigData } from './types';
 import { CONFIG_VERSION } from './types';
+
+const BLANK_WALL: WallConfig = {
+  hasDoor: false,
+  doorSize: 'enkel',
+  doorHasWindow: false,
+  doorPosition: 0.5,
+  doorSwing: 'naar_buiten',
+  doorMirror: false,
+  windows: [],
+};
+
+function wallsForType(type: BuildingType): Record<string, WallConfig> {
+  switch (type) {
+    case 'overkapping':
+    case 'paal':
+      return {};
+    case 'berging':
+      return {
+        front: { ...BLANK_WALL },
+        back: { ...BLANK_WALL },
+        left: { ...BLANK_WALL },
+        right: { ...BLANK_WALL },
+      };
+    case 'muur':
+      return { front: { ...BLANK_WALL } };
+    default: {
+      const _exhaustive: never = type;
+      return _exhaustive;
+    }
+  }
+}
 
 export const INITIAL_DEFAULT_HEIGHT = 2.6;
 
@@ -42,7 +70,7 @@ export function createBuilding(type: BuildingType, position: [number, number]): 
     position,
     dimensions,
     primaryMaterialId: DEFAULT_PRIMARY_MATERIAL,
-    walls: getDefaultWalls(type),
+    walls: wallsForType(type),
     hasCornerBraces: false,
     floor: (type === 'berging' || type === 'overkapping')
       ? { materialId: 'beton' }
@@ -57,7 +85,15 @@ export function makeInitialConfig(): ConfigData {
     version: CONFIG_VERSION,
     buildings: [createBuilding('berging', [-2, -2])],
     connections: [],
-    roof: { ...DEFAULT_ROOF },
+    roof: {
+      type: 'flat',
+      pitch: 0,
+      coveringId: 'epdm',
+      trimMaterialId: 'wood',
+      insulation: true,
+      insulationThickness: 150,
+      hasSkylight: false,
+    },
     defaultHeight: INITIAL_DEFAULT_HEIGHT,
   };
 }
@@ -97,7 +133,7 @@ export function addBuilding(
         height: productDefaults.dimensions.height ?? baseDims.height,
       },
       primaryMaterialId: productDefaults.primaryMaterialId ?? DEFAULT_PRIMARY_MATERIAL,
-      walls: getDefaultWalls(type),
+      walls: wallsForType(type),
       hasCornerBraces: false,
       floor: productDefaults.floor
         ? { materialId: productDefaults.floor.materialId as FloorMaterialId }
@@ -214,7 +250,7 @@ export function updateBuildingWall(
     ...b,
     walls: {
       ...b.walls,
-      [wallId]: { ...(b.walls[wallId] ?? DEFAULT_WALL), ...patch },
+      [wallId]: { ...(b.walls[wallId] ?? BLANK_WALL), ...patch },
     },
   }));
 }

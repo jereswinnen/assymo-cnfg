@@ -17,6 +17,13 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -154,12 +161,12 @@ export function MaterialForm({
           }
         }
       } else {
-        toast.error('Opslaan mislukt');
+        toast.error(t('admin.catalog.materials.toast.saveFailed'));
       }
       return;
     }
 
-    toast.success('Opgeslagen');
+    toast.success(t('admin.catalog.materials.toast.saved'));
     router.push('/admin/catalog/materials');
     router.refresh();
   }
@@ -168,10 +175,10 @@ export function MaterialForm({
     if (!initial) return;
     const res = await fetch(`/api/admin/materials/${initial.id}`, { method: 'DELETE' });
     if (!res.ok) {
-      toast.error('Archiveren mislukt');
+      toast.error(t('admin.catalog.materials.toast.archiveFailed'));
       return;
     }
-    toast.success('Gearchiveerd');
+    toast.success(t('admin.catalog.materials.toast.archived'));
     router.push('/admin/catalog/materials');
     router.refresh();
   }
@@ -182,7 +189,7 @@ export function MaterialForm({
         {/* Basis */}
         <Card>
           <CardHeader>
-            <CardTitle>Basis</CardTitle>
+            <CardTitle>{t('admin.catalog.form.section.basics')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {mode === 'create' && (
@@ -191,19 +198,21 @@ export function MaterialForm({
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Categorie</FormLabel>
-                    <FormControl>
-                      <select
-                        {...field}
-                        className="h-9 w-full rounded-md border bg-background px-3 text-sm"
-                      >
+                    <FormLabel>{t('admin.catalog.materials.field.category')}</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
                         {MATERIAL_CATEGORIES.map((c) => (
-                          <option key={c} value={c}>
+                          <SelectItem key={c} value={c}>
                             {t(`admin.catalog.materials.category.${c}`)}
-                          </option>
+                          </SelectItem>
                         ))}
-                      </select>
-                    </FormControl>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -305,7 +314,7 @@ export function MaterialForm({
                   name="tileWidth"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tegel breedte (m)</FormLabel>
+                      <FormLabel>{t('admin.catalog.materials.field.tileWidth')}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -326,7 +335,7 @@ export function MaterialForm({
                   name="tileHeight"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tegel hoogte (m)</FormLabel>
+                      <FormLabel>{t('admin.catalog.materials.field.tileHeight')}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -411,7 +420,7 @@ export function MaterialForm({
         {(category === 'wall' || category === 'floor') && (
           <Card>
             <CardHeader>
-              <CardTitle>Opties</CardTitle>
+              <CardTitle>{t('admin.catalog.form.section.options')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {category === 'wall' && (
@@ -477,10 +486,11 @@ export function MaterialForm({
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Materiaal archiveren?</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    {t('admin.catalog.materials.archive.title')}
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
-                    Het materiaal blijft in historische bestellingen bewaard, maar verschijnt
-                    niet meer in de configurator.
+                    {t('admin.catalog.materials.archive.description')}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

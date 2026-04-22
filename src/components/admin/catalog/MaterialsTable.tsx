@@ -1,6 +1,8 @@
 'use client';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { MoreHorizontal } from 'lucide-react';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +30,17 @@ function formatPrice(m: MaterialRow): string {
 }
 
 export function MaterialsTable({ materials }: { materials: MaterialRow[] }) {
+  const router = useRouter();
+  async function handleRestore(id: string) {
+    const res = await fetch(`/api/admin/materials/${id}/restore`, { method: 'POST' });
+    if (!res.ok) {
+      toast.error(t('admin.catalog.materials.action.restore') + ' — ' + res.status);
+      return;
+    }
+    toast.success(t('admin.catalog.materials.action.restore'));
+    router.refresh();
+  }
+
   if (materials.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
@@ -80,6 +93,11 @@ export function MaterialsTable({ materials }: { materials: MaterialRow[] }) {
                       {t('admin.catalog.materials.action.edit')}
                     </Link>
                   </DropdownMenuItem>
+                  {m.archivedAt && (
+                    <DropdownMenuItem onClick={() => { void handleRestore(m.id); }}>
+                      {t('admin.catalog.materials.action.restore')}
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </TableCell>

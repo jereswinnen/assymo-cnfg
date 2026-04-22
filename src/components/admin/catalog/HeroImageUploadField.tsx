@@ -2,6 +2,7 @@
 import { useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
 import { Button } from '@/components/ui/button';
+import { t } from '@/lib/i18n';
 
 interface Props {
   label: string;
@@ -63,11 +64,15 @@ export function HeroImageUploadField({ label, value, onChange, tenantId, slug }:
             disabled={busy}
             onClick={() => inputRef.current?.click()}
           >
-            {busy ? '…' : value ? 'Vervangen' : 'Uploaden'}
+            {busy
+              ? '…'
+              : value
+                ? t('admin.catalog.uploads.replace')
+                : t('admin.catalog.uploads.upload')}
           </Button>
           {value && (
             <Button type="button" variant="ghost" size="sm" onClick={() => onChange(null)}>
-              Verwijderen
+              {t('admin.catalog.uploads.remove')}
             </Button>
           )}
         </div>

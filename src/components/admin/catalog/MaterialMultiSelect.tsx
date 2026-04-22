@@ -11,6 +11,7 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { t } from '@/lib/i18n';
 import type { MaterialRow } from '@/domain/catalog';
 
 interface Props {
@@ -33,15 +34,17 @@ export function MaterialMultiSelect({ label, hint, options, value, onChange }: P
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="outline" className="w-full justify-between font-normal">
-            {value.length === 0 ? 'Alle toegestaan' : `${value.length} geselecteerd`}
+            {value.length === 0
+              ? t('admin.catalog.multiselect.placeholderAll')
+              : t('admin.catalog.multiselect.placeholderCount', { count: value.length })}
             <ChevronsUpDown className="h-4 w-4 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="p-0" align="start">
           <Command>
-            <CommandInput placeholder="Zoek materiaal…" />
+            <CommandInput placeholder={t('admin.catalog.multiselect.search')} />
             <CommandList>
-              <CommandEmpty>Geen materialen gevonden.</CommandEmpty>
+              <CommandEmpty>{t('admin.catalog.multiselect.empty')}</CommandEmpty>
               <CommandGroup>
                 {options.map((m) => {
                   const selected = value.includes(m.slug);
