@@ -1818,7 +1818,6 @@ Open `src/lib/i18n.ts`. After the last existing key (`'admin.registry.noTenant':
   'admin.tenant.section.invoicing': 'Facturatie',
   // Admin — invoicing form (tenant defaults)
   'admin.invoicing.form.vatRate': 'BTW-tarief',
-  'admin.invoicing.form.vatRate.help': 'Fractie, bv. 0,21 = 21%.',
   'admin.invoicing.form.paymentTermDays': 'Betaaltermijn (dagen)',
   'admin.invoicing.form.bankIban': 'IBAN',
   'admin.invoicing.form.bankBic': 'BIC',
@@ -1964,7 +1963,7 @@ export function InvoicingSection({ tenantId, initialInvoicing }: Props) {
       <CardHeader><CardTitle>{t('admin.tenant.section.invoicing')}</CardTitle></CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <Field label={t('admin.invoicing.form.vatRate')} hint={t('admin.invoicing.form.vatRate.help')}>
+          <Field label={t('admin.invoicing.form.vatRate')}>
             <Input
               type="number"
               step="0.01"
