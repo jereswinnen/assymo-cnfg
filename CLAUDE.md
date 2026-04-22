@@ -1,6 +1,6 @@
 # Assymo Configurator
 
-Interactive 3D configurator for Assymo garden structures — overkapping (open carport), berging (closed shed), paal (standalone pole), and muur (standalone wall). Produces a live 3D view + 2D floor plan, computes a price quote, and encodes the scene into a shareable base58 code. Being prepared for a white-label rollout with upcoming API, admin, and webshop surfaces.
+Interactive 3D configurator for Assymo garden structures — overkapping (open carport), berging (closed shed), paal (standalone pole), and muur (standalone wall). Produces a live 3D view + 2D floor plan, computes a price quote, and assigns each saved scene a short share code (nanoid, 10 chars) for sharing. Being prepared for a white-label rollout with upcoming API, admin, and webshop surfaces.
 
 ## Stack
 
@@ -38,7 +38,7 @@ Three layers, strictly separated:
 Pure TypeScript. No React, no three.js, no zustand. Safe to import from API routes, admin pages, and the future webshop without pulling a browser runtime.
 
 - `building/` — entity types (`BuildingEntity`, `WallConfig`, `RoofConfig`, `SnapConnection`), geometric constants, snap detection, opening geometry helpers
-- `config/` — the canonical `ConfigData` contract + versioning (`CONFIG_VERSION`), base58 codec, `migrateConfig` for legacy input, pure `mutations.ts` (used by stores and future API), `validateConfig` returning stable error codes
+- `config/` — the canonical `ConfigData` contract + versioning (`CONFIG_VERSION`), `canonicalizeConfig` + SHA-256 `contentHash` for per-tenant dedup on save, `migrateConfig` for legacy input, pure `mutations.ts` (used by stores and future API), `validateConfig` returning stable error codes
 - `pricing/` — `PriceBook` (per-tenant scalar dials) + `calculateTotalQuote`; line items are structured `{ labelKey, labelParams }` so UIs format labels at render time
 - `orders/` — pure order types (`OrderStatus`, `OrderQuoteSnapshot`, `OrderConfigSnapshot`, `OrderRecord`), state machine (`ALLOWED_TRANSITIONS`, `validateOrderTransition`, `allowedNextStatuses`), and `buildQuoteSnapshot` / `buildConfigSnapshot` for freezing the priced quote + ConfigData at submit time
 - `catalog/` — per-tenant material + product catalog types + validators (`MaterialRow`, `ProductRow`, `validateMaterialCreate/Patch`, `validateProductCreate/Patch`, `applyProductDefaults`, `filterMaterialsForProduct`, `clampDimensions`, slug helpers). Products are starter kits built on `overkapping` / `berging`; `paal` + `muur` stay engine primitives. Consumed by admin + shop API routes, the configurator hydration logic, and `TenantContext.catalog.{materials, products}`.
@@ -60,8 +60,7 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
 
 - `schema.ts` — Drizzle table definitions for domain tables. `schema.ts` gained a `materials` table (per-tenant catalog rows; unique on `(tenant_id, category, slug)`; soft-delete via `archived_at`). `tenants.enabled_materials` was dropped — row ownership replaces allow-listing. Also gained a `products` table in Phase 5.5.2 — per-tenant starter kits with `kind` (`overkapping | berging`), `defaults` + `constraints` jsonb, hero image, base price, sort order, soft-delete via `archived_at`, unique on `(tenant_id, slug)`. `tenants`
   holds the seeded per-brand context (`priceBook`, `branding`, `invoicing` as jsonb); `configs`
-  holds saved scenes with their base58 `code` and the canonical
-  `ConfigData` in `data`; `tenant_hosts` maps request hosts to tenants
+  holds saved scenes with their server-minted short `code` (nanoid from a base58 alphabet), a `content_hash` used to dedupe identical scenes per tenant, and the canonical `ConfigData` in `data`; `tenant_hosts` maps request hosts to tenants
   (hostname PK, tenantId FK with cascade delete). `orders` rows freeze
   the priced quote (`quoteSnapshot`) and the ConfigData (`configSnapshot`)
   at submit time so each order is re-renderable years later regardless
@@ -94,14 +93,12 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   the in-memory `@/domain/tenant` registry for now).
 - `migrations/` — committed SQL. Never edit a migration by hand after
   it's applied in any environment; write a follow-up migration instead.
-- `seed.ts` — idempotent upsert of the `assymo` tenant from `DEFAULT_PRICE_BOOK`, its host aliases, and every entry in `seedData.ts` as a `materials` row. When `BLOB_READ_WRITE_TOKEN` is present it uploads texture files from `public/textures/` via `@vercel/blob` and stores the returned URLs on each row; missing token = textures left null with a warning. Also seeds two example products for the assymo tenant (Standaard Overkapping 4×3, Standaard Berging 3×3) on first run; subsequent runs are idempotent.
-- `seedData.ts` — one-time migration bridge carrying the pre-Phase-5.5.1 atoms + per-object catalogs as a static `SeedMaterialInput[]`. Consumed only by `seed.ts`. Slated for deletion once every environment has seeded (5.5.3 cleanup).
+- `seed.ts` — idempotent upsert of the `assymo` tenant from `DEFAULT_PRICE_BOOK` + hosts + the two example products (Standaard Overkapping 4×3, Standaard Berging 3×3). No material seed — every environment seeded materials during Phase 5.5.1. Subsequent runs are no-ops.
 
 ### Routes
 
 - `/` renders a tenant-branded landing page with a product grid + "Bouw van nul" tile (falls through to `/configurator` when the tenant has zero products). `/configurator` renders the 3D configurator; `/configurator?product=<slug>` hydrates one building from the product's defaults on first mount. The route group `src/app/(configurator)/` now lives under `/configurator`.
-- `src/app/api/configs/` — `POST` (save a share code) + `GET [code]`
-  (fetch decoded config + priced quote). Both resolve the tenant via
+- `src/app/api/configs/` — `POST` (save a `ConfigData`, mint `nanoid(10)` short code, dedupe by content hash per tenant) + `GET [code]` (fetch stored `ConfigData` migrated-on-read + priced quote). Both resolve the tenant via
   `src/lib/apiTenant.ts`, which combines the host-based resolver with
   the `tenants` DB row.
 - `src/app/api/auth/[...all]/` — Better Auth catch-all handler.
@@ -248,8 +245,7 @@ stays framework-free and testable).
 On submit, `useSubmitOrder` (in `src/components/ui/useSubmitOrder.ts`)
 chains two POSTs:
 
-1. `POST /api/configs` with the current `encodeState()` code — persists
-   the scene (idempotent per tenant+code).
+1. `POST /api/configs` with the current `ConfigData` — server mints a short code (`nanoid(10)`) and dedupes by content hash; same scene → same short code per tenant.
 2. `POST /api/shop/orders` with `{ code, contact }` — the server
    snapshots the priced quote, auto-creates (or reuses) the `client`
    user, and fires the magic-link email.
@@ -323,7 +319,7 @@ Anything that varies per brand lives on `TenantContext` — never in module-scop
 
 ## Before committing
 
-- `pnpm test` must pass (305+ tests)
+- `pnpm test` must pass (304+ tests)
 - `pnpm build` must pass
 - `pnpm exec tsc --noEmit` must pass
 - Lint is noisy with pre-existing warnings — net-new errors only are a blocker
