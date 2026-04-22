@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { Branding } from '@/domain/tenant';
 import { t } from '@/lib/i18n';
+import { ShopHeaderUserMenu } from './ShopHeaderUserMenu';
 
 interface Props {
   branding: Branding;
@@ -43,12 +44,7 @@ export function ShopHeader({ branding, signedIn, variant = 'shop' }: Props) {
       {variant === 'shop' && (
         <div className="flex items-center gap-3 text-sm">
           {signedIn ? (
-            <Link
-              href="/shop/account"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {signedIn.email}
-            </Link>
+            <ShopHeaderUserMenu email={signedIn.email} />
           ) : (
             <Link
               href="/shop/sign-in"
