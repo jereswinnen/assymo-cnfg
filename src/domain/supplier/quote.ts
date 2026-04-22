@@ -34,7 +34,7 @@ export function getSupplierDoorLineItem(
   return {
     labelKey: 'quote.line.supplierDoor',
     labelParams: { name: product.name, sku: product.sku },
-    total: product.priceCents,
+    total: product.priceCents / 100,
     source: { kind: 'supplierProduct', productId, sku: product.sku },
   };
 }
@@ -55,7 +55,7 @@ export function getSupplierWindowLineItem(
   return {
     labelKey: 'quote.line.supplierWindow',
     labelParams: { name: product.name, sku: product.sku },
-    total: product.priceCents,
+    total: product.priceCents / 100,
     source: { kind: 'supplierProduct', productId, sku: product.sku },
   };
 }

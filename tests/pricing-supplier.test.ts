@@ -88,7 +88,7 @@ describe('pricing — supplier product branches', () => {
     const doorItem = lineItems.find((i) => i.source?.kind === 'supplierProduct');
     expect(doorItem).toBeDefined();
     expect(doorItem?.source?.productId).toBe(DOOR_PRODUCT.id);
-    expect(doorItem?.total).toBe(DOOR_PRODUCT.priceCents);
+    expect(doorItem?.total).toBe(DOOR_PRODUCT.priceCents / 100);
 
     // No doorBase line item should appear (that key only appears on wall items)
     const wallItem = lineItems.find((i) => i.labelKey === 'wall.front');
@@ -171,7 +171,7 @@ describe('pricing — supplier product branches', () => {
     const winItem = lineItems.find((i) => i.source?.kind === 'supplierProduct');
     expect(winItem).toBeDefined();
     expect(winItem?.source?.productId).toBe(WINDOW_PRODUCT.id);
-    expect(winItem?.total).toBe(WINDOW_PRODUCT.priceCents);
+    expect(winItem?.total).toBe(WINDOW_PRODUCT.priceCents / 100);
 
     // Wall item should have extrasCost 0 (windowFee skipped for supplier windows)
     const wallItem = lineItems.find((i) => i.labelKey === 'wall.front');

@@ -30,7 +30,7 @@ describe('getSupplierDoorLineItem', () => {
     expect(item?.labelKey).toBe('quote.line.supplierDoor');
     expect(item?.labelParams.name).toBe('Steel Entry Door');
     expect(item?.labelParams.sku).toBe('DOOR-001');
-    expect(item?.total).toBe(75000);
+    expect(item?.total).toBe(750);
     expect(item?.source.kind).toBe('supplierProduct');
     expect(item?.source.productId).toBe('prod-1');
   });
@@ -58,7 +58,7 @@ describe('getSupplierWindowLineItem', () => {
     const item = getSupplierWindowLineItem('win-1', products);
     expect(item?.labelKey).toBe('quote.line.supplierWindow');
     expect(item?.labelParams.name).toBe('Triple Glazed Window');
-    expect(item?.total).toBe(45000);
+    expect(item?.total).toBe(450);
   });
 
   it('returns a stub when the product is missing', () => {
