@@ -26,8 +26,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { t } from '@/lib/i18n';
+import { VAT_RATES } from '@/domain/invoicing';
 
-const VAT_OPTIONS = [0, 0.06, 0.12, 0.21] as const;
+const VAT_OPTIONS = VAT_RATES;
 
 function formatDate(iso: string): string {
   return format(parseISO(iso), 'dd/MM/yyyy', { locale: nl });

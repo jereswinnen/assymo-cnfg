@@ -9,7 +9,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { TenantInvoicing } from '@/domain/tenant';
+import { VAT_RATES } from '@/domain/invoicing';
 import { t } from '@/lib/i18n';
 
 interface Props {
@@ -53,14 +61,21 @@ export function InvoicingSection({ tenantId, initialInvoicing }: Props) {
             label={t('admin.invoicing.form.vatRate')}
             hint={t('admin.invoicing.form.vatRate.help')}
           >
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              max={1}
-              value={v.vatRate}
-              onChange={(e) => set('vatRate', Number(e.target.value))}
-            />
+            <Select
+              value={String(v.vatRate)}
+              onValueChange={(val) => set('vatRate', Number(val))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {VAT_RATES.map((r) => (
+                  <SelectItem key={r} value={String(r)}>
+                    {Math.round(r * 100)}%
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           <Field label={t('admin.invoicing.form.paymentTermDays')}>
             <Input

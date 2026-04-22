@@ -306,7 +306,7 @@ function SuccessView({
           <span className="text-muted-foreground">
             {t('configurator.submit.success.orderIdLabel')}
           </span>
-          <code className="font-mono text-xs">{orderId}</code>
+          <code className="font-mono text-xs">#{orderId.slice(0, 8)}</code>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">
