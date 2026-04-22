@@ -6,22 +6,14 @@ import { Button } from '@/components/ui/button';
 import { db } from '@/db/client';
 import { suppliers } from '@/db/schema';
 import { supplierDbRowToDomain } from '@/db/resolveTenant';
+import { resolveAdminTenantScope } from '@/lib/adminScope';
 import { t } from '@/lib/i18n';
 import { PageHeaderActions } from '@/components/admin/PageHeaderActions';
 import { SuppliersTable } from '@/components/admin/catalog/SuppliersTable';
 
 export default async function CatalogSuppliersPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const tenantId = session?.user.tenantId ?? null;
-
-  // super_admin with no default scope — future scope switcher will handle this
-  if (!tenantId) {
-    return (
-      <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-        {t('admin.catalog.suppliers.empty')}
-      </div>
-    );
-  }
+  const session = (await auth.api.getSession({ headers: await headers() }))!;
+  const tenantId = resolveAdminTenantScope(session);
 
   const rows = await db
     .select()

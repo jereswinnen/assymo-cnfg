@@ -1,4 +1,4 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
@@ -19,9 +19,6 @@ export default async function NewSupplierProductPage({
     params,
     searchParams,
   ]);
-
-  const tenantId = session?.user?.tenantId ?? null;
-  if (!tenantId) redirect(`/admin/catalog/suppliers/${id}`);
 
   const [row] = await db.select().from(suppliers).where(eq(suppliers.id, id)).limit(1);
   if (!row) notFound();
