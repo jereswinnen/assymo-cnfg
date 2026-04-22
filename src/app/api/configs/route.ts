@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
     id,
     tenantId: tenant.id,
     code,
+    contentHash: '', // TODO(Task 4): replace with SHA-256 of canonicalizeConfig(migrated)
     data: migrated,
     version: migrated.version,
   });
