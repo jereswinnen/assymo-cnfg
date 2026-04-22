@@ -69,7 +69,7 @@ export function useTenantCatalogs(
         wall, current.wall ?? null, materials, 'wall',
         (m) => ({
           atomId: m.slug,
-          pricePerSqm: m.pricing.perSqm ?? 0,
+          pricePerSqm: m.pricing.wall?.perSqm ?? 0,
           ...(m.flags.clearsOpenings ? { clearsOpenings: true } : {}),
         }),
       ),
@@ -79,19 +79,19 @@ export function useTenantCatalogs(
       ),
       roofCover: filterCatalogAllowing(
         roofCover, current.roofCover ?? null, materials, 'roof-cover',
-        (m) => ({ atomId: m.slug, pricePerSqm: m.pricing.perSqm ?? 0 }),
+        (m) => ({ atomId: m.slug, pricePerSqm: m.pricing['roof-cover']?.perSqm ?? 0 }),
       ),
       floor: filterCatalogAllowing(
         floor, current.floor ?? null, materials, 'floor',
         (m) => ({
           atomId: m.slug,
-          pricePerSqm: m.pricing.perSqm ?? 0,
+          pricePerSqm: m.pricing.floor?.perSqm ?? 0,
           ...(m.flags.isVoid ? { isVoid: true } : {}),
         }),
       ),
       door: filterCatalogAllowing(
         door, current.door ?? null, materials, 'door',
-        (m) => ({ atomId: m.slug, surcharge: m.pricing.surcharge ?? 0 }),
+        (m) => ({ atomId: m.slug, surcharge: m.pricing.door?.surcharge ?? 0 }),
       ),
       sourceProduct,
     };

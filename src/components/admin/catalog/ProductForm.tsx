@@ -152,8 +152,8 @@ export function ProductForm({
 
   const slug = form.watch('slug');
 
-  const byCategory = (cat: MaterialRow['category']) =>
-    materials.filter((m) => m.category === cat && !m.archivedAt);
+  const byCategory = (cat: MaterialRow['categories'][number]) =>
+    materials.filter((m) => m.categories.includes(cat) && !m.archivedAt);
 
   const wallOpts = byCategory('wall');
   const roofCoverOpts = byCategory('roof-cover');

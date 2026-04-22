@@ -7,14 +7,20 @@ import {
   type MaterialRow,
 } from '@/domain/catalog';
 
-const mat = (o: Partial<MaterialRow>): MaterialRow => ({
-  id: 'm', tenantId: 't',
-  category: 'wall', slug: 's', name: 'S', color: '#000000',
-  textures: null, tileSize: null,
-  pricing: { perSqm: 0 }, flags: {},
-  archivedAt: null, createdAt: '', updatedAt: '',
-  ...o,
-});
+const mat = (
+  o: Partial<Omit<MaterialRow, 'categories'>> & { category?: MaterialRow['categories'][number] },
+): MaterialRow => {
+  const { category, ...rest } = o;
+  return {
+    id: 'm', tenantId: 't',
+    categories: category ? [category] : ['wall'],
+    slug: 's', name: 'S', color: '#000000',
+    textures: null, tileSize: null,
+    pricing: { wall: { perSqm: 0 } }, flags: {},
+    archivedAt: null, createdAt: '', updatedAt: '',
+    ...rest,
+  };
+};
 
 const product = (c: ProductConstraints): ProductRow => ({
   id: 'p', tenantId: 't', kind: 'overkapping',

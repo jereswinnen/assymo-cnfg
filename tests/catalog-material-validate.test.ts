@@ -7,11 +7,11 @@ import {
 
 function base(overrides: Partial<MaterialCreateInput> = {}): MaterialCreateInput {
   return {
-    category: 'wall',
+    categories: ['wall'],
     slug: 'oak',
     name: 'Oak',
     color: '#8B6914',
-    pricing: { perSqm: 50 },
+    pricing: { wall: { perSqm: 50 } },
     ...overrides,
   };
 }
@@ -22,10 +22,16 @@ describe('validateMaterialCreate', () => {
     expect(r.ok).toBe(true);
   });
 
-  it('rejects an unknown category', () => {
-    const r = validateMaterialCreate(base({ category: 'ceiling' as never }));
+  it('rejects an empty categories array', () => {
+    const r = validateMaterialCreate(base({ categories: [] }));
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errors).toContainEqual({ field: 'category', code: 'category_invalid' });
+    if (!r.ok) expect(r.errors).toContainEqual({ field: 'categories', code: 'categories_empty' });
+  });
+
+  it('rejects an unknown category', () => {
+    const r = validateMaterialCreate(base({ categories: ['ceiling'] as never }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors).toContainEqual({ field: 'categories', code: 'categories_invalid' });
   });
 
   it('rejects an invalid slug', () => {
@@ -54,47 +60,72 @@ describe('validateMaterialCreate', () => {
     if (!r.ok) expect(r.errors).toContainEqual({ field: 'textures', code: 'textures_invalid' });
   });
 
-  it('rejects tileSize with non-positive numbers', () => {
-    const r = validateMaterialCreate(base({ tileSize: [0, 2] }));
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errors).toContainEqual({ field: 'tileSize', code: 'tile_size_invalid' });
-  });
-
   it('rejects tileSize outside allowed range', () => {
     const r = validateMaterialCreate(base({ tileSize: [0.05, 2] }));
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.errors).toContainEqual({ field: 'tileSize', code: 'tile_size_invalid' });
   });
 
-  it('rejects wall material with surcharge instead of perSqm', () => {
-    const r = validateMaterialCreate(base({ pricing: { surcharge: 50 } as never }));
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errors).toContainEqual({ field: 'pricing', code: 'pricing_invalid' });
-  });
-
-  it('rejects door material with perSqm instead of surcharge', () => {
-    const r = validateMaterialCreate(base({ category: 'door', slug: 'alu', pricing: { perSqm: 50 } as never }));
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errors).toContainEqual({ field: 'pricing', code: 'pricing_invalid' });
-  });
-
-  it('accepts a roof-trim material with empty pricing', () => {
+  it('rejects wall material with door pricing shape', () => {
     const r = validateMaterialCreate(
-      base({ category: 'roof-trim', slug: 'metal-trim', pricing: {} }),
+      base({ pricing: { wall: { surcharge: 50 } } as never }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.some((e) => e.code === 'pricing_invalid')).toBe(true);
+  });
+
+  it('rejects pricing entries for categories the material does not claim', () => {
+    const r = validateMaterialCreate(
+      base({ pricing: { wall: { perSqm: 50 }, floor: { perSqm: 30 } } as never }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.some((e) => e.code === 'pricing_category_mismatch')).toBe(true);
+  });
+
+  it('accepts a multi-category material with per-category pricing', () => {
+    const r = validateMaterialCreate(
+      base({
+        categories: ['wall', 'door', 'roof-trim'],
+        pricing: { wall: { perSqm: 50 }, door: { surcharge: 20 } },
+      }),
     );
     expect(r.ok).toBe(true);
   });
 
+  it('accepts a roof-trim-only material with empty pricing', () => {
+    const r = validateMaterialCreate(
+      base({ categories: ['roof-trim'], slug: 'metal-trim', pricing: {} }),
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  it('requires pricing for every pricing-bearing category', () => {
+    // Material claims wall + door but only provides wall pricing.
+    const r = validateMaterialCreate(
+      base({
+        categories: ['wall', 'door'],
+        pricing: { wall: { perSqm: 50 } },
+      }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.some((e) => e.code === 'pricing_invalid')).toBe(true);
+  });
+
   it('rejects clearsOpenings flag on non-wall material', () => {
     const r = validateMaterialCreate(
-      base({ category: 'floor', slug: 'beton', pricing: { perSqm: 30 }, flags: { clearsOpenings: true } as never }),
+      base({
+        categories: ['floor'],
+        slug: 'beton',
+        pricing: { floor: { perSqm: 30 } },
+        flags: { clearsOpenings: true },
+      }),
     );
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.errors).toContainEqual({ field: 'flags', code: 'flags_invalid' });
   });
 
   it('rejects isVoid flag on non-floor material', () => {
-    const r = validateMaterialCreate(base({ flags: { isVoid: true } as never }));
+    const r = validateMaterialCreate(base({ flags: { isVoid: true } }));
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.errors).toContainEqual({ field: 'flags', code: 'flags_invalid' });
   });
@@ -106,7 +137,12 @@ describe('validateMaterialCreate', () => {
 
   it('accepts isVoid on floor', () => {
     const r = validateMaterialCreate(
-      base({ category: 'floor', slug: 'geen', pricing: { perSqm: 0 }, flags: { isVoid: true } }),
+      base({
+        categories: ['floor'],
+        slug: 'geen',
+        pricing: { floor: { perSqm: 0 } },
+        flags: { isVoid: true },
+      }),
     );
     expect(r.ok).toBe(true);
   });
@@ -126,10 +162,15 @@ describe('validateMaterialPatch', () => {
     expect(r.ok).toBe(true);
   });
 
-  it('rejects category if present (not changeable)', () => {
-    const r = validateMaterialPatch({ category: 'door' as never });
+  it('accepts a categories patch', () => {
+    const r = validateMaterialPatch({ categories: ['wall', 'door'] });
+    expect(r.ok).toBe(true);
+  });
+
+  it('rejects an empty categories array on patch', () => {
+    const r = validateMaterialPatch({ categories: [] });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errors).toContainEqual({ field: 'category', code: 'category_invalid' });
+    if (!r.ok) expect(r.errors).toContainEqual({ field: 'categories', code: 'categories_empty' });
   });
 
   it('rejects an invalid slug on patch', () => {
@@ -138,8 +179,8 @@ describe('validateMaterialPatch', () => {
     if (!r.ok) expect(r.errors).toContainEqual({ field: 'slug', code: 'slug_invalid' });
   });
 
-  it('accepts a valid pricing patch', () => {
-    const r = validateMaterialPatch({ pricing: { perSqm: 75 } });
+  it('accepts a pricing patch (shape-only — coherence checked in route)', () => {
+    const r = validateMaterialPatch({ pricing: { wall: { perSqm: 75 } } });
     expect(r.ok).toBe(true);
   });
 

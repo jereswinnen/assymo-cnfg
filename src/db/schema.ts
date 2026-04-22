@@ -7,6 +7,7 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import type { ConfigData } from '@/domain/config';
 import type {
   OrderConfigSnapshot,
@@ -221,7 +222,11 @@ export const materials = pgTable(
     tenantId: text('tenant_id')
       .references(() => tenants.id, { onDelete: 'cascade' })
       .notNull(),
-    category: text('category').$type<MaterialCategory>().notNull(),
+    categories: text('categories')
+      .$type<MaterialCategory[]>()
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::text[]`),
     slug: text('slug').notNull(),
     name: text('name').notNull(),
     color: text('color').notNull(),
@@ -234,7 +239,7 @@ export const materials = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
-    uniqueIndex('materials_tenant_category_slug_idx').on(t.tenantId, t.category, t.slug),
+    uniqueIndex('materials_tenant_slug_idx').on(t.tenantId, t.slug),
     index('materials_tenant_id_idx').on(t.tenantId),
   ],
 );

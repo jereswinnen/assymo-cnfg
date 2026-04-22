@@ -23,6 +23,33 @@ function isCategory(v: unknown): v is MaterialCategory {
   return typeof v === 'string' && (MATERIAL_CATEGORIES as readonly string[]).includes(v);
 }
 
+function validateCategories(
+  value: unknown,
+  errors: ValidationFieldError[],
+): MaterialCategory[] | undefined {
+  if (!Array.isArray(value)) {
+    errors.push({ field: 'categories', code: 'categories_invalid' });
+    return undefined;
+  }
+  if (value.length === 0) {
+    errors.push({ field: 'categories', code: 'categories_empty' });
+    return undefined;
+  }
+  if (!value.every(isCategory)) {
+    errors.push({ field: 'categories', code: 'categories_invalid' });
+    return undefined;
+  }
+  // De-dup while preserving order.
+  const seen = new Set<string>();
+  const out: MaterialCategory[] = [];
+  for (const c of value) {
+    if (seen.has(c)) continue;
+    seen.add(c);
+    out.push(c);
+  }
+  return out;
+}
+
 function validateTextures(
   value: unknown,
   errors: ValidationFieldError[],
@@ -65,8 +92,12 @@ function validateTileSize(
   return [value[0], value[1]];
 }
 
+/** Validate the `pricing` map against the categories the material claims.
+ *  A material only prices the categories it's sold under. `roof-trim` is
+ *  valid as a category but carries no pricing, so it must not appear in
+ *  the map. */
 function validatePricing(
-  category: MaterialCategory,
+  categories: readonly MaterialCategory[],
   value: unknown,
   errors: ValidationFieldError[],
 ): MaterialPricing | undefined {
@@ -74,48 +105,59 @@ function validatePricing(
     errors.push({ field: 'pricing', code: 'pricing_invalid' });
     return undefined;
   }
-  const keys = Object.keys(value);
-  const allowsPerSqm = category === 'wall' || category === 'roof-cover' || category === 'floor';
-  const allowsSurcharge = category === 'door';
-  const allowsEmpty = category === 'roof-trim';
-
-  if (allowsPerSqm) {
-    const p = (value as Record<string, unknown>).perSqm;
-    if (typeof p !== 'number' || p < 0 || !Number.isFinite(p)) {
-      errors.push({ field: 'pricing', code: 'pricing_invalid' });
+  const out: MaterialPricing = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (!isCategory(key)) {
+      errors.push({ field: `pricing.${key}`, code: 'pricing_invalid' });
       return undefined;
     }
-    if (keys.some((k) => k !== 'perSqm')) {
-      errors.push({ field: 'pricing', code: 'pricing_invalid' });
+    if (!categories.includes(key)) {
+      errors.push({ field: `pricing.${key}`, code: 'pricing_category_mismatch' });
       return undefined;
     }
-    return { perSqm: p };
+    if (key === 'roof-trim') {
+      errors.push({ field: `pricing.${key}`, code: 'pricing_invalid' });
+      return undefined;
+    }
+    if (!isObject(entry)) {
+      errors.push({ field: `pricing.${key}`, code: 'pricing_invalid' });
+      return undefined;
+    }
+    const entryKeys = Object.keys(entry);
+    if (key === 'door') {
+      const s = (entry as Record<string, unknown>).surcharge;
+      if (typeof s !== 'number' || s < 0 || !Number.isFinite(s) || entryKeys.some((k) => k !== 'surcharge')) {
+        errors.push({ field: `pricing.${key}`, code: 'pricing_invalid' });
+        return undefined;
+      }
+      out.door = { surcharge: s };
+      continue;
+    }
+    // wall / roof-cover / floor: expect { perSqm: number }
+    const p = (entry as Record<string, unknown>).perSqm;
+    if (typeof p !== 'number' || p < 0 || !Number.isFinite(p) || entryKeys.some((k) => k !== 'perSqm')) {
+      errors.push({ field: `pricing.${key}`, code: 'pricing_invalid' });
+      return undefined;
+    }
+    (out as Record<string, unknown>)[key] = { perSqm: p };
   }
-  if (allowsSurcharge) {
-    const s = (value as Record<string, unknown>).surcharge;
-    if (typeof s !== 'number' || s < 0 || !Number.isFinite(s)) {
-      errors.push({ field: 'pricing', code: 'pricing_invalid' });
+  // Every pricing-bearing category in `categories` must have an entry
+  // (roof-trim excluded — it has no pricing).
+  for (const c of categories) {
+    if (c === 'roof-trim') continue;
+    if (!(c in out)) {
+      errors.push({ field: `pricing.${c}`, code: 'pricing_invalid' });
       return undefined;
     }
-    if (keys.some((k) => k !== 'surcharge')) {
-      errors.push({ field: 'pricing', code: 'pricing_invalid' });
-      return undefined;
-    }
-    return { surcharge: s };
   }
-  if (allowsEmpty) {
-    if (keys.length !== 0) {
-      errors.push({ field: 'pricing', code: 'pricing_invalid' });
-      return undefined;
-    }
-    return {};
-  }
-  errors.push({ field: 'pricing', code: 'pricing_invalid' });
-  return undefined;
+  return out;
 }
 
+/** Validate `flags`. Flags are category-gated: `clearsOpenings` requires
+ *  the material to be a wall; `isVoid` requires it to be a floor. Unknown
+ *  keys are rejected. */
 function validateFlags(
-  category: MaterialCategory,
+  categories: readonly MaterialCategory[],
   value: unknown,
   errors: ValidationFieldError[],
 ): MaterialFlags | undefined {
@@ -127,7 +169,7 @@ function validateFlags(
   const out: MaterialFlags = {};
   for (const [k, v] of Object.entries(value)) {
     if (k === 'clearsOpenings') {
-      if (category !== 'wall' || typeof v !== 'boolean') {
+      if (!categories.includes('wall') || typeof v !== 'boolean') {
         errors.push({ field: 'flags', code: 'flags_invalid' });
         return undefined;
       }
@@ -135,7 +177,7 @@ function validateFlags(
       continue;
     }
     if (k === 'isVoid') {
-      if (category !== 'floor' || typeof v !== 'boolean') {
+      if (!categories.includes('floor') || typeof v !== 'boolean') {
         errors.push({ field: 'flags', code: 'flags_invalid' });
         return undefined;
       }
@@ -160,12 +202,10 @@ export function validateMaterialCreate(
     return { ok: false, errors: [{ field: 'body', code: 'name_invalid' }] };
   }
   const errors: ValidationFieldError[] = [];
-  const { category, slug, name, color, textures, tileSize, pricing, flags } =
+  const { categories, slug, name, color, textures, tileSize, pricing, flags } =
     input as Record<string, unknown>;
 
-  if (!isCategory(category)) {
-    errors.push({ field: 'category', code: 'category_invalid' });
-  }
+  const categoriesOut = validateCategories(categories, errors);
   if (typeof slug !== 'string' || !isValidSlug(slug)) {
     errors.push({ field: 'slug', code: 'slug_invalid' });
   }
@@ -181,9 +221,9 @@ export function validateMaterialCreate(
 
   let pricingOut: MaterialPricing | undefined;
   let flagsOut: MaterialFlags | undefined;
-  if (isCategory(category)) {
-    pricingOut = validatePricing(category, pricing, errors);
-    flagsOut = validateFlags(category, flags, errors);
+  if (categoriesOut) {
+    pricingOut = validatePricing(categoriesOut, pricing, errors);
+    flagsOut = validateFlags(categoriesOut, flags, errors);
   }
 
   if (errors.length > 0) return { ok: false, errors };
@@ -191,7 +231,7 @@ export function validateMaterialCreate(
   return {
     ok: true,
     value: {
-      category: category as MaterialCategory,
+      categories: categoriesOut!,
       slug: slug as string,
       name: (name as string).trim(),
       color: (color as string).toLowerCase(),
@@ -203,8 +243,10 @@ export function validateMaterialCreate(
   };
 }
 
-/** Validate a PATCH body. All fields optional. Category cannot be
- *  changed on an existing row. */
+/** Validate a PATCH body. All fields optional. When `categories` or
+ *  `pricing` / `flags` change, the route handler should re-run the
+ *  combined validation (via `validateMaterialPatchWithContext` below)
+ *  to ensure the resulting (categories, pricing, flags) trio is coherent. */
 export function validateMaterialPatch(
   input: unknown,
 ): ValidationResult<MaterialPatchInput> {
@@ -214,8 +256,9 @@ export function validateMaterialPatch(
   const errors: ValidationFieldError[] = [];
   const out: MaterialPatchInput = {};
 
-  if ('category' in input) {
-    errors.push({ field: 'category', code: 'category_invalid' });
+  if ('categories' in input) {
+    const c = validateCategories((input as { categories: unknown }).categories, errors);
+    if (c) out.categories = c;
   }
   if ('slug' in input) {
     const s = (input as { slug: unknown }).slug;
@@ -253,11 +296,8 @@ export function validateMaterialPatch(
       out.tileSize = t ?? null;
     }
   }
-  // Note: pricing/flags patches require knowing category to validate
-  // per-category shape. Route handler fetches the row first, passes
-  // category in as a second arg — modelled below as an overload once
-  // route lands. Here we accept pricing/flags objects at face value
-  // (shape-check only) and let the route re-validate against category.
+  // Pricing/flags patches need categories context — accept as raw objects
+  // here; the route validates against the post-merge categories.
   if ('pricing' in input) {
     const p = (input as { pricing: unknown }).pricing;
     if (!isObject(p)) {
@@ -277,4 +317,19 @@ export function validateMaterialPatch(
 
   if (errors.length > 0) return { ok: false, errors };
   return { ok: true, value: out };
+}
+
+/** Re-validate a PATCH body against the merged (pre-patch + patch) view
+ *  — call this in the route handler after merging to check coherence of
+ *  categories + pricing + flags. */
+export function validatePatchCoherence(
+  mergedCategories: MaterialCategory[],
+  mergedPricing: unknown,
+  mergedFlags: unknown,
+): ValidationResult<{ pricing: MaterialPricing; flags: MaterialFlags }> {
+  const errors: ValidationFieldError[] = [];
+  const p = validatePricing(mergedCategories, mergedPricing, errors);
+  const f = validateFlags(mergedCategories, mergedFlags, errors);
+  if (errors.length > 0 || !p || !f) return { ok: false, errors };
+  return { ok: true, value: { pricing: p, flags: f } };
 }

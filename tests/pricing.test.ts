@@ -18,7 +18,9 @@ const BLANK_WALL = {
   windows: [],
 };
 
-function row(o: Partial<MaterialRow> & Pick<MaterialRow, 'category' | 'slug' | 'pricing'>): MaterialRow {
+function row(
+  o: Partial<MaterialRow> & Pick<MaterialRow, 'categories' | 'slug' | 'pricing'>,
+): MaterialRow {
   return {
     id: 'x',
     tenantId: 't',
@@ -36,14 +38,13 @@ function row(o: Partial<MaterialRow> & Pick<MaterialRow, 'category' | 'slug' | '
 
 /** Minimal material rows covering every slug the default test fixtures reference. */
 const FIXTURE_MATERIALS: MaterialRow[] = [
-  row({ category: 'wall', slug: 'wood', pricing: { perSqm: 45 } }),
-  row({ category: 'wall', slug: 'glass', pricing: { perSqm: 120 }, flags: { clearsOpenings: true } }),
-  row({ category: 'roof-cover', slug: 'epdm', pricing: { perSqm: 35 } }),
-  row({ category: 'roof-cover', slug: 'dakpannen', pricing: { perSqm: 55 } }),
-  row({ category: 'floor', slug: 'geen', pricing: { perSqm: 0 }, flags: { isVoid: true } }),
-  row({ category: 'floor', slug: 'beton', pricing: { perSqm: 30 } }),
-  row({ category: 'floor', slug: 'hout', pricing: { perSqm: 55 } }),
-  row({ category: 'door', slug: 'wood', pricing: { surcharge: 0 } }),
+  row({ categories: ['wall', 'door'], slug: 'wood', pricing: { wall: { perSqm: 45 }, door: { surcharge: 0 } } }),
+  row({ categories: ['wall'], slug: 'glass', pricing: { wall: { perSqm: 120 } }, flags: { clearsOpenings: true } }),
+  row({ categories: ['roof-cover'], slug: 'epdm', pricing: { 'roof-cover': { perSqm: 35 } } }),
+  row({ categories: ['roof-cover'], slug: 'dakpannen', pricing: { 'roof-cover': { perSqm: 55 } } }),
+  row({ categories: ['floor'], slug: 'geen', pricing: { floor: { perSqm: 0 } }, flags: { isVoid: true } }),
+  row({ categories: ['floor'], slug: 'beton', pricing: { floor: { perSqm: 30 } } }),
+  row({ categories: ['floor'], slug: 'hout', pricing: { floor: { perSqm: 55 } } }),
 ];
 
 describe('calculateTotalQuote', () => {

@@ -76,43 +76,46 @@ describe('getEffectivePrimaryMaterial (attachment chain)', () => {
   });
 });
 
-describe('getAtom / getAtomColor category scoping', () => {
-  // Slug collisions across categories are the norm (wall-wood vs door-wood
-  // are distinct rows). Without a category argument, `find` returns the
-  // first match — which was the source of the Phase 5.5.3 texture bug
-  // where wall lookups returned the textureless door row.
-  const wallWood: MaterialRow = {
-    id: 'w1', tenantId: 't', category: 'wall', slug: 'wood', name: 'Wall Wood',
+describe('getAtom / getAtomColor category scoping (unified materials)', () => {
+  // Unified materials: one row per (tenant, slug), possibly serving
+  // multiple categories. `getAtom(slug, category)` checks `categories`
+  // membership. Rows without the requested category are not returned.
+  const woodMulti: MaterialRow = {
+    id: 'w1', tenantId: 't', categories: ['wall', 'door', 'roof-trim'],
+    slug: 'wood', name: 'Hout',
     color: '#aaa000', textures: { color: 'w-c', normal: 'w-n', roughness: 'w-r' },
-    tileSize: [1, 1], pricing: { perSqm: 40 }, flags: {},
+    tileSize: [1, 1],
+    pricing: { wall: { perSqm: 40 }, door: { surcharge: 20 } },
+    flags: {},
     archivedAt: null, createdAt: '', updatedAt: '',
   };
-  const doorWood: MaterialRow = {
-    id: 'd1', tenantId: 't', category: 'door', slug: 'wood', name: 'Door Wood',
-    color: '#bbb000', textures: null, tileSize: null,
-    pricing: { surcharge: 20 }, flags: {},
+  const concreteFloor: MaterialRow = {
+    id: 'f1', tenantId: 't', categories: ['floor'],
+    slug: 'beton', name: 'Beton',
+    color: '#cccccc', textures: null, tileSize: null,
+    pricing: { floor: { perSqm: 25 } }, flags: {},
     archivedAt: null, createdAt: '', updatedAt: '',
   };
-  // Door comes BEFORE wall in the array — simulates the DB ordering that
-  // tripped up the unscoped lookup in production.
-  const materials = [doorWood, wallWood];
+  const materials = [woodMulti, concreteFloor];
 
-  it('getAtom returns the category-scoped row, not the first slug match', () => {
-    const w = getAtom(materials, 'wood', 'wall');
-    const d = getAtom(materials, 'wood', 'door');
-    expect(w?.id).toBe('w1');
-    expect(d?.id).toBe('d1');
-    expect(w?.textures).not.toBeNull();
-    expect(d?.textures).toBeNull();
+  it('getAtom returns the row when the slug + category match', () => {
+    expect(getAtom(materials, 'wood', 'wall')?.id).toBe('w1');
+    expect(getAtom(materials, 'wood', 'door')?.id).toBe('w1');
+    expect(getAtom(materials, 'wood', 'roof-trim')?.id).toBe('w1');
   });
 
-  it('getAtomColor returns the category-scoped row color', () => {
+  it('getAtom returns null when the row does not serve that category', () => {
+    expect(getAtom(materials, 'wood', 'floor')).toBeNull();
+    expect(getAtom(materials, 'beton', 'wall')).toBeNull();
+  });
+
+  it('getAtomColor returns the row color for any of its categories', () => {
     expect(getAtomColor(materials, 'wood', 'wall')).toBe('#aaa000');
-    expect(getAtomColor(materials, 'wood', 'door')).toBe('#bbb000');
+    expect(getAtomColor(materials, 'wood', 'door')).toBe('#aaa000');
   });
 
-  it('without a category, falls back to the first match (legacy behaviour)', () => {
-    expect(getAtom(materials, 'wood')?.id).toBe('d1');
+  it('without a category, returns the first slug match (useful for legacy lookups)', () => {
+    expect(getAtom(materials, 'wood')?.id).toBe('w1');
   });
 
   it('returns null / fallback color when nothing matches', () => {

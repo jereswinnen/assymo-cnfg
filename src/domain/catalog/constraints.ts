@@ -15,7 +15,7 @@ export function filterMaterialsForProduct(
   slot: ProductSlot,
 ): MaterialRow[] {
   const category = PRODUCT_SLOT_TO_CATEGORY[slot];
-  const byCategory = materials.filter((m) => m.category === category);
+  const byCategory = materials.filter((m) => m.categories.includes(category));
   if (!product) return byCategory;
   const allow = product.constraints.allowedMaterialsBySlot?.[slot];
   if (!allow || allow.length === 0) return byCategory;

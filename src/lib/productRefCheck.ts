@@ -26,10 +26,14 @@ export async function checkProductMaterialReferences(
   }
   if (toCheck.length === 0) return errors;
   const rows = await db
-    .select({ slug: materials.slug, category: materials.category })
+    .select({ slug: materials.slug, categories: materials.categories })
     .from(materials)
     .where(and(eq(materials.tenantId, tenantId), isNull(materials.archivedAt)));
-  const rowsBy = new Map(rows.map((r) => [`${r.category}:${r.slug}`, true]));
+  // Build `(category:slug) → true` for every (row, row.category) pairing.
+  const rowsBy = new Map<string, true>();
+  for (const r of rows) {
+    for (const cat of r.categories) rowsBy.set(`${cat}:${r.slug}`, true);
+  }
   for (const c of toCheck) {
     const category = PRODUCT_SLOT_TO_CATEGORY[c.slot];
     if (!rowsBy.has(`${category}:${c.slug}`)) {

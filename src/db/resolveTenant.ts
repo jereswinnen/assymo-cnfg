@@ -75,7 +75,7 @@ export function materialDbRowToDomain(r: MaterialDbRow): MaterialRow {
   return {
     id: r.id,
     tenantId: r.tenantId,
-    category: r.category,
+    categories: r.categories as MaterialRow['categories'],
     slug: r.slug,
     name: r.name,
     color: r.color,

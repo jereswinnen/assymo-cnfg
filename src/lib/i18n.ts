@@ -662,6 +662,11 @@ const nl: Record<string, string> = {
   'admin.catalog.materials.toast.saveFailed': 'Opslaan mislukt',
   'admin.catalog.materials.toast.archiveFailed': 'Archiveren mislukt',
   'admin.catalog.materials.field.category': 'Categorie',
+  'admin.catalog.materials.field.categories': 'Categorieën',
+  'admin.catalog.materials.field.price.wall':       'Prijs als wand (per m²)',
+  'admin.catalog.materials.field.price.roofCover':  'Prijs als dakbedekking (per m²)',
+  'admin.catalog.materials.field.price.floor':      'Prijs als vloer (per m²)',
+  'admin.catalog.materials.field.price.door':       'Toeslag als deur',
 
   'admin.catalog.products.archive.title': 'Product archiveren?',
   'admin.catalog.products.archive.description':

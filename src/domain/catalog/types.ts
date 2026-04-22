@@ -17,21 +17,36 @@ export interface MaterialTextures {
   roughness: string;
 }
 
-/** Per-category pricing shape. Only the fields relevant to the category
- *  are present. Per-category field presence is enforced by the
- *  `validateMaterialCreate` / `validateMaterialPatch` helpers in
- *  `src/domain/catalog/material.ts`. */
-export interface MaterialPricing {
-  /** €/m² for wall / roof-cover / floor. */
-  perSqm?: number;
-  /** Flat surcharge added to door base price. */
-  surcharge?: number;
+/** Per-category pricing entries. Each category contributes its own
+ *  pricing shape: `perSqm` for surface-charged slots (wall / roof-cover /
+ *  floor), `surcharge` for flat-added slots (door). `roof-trim` has no
+ *  pricing, so it's omitted from the map rather than stored as empty. */
+export interface WallPricing {
+  perSqm: number;
+}
+export interface RoofCoverPricing {
+  perSqm: number;
+}
+export interface FloorPricing {
+  perSqm: number;
+}
+export interface DoorPricing {
+  surcharge: number;
 }
 
-/** Per-category behaviour flags. Only the fields relevant to the category
- *  are present. Per-category field presence is enforced by the
- *  `validateMaterialCreate` / `validateMaterialPatch` helpers in
- *  `src/domain/catalog/material.ts`. */
+/** Per-category pricing map. Only categories the material is sold under
+ *  appear — and only categories in `MaterialRow.categories` can have an
+ *  entry here (enforced by `validateMaterialCreate` / `*Patch`). */
+export interface MaterialPricing {
+  wall?: WallPricing;
+  'roof-cover'?: RoofCoverPricing;
+  floor?: FloorPricing;
+  door?: DoorPricing;
+}
+
+/** Behaviour flags. Each flag is category-gated: `clearsOpenings` only
+ *  applies when the material serves as a wall; `isVoid` only when it's a
+ *  floor. Validators drop flags whose category isn't in `categories`. */
 export interface MaterialFlags {
   /** Wall only: selecting this material clears doors and windows on the wall. */
   clearsOpenings?: boolean;
@@ -43,11 +58,16 @@ export interface MaterialFlags {
  *  transport shape: API responses, seed data, and the materials array
  *  on TenantContext all use it. Consumer code (pickers, pricing,
  *  canvas) converts to per-category "view" types via helpers in
- *  `@/domain/materials`. */
+ *  `@/domain/materials`.
+ *
+ *  A single material can belong to multiple categories (e.g. "wood"
+ *  used as both wall cladding and door panel). Textures, color, and
+ *  tileSize are shared across those categories — if you need different
+ *  visuals per category, author a separate material (different slug). */
 export interface MaterialRow {
   id: string;
   tenantId: string;
-  category: MaterialCategory;
+  categories: MaterialCategory[];
   slug: string;
   name: string;
   color: string;
@@ -63,7 +83,7 @@ export interface MaterialRow {
 /** Input shape for `validateMaterialCreate` — everything except DB-owned
  *  columns (id, tenantId, archivedAt, timestamps). */
 export interface MaterialCreateInput {
-  category: MaterialCategory;
+  categories: MaterialCategory[];
   slug: string;
   name: string;
   color: string;
@@ -74,9 +94,10 @@ export interface MaterialCreateInput {
 }
 
 /** Input shape for `validateMaterialPatch` — all fields optional; whatever
- *  is absent is left alone. `category` cannot be changed (would invalidate
- *  references from products and break slug uniqueness scoping). */
-export type MaterialPatchInput = Partial<Omit<MaterialCreateInput, 'category'>>;
+ *  is absent is left alone. `categories` CAN be changed (removing a
+ *  category from a material that's referenced by a product's default or
+ *  allow-list is blocked by the application layer, not the validator). */
+export type MaterialPatchInput = Partial<MaterialCreateInput>;
 
 /** Stable error codes surfaced by validators. Admin UI maps to i18n keys. */
 export type MaterialValidationError =
@@ -88,7 +109,9 @@ export type MaterialValidationError =
   | 'pricing_invalid'
   | 'flags_invalid'
   | 'name_invalid'
-  | 'category_invalid'
+  | 'categories_invalid'
+  | 'categories_empty'
+  | 'pricing_category_mismatch'
   | 'void_conflict';
 
 export interface ValidationFieldError {

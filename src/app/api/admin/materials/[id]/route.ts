@@ -45,10 +45,9 @@ export const PATCH = withSession(
     }
 
     // Merge patch onto existing and re-run the full create validator so
-    // pricing/flags get category-aware validation (the patch validator is
-    // intentionally shape-only — see @/domain/catalog/material.ts).
+    // the combined (categories, pricing, flags) is coherent.
     const merged = {
-      category: existing.category,
+      categories: result.value.categories ?? existing.categories,
       slug: result.value.slug ?? existing.slug,
       name: result.value.name ?? existing.name,
       color: result.value.color ?? existing.color,
@@ -68,41 +67,25 @@ export const PATCH = withSession(
     // Void-conflict: at most one active isVoid floor per tenant. Re-check
     // on PATCH because the admin can toggle the flag on an existing row.
     if (
-      existing.category === 'floor' &&
+      shape.value.categories.includes('floor') &&
       shape.value.flags?.isVoid === true
     ) {
-      const competing = await db
-        .select({ id: materials.id })
+      const others = await db
+        .select()
         .from(materials)
         .where(
           and(
             eq(materials.tenantId, existing.tenantId),
-            eq(materials.category, 'floor'),
+            sql`'floor' = ANY(${materials.categories})`,
             isNull(materials.archivedAt),
             ne(materials.id, existing.id),
           ),
         );
-      const conflict = competing.some((r) => r.id);
-      // Only block if another ACTIVE row already has isVoid. We don't know
-      // their flags from the id-only select, so fetch the full rows to check.
-      if (conflict) {
-        const others = await db
-          .select()
-          .from(materials)
-          .where(
-            and(
-              eq(materials.tenantId, existing.tenantId),
-              eq(materials.category, 'floor'),
-              isNull(materials.archivedAt),
-              ne(materials.id, existing.id),
-            ),
-          );
-        if (others.some((r) => r.flags?.isVoid === true)) {
-          return NextResponse.json(
-            { error: 'validation_failed', details: [{ field: 'flags', code: 'void_conflict' }] },
-            { status: 422 },
-          );
-        }
+      if (others.some((r) => r.flags?.isVoid === true)) {
+        return NextResponse.json(
+          { error: 'validation_failed', details: [{ field: 'flags', code: 'void_conflict' }] },
+          { status: 422 },
+        );
       }
     }
 
@@ -110,6 +93,7 @@ export const PATCH = withSession(
       const [updated] = await db
         .update(materials)
         .set({
+          categories: shape.value.categories,
           slug: shape.value.slug,
           name: shape.value.name,
           color: shape.value.color,
@@ -124,7 +108,7 @@ export const PATCH = withSession(
       return NextResponse.json({ material: materialDbRowToDomain(updated) });
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
-      if (msg.includes('materials_tenant_category_slug_idx')) {
+      if (msg.includes('materials_tenant_slug_idx')) {
         return NextResponse.json(
           { error: 'validation_failed', details: [{ field: 'slug', code: 'slug_taken' }] },
           { status: 409 },

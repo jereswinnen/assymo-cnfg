@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db } from '@/db/client';
 import { materials, type MaterialDbRow } from '@/db/schema';
@@ -13,8 +13,8 @@ import { withSession } from '@/lib/auth-session';
 
 /** List materials for a tenant. tenant_admin sees own scope; super_admin
  *  may pass `?tenantId=<id>` to target a specific tenant. Optional
- *  `?category=<wall|roof-cover|…>` filter. Archived rows included —
- *  callers filter client-side. */
+ *  `?category=<wall|roof-cover|…>` filter narrows to materials that
+ *  serve that category (a material may belong to multiple categories). */
 export const GET = withSession(async (session, req: Request) => {
   requireBusiness(session, ['super_admin', 'tenant_admin']);
   const url = new URL(req.url);
@@ -25,20 +25,22 @@ export const GET = withSession(async (session, req: Request) => {
 
   const category = url.searchParams.get('category') as MaterialCategory | null;
   const conds = [eq(materials.tenantId, tenantId)];
-  if (category) conds.push(eq(materials.category, category));
+  if (category) {
+    conds.push(sql`${category} = ANY(${materials.categories})`);
+  }
 
   const rows: MaterialDbRow[] = await db
     .select()
     .from(materials)
     .where(and(...conds))
-    .orderBy(asc(materials.category), asc(materials.name));
+    .orderBy(asc(materials.name));
 
   return NextResponse.json({ materials: rows.map(materialDbRowToDomain) });
 });
 
-/** Create a material. Uniqueness on (tenantId, category, slug) is
- *  enforced at the DB layer and mapped to `catalog.material.slug_taken`.
- *  The `isVoid` floor-singleton check runs before insert. */
+/** Create a material. Uniqueness on (tenantId, slug) is enforced at the
+ *  DB layer and mapped to `catalog.material.slug_taken`. The `isVoid`
+ *  floor-singleton check runs before insert. */
 export const POST = withSession(async (session, req: Request) => {
   requireBusiness(session, ['super_admin', 'tenant_admin']);
 
@@ -64,17 +66,16 @@ export const POST = withSession(async (session, req: Request) => {
     return NextResponse.json({ error: 'tenant_scope_required' }, { status: 400 });
   requireTenantScope(session, scopeTenantId);
 
-  // Void-conflict: at most one active isVoid floor per tenant. `isVoid`
-  // lives in the flags jsonb — fetch all floor rows and filter in TS
-  // (the table is small; a partial index would be overkill here).
-  if (input.category === 'floor' && input.flags?.isVoid) {
+  // Void-conflict: at most one active isVoid floor per tenant. Only runs
+  // when the incoming material claims 'floor' AND has isVoid set.
+  if (input.categories.includes('floor') && input.flags?.isVoid) {
     const floorRows = await db
       .select()
       .from(materials)
       .where(
         and(
           eq(materials.tenantId, scopeTenantId),
-          eq(materials.category, 'floor'),
+          sql`'floor' = ANY(${materials.categories})`,
         ),
       );
     if (floorRows.some((r) => r.archivedAt === null && r.flags.isVoid)) {
@@ -92,7 +93,7 @@ export const POST = withSession(async (session, req: Request) => {
       .values({
         id,
         tenantId: scopeTenantId,
-        category: input.category,
+        categories: input.categories,
         slug: input.slug,
         name: input.name,
         color: input.color,
@@ -105,7 +106,7 @@ export const POST = withSession(async (session, req: Request) => {
     return NextResponse.json({ material: materialDbRowToDomain(row) }, { status: 201 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : '';
-    if (msg.includes('materials_tenant_category_slug_idx')) {
+    if (msg.includes('materials_tenant_slug_idx')) {
       return NextResponse.json(
         { error: 'validation_failed', details: [{ field: 'slug', code: 'slug_taken' }] },
         { status: 409 },

@@ -14,11 +14,11 @@ const BLANK_WALL = {
 
 /** Minimal material fixture: a couple of real slugs so validateConfig can
  *  detect an unknown slug like 'unobtainium'. */
-function makeRow(slug: string, category: MaterialRow['category']): MaterialRow {
+function makeRow(slug: string, category: MaterialRow['categories'][number]): MaterialRow {
   return {
     id: slug,
     tenantId: 'test',
-    category,
+    categories: [category],
     slug,
     name: slug,
     color: '#000',

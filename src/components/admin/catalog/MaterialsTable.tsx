@@ -24,9 +24,19 @@ import type { MaterialRow } from '@/domain/catalog';
 import { MaterialThumb } from './MaterialThumb';
 
 function formatPrice(m: MaterialRow): string {
-  if (m.pricing.perSqm !== undefined) return `€${m.pricing.perSqm}/m²`;
-  if (m.pricing.surcharge !== undefined) return `+€${m.pricing.surcharge}`;
+  // Summarise the per-category pricing map: show `€X/m²` when the
+  // material has a perSqm entry for wall / roof-cover / floor, fall back
+  // to `+€Y` for door-only materials, else `—`.
+  for (const cat of ['wall', 'roof-cover', 'floor'] as const) {
+    const entry = m.pricing[cat];
+    if (entry) return `€${entry.perSqm}/m²`;
+  }
+  if (m.pricing.door) return `+€${m.pricing.door.surcharge}`;
   return '—';
+}
+
+function formatCategories(m: MaterialRow): string {
+  return m.categories.map((c) => t(`admin.catalog.materials.category.${c}`)).join(', ');
 }
 
 export function MaterialsTable({ materials }: { materials: MaterialRow[] }) {
@@ -70,7 +80,7 @@ export function MaterialsTable({ materials }: { materials: MaterialRow[] }) {
                 {m.name}
               </Link>
             </TableCell>
-            <TableCell>{t(`admin.catalog.materials.category.${m.category}`)}</TableCell>
+            <TableCell>{formatCategories(m)}</TableCell>
             <TableCell className="font-mono text-xs text-muted-foreground">{m.slug}</TableCell>
             <TableCell>{formatPrice(m)}</TableCell>
             <TableCell>

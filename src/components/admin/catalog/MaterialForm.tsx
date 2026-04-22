@@ -17,13 +17,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -39,12 +32,13 @@ import {
   MATERIAL_CATEGORIES,
   normalizeSlug,
   type MaterialCategory,
+  type MaterialPricing,
   type MaterialRow,
 } from '@/domain/catalog';
 import { TextureUploadField } from './TextureUploadField';
 
 const schema = z.object({
-  category: z.enum(MATERIAL_CATEGORIES as unknown as [MaterialCategory, ...MaterialCategory[]]),
+  categories: z.array(z.enum(MATERIAL_CATEGORIES as unknown as [MaterialCategory, ...MaterialCategory[]])).min(1),
   slug: z.string().min(1).max(48),
   name: z.string().min(1).max(100),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
@@ -53,8 +47,10 @@ const schema = z.object({
   textureRoughness: z.string().nullable(),
   tileWidth: z.number().nullable(),
   tileHeight: z.number().nullable(),
-  perSqm: z.number().nullable(),
-  surcharge: z.number().nullable(),
+  priceWall: z.number().nullable(),
+  priceRoofCover: z.number().nullable(),
+  priceFloor: z.number().nullable(),
+  priceDoor: z.number().nullable(),
   clearsOpenings: z.boolean(),
   isVoid: z.boolean(),
 });
@@ -75,7 +71,7 @@ export function MaterialForm({
     resolver: zodResolver(schema),
     defaultValues: initial
       ? {
-          category: initial.category,
+          categories: initial.categories,
           slug: initial.slug,
           name: initial.name,
           color: initial.color,
@@ -84,13 +80,15 @@ export function MaterialForm({
           textureRoughness: initial.textures?.roughness ?? null,
           tileWidth: initial.tileSize?.[0] ?? null,
           tileHeight: initial.tileSize?.[1] ?? null,
-          perSqm: initial.pricing.perSqm ?? null,
-          surcharge: initial.pricing.surcharge ?? null,
+          priceWall: initial.pricing.wall?.perSqm ?? null,
+          priceRoofCover: initial.pricing['roof-cover']?.perSqm ?? null,
+          priceFloor: initial.pricing.floor?.perSqm ?? null,
+          priceDoor: initial.pricing.door?.surcharge ?? null,
           clearsOpenings: initial.flags.clearsOpenings ?? false,
           isVoid: initial.flags.isVoid ?? false,
         }
       : {
-          category: 'wall',
+          categories: ['wall'],
           slug: '',
           name: '',
           color: '#888888',
@@ -99,31 +97,39 @@ export function MaterialForm({
           textureRoughness: null,
           tileWidth: null,
           tileHeight: null,
-          perSqm: null,
-          surcharge: null,
+          priceWall: null,
+          priceRoofCover: null,
+          priceFloor: null,
+          priceDoor: null,
           clearsOpenings: false,
           isVoid: false,
         },
   });
 
-  const category = form.watch('category');
+  const categories = form.watch('categories');
   const slug = form.watch('slug');
 
+  const hasWall = categories.includes('wall');
+  const hasRoofCover = categories.includes('roof-cover');
+  const hasFloor = categories.includes('floor');
+  const hasDoor = categories.includes('door');
+
   async function onSubmit(values: FormValues) {
+    const pricing: MaterialPricing = {};
+    if (values.categories.includes('wall')) pricing.wall = { perSqm: values.priceWall ?? 0 };
+    if (values.categories.includes('roof-cover')) pricing['roof-cover'] = { perSqm: values.priceRoofCover ?? 0 };
+    if (values.categories.includes('floor')) pricing.floor = { perSqm: values.priceFloor ?? 0 };
+    if (values.categories.includes('door')) pricing.door = { surcharge: values.priceDoor ?? 0 };
+
     const body: Record<string, unknown> = {
-      category: values.category,
+      categories: values.categories,
       slug: values.slug,
       name: values.name,
       color: values.color,
-      pricing:
-        values.category === 'door'
-          ? { surcharge: values.surcharge ?? 0 }
-          : values.category === 'roof-trim'
-            ? {}
-            : { perSqm: values.perSqm ?? 0 },
+      pricing,
       flags: {
-        ...(values.category === 'wall' && values.clearsOpenings ? { clearsOpenings: true } : {}),
-        ...(values.category === 'floor' && values.isVoid ? { isVoid: true } : {}),
+        ...(values.categories.includes('wall') && values.clearsOpenings ? { clearsOpenings: true } : {}),
+        ...(values.categories.includes('floor') && values.isVoid ? { isVoid: true } : {}),
       },
       textures:
         values.textureColor && values.textureNormal && values.textureRoughness
@@ -140,7 +146,6 @@ export function MaterialForm({
     const url =
       mode === 'create' ? '/api/admin/materials' : `/api/admin/materials/${initial!.id}`;
     const method = mode === 'create' ? 'POST' : 'PATCH';
-    if (mode === 'edit') delete body.category;
 
     const res = await fetch(url, {
       method,
@@ -152,8 +157,8 @@ export function MaterialForm({
       const payload = await res.json().catch(() => ({}));
       if (Array.isArray(payload?.details)) {
         for (const e of payload.details as { field: string; code: string }[]) {
-          const field = e.field as keyof FormValues;
           const msg = t(`admin.catalog.materials.error.${e.code}`);
+          const field = e.field as keyof FormValues;
           if (field in values) {
             form.setError(field, { message: msg });
           } else {
@@ -192,32 +197,39 @@ export function MaterialForm({
             <CardTitle>{t('admin.catalog.form.section.basics')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {mode === 'create' && (
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('admin.catalog.materials.field.category')}</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {MATERIAL_CATEGORIES.map((c) => (
-                          <SelectItem key={c} value={c}>
-                            {t(`admin.catalog.materials.category.${c}`)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+            <FormField
+              control={form.control}
+              name="categories"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('admin.catalog.materials.field.categories')}</FormLabel>
+                  <div className="grid grid-cols-2 gap-2 rounded-md border p-3 sm:grid-cols-3">
+                    {MATERIAL_CATEGORIES.map((c) => {
+                      const checked = field.value.includes(c);
+                      return (
+                        <label
+                          key={c}
+                          className="flex cursor-pointer items-center gap-2 text-sm"
+                        >
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(next) => {
+                              const want = next === true;
+                              const set = new Set(field.value);
+                              if (want) set.add(c);
+                              else set.delete(c);
+                              field.onChange(Array.from(set));
+                            }}
+                          />
+                          {t(`admin.catalog.materials.category.${c}`)}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
@@ -277,153 +289,130 @@ export function MaterialForm({
           </CardContent>
         </Card>
 
-        {/* Texturen — all categories except door */}
-        {category !== 'door' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('admin.catalog.materials.field.textures')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <TextureUploadField
-                label={t('admin.catalog.materials.field.texture.color')}
-                value={form.watch('textureColor')}
-                onChange={(v) => form.setValue('textureColor', v)}
-                tenantId={tenantId}
-                slug={slug || 'draft'}
-                slot="color"
+        {/* Texturen — shared across categories */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('admin.catalog.materials.field.textures')}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <TextureUploadField
+              label={t('admin.catalog.materials.field.texture.color')}
+              value={form.watch('textureColor')}
+              onChange={(v) => form.setValue('textureColor', v)}
+              tenantId={tenantId}
+              slug={slug || 'draft'}
+              slot="color"
+            />
+            <TextureUploadField
+              label={t('admin.catalog.materials.field.texture.normal')}
+              value={form.watch('textureNormal')}
+              onChange={(v) => form.setValue('textureNormal', v)}
+              tenantId={tenantId}
+              slug={slug || 'draft'}
+              slot="normal"
+            />
+            <TextureUploadField
+              label={t('admin.catalog.materials.field.texture.roughness')}
+              value={form.watch('textureRoughness')}
+              onChange={(v) => form.setValue('textureRoughness', v)}
+              tenantId={tenantId}
+              slug={slug || 'draft'}
+              slot="roughness"
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="tileWidth"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('admin.catalog.materials.field.tileWidth')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={field.value ?? ''}
+                        onChange={(e) =>
+                          field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                        }
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
               />
-              <TextureUploadField
-                label={t('admin.catalog.materials.field.texture.normal')}
-                value={form.watch('textureNormal')}
-                onChange={(v) => form.setValue('textureNormal', v)}
-                tenantId={tenantId}
-                slug={slug || 'draft'}
-                slot="normal"
+              <FormField
+                control={form.control}
+                name="tileHeight"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('admin.catalog.materials.field.tileHeight')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={field.value ?? ''}
+                        onChange={(e) =>
+                          field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                        }
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
               />
-              <TextureUploadField
-                label={t('admin.catalog.materials.field.texture.roughness')}
-                value={form.watch('textureRoughness')}
-                onChange={(v) => form.setValue('textureRoughness', v)}
-                tenantId={tenantId}
-                slug={slug || 'draft'}
-                slot="roughness"
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="tileWidth"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('admin.catalog.materials.field.tileWidth')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={field.value ?? ''}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value === '' ? null : Number(e.target.value),
-                            )
-                          }
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="tileHeight"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('admin.catalog.materials.field.tileHeight')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={field.value ?? ''}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value === '' ? null : Number(e.target.value),
-                            )
-                          }
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Prijs — all categories except roof-trim */}
-        {category !== 'roof-trim' && (
+        {/* Prijs — one input per selected pricing-bearing category */}
+        {(hasWall || hasRoofCover || hasFloor || hasDoor) && (
           <Card>
             <CardHeader>
               <CardTitle>{t('admin.catalog.materials.field.pricing')}</CardTitle>
             </CardHeader>
-            <CardContent>
-              {category === 'door' ? (
-                <FormField
-                  control={form.control}
-                  name="surcharge"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('admin.catalog.materials.field.surcharge')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="1"
-                          min={0}
-                          value={field.value ?? ''}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value === '' ? null : Number(e.target.value),
-                            )
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+            <CardContent className="space-y-4">
+              {hasWall && (
+                <PriceRow
+                  label={t('admin.catalog.materials.field.price.wall')}
+                  suffix="€/m²"
+                  name="priceWall"
+                  form={form}
                 />
-              ) : (
-                <FormField
-                  control={form.control}
-                  name="perSqm"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('admin.catalog.materials.field.perSqm')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="1"
-                          min={0}
-                          value={field.value ?? ''}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value === '' ? null : Number(e.target.value),
-                            )
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+              )}
+              {hasRoofCover && (
+                <PriceRow
+                  label={t('admin.catalog.materials.field.price.roofCover')}
+                  suffix="€/m²"
+                  name="priceRoofCover"
+                  form={form}
+                />
+              )}
+              {hasFloor && (
+                <PriceRow
+                  label={t('admin.catalog.materials.field.price.floor')}
+                  suffix="€/m²"
+                  name="priceFloor"
+                  form={form}
+                />
+              )}
+              {hasDoor && (
+                <PriceRow
+                  label={t('admin.catalog.materials.field.price.door')}
+                  suffix="€"
+                  name="priceDoor"
+                  form={form}
                 />
               )}
             </CardContent>
           </Card>
         )}
 
-        {/* Opties — wall + floor only */}
-        {(category === 'wall' || category === 'floor') && (
+        {/* Opties — wall + floor toggles */}
+        {(hasWall || hasFloor) && (
           <Card>
             <CardHeader>
               <CardTitle>{t('admin.catalog.form.section.options')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {category === 'wall' && (
+              {hasWall && (
                 <FormField
                   control={form.control}
                   name="clearsOpenings"
@@ -442,7 +431,7 @@ export function MaterialForm({
                   )}
                 />
               )}
-              {category === 'floor' && (
+              {hasFloor && (
                 <FormField
                   control={form.control}
                   name="isVoid"
@@ -507,5 +496,44 @@ export function MaterialForm({
         </div>
       </form>
     </Form>
+  );
+}
+
+function PriceRow({
+  label,
+  suffix,
+  name,
+  form,
+}: {
+  label: string;
+  suffix: string;
+  name: 'priceWall' | 'priceRoofCover' | 'priceFloor' | 'priceDoor';
+  form: ReturnType<typeof useForm<FormValues>>;
+}) {
+  return (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
+          <FormControl>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                step="1"
+                min={0}
+                value={field.value ?? ''}
+                onChange={(e) =>
+                  field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                }
+              />
+              <span className="text-sm text-muted-foreground">{suffix}</span>
+            </div>
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
   );
 }
