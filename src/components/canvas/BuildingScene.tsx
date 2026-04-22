@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useMemo } from 'react';
+import { Suspense, useRef, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { Vector3, BackSide, ShaderMaterial, ACESFilmicToneMapping } from 'three';
@@ -179,9 +179,14 @@ export default function BuildingScene() {
 
       <SkyGradient />
 
-      {buildings.map(b => (
-        <BuildingInstance key={b.id} buildingId={b.id} />
-      ))}
+      {/* Suspense boundary inside the Canvas: any useLoader / useTexture
+       *  inside building meshes can suspend without tearing down the
+       *  GL context when it first loads an asset (e.g. a supplier hero). */}
+      <Suspense fallback={null}>
+        {buildings.map(b => (
+          <BuildingInstance key={b.id} buildingId={b.id} />
+        ))}
+      </Suspense>
 
       <Ground />
 
