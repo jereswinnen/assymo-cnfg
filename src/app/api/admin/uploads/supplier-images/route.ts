@@ -40,9 +40,9 @@ export const POST = withSession(async (session, req) => {
           }),
         };
       },
-      onUploadCompleted: async () => {
-        // No-op: the supplier product row gets the URL via POST/PATCH.
-      },
+      // No onUploadCompleted: row updates happen via POST/PATCH, and
+      // providing this callback forces handleUpload to register a
+      // public webhook URL (fails on localhost).
     });
     return NextResponse.json(result);
   } catch (err) {

@@ -49,9 +49,10 @@ export const POST = withSession(async (session, req) => {
           }),
         };
       },
-      onUploadCompleted: async () => {
-        // No-op: the product row gets the URL via POST/PATCH.
-      },
+      // No onUploadCompleted: we don't need a server-side callback (the
+      // row is updated via POST/PATCH using the Blob URL returned to
+      // the client). Defining it forces handleUpload to register a
+      // public webhook URL, which fails on localhost.
     });
     return NextResponse.json(result);
   } catch (err) {

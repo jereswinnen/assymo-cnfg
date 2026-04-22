@@ -41,10 +41,9 @@ export const POST = withSession(async (session, req) => {
           }),
         };
       },
-      onUploadCompleted: async () => {
-        // No-op: the row is updated via the material POST/PATCH endpoints
-        // using the Blob URL returned to the client.
-      },
+      // No onUploadCompleted: row updates happen via POST/PATCH, and
+      // providing this callback forces handleUpload to register a
+      // public webhook URL (fails on localhost).
     });
     return NextResponse.json(result);
   } catch (err) {
