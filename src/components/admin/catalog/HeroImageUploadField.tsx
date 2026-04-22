@@ -12,12 +12,23 @@ interface Props {
   slug: string;
   /** Override the upload endpoint. Defaults to /api/admin/uploads/images. */
   uploadUrl?: string;
+  /** Blob path prefix. Must match what the server-side signed-token
+   *  endpoint expects (e.g. 'images', 'supplier'). Defaults to 'images'. */
+  pathPrefix?: string;
 }
 
 /** Single-image upload control for product hero images. Direct-to-Blob
  *  via the signed-token endpoint at /api/admin/uploads/images (or the
  *  provided uploadUrl). */
-export function HeroImageUploadField({ label, value, onChange, tenantId, slug, uploadUrl = '/api/admin/uploads/images' }: Props) {
+export function HeroImageUploadField({
+  label,
+  value,
+  onChange,
+  tenantId,
+  slug,
+  uploadUrl = '/api/admin/uploads/images',
+  pathPrefix = 'images',
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +39,7 @@ export function HeroImageUploadField({ label, value, onChange, tenantId, slug, u
     try {
       const ext = file.name.split('.').pop() ?? 'bin';
       const blob = await upload(
-        `images/${tenantId}/${slug}-hero-${Date.now()}.${ext}`,
+        `${pathPrefix}/${tenantId}/${slug}-hero-${Date.now()}.${ext}`,
         file,
         { access: 'public', handleUploadUrl: uploadUrl },
       );

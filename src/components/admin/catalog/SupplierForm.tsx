@@ -200,7 +200,8 @@ export function SupplierForm({
                   onChange={field.onChange}
                   tenantId={tenantId}
                   slug={slug || 'draft'}
-                  uploadUrl="/api/admin/uploads/images"
+                  uploadUrl="/api/admin/uploads/supplier-images"
+                  pathPrefix="supplier"
                 />
               )}
             />

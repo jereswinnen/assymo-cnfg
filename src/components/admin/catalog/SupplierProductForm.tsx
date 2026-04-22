@@ -345,6 +345,8 @@ export function SupplierProductForm({
                   onChange={field.onChange}
                   tenantId={tenantId}
                   slug={form.watch('sku') || 'draft'}
+                  uploadUrl="/api/admin/uploads/supplier-images"
+                  pathPrefix="supplier"
                 />
               )}
             />
@@ -354,7 +356,7 @@ export function SupplierProductForm({
         {/* Afmetingen & prijs */}
         <Card>
           <CardHeader>
-            <CardTitle>Afmetingen & prijs</CardTitle>
+            <CardTitle>{t('admin.catalog.form.section.dimensionsPrice')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">

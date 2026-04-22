@@ -654,6 +654,7 @@ const nl: Record<string, string> = {
   'admin.catalog.form.section.basics': 'Basis',
   'admin.catalog.form.section.options': 'Opties',
   'admin.catalog.form.section.priceSort': 'Prijs & volgorde',
+  'admin.catalog.form.section.dimensionsPrice': 'Afmetingen & prijs',
 
   'admin.catalog.materials.field.tileWidth': 'Tegel breedte (m)',
   'admin.catalog.materials.field.tileHeight': 'Tegel hoogte (m)',
