@@ -330,6 +330,22 @@ const nl: Record<string, string> = {
   'email.orderConfirmation.footer':
     'Vragen? Antwoord op deze e-mail of bel ons.',
 
+  // Email — invoice ready
+  'email.invoiceReady.subject': 'Factuur {number} van {brand}',
+  'email.invoiceReady.greeting': 'Hallo {name},',
+  'email.invoiceReady.intro':
+    'Je factuur {number} staat klaar. Je vindt hieronder de belangrijkste gegevens.',
+  'email.invoiceReady.summary': 'Factuurgegevens:',
+  'email.invoiceReady.number': 'Factuurnummer',
+  'email.invoiceReady.issuedAt': 'Factuurdatum',
+  'email.invoiceReady.dueAt': 'Vervaldatum',
+  'email.invoiceReady.total': 'Totaal te betalen',
+  'email.invoiceReady.claimIntro':
+    'Klik hieronder om de factuur te bekijken en de PDF te downloaden. De link verloopt binnen 24 uur.',
+  'email.invoiceReady.claimCta': 'Factuur bekijken',
+  'email.invoiceReady.footer':
+    'Vragen over de factuur? Antwoord op deze e-mail.',
+
   // Configurator — "in winkelmandje" submit flow
   'configurator.submit.cta': 'In winkelmandje',
   'configurator.submit.cta.disabled': 'Voeg eerst een object toe',

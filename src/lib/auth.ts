@@ -4,8 +4,9 @@ import { magicLink } from 'better-auth/plugins';
 import { Resend } from 'resend';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db/client';
-import { orders, tenants } from '@/db/schema';
+import { invoices, orders, tenants } from '@/db/schema';
 import { sendOrderConfirmationEmail } from './orderConfirmationEmail';
+import { sendInvoiceReadyEmail } from './invoiceReadyEmail';
 
 const resendClient = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -58,17 +59,45 @@ export const auth = betterAuth({
       // of creating a session for the unknown user.
       disableSignUp: true,
       sendMagicLink: async ({ email, url }) => {
-        // Detect an order-confirmation context. The Better Auth magic-link
-        // URL embeds `callbackURL` as a query param; parse it and route to
-        // the order-aware template when applicable.
+        // Detect a context-specific callback. The Better Auth magic-link URL
+        // embeds `callbackURL` as a query param; parse it and route to a
+        // context-aware email template when applicable.
         let orderId: string | null = null;
+        let invoiceId: string | null = null;
         try {
           const parsed = new URL(url);
           const callback = parsed.searchParams.get('callbackURL') ?? '';
-          const match = callback.match(/^\/shop\/account\/orders\/([^/?]+)/);
-          if (match) orderId = match[1];
+          const orderMatch = callback.match(/^\/shop\/account\/orders\/([^/?]+)/);
+          if (orderMatch) orderId = orderMatch[1];
+          const invoiceMatch = callback.match(/^\/shop\/account\/invoices\/([^/?]+)/);
+          if (invoiceMatch) invoiceId = invoiceMatch[1];
         } catch {
           // Fall through to the generic template.
+        }
+
+        if (invoiceId) {
+          const [invoice] = await db
+            .select()
+            .from(invoices)
+            .where(eq(invoices.id, invoiceId))
+            .limit(1);
+          if (invoice) {
+            const [tenant] = await db
+              .select()
+              .from(tenants)
+              .where(eq(tenants.id, invoice.tenantId))
+              .limit(1);
+            if (tenant) {
+              await sendInvoiceReadyEmail({
+                toEmail: email,
+                branding: tenant.branding,
+                invoice,
+                magicLinkUrl: url,
+              });
+              return;
+            }
+          }
+          // Fall through to the generic template if lookup failed.
         }
 
         if (orderId) {

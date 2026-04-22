@@ -11,6 +11,7 @@ import {
 } from '@/domain/invoicing';
 import { requireBusiness, requireTenantScope } from '@/lib/auth-guards';
 import { withSession } from '@/lib/auth-session';
+import { auth } from '@/lib/auth';
 
 export const POST = withSession(async (session, req, ctx: { params: Promise<{ id: string }> }) => {
   requireBusiness(session, ['super_admin', 'tenant_admin']);
@@ -98,6 +99,22 @@ export const POST = withSession(async (session, req, ctx: { params: Promise<{ id
       pdfUrl: null,
     })
     .returning();
+
+  // Best-effort: fire a magic-link email to the customer. The invoice is
+  // already persisted, so we still 201 even if delivery flakes. If the
+  // order has no customerId (magic link never claimed), we use the
+  // order's contactEmail so the customer still gets notified.
+  try {
+    await auth.api.signInMagicLink({
+      body: {
+        email: order.contactEmail,
+        callbackURL: `/shop/account/invoices/${invoice.id}`,
+      },
+      headers: new Headers(),
+    });
+  } catch {
+    // Ignore — invoice creation is the primary effect.
+  }
 
   return NextResponse.json({ invoice }, { status: 201 });
 });
