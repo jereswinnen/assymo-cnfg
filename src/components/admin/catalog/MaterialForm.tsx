@@ -122,6 +122,7 @@ export function MaterialForm({
     if (values.categories.includes('door')) pricing.door = { surcharge: values.priceDoor ?? 0 };
 
     const body: Record<string, unknown> = {
+      tenantId,
       categories: values.categories,
       slug: values.slug,
       name: values.name,

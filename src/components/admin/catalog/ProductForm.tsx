@@ -196,6 +196,7 @@ export function ProductForm({
     if (Object.keys(allow).length) cons.allowedMaterialsBySlot = allow;
 
     const body: Record<string, unknown> = {
+      tenantId,
       kind: values.kind,
       slug: values.slug,
       name: values.name,

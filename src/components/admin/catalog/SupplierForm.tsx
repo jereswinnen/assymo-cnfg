@@ -88,6 +88,7 @@ export function SupplierForm({
     if (values.contactWebsite) contact.website = values.contactWebsite;
 
     const body = {
+      tenantId,
       name: values.name,
       slug: values.slug,
       logoUrl: values.logoUrl,
