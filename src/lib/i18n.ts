@@ -852,6 +852,18 @@ const nl: Record<string, string> = {
   'admin.catalog.supplierProducts.error.hero_image_invalid': 'Afbeelding-URL is ongeldig',
   'admin.catalog.supplierProducts.error.sort_order_invalid': 'Volgorde moet een niet-negatief geheel getal zijn',
 
+  // Configurator — supplier product picker (door + window tabs)
+  'configurator.door.tab.custom':   'Eigen keuze',
+  'configurator.door.tab.catalog':  'Uit catalogus',
+  'configurator.window.tab.custom': 'Eigen keuze',
+  'configurator.window.tab.catalog':'Uit catalogus',
+  'configurator.supplier.picker.empty':      'Geen producten beschikbaar voor deze categorie',
+  'configurator.supplier.picker.dimensions': '{width} × {height} mm',
+  'configurator.supplier.picker.price':      '€{price}',
+  'configurator.supplier.lockInfo':          'Afmetingen bepaald door {supplier}: {width} × {height} mm',
+  'configurator.supplier.clearSelection':    'Terug naar eigen keuze',
+  'schematic.supplier.label':               '{sku}',
+
   // Quote line items for supplier products
   'quote.line.supplierDoor':    'Deur — {name} ({sku})',
   'quote.line.supplierWindow':  'Raam — {name} ({sku})',
