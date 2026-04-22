@@ -24,21 +24,21 @@ export function ShopHeader({ branding, signedIn, variant = 'shop' }: Props) {
         href={variant === 'configurator' ? '/' : '/shop/account'}
         className="flex items-center gap-2 text-sm font-medium hover:opacity-80 transition-opacity"
       >
-        {branding.logoUrl && (
-          // alt="" because the displayName sibling span already names
-          // the link — the image is decorative. Partner tenants using
-          // an external https logo URL will need a matching entry in
-          // next.config.ts `images.remotePatterns`; today's seed uses
-          // a local `/logo-*.svg` path.
+        {branding.logoUrl ? (
+          // Logo typically embeds the brand name already; show logo
+          // only and alt-text it for a11y. Partner tenants using an
+          // external https logo URL need a matching entry in
+          // next.config.ts `images.remotePatterns`.
           <Image
             src={branding.logoUrl}
-            alt=""
+            alt={branding.displayName}
             width={28}
             height={28}
             className="h-7 w-auto"
           />
+        ) : (
+          <span className="text-foreground">{branding.displayName}</span>
         )}
-        <span className="text-foreground">{branding.displayName}</span>
       </Link>
 
       {variant === 'shop' && (
