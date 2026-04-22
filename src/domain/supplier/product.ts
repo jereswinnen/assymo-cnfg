@@ -49,10 +49,20 @@ const DOOR_LOCK_VALUES = ['cylinder', 'multipoint', 'none'] as const;
 const DOOR_GLAZING_VALUES = ['solid', 'glass-panel', 'half-glass'] as const;
 const WINDOW_GLAZING_VALUES = ['double', 'triple', 'single'] as const;
 
+const DOOR_META_KEYS = new Set(['swingDirection', 'lockType', 'glazing', 'rValue', 'leadTimeDays']);
+const WINDOW_META_KEYS = new Set(['glazingType', 'uValue', 'frameMaterial', 'openable', 'leadTimeDays']);
+
 export function validateDoorMeta(meta: unknown): Validated<DoorMeta> {
   if (!isObject(meta)) return { value: null, errors: [SUPPLIER_ERROR_CODES.metaInvalid] };
   const errors: string[] = [];
   const out: DoorMeta = {};
+
+  for (const key of Object.keys(meta)) {
+    if (!DOOR_META_KEYS.has(key)) {
+      errors.push(SUPPLIER_ERROR_CODES.metaInvalid);
+      return { value: null, errors };
+    }
+  }
 
   if ('swingDirection' in meta) {
     if (!(DOOR_SWING_VALUES as readonly unknown[]).includes(meta.swingDirection)) {
@@ -98,6 +108,13 @@ export function validateWindowMeta(meta: unknown): Validated<WindowMeta> {
   if (!isObject(meta)) return { value: null, errors: [SUPPLIER_ERROR_CODES.metaInvalid] };
   const errors: string[] = [];
   const out: WindowMeta = {};
+
+  for (const key of Object.keys(meta)) {
+    if (!WINDOW_META_KEYS.has(key)) {
+      errors.push(SUPPLIER_ERROR_CODES.metaInvalid);
+      return { value: null, errors };
+    }
+  }
 
   if ('glazingType' in meta) {
     if (!(WINDOW_GLAZING_VALUES as readonly unknown[]).includes(meta.glazingType)) {
@@ -279,7 +296,13 @@ export function validateSupplierProductPatch(
     if (!isObject(input.meta)) {
       errors.push(SUPPLIER_ERROR_CODES.metaInvalid);
     } else {
-      out.meta = input.meta as DoorMeta | WindowMeta;
+      const allMetaKeys = new Set([...DOOR_META_KEYS, ...WINDOW_META_KEYS]);
+      const unknownKey = Object.keys(input.meta).find((k) => !allMetaKeys.has(k));
+      if (unknownKey !== undefined) {
+        errors.push(SUPPLIER_ERROR_CODES.metaInvalid);
+      } else {
+        out.meta = input.meta as DoorMeta | WindowMeta;
+      }
     }
   }
   if ('sortOrder' in input) {

@@ -86,6 +86,11 @@ describe('validateDoorMeta', () => {
     const { errors } = validateDoorMeta('not an object');
     expect(errors).toContain(SUPPLIER_ERROR_CODES.metaInvalid);
   });
+
+  it('rejects window-only key glazingType in door meta', () => {
+    const { errors } = validateDoorMeta({ glazingType: 'double' });
+    expect(errors).toContain(SUPPLIER_ERROR_CODES.metaInvalid);
+  });
 });
 
 describe('validateWindowMeta', () => {
@@ -121,6 +126,11 @@ describe('validateWindowMeta', () => {
   it('rejects non-boolean openable', () => {
     const { errors } = validateWindowMeta({ openable: 'yes' });
     expect(errors.some((e) => e.includes('openable'))).toBe(true);
+  });
+
+  it('rejects door-only key swingDirection in window meta', () => {
+    const { errors } = validateWindowMeta({ swingDirection: 'inward' });
+    expect(errors).toContain(SUPPLIER_ERROR_CODES.metaInvalid);
   });
 });
 
@@ -217,6 +227,18 @@ describe('validateSupplierProductCreate', () => {
   it('passes window meta through kind-specific validator', () => {
     const { errors } = validateSupplierProductCreate(baseWindow({ meta: { glazingType: 'quadruple' } }));
     expect(errors.some((e) => e.includes('glazingType'))).toBe(true);
+  });
+
+  it('rejects kind=door with window-only meta key glazingType', () => {
+    const { value, errors } = validateSupplierProductCreate(baseDoor({ meta: { glazingType: 'double' } }));
+    expect(value).toBeNull();
+    expect(errors).toContain(SUPPLIER_ERROR_CODES.metaInvalid);
+  });
+
+  it('rejects kind=window with door-only meta key swingDirection', () => {
+    const { value, errors } = validateSupplierProductCreate(baseWindow({ meta: { swingDirection: 'inward' } }));
+    expect(value).toBeNull();
+    expect(errors).toContain(SUPPLIER_ERROR_CODES.metaInvalid);
   });
 });
 
