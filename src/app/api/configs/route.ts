@@ -1,43 +1,48 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { and, eq } from 'drizzle-orm';
+import { customAlphabet } from 'nanoid';
 import { db } from '@/db/client';
 import { configs } from '@/db/schema';
 import {
-  decodeState,
+  contentHash,
   migrateConfig,
   validateConfig,
+  type LegacyConfig,
 } from '@/domain/config';
 import { resolveApiTenant } from '@/lib/apiTenant';
 
-/** Save a configurator scene by its base58 share code. Idempotent per
- *  (tenant, code): re-submitting the same code returns the existing row
- *  rather than erroring on the unique index. */
+/** Bitcoin-style base58 (no 0/O/I/l). 10 chars ≈ 57.5 bits of entropy.
+ *  Collision probability < 1e-8 per tenant at 10k saved scenes. */
+const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+const newCode = customAlphabet(BASE58, 10);
+
+/** Save a configurator scene. Dedupe per tenant by SHA-256 content hash
+ *  over the canonicalised ConfigData — saving the same scene twice
+ *  returns the existing short code. */
 export async function POST(req: NextRequest) {
   const tenant = await resolveApiTenant();
   if (!tenant) {
     return NextResponse.json({ error: 'unknown_tenant' }, { status: 404 });
   }
 
-  let body: { code?: unknown };
+  let body: { data?: unknown };
   try {
-    body = (await req.json()) as { code?: unknown };
+    body = (await req.json()) as { data?: unknown };
   } catch {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
   }
 
-  const code = typeof body.code === 'string' ? body.code.trim() : '';
-  if (!code) {
-    return NextResponse.json({ error: 'code_required' }, { status: 400 });
+  if (!body.data || typeof body.data !== 'object') {
+    return NextResponse.json({ error: 'data_required' }, { status: 400 });
   }
 
-  let decoded;
+  let migrated;
   try {
-    decoded = decodeState(code);
+    migrated = migrateConfig(body.data as LegacyConfig);
   } catch {
-    return NextResponse.json({ error: 'invalid_code' }, { status: 400 });
+    return NextResponse.json({ error: 'invalid_data' }, { status: 400 });
   }
 
-  const migrated = migrateConfig(decoded);
   const errors = validateConfig(migrated);
   if (errors.length > 0) {
     return NextResponse.json(
@@ -46,22 +51,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const existing = await db
-    .select({ id: configs.id })
+  const hash = await contentHash(migrated);
+
+  const [existing] = await db
+    .select({ id: configs.id, code: configs.code })
     .from(configs)
-    .where(and(eq(configs.tenantId, tenant.id), eq(configs.code, code)))
+    .where(and(eq(configs.tenantId, tenant.id), eq(configs.contentHash, hash)))
     .limit(1);
 
-  if (existing[0]) {
-    return NextResponse.json({ id: existing[0].id, code }, { status: 200 });
+  if (existing) {
+    return NextResponse.json({ id: existing.id, code: existing.code }, { status: 200 });
   }
 
   const id = crypto.randomUUID();
+  const code = newCode();
   await db.insert(configs).values({
     id,
     tenantId: tenant.id,
     code,
-    contentHash: '', // TODO(Task 4): replace with SHA-256 of canonicalizeConfig(migrated)
+    contentHash: hash,
     data: migrated,
     version: migrated.version,
   });
