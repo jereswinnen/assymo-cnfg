@@ -25,9 +25,13 @@ export const POST = withSession(async (session, req) => {
       body,
       request: req,
       onBeforeGenerateToken: async (pathname) => {
-        const expectedPrefix = `images/${session.user.tenantId ?? 'shared'}/`;
-        if (!pathname.startsWith(expectedPrefix)) {
-          throw new Error('invalid_path');
+        // super_admin (tenantId=null post-kind-refactor) may upload to any
+        // tenant's namespace; tenant_admin is pinned to their own tenant.
+        if (session.user.kind === 'super_admin') {
+          if (!pathname.startsWith('images/')) throw new Error('invalid_path');
+        } else {
+          const expectedPrefix = `images/${session.user.tenantId}/`;
+          if (!pathname.startsWith(expectedPrefix)) throw new Error('invalid_path');
         }
         return {
           allowedContentTypes: ALLOWED_TYPES,

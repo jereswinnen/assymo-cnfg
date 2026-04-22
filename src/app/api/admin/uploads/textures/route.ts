@@ -26,9 +26,11 @@ export const POST = withSession(async (session, req) => {
       body,
       request: req,
       onBeforeGenerateToken: async (pathname) => {
-        const expectedPrefix = `textures/${session.user.tenantId ?? 'shared'}/`;
-        if (!pathname.startsWith(expectedPrefix)) {
-          throw new Error('invalid_path');
+        if (session.user.kind === 'super_admin') {
+          if (!pathname.startsWith('textures/')) throw new Error('invalid_path');
+        } else {
+          const expectedPrefix = `textures/${session.user.tenantId}/`;
+          if (!pathname.startsWith(expectedPrefix)) throw new Error('invalid_path');
         }
         return {
           allowedContentTypes: ALLOWED_TYPES,

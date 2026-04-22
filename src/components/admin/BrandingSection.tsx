@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { HeroImageUploadField } from '@/components/admin/catalog/HeroImageUploadField';
+import { ColorPickerField } from '@/components/admin/ColorPickerField';
 import type { Branding } from '@/domain/tenant';
 import { t } from '@/lib/i18n';
 
@@ -52,12 +53,16 @@ export function BrandingSection({ tenantId, initialBranding }: Props) {
           slug="logo"
         />
         <div className="grid grid-cols-2 gap-4">
-          <Field label={t('admin.tenant.branding.primaryColor')}>
-            <Input value={b.primaryColor} onChange={(e) => set('primaryColor', e.target.value)} />
-          </Field>
-          <Field label={t('admin.tenant.branding.accentColor')}>
-            <Input value={b.accentColor} onChange={(e) => set('accentColor', e.target.value)} />
-          </Field>
+          <ColorPickerField
+            label={t('admin.tenant.branding.primaryColor')}
+            value={b.primaryColor}
+            onChange={(v) => set('primaryColor', v)}
+          />
+          <ColorPickerField
+            label={t('admin.tenant.branding.accentColor')}
+            value={b.accentColor}
+            onChange={(v) => set('accentColor', v)}
+          />
         </div>
         <Field label={t('admin.tenant.branding.footer.contactEmail')}>
           <Input value={b.footer.contactEmail} onChange={(e) => setFooter('contactEmail', e.target.value)} />
