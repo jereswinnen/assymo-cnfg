@@ -20,7 +20,7 @@ interface WallElevationProps {
 }
 
 export default function WallElevation({ buildingId, wallId }: WallElevationProps) {
-  const { catalog: { materials } } = useTenant();
+  const { catalog: { materials }, supplierCatalog } = useTenant();
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
   const buildings = useConfigStore((s) => s.buildings);
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
@@ -101,8 +101,11 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
       const win = windows.find(w => w.id === d.windowId);
       if (!win) return;
 
-      const winW = win.width ?? WIN_W_DEFAULT;
-      const winH = win.height ?? WIN_H_DEFAULT;
+      const winSupplier = win.supplierProductId
+        ? supplierCatalog.products.find(p => p.id === win.supplierProductId) ?? null
+        : null;
+      const winW = winSupplier ? winSupplier.widthMm / 1000 : (win.width ?? WIN_W_DEFAULT);
+      const winH = winSupplier ? winSupplier.heightMm / 1000 : (win.height ?? WIN_H_DEFAULT);
 
       const otherOpenings: { position: number; width: number }[] = [];
       if (wallCfg.hasDoor) {
@@ -111,7 +114,13 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
       }
       windows.forEach(w => {
         if (w.id === d.windowId) return;
-        otherOpenings.push({ position: w.position, width: w.width ?? WIN_W_DEFAULT });
+        const ws = w.supplierProductId
+          ? supplierCatalog.products.find(p => p.id === w.supplierProductId) ?? null
+          : null;
+        otherOpenings.push({
+          position: w.position,
+          width: ws ? ws.widthMm / 1000 : (w.width ?? WIN_W_DEFAULT),
+        });
       });
 
       const newFrac = clampOpeningPosition(wallLength, winW, snappedFrac, otherOpenings);
@@ -435,8 +444,11 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
 
       {/* Windows */}
       {windows.map((win) => {
-        const w = win.width ?? WIN_W_DEFAULT;
-        const h = win.height ?? WIN_H_DEFAULT;
+        const supplier = win.supplierProductId
+          ? supplierCatalog.products.find(p => p.id === win.supplierProductId) ?? null
+          : null;
+        const w = supplier ? supplier.widthMm / 1000 : (win.width ?? WIN_W_DEFAULT);
+        const h = supplier ? supplier.heightMm / 1000 : (win.height ?? WIN_H_DEFAULT);
         const sill = win.sillHeight ?? WIN_SILL_DEFAULT;
         const winX = wallLength / 2 + fractionToX(wallLength, win.position);
         const winTop = wallHeight - sill - h;
@@ -490,8 +502,8 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
               {w.toFixed(1)} x {h.toFixed(1)}m
             </text>
 
-            {/* Resize handles (windows only, when selected) */}
-            {isSelected && (() => {
+            {/* Resize handles (windows only, when selected, not supplier-locked) */}
+            {isSelected && !supplier && (() => {
               const hx = winX - w / 2; // left edge X
               const hy = winTop;       // top edge Y
               const hs = 0.08;         // handle size
