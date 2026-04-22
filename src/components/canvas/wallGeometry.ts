@@ -3,6 +3,12 @@ import { DOUBLE_DOOR_W, DOOR_W } from '@/domain/building';
 import type { WallId, DoorSize } from '@/domain/building';
 
 export const DOOR_H = 2.1;
+
+export interface DoorHole {
+  x: number;
+  width: number;
+  height: number;
+}
 export const DOOR_DEPTH = 0.05;
 export const DOUBLE_W = DOUBLE_DOOR_W; // 1.6m for double doors
 export const WIN_W = 1.2;
@@ -31,8 +37,7 @@ export function createWallWithOpeningsGeo(
   wallHeight: number,
   thickness: number,
   wallId: WallId,
-  doorX: number | null,
-  doorSize: DoorSize,
+  door: DoorHole | null,
   windowHoles: WindowHole[],
 ): ExtrudeGeometry {
   const hw = wallLength / 2;
@@ -47,14 +52,14 @@ export function createWallWithOpeningsGeo(
   shape.closePath();
 
   // Door hole (bottom at ground level)
-  if (doorX !== null) {
-    const dw = doorWidth(doorSize) / 2;
-    const dh = Math.min(DOOR_H, wallHeight - 0.05);
+  if (door) {
+    const dw = door.width / 2;
+    const dh = Math.min(door.height, wallHeight - 0.05);
     const hole = new Path();
-    hole.moveTo(doorX - dw, -hh);
-    hole.lineTo(doorX + dw, -hh);
-    hole.lineTo(doorX + dw, -hh + dh);
-    hole.lineTo(doorX - dw, -hh + dh);
+    hole.moveTo(door.x - dw, -hh);
+    hole.lineTo(door.x + dw, -hh);
+    hole.lineTo(door.x + dw, -hh + dh);
+    hole.lineTo(door.x - dw, -hh + dh);
     hole.closePath();
     shape.holes.push(hole);
   }

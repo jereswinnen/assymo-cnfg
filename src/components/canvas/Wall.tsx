@@ -11,8 +11,8 @@ import { useTenant } from '@/lib/TenantProvider';
 import { useWallTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
 import { WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT } from '@/domain/building';
-import { createWallWithOpeningsGeo, FRAME_D } from './wallGeometry';
-import type { WindowHole } from './wallGeometry';
+import { createWallWithOpeningsGeo, doorWidth, DOOR_H, FRAME_D } from './wallGeometry';
+import type { DoorHole, WindowHole } from './wallGeometry';
 import { frameMat } from './DoorMesh';
 import DoorMesh from './DoorMesh';
 import WindowMesh from './WindowMesh';
@@ -40,7 +40,7 @@ interface WallProps {
 }
 
 export default function Wall({ wallId }: WallProps) {
-  const { catalog: { materials } } = useTenant();
+  const { catalog: { materials }, supplierCatalog } = useTenant();
   const meshRef = useRef<Mesh>(null);
 
   const buildingId = useBuildingId();
@@ -116,10 +116,36 @@ export default function Wall({ wallId }: WallProps) {
     [wallLength, wallCfg.hasDoor, wallCfg.doorPosition, wallCfg.windows],
   );
 
+  const doorHole: DoorHole | null = useMemo(() => {
+    if (!wallCfg.hasDoor || computedDoorX === null) return null;
+    const supplier = wallCfg.doorSupplierProductId
+      ? supplierCatalog.products.find(p => p.id === wallCfg.doorSupplierProductId)
+      : null;
+    if (supplier) {
+      return {
+        x: computedDoorX,
+        width: supplier.widthMm / 1000,
+        height: supplier.heightMm / 1000,
+      };
+    }
+    return { x: computedDoorX, width: doorWidth(ds), height: DOOR_H };
+  }, [wallCfg.hasDoor, wallCfg.doorSupplierProductId, computedDoorX, ds, supplierCatalog.products]);
+
   const windowHoles: WindowHole[] = useMemo(
     () =>
       computedWindowXs.map((wx, i) => {
         const win = (wallCfg.windows ?? [])[i];
+        const supplier = win?.supplierProductId
+          ? supplierCatalog.products.find(p => p.id === win.supplierProductId)
+          : null;
+        if (supplier) {
+          return {
+            x: wx,
+            width: supplier.widthMm / 1000,
+            height: supplier.heightMm / 1000,
+            sillHeight: win?.sillHeight ?? WIN_SILL_DEFAULT,
+          };
+        }
         return {
           x: wx,
           width: win?.width ?? WIN_W_DEFAULT,
@@ -127,7 +153,7 @@ export default function Wall({ wallId }: WallProps) {
           sillHeight: win?.sillHeight ?? WIN_SILL_DEFAULT,
         };
       }),
-    [computedWindowXs, wallCfg.windows],
+    [computedWindowXs, wallCfg.windows, supplierCatalog.products],
   );
 
   const wallGeo = useMemo(() => {
@@ -137,11 +163,10 @@ export default function Wall({ wallId }: WallProps) {
       height,
       WALL_THICKNESS,
       wallId,
-      wallCfg.hasDoor ? computedDoorX : null,
-      ds,
+      doorHole,
       windowHoles,
     );
-  }, [hasOpenings, wallLength, height, wallId, wallCfg.hasDoor, computedDoorX, ds, windowHoles]);
+  }, [hasOpenings, wallLength, height, wallId, doorHole, windowHoles]);
 
   useEffect(() => {
     return () => { wallGeo?.dispose(); };
