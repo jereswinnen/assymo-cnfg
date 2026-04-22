@@ -30,7 +30,7 @@ export default function Floor() {
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} receiveShadow>
       <planeGeometry args={[floorWidth, floorDepth]} />
       <meshStandardMaterial
-        color={pbr ? '#ffffff' : getAtomColor(materials, materialId)}
+        color={pbr ? '#ffffff' : getAtomColor(materials, materialId, 'floor')}
         map={pbr?.map ?? undefined}
         normalMap={pbr?.normalMap ?? undefined}
         roughnessMap={pbr?.roughnessMap ?? undefined}

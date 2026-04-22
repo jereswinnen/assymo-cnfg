@@ -38,6 +38,7 @@ export default function BuildingMaterialSection() {
         catalog={wallCatalog}
         value={primaryMaterialId}
         onChange={(atomId) => setBuildingPrimaryMaterial(selectedBuildingId, atomId)}
+        category="wall"
         showPrice
         ariaLabel={t('material.primary')}
       />

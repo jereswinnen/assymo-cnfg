@@ -27,7 +27,7 @@ const DEFAULT_DOOR_MAT = { tint: '#ffffff', metalness: 0.1, roughness: 0.7, envM
 function resolveDoorMatCfg(matId: string, materials: MaterialRow[]) {
   const cfg = DOOR_MAT_CFG[matId];
   if (cfg) return cfg;
-  return { ...DEFAULT_DOOR_MAT, color: getAtomColor(materials, matId) };
+  return { ...DEFAULT_DOOR_MAT, color: getAtomColor(materials, matId, 'door') };
 }
 
 // Handle materials: dark for wood-like, light for hard finishes.

@@ -34,6 +34,7 @@ export default function RoofConfigSection() {
           catalog={roofCover}
           value={roof.coveringId}
           onChange={(atomId) => updateRoof({ coveringId: atomId as RoofCoveringId })}
+          category="roof-cover"
           showPrice
           ariaLabel={t('roof.covering')}
         />
@@ -50,6 +51,7 @@ export default function RoofConfigSection() {
           catalog={roofTrim}
           value={roof.trimMaterialId}
           onChange={(atomId) => updateRoof({ trimMaterialId: atomId })}
+          category="roof-trim"
           ariaLabel={t('roof.trimColor')}
         />
         {sourceProduct?.constraints.allowedMaterialsBySlot?.roofTrim?.length ? (

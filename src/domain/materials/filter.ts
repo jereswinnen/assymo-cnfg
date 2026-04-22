@@ -79,12 +79,32 @@ export function filterCatalogAllowing<T extends { atomId: string }>(
 }
 
 /** Colour lookup used by pickers + canvas — always returns something
- *  (neutral grey fallback if the slug doesn't resolve). */
-export function getAtomColor(materials: MaterialRow[], slug: string): string {
-  return materials.find((m) => m.slug === slug)?.color ?? '#808080';
+ *  (neutral grey fallback if the slug doesn't resolve). Pass `category`
+ *  to scope the lookup; slugs are only unique per (tenant, category), so
+ *  an unscoped lookup may return the wrong row (e.g. the door-category
+ *  `wood` row, which has no textures, shadowing the wall-category row). */
+export function getAtomColor(
+  materials: MaterialRow[],
+  slug: string,
+  category?: MaterialCategory,
+): string {
+  const match = category
+    ? materials.find((m) => m.slug === slug && m.category === category)
+    : materials.find((m) => m.slug === slug);
+  return match?.color ?? '#808080';
 }
 
-/** Full-row lookup used when rendering needs textures + tileSize. */
-export function getAtom(materials: MaterialRow[], slug: string): MaterialRow | null {
+/** Full-row lookup used when rendering needs textures + tileSize. Pass
+ *  `category` to scope the lookup — mandatory whenever the caller cares
+ *  about textures, because slug collisions across categories are the
+ *  norm (wall `wood` and door `wood` are distinct rows). */
+export function getAtom(
+  materials: MaterialRow[],
+  slug: string,
+  category?: MaterialCategory,
+): MaterialRow | null {
+  if (category) {
+    return materials.find((m) => m.slug === slug && m.category === category) ?? null;
+  }
   return materials.find((m) => m.slug === slug) ?? null;
 }

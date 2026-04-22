@@ -135,7 +135,7 @@ function SolidWall({
   const { catalog: { materials } } = useTenant();
   const { cx, cy, orientation, length, flipSign } = geom;
   const isH = orientation === 'h';
-  const fillColor = isSelected ? '#3b82f6' : getAtomColor(materials, cfg.materialId ?? primaryMaterialId);
+  const fillColor = isSelected ? '#3b82f6' : getAtomColor(materials, cfg.materialId ?? primaryMaterialId, 'wall');
   const fillOpacity = isSelected ? 0.5 : 0.35;
   const strokeColor = isSelected ? '#2563eb' : '#444';
 

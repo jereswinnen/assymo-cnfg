@@ -35,7 +35,7 @@ export function useWallTexture(
   wallHeight: number,
 ): PBRTextures | null {
   const { catalog: { materials } } = useTenant();
-  const atom = getAtom(materials, materialId);
+  const atom = getAtom(materials, materialId, 'wall');
   const paths = atom?.textures ?? null;
   const tileSize = atom?.tileSize ?? null;
 
@@ -77,7 +77,7 @@ export function useDoorTexture(
   panelHeight: number,
 ): PBRTextures | null {
   const { catalog: { materials } } = useTenant();
-  const atom = getAtom(materials, materialId);
+  const atom = getAtom(materials, materialId, 'door');
   const paths = atom?.textures ?? null;
   // Tile size matches the surrounding wall so the door texture reads continuous.
   const tileSize = atom?.tileSize ?? [1.5, 1.5];
@@ -120,7 +120,7 @@ export function useRoofTexture(
   roofDepth: number,
 ): PBRTextures | null {
   const { catalog: { materials } } = useTenant();
-  const atom = getAtom(materials, coveringId);
+  const atom = getAtom(materials, coveringId, 'roof-cover');
   const paths = atom?.textures ?? null;
   const tileSize = atom?.tileSize ?? null;
 
@@ -164,7 +164,7 @@ export function useFloorTexture(
   floorDepth: number,
 ): FloorPBR | null {
   const { catalog: { materials } } = useTenant();
-  const atom = getAtom(materials, materialId);
+  const atom = getAtom(materials, materialId, 'floor');
   const paths = atom?.textures ?? null;
   const tileSize = atom?.tileSize ?? null;
 

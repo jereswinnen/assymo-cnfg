@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/select';
 import type { BaseCatalogEntry } from '@/domain/materials';
 import { getAtomColor, getAtom } from '@/domain/materials';
+import type { MaterialCategory } from '@/domain/catalog';
 import { useTenant } from '@/lib/TenantProvider';
 import { cn } from '@/lib/utils';
 
@@ -16,6 +17,10 @@ interface MaterialSelectProps<T extends BaseCatalogEntry> {
   catalog: readonly T[];
   value: string;
   onChange: (atomId: string) => void;
+  /** Material category the picker is scoped to. Slugs collide across
+   *  categories (wall-wood vs door-wood), so passing this ensures lookups
+   *  return the right row (with the right color + textures). */
+  category: MaterialCategory;
   /** Show €N/m² on each dropdown item (only meaningful for entries with pricePerSqm). */
   showPrice?: boolean;
   /** Renders the trigger as read-only — used when the value is inherited
@@ -29,6 +34,7 @@ export default function MaterialSelect<T extends BaseCatalogEntry>({
   catalog,
   value,
   onChange,
+  category,
   showPrice = false,
   disabled = false,
   className,
@@ -37,8 +43,8 @@ export default function MaterialSelect<T extends BaseCatalogEntry>({
   const { catalog: tenantCatalog } = useTenant();
   const materials = tenantCatalog.materials;
 
-  const currentColor = getAtomColor(materials, value);
-  const currentName = getAtom(materials, value)?.name ?? value;
+  const currentColor = getAtomColor(materials, value, category);
+  const currentName = getAtom(materials, value, category)?.name ?? value;
 
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled}>
@@ -54,8 +60,8 @@ export default function MaterialSelect<T extends BaseCatalogEntry>({
       </SelectTrigger>
       <SelectContent>
         {catalog.map((entry) => {
-          const color = getAtomColor(materials, entry.atomId);
-          const name = getAtom(materials, entry.atomId)?.name ?? entry.atomId;
+          const color = getAtomColor(materials, entry.atomId, category);
+          const name = getAtom(materials, entry.atomId, category)?.name ?? entry.atomId;
           const price = showPrice
             ? (entry as unknown as { pricePerSqm?: number }).pricePerSqm
             : undefined;

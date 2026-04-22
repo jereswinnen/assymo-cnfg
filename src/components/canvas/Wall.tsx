@@ -61,7 +61,7 @@ export default function Wall({ wallId }: WallProps) {
   const materialId = wallCfg && building
     ? getEffectiveWallMaterial(wallCfg, building, buildings)
     : 'brick';
-  const color = getAtomColor(materials, materialId);
+  const color = getAtomColor(materials, materialId, 'wall');
 
   const wallLength = getWallLength(wallId, dimensions);
   const texture = useWallTexture(materialId, wallLength, height);

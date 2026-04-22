@@ -41,6 +41,7 @@ export default function FloorConfigSection() {
             materialId: atomId as FloorMaterialId,
           })
         }
+        category="floor"
         showPrice
         ariaLabel={t('floor.material')}
       />

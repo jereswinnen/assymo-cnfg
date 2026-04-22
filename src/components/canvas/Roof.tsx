@@ -29,7 +29,7 @@ export default function Roof() {
   const { width, depth } = building?.dimensions ?? { width: 8, depth: 4 };
   const height = building ? getEffectiveHeight(building, defaultHeight) : 3;
   const roofPitch = roof.pitch;
-  const color = getAtomColor(materials, roof.coveringId);
+  const color = getAtomColor(materials, roof.coveringId, 'roof-cover');
 
   const isSelected = selectedElement?.type === 'roof';
   const roofTexture = useRoofTexture(roof.coveringId, width, depth);
@@ -233,7 +233,7 @@ function FasciaBoardMesh({ board, materialId }: { board: FasciaBoard; materialId
       <boxGeometry args={board.size} />
       <meshStandardMaterial
         key={texture ? 'textured' : 'flat'}
-        color={texture ? tint : getAtomColor(materials, materialId)}
+        color={texture ? tint : getAtomColor(materials, materialId, 'wall')}
         map={texture?.map ?? undefined}
         normalMap={texture?.normalMap ?? undefined}
         roughnessMap={texture?.roughnessMap ?? undefined}

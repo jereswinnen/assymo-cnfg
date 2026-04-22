@@ -10,13 +10,13 @@ import { useTenant } from '@/lib/TenantProvider';
  *  identically, including PBR textures. */
 export function usePoleMaterial(materialId: string): MeshStandardMaterial {
   const { catalog: { materials } } = useTenant();
-  const atom = getAtom(materials, materialId);
+  const atom = getAtom(materials, materialId, 'wall');
 
   const material = useMemo(() => {
     const loader = new TextureLoader();
     const paths = atom?.textures ?? null;
     const tile = atom?.tileSize ?? [2, 2];
-    const baseColor = getAtomColor(materials, materialId);
+    const baseColor = getAtomColor(materials, materialId, 'wall');
 
     if (!paths) {
       return new MeshStandardMaterial({

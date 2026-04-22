@@ -77,6 +77,7 @@ export default function SurfaceProperties() {
           catalog={wallCatalog}
           value={effectiveMaterial}
           disabled={wallCfg.materialId === undefined}
+          category="wall"
           onChange={(atomId) => {
             handleChange('materialId', atomId);
             const entry = wallCatalog.find(e => e.atomId === atomId);

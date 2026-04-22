@@ -1598,7 +1598,7 @@ export default function SchematicView() {
             const cx = p.position[0] + p.dimensions.width / 2;
             const cz = p.position[1] + p.dimensions.depth / 2;
             const isSelected = selectedBuildingIds.includes(p.id) || previewSelectedIds.has(p.id);
-            const poleColor = getAtomColor(materials, getEffectivePrimaryMaterial(p, buildings));
+            const poleColor = getAtomColor(materials, getEffectivePrimaryMaterial(p, buildings), 'wall');
             return (
               <g
                 key={p.id}

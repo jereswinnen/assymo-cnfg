@@ -290,7 +290,7 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
 
   const wallLength = getWallLength(wallId, building.dimensions);
   const wallHeight = getEffectiveHeight(building, defaultHeight);
-  const wallColor = getAtomColor(materials, getEffectiveWallMaterial(wallCfg, building, buildings));
+  const wallColor = getAtomColor(materials, getEffectiveWallMaterial(wallCfg, building, buildings), 'wall');
 
   const windows = wallCfg.windows ?? [];
 

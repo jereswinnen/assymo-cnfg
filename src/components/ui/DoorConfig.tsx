@@ -118,6 +118,7 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
                   value={getEffectiveDoorMaterial(wallCfg, building)}
                   disabled={wallCfg.doorMaterialId === undefined}
                   onChange={(atomId) => handleChange('doorMaterialId', atomId as DoorMaterialId)}
+                  category="door"
                   ariaLabel={t('surface.doorMaterial')}
                 />
                 {sourceProduct?.constraints.allowedMaterialsBySlot?.door?.length ? (

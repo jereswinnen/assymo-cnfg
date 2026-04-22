@@ -10,22 +10,22 @@ import type { PriceBook } from '@/domain/pricing';
 import type { MaterialRow } from '@/domain/catalog';
 
 function wallMaterialLabel(materials: MaterialRow[], id: string): string {
-  const atom = getAtom(materials, id);
+  const atom = getAtom(materials, id, 'wall');
   return atom ? atom.name : id;
 }
 
 function roofCoveringLabel(materials: MaterialRow[], id: string): string {
-  const atom = getAtom(materials, id);
+  const atom = getAtom(materials, id, 'roof-cover');
   return atom ? atom.name : id;
 }
 
 function floorMaterialLabel(materials: MaterialRow[], id: string): string {
-  const atom = getAtom(materials, id);
+  const atom = getAtom(materials, id, 'floor');
   return atom ? atom.name : id;
 }
 
 function doorMaterialLabel(materials: MaterialRow[], id: string): string {
-  const atom = getAtom(materials, id);
+  const atom = getAtom(materials, id, 'door');
   return atom ? atom.name : id;
 }
 
