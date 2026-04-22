@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { HeroImageUploadField } from '@/components/admin/catalog/HeroImageUploadField';
 import type { Branding } from '@/domain/tenant';
 import { t } from '@/lib/i18n';
 
@@ -43,9 +44,13 @@ export function BrandingSection({ tenantId, initialBranding }: Props) {
         <Field label={t('admin.tenant.branding.displayName')}>
           <Input value={b.displayName} onChange={(e) => set('displayName', e.target.value)} />
         </Field>
-        <Field label={t('admin.tenant.branding.logoUrl')}>
-          <Input value={b.logoUrl} onChange={(e) => set('logoUrl', e.target.value)} />
-        </Field>
+        <HeroImageUploadField
+          label={t('admin.tenant.branding.logoUrl')}
+          value={b.logoUrl || null}
+          onChange={(url) => set('logoUrl', url ?? '')}
+          tenantId={tenantId}
+          slug="logo"
+        />
         <div className="grid grid-cols-2 gap-4">
           <Field label={t('admin.tenant.branding.primaryColor')}>
             <Input value={b.primaryColor} onChange={(e) => set('primaryColor', e.target.value)} />
