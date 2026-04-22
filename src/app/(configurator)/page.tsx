@@ -4,7 +4,6 @@ import { resolveTenantByHostOrDefault, getTenantProducts, productDbRowToDomain }
 import { BrandedShell } from '@/components/shop/BrandedShell';
 import { LandingGrid } from '@/components/shop/LandingGrid';
 import { LoadCodeForm } from '@/components/shop/LoadCodeForm';
-import { t } from '@/lib/i18n';
 
 /** Tenant-branded landing page. When the tenant has no products, fall
  *  through to `/configurator` (blank canvas) so empty tenants don't see
@@ -30,13 +29,7 @@ export default async function LandingPage({
 
   return (
     <BrandedShell variant="shop">
-      <div className="mx-auto max-w-6xl space-y-8 px-4 py-10">
-        <header className="space-y-2">
-          <h1 className="text-3xl font-semibold">
-            {t('landing.hero.title', { displayName: tenantRow.displayName })}
-          </h1>
-          <p className="text-muted-foreground">{t('landing.hero.subtitle')}</p>
-        </header>
+      <div className="mx-auto max-w-6xl space-y-10 px-4 py-10">
         <LandingGrid products={products} />
         <LoadCodeForm />
       </div>

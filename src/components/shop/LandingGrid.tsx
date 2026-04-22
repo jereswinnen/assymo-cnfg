@@ -1,5 +1,13 @@
 import Link from 'next/link';
-import { Card, CardContent } from '@/components/ui/card';
+import { PencilRuler } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { t } from '@/lib/i18n';
 import type { ProductRow } from '@/domain/catalog';
@@ -9,42 +17,68 @@ import type { ProductRow } from '@/domain/catalog';
  *  the "Bouw van nul" escape hatch. */
 export function LandingGrid({ products }: { products: ProductRow[] }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {products.map((p) => (
-        <Card key={p.id} className="overflow-hidden">
-          {p.heroImage ? (
-            <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
-              <img src={p.heroImage} alt={p.name} className="h-full w-full object-cover" />
-            </div>
-          ) : (
-            <div className="aspect-[4/3] w-full bg-muted" />
-          )}
-          <CardContent className="space-y-2 p-4">
-            <h3 className="text-lg font-semibold">{p.name}</h3>
+        <Card
+          key={p.id}
+          className="flex flex-col overflow-hidden pt-0 transition-shadow hover:shadow-md"
+        >
+          <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
+            {p.heroImage && (
+              <img
+                src={p.heroImage}
+                alt={p.name}
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              />
+            )}
+          </div>
+          <CardHeader>
+            <CardTitle className="text-xl">{p.name}</CardTitle>
             {p.description && (
-              <p className="line-clamp-2 text-sm text-muted-foreground">{p.description}</p>
+              <CardDescription className="line-clamp-2">
+                {p.description}
+              </CardDescription>
             )}
-            {p.basePriceCents > 0 && (
-              <p className="text-sm font-medium">
-                {t('landing.product.fromPrice', { amount: (p.basePriceCents / 100).toFixed(0) })}
-              </p>
-            )}
-            <Button asChild className="w-full bg-[var(--brand-primary)] text-white hover:opacity-90 transition-opacity">
+          </CardHeader>
+          {p.basePriceCents > 0 && (
+            <CardContent className="pt-0 text-sm font-medium">
+              {t('landing.product.fromPrice', {
+                amount: (p.basePriceCents / 100).toFixed(0),
+              })}
+            </CardContent>
+          )}
+          <CardFooter className="mt-auto">
+            <Button
+              asChild
+              className="w-full bg-[var(--brand-primary)] text-white hover:opacity-90 transition-opacity"
+            >
               <Link href={`/configurator?product=${p.slug}`}>
                 {t('landing.product.configure')}
               </Link>
             </Button>
-          </CardContent>
+          </CardFooter>
         </Card>
       ))}
-      <Card className="flex flex-col items-center justify-center border-dashed text-center">
-        <CardContent className="space-y-3 p-6">
-          <h3 className="text-lg font-semibold">{t('landing.blankSlate.title')}</h3>
-          <p className="text-sm text-muted-foreground">{t('landing.blankSlate.body')}</p>
+
+      {/* "Bouw van nul" escape hatch — matches card height via flex. */}
+      <Card className="flex flex-col items-center justify-center border-2 border-dashed bg-transparent text-center transition-colors hover:bg-muted/20">
+        <CardHeader className="items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--brand-primary)_10%,transparent)]">
+            <PencilRuler
+              className="h-6 w-6"
+              style={{ color: 'var(--brand-primary)' }}
+            />
+          </div>
+          <CardTitle className="text-xl">{t('landing.blankSlate.title')}</CardTitle>
+          <CardDescription className="max-w-xs">
+            {t('landing.blankSlate.body')}
+          </CardDescription>
+        </CardHeader>
+        <CardFooter>
           <Button asChild variant="outline">
             <Link href="/configurator?fresh=1">{t('landing.blankSlate.title')}</Link>
           </Button>
-        </CardContent>
+        </CardFooter>
       </Card>
     </div>
   );
