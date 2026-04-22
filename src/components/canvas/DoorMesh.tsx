@@ -79,13 +79,37 @@ interface DoorMeshProps {
   supplierProduct?: SupplierProductRow;
 }
 
+/** Hero-image textured panel. Only mounted when heroUrl is non-null so
+ *  `useLoader`'s suspense never fires during idle renders (suspense
+ *  without a boundary tears down the Canvas and loses the GL context). */
+function SupplierDoorPanel({ w, h, heroUrl }: { w: number; h: number; heroUrl: string }) {
+  const texture = useLoader(TextureLoader, heroUrl);
+  const material = useMemo(() => {
+    const mat = new MeshStandardMaterial({ roughness: 0.6, metalness: 0.0, color: '#ffffff' });
+    texture.wrapS = ClampToEdgeWrapping;
+    texture.wrapT = ClampToEdgeWrapping;
+    texture.repeat.set(1, 1);
+    mat.map = texture;
+    mat.needsUpdate = true;
+    return mat;
+  }, [texture]);
+
+  useEffect(() => () => material.dispose(), [material]);
+
+  return (
+    <mesh position={[w / 2, 0, 0]}>
+      <boxGeometry args={[w, h, DOOR_DEPTH]} />
+      <primitive object={material} attach="material" />
+    </mesh>
+  );
+}
+
 /** Renders a supplier door using its fixed width × height and optional hero image. */
 function SupplierDoorMesh({ x, supplierProduct, swing }: { x: number; supplierProduct: SupplierProductRow; swing: DoorSwing }) {
   const w = supplierProduct.widthMm / 1000;
   const h = supplierProduct.heightMm / 1000;
   const doorY = h / 2;
 
-  // Target angle for swing animation
   let targetAngle = 0;
   if (swing === 'naar_binnen') targetAngle = Math.PI / 3;
   else if (swing === 'naar_buiten') targetAngle = -Math.PI / 3;
@@ -99,29 +123,6 @@ function SupplierDoorMesh({ x, supplierProduct, swing }: { x: number; supplierPr
   });
 
   const heroUrl = supplierProduct.heroImage;
-  // useLoader must be called unconditionally. When heroUrl is null we pass a
-  // transparent 1×1 data URI so the loader succeeds without a network request.
-  const FALLBACK_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-  const texture = useLoader(TextureLoader, heroUrl ?? FALLBACK_URL);
-
-  const material = useMemo(() => {
-    const mat = new MeshStandardMaterial({ roughness: 0.6, metalness: 0.0 });
-    if (heroUrl && texture) {
-      texture.wrapS = ClampToEdgeWrapping;
-      texture.wrapT = ClampToEdgeWrapping;
-      texture.repeat.set(1, 1);
-      mat.map = texture;
-      mat.color.set('#ffffff');
-    } else {
-      mat.color.set('#888888');
-    }
-    mat.needsUpdate = true;
-    return mat;
-  }, [texture, heroUrl]);
-
-  useEffect(() => {
-    return () => { material.dispose(); };
-  }, [material]);
 
   return (
     <group position={[x, doorY, 0]}>
@@ -139,10 +140,14 @@ function SupplierDoorMesh({ x, supplierProduct, swing }: { x: number; supplierPr
       </mesh>
       {/* Door panel — hinged on left */}
       <group ref={hingeRef} position={[-w / 2, 0, 0]}>
-        <mesh position={[w / 2, 0, 0]}>
-          <boxGeometry args={[w, h, DOOR_DEPTH]} />
-          <primitive object={material} attach="material" />
-        </mesh>
+        {heroUrl ? (
+          <SupplierDoorPanel w={w} h={h} heroUrl={heroUrl} />
+        ) : (
+          <mesh position={[w / 2, 0, 0]}>
+            <boxGeometry args={[w, h, DOOR_DEPTH]} />
+            <meshStandardMaterial color="#888888" roughness={0.6} metalness={0} />
+          </mesh>
+        )}
         {/* Handle */}
         <mesh position={[w - 0.12, 0, DOOR_DEPTH / 2 + 0.01]} material={HANDLE_DARK}>
           <boxGeometry args={[0.05, 0.2, 0.04]} />

@@ -16,45 +16,46 @@ interface WindowMeshProps {
   supplierProduct?: SupplierProductRow;
 }
 
+/** Glazing pane with a loaded texture. Only mounted when heroUrl is
+ *  non-null so `useLoader`'s suspense never fires during idle renders. */
+function SupplierWindowGlazing({ width, height, heroUrl }: { width: number; height: number; heroUrl: string }) {
+  const texture = useLoader(TextureLoader, heroUrl);
+  const glazingMat = useMemo(() => {
+    const mat = new MeshStandardMaterial({ roughness: 0.05, metalness: 0.1, color: '#ffffff' });
+    texture.wrapS = ClampToEdgeWrapping;
+    texture.wrapT = ClampToEdgeWrapping;
+    texture.repeat.set(1, 1);
+    mat.map = texture;
+    mat.needsUpdate = true;
+    return mat;
+  }, [texture]);
+
+  useEffect(() => () => glazingMat.dispose(), [glazingMat]);
+
+  return (
+    <mesh>
+      <boxGeometry args={[width, height, WIN_DEPTH]} />
+      <primitive object={glazingMat} attach="material" />
+    </mesh>
+  );
+}
+
 /** Renders a window using supplier product dimensions + hero image as glazing. */
 function SupplierWindowMesh({ x, supplierProduct, sillHeight = WIN_SILL_DEFAULT }: { x: number; supplierProduct: SupplierProductRow; sillHeight?: number }) {
   const width = supplierProduct.widthMm / 1000;
   const height = supplierProduct.heightMm / 1000;
   const winY = sillHeight + height / 2;
   const heroUrl = supplierProduct.heroImage;
-  // useLoader must be called unconditionally. When heroUrl is null we pass a
-  // transparent 1×1 data URI so the loader succeeds without a network request.
-  const FALLBACK_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-  const texture = useLoader(TextureLoader, heroUrl ?? FALLBACK_URL);
-
-  const glazingMat = useMemo(() => {
-    const mat = new MeshStandardMaterial({ roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.6 });
-    if (heroUrl && texture) {
-      texture.wrapS = ClampToEdgeWrapping;
-      texture.wrapT = ClampToEdgeWrapping;
-      texture.repeat.set(1, 1);
-      mat.map = texture;
-      mat.transparent = false;
-      mat.opacity = 1;
-      mat.color.set('#ffffff');
-    } else {
-      mat.color.set('#B8D4E3');
-    }
-    mat.needsUpdate = true;
-    return mat;
-  }, [texture, heroUrl]);
-
-  useEffect(() => {
-    return () => { glazingMat.dispose(); };
-  }, [glazingMat]);
 
   return (
     <group position={[x, winY, 0]}>
-      {/* Glass pane */}
-      <mesh>
-        <boxGeometry args={[width, height, WIN_DEPTH]} />
-        <primitive object={glazingMat} attach="material" />
-      </mesh>
+      {heroUrl ? (
+        <SupplierWindowGlazing width={width} height={height} heroUrl={heroUrl} />
+      ) : (
+        <mesh material={glassMat}>
+          <boxGeometry args={[width, height, WIN_DEPTH]} />
+        </mesh>
+      )}
       {/* Top */}
       <mesh position={[0, height / 2 + FRAME_T / 2, 0]} material={frameMat}>
         <boxGeometry args={[width + FRAME_T * 2, FRAME_T, FRAME_D]} />
