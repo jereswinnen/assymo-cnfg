@@ -61,24 +61,24 @@ export function LandingGrid({ products }: { products: ProductRow[] }) {
       ))}
 
       {/* "Bouw van nul" escape hatch — matches card height via flex. */}
-      <Card className="flex flex-col items-center justify-center border-2 border-dashed bg-transparent text-center transition-colors hover:bg-muted/20">
-        <CardHeader className="items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--brand-primary)_10%,transparent)]">
-            <PencilRuler
-              className="h-6 w-6"
-              style={{ color: 'var(--brand-primary)' }}
-            />
-          </div>
-          <CardTitle className="text-xl">{t('landing.blankSlate.title')}</CardTitle>
-          <CardDescription className="max-w-xs">
+      <Card className="flex flex-col items-center justify-center gap-6 border-2 border-dashed bg-transparent p-8 text-center transition-colors hover:bg-muted/20">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--brand-primary)_10%,transparent)]">
+          <PencilRuler
+            className="h-6 w-6"
+            style={{ color: 'var(--brand-primary)' }}
+          />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-xl font-semibold leading-none">
+            {t('landing.blankSlate.title')}
+          </h3>
+          <p className="text-sm text-muted-foreground">
             {t('landing.blankSlate.body')}
-          </CardDescription>
-        </CardHeader>
-        <CardFooter>
-          <Button asChild variant="outline">
-            <Link href="/configurator?fresh=1">{t('landing.blankSlate.title')}</Link>
-          </Button>
-        </CardFooter>
+          </p>
+        </div>
+        <Button asChild variant="outline">
+          <Link href="/configurator?fresh=1">{t('landing.blankSlate.title')}</Link>
+        </Button>
       </Card>
     </div>
   );

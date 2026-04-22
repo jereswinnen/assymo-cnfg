@@ -739,7 +739,7 @@ const nl: Record<string, string> = {
   "landing.blankSlate.body":
     "Start met een leeg canvas en bouw stap voor stap.",
   "landing.loadCode.placeholder": "Heb je een code? Plak hem hier.",
-  "landing.loadCode.submit": "Open scène",
+  "landing.loadCode.submit": "Open project",
   "configurator.tray.kits": "Bouwsets",
   "configurator.tray.primitives": "Losse elementen",
   "configurator.building.kitChip": "Bouwset: {name}",
