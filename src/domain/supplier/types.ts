@@ -8,9 +8,9 @@ export interface SupplierRow {
   logoUrl: string | null;
   contact: SupplierContact;
   notes: string | null;
-  archivedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SupplierContact {
@@ -48,9 +48,9 @@ export interface SupplierProductRow {
   priceCents: number;
   meta: DoorMeta | WindowMeta;
   sortOrder: number;
-  archivedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /** Stable error code strings (do NOT rename — UI + tests depend on them). */

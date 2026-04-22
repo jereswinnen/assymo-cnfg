@@ -144,9 +144,9 @@ export function supplierDbRowToDomain(r: SupplierDbRow): SupplierRow {
     logoUrl: r.logoUrl ?? null,
     contact: r.contact,
     notes: r.notes ?? null,
-    archivedAt: r.archivedAt ?? null,
-    createdAt: r.createdAt,
-    updatedAt: r.updatedAt,
+    archivedAt: r.archivedAt ? r.archivedAt.toISOString() : null,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
   };
 }
 
@@ -167,8 +167,8 @@ export function supplierProductDbRowToDomain(r: SupplierProductDbRow): SupplierP
     priceCents: r.priceCents,
     meta: r.meta,
     sortOrder: r.sortOrder,
-    archivedAt: r.archivedAt ?? null,
-    createdAt: r.createdAt,
-    updatedAt: r.updatedAt,
+    archivedAt: r.archivedAt ? r.archivedAt.toISOString() : null,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
   };
 }

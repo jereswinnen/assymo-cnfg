@@ -17,8 +17,8 @@ function makeProduct(overrides: Partial<SupplierProductRow> = {}): SupplierProdu
     meta: {},
     sortOrder: 0,
     archivedAt: null,
-    createdAt: new Date('2026-01-01'),
-    updatedAt: new Date('2026-01-01'),
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
   };
 }
@@ -44,7 +44,7 @@ describe('getSupplierDoorLineItem', () => {
   });
 
   it('returns a stub when the product is archived', () => {
-    const products = [makeProduct({ archivedAt: new Date('2026-03-01') })];
+    const products = [makeProduct({ archivedAt: '2026-03-01T00:00:00.000Z' })];
     const item = getSupplierDoorLineItem('prod-1', products);
     expect(item?.labelKey).toBe('quote.line.supplierMissing');
     expect(item?.labelParams.kind).toBe('door');

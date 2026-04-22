@@ -17,8 +17,8 @@ function makeRow(overrides: Partial<SupplierProductRow> = {}): SupplierProductRo
     meta: { swingDirection: 'inward' },
     sortOrder: 0,
     archivedAt: null,
-    createdAt: new Date('2026-01-01'),
-    updatedAt: new Date('2026-01-01'),
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
   };
 }
