@@ -46,6 +46,7 @@ function formatStartPrice(p: ProductRow): string {
 }
 
 function Row({ product }: { product: ProductRow }) {
+  const router = useRouter();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: product.id });
   const style = {
@@ -53,6 +54,17 @@ function Row({ product }: { product: ProductRow }) {
     transition,
     opacity: isDragging ? 0.5 : undefined,
   };
+
+  async function handleRestore() {
+    const res = await fetch(`/api/admin/products/${product.id}/restore`, { method: 'POST' });
+    if (!res.ok) {
+      toast.error(t('admin.catalog.products.action.restore') + ' — ' + res.status);
+      return;
+    }
+    toast.success(t('admin.catalog.products.action.restore'));
+    router.refresh();
+  }
+
   return (
     <TableRow ref={setNodeRef} style={style} className={product.archivedAt ? 'opacity-60' : ''}>
       <TableCell className="w-10">
@@ -103,6 +115,11 @@ function Row({ product }: { product: ProductRow }) {
                 {t('admin.catalog.products.action.edit')}
               </Link>
             </DropdownMenuItem>
+            {product.archivedAt && (
+              <DropdownMenuItem onClick={() => { void handleRestore(); }}>
+                {t('admin.catalog.products.action.restore')}
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
