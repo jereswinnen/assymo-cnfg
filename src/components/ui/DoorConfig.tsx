@@ -64,7 +64,9 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
     ? supplierCatalog.suppliers.find(s => s.id === activeSupplierProduct.supplierId) ?? null
     : null;
 
-  const mode = wallCfg.doorSupplierProductId ? 'catalog' : 'custom';
+  const derivedMode: 'custom' | 'catalog' = wallCfg.doorSupplierProductId ? 'catalog' : 'custom';
+  const [modeOverride, setModeOverride] = useState<'custom' | 'catalog' | null>(null);
+  const mode = modeOverride ?? derivedMode;
 
   const sizeLabel = wallCfg.doorSize === 'dubbel'
     ? `${(DOUBLE_DOOR_W * 100).toFixed(0)} × 210`
@@ -124,7 +126,9 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
               <Tabs
                 value={mode}
                 onValueChange={(v) => {
-                  if (v === 'custom') {
+                  const next = v as 'custom' | 'catalog';
+                  setModeOverride(next);
+                  if (next === 'custom') {
                     setDoorSupplierProduct(buildingId, wallId, null);
                   }
                 }}

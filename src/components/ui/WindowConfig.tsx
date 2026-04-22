@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
 import { useTenant } from '@/lib/TenantProvider';
 import { t } from '@/lib/i18n';
@@ -31,6 +32,7 @@ export default function WindowConfig({ wallId, buildingId }: WindowConfigProps) 
   const supplierWindows = supplierCatalog.products.filter(
     (p) => p.kind === 'window' && p.archivedAt === null,
   );
+  const [modeOverrides, setModeOverrides] = useState<Record<string, 'custom' | 'catalog'>>({});
 
   if (!wallCfg || !building) return null;
 
@@ -86,7 +88,8 @@ export default function WindowConfig({ wallId, buildingId }: WindowConfigProps) 
           {windows.map((win, i) => {
             const w = win.width ?? WIN_W_DEFAULT;
             const h = win.height ?? WIN_H_DEFAULT;
-            const mode = win.supplierProductId ? 'catalog' : 'custom';
+            const derivedMode: 'custom' | 'catalog' = win.supplierProductId ? 'catalog' : 'custom';
+            const mode = modeOverrides[win.id] ?? derivedMode;
             const activeProduct = win.supplierProductId
               ? supplierCatalog.products.find(p => p.id === win.supplierProductId) ?? null
               : null;
@@ -127,7 +130,9 @@ export default function WindowConfig({ wallId, buildingId }: WindowConfigProps) 
                   <Tabs
                     value={mode}
                     onValueChange={(v) => {
-                      if (v === 'custom') {
+                      const next = v as 'custom' | 'catalog';
+                      setModeOverrides((prev) => ({ ...prev, [win.id]: next }));
+                      if (next === 'custom') {
                         setWindowSupplierProduct(buildingId, wallId, win.id, null);
                       }
                     }}
