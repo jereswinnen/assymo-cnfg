@@ -64,7 +64,7 @@ export function HeroImageUploadField({
           <input
             ref={inputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/jpeg,image/png,image/webp,image/svg+xml"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];

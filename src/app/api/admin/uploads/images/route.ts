@@ -3,7 +3,14 @@ import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
 import { requireBusiness } from '@/lib/auth-guards';
 import { withSession } from '@/lib/auth-session';
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+// SVG is allowed here (tenant logos, hero images) because the client
+// renders them via <img src=…>, which runs SVG in "secure mode" (no
+// scripts, no external fetches). Blob URLs also live on a different
+// origin than the app, so session cookies aren't reachable even in
+// the contrived case script execution did occur. Do NOT enable SVG
+// for /textures or /supplier-images — those go onto three.js
+// materials that can't render vector anyway.
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
 const MAX_SIZE_MB = 5;
 
 /** Signed-token issuer for direct Blob uploads of product hero images.
