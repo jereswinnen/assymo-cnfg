@@ -105,7 +105,7 @@ export default function OrderSubmitDialog() {
           type="button"
           disabled={disabled}
           title={disabled ? t('configurator.submit.cta.disabled') : undefined}
-          className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium bg-foreground text-background hover:bg-foreground/90 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+          className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium bg-[var(--brand-primary)] text-white hover:opacity-90 disabled:opacity-40 disabled:pointer-events-none transition-opacity"
         >
           <ShoppingBag className="h-3.5 w-3.5" />
           {t('configurator.submit.cta')}

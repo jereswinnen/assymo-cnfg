@@ -29,7 +29,7 @@ export function LandingGrid({ products }: { products: ProductRow[] }) {
                 {t('landing.product.fromPrice', { amount: (p.basePriceCents / 100).toFixed(0) })}
               </p>
             )}
-            <Button asChild className="w-full">
+            <Button asChild className="w-full bg-[var(--brand-primary)] text-white hover:opacity-90 transition-opacity">
               <Link href={`/configurator?product=${p.slug}`}>
                 {t('landing.product.configure')}
               </Link>

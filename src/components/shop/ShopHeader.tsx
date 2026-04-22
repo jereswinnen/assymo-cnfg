@@ -48,7 +48,7 @@ export function ShopHeader({ branding, signedIn, variant = 'shop' }: Props) {
           ) : (
             <Link
               href="/shop/sign-in"
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-muted-foreground hover:text-[var(--brand-primary)] transition-colors"
             >
               {t('shop.nav.signIn')}
             </Link>

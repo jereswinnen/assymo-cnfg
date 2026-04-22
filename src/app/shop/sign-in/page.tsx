@@ -51,7 +51,11 @@ export default function ShopSignInPage() {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-          <Button type="submit" disabled={submitting} className="w-full">
+          <Button
+            type="submit"
+            disabled={submitting}
+            className="w-full bg-[var(--brand-primary)] text-white hover:opacity-90 transition-opacity"
+          >
             {t('shop.signIn.submit')}
           </Button>
           {state === 'sent' && (

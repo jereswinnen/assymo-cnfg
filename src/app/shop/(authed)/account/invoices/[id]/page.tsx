@@ -72,7 +72,7 @@ export default async function ShopInvoiceDetailPage({ params }: Props) {
       <div>
         <Link
           href={`/shop/account/orders/${order.id}`}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="text-sm text-muted-foreground hover:text-[var(--brand-primary)] transition-colors"
         >
           {t('shop.invoice.backLink')}
         </Link>
@@ -86,7 +86,7 @@ export default async function ShopInvoiceDetailPage({ params }: Props) {
           href={`/api/invoices/${invoice.id}/pdf`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:opacity-90"
+          className="inline-flex rounded-md bg-[var(--brand-primary)] text-white px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity"
         >
           {t('shop.invoice.downloadPdf')}
         </a>

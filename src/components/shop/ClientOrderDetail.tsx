@@ -48,7 +48,7 @@ export function ClientOrderDetail({ order, invoice, invoiceStatus }: Props) {
       <div>
         <Link
           href="/shop/account"
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="text-sm text-muted-foreground hover:text-[var(--brand-primary)] transition-colors"
         >
           {t('shop.order.backLink')}
         </Link>
@@ -86,7 +86,7 @@ export function ClientOrderDetail({ order, invoice, invoiceStatus }: Props) {
           <div>
             <a
               href={`mailto:${order.contactEmail}`}
-              className="text-foreground hover:underline"
+              className="text-[var(--brand-primary)] hover:underline"
             >
               {order.contactEmail}
             </a>
@@ -132,7 +132,7 @@ export function ClientOrderDetail({ order, invoice, invoiceStatus }: Props) {
                   href={`/api/invoices/${invoice.id}/pdf`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-md bg-foreground text-background px-3 py-1 hover:opacity-90"
+                  className="rounded-md bg-[var(--brand-primary)] text-white px-3 py-1 hover:opacity-90 transition-opacity"
                 >
                   {t('shop.invoice.downloadPdf')}
                 </a>

@@ -69,7 +69,7 @@ export function ClientOrdersTable() {
         </p>
         <Link
           href="/"
-          className="inline-flex items-center text-sm font-medium hover:underline"
+          className="inline-flex items-center text-sm font-medium text-[var(--brand-primary)] hover:underline"
         >
           {t('shop.account.backToConfigurator')}
         </Link>
@@ -95,7 +95,7 @@ export function ClientOrdersTable() {
             <TableCell className="font-mono text-xs">
               <Link
                 href={`/shop/account/orders/${row.id}`}
-                className="hover:underline"
+                className="text-[var(--brand-primary)] hover:underline"
               >
                 {row.id.slice(0, 8)}
               </Link>

@@ -20,7 +20,7 @@ export function ShopFooter({ branding }: Props) {
           <div>{t('shop.footer.contact')}:</div>
           <a
             href={`mailto:${footer.contactEmail}`}
-            className="text-foreground hover:underline"
+            className="text-[var(--brand-primary)] hover:underline"
           >
             {footer.contactEmail}
           </a>
