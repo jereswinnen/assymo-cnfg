@@ -21,6 +21,13 @@ import {
   getEffectiveWallMaterial,
   getEffectiveDoorMaterial,
 } from '@/domain/materials';
+import type { SupplierProductRow } from '@/domain/supplier';
+import {
+  getSupplierDoorLineItem,
+  getSupplierWindowLineItem,
+} from '@/domain/supplier';
+import type { SupplierProductSnapshot } from '@/domain/supplier/snapshot';
+import { buildSupplierProductSnapshot } from '@/domain/supplier/snapshot';
 import type { PriceBook } from './priceBook';
 
 function findPrice(
@@ -80,9 +87,19 @@ export function postCount(width: number, depth: number): number {
   return 2 * postsPerSide + 2 * postsPerEnd - 4;
 }
 
+/** Source annotation for line items produced from a supplier-product
+ *  lookup rather than the material-based pricing path. */
+export interface LineItemSource {
+  kind: 'supplierProduct';
+  productId: string;
+  sku: string;
+}
+
 /** Structured line item — label formatting deferred to the caller so the
  *  quote can be rendered in any locale or surface (configurator UI, PDF,
- *  API response). */
+ *  API response). The optional `source` field is present on supplier-
+ *  product line items; `supplierProduct` carries the full frozen product
+ *  data (added at snapshot time by `buildQuoteSnapshot`). */
 export interface LineItem {
   labelKey: string;
   labelParams?: Record<string, string | number>;
@@ -91,6 +108,10 @@ export interface LineItem {
   insulationCost: number;
   extrasCost: number;
   total: number;
+  source?: LineItemSource;
+  /** Frozen snapshot of the supplier product (set by buildQuoteSnapshot;
+   *  absent on plain material-based line items). */
+  supplierProduct?: SupplierProductSnapshot;
 }
 
 const WALL_LABEL_KEY: Record<WallId, string> = {
@@ -107,37 +128,87 @@ function wallLineItem(
   priceBook: PriceBook,
   wallCatalog: readonly { atomId: string; pricePerSqm: number }[],
   doorCatalog: readonly { atomId: string; surcharge: number }[],
+  supplierProducts: readonly SupplierProductRow[],
   buildings?: BuildingEntity[],
-): LineItem {
+): LineItem[] {
   const wallCfg = building.walls[wallId];
   if (!wallCfg) {
-    return {
+    return [{
       labelKey: WALL_LABEL_KEY[wallId] ?? wallId,
       area: 0,
       materialCost: 0,
       insulationCost: 0,
       extrasCost: 0,
       total: 0,
-    };
+    }];
   }
   const area = wallNetArea(wallId, building, wallCfg, effectiveHeight);
   const materialCost = area * findPrice(wallCatalog, getEffectiveWallMaterial(wallCfg, building, buildings));
-  let extrasCost = 0;
-  if (wallCfg.hasDoor) {
-    extrasCost += priceBook.doorBase[wallCfg.doorSize] ?? priceBook.doorBase.enkel;
-    if (wallCfg.doorHasWindow) extrasCost += priceBook.doorWindowSurcharge;
-    extrasCost += findSurcharge(doorCatalog, getEffectiveDoorMaterial(wallCfg, building, buildings));
-  }
-  extrasCost += priceBook.windowFee * (wallCfg.windows ?? []).length;
 
-  return {
+  const lineItems: LineItem[] = [];
+
+  // Wall surface item (always emitted; covers the net area after openings)
+  let extrasCost = 0;
+
+  // Door: supplier path vs. material-based path
+  if (wallCfg.hasDoor) {
+    if (wallCfg.doorSupplierProductId) {
+      // Supplier-product door: push a dedicated line item; skip the
+      // material-based doorBase + materialSurcharge + doorWindowSurcharge chain.
+      const doorItem = getSupplierDoorLineItem(wallCfg.doorSupplierProductId, supplierProducts);
+      if (doorItem) {
+        lineItems.push({
+          labelKey: doorItem.labelKey,
+          labelParams: doorItem.labelParams,
+          area: 0,
+          materialCost: 0,
+          insulationCost: 0,
+          extrasCost: doorItem.total,
+          total: doorItem.total,
+          source: doorItem.source,
+        });
+      }
+    } else {
+      // Standard material-based door pricing
+      extrasCost += priceBook.doorBase[wallCfg.doorSize] ?? priceBook.doorBase.enkel;
+      if (wallCfg.doorHasWindow) extrasCost += priceBook.doorWindowSurcharge;
+      extrasCost += findSurcharge(doorCatalog, getEffectiveDoorMaterial(wallCfg, building, buildings));
+    }
+  }
+
+  // Windows: per-window, supplier path vs. windowFee path
+  for (const win of wallCfg.windows ?? []) {
+    if (win.supplierProductId) {
+      const winItem = getSupplierWindowLineItem(win.supplierProductId, supplierProducts);
+      if (winItem) {
+        lineItems.push({
+          labelKey: winItem.labelKey,
+          labelParams: winItem.labelParams,
+          area: 0,
+          materialCost: 0,
+          insulationCost: 0,
+          extrasCost: winItem.total,
+          total: winItem.total,
+          source: winItem.source,
+        });
+      }
+    } else {
+      extrasCost += priceBook.windowFee;
+    }
+  }
+
+  // Always emit the wall surface item (even when extasCost == 0, it carries
+  // the net area which other parts of the UI display)
+  lineItems.unshift({
     labelKey: WALL_LABEL_KEY[wallId] ?? wallId,
     area,
     materialCost,
     insulationCost: 0,
     extrasCost,
     total: materialCost + extrasCost,
-  };
+  });
+
+  return lineItems;
 }
 
 function roofLineItem(
@@ -221,6 +292,7 @@ export function calculateBuildingQuote(
   defaultHeight: number,
   priceBook: PriceBook,
   materials: MaterialRow[],
+  supplierProducts: SupplierProductRow[],
   buildings?: BuildingEntity[],
 ): {
   lineItems: LineItem[];
@@ -245,12 +317,19 @@ export function calculateBuildingQuote(
     return { lineItems: [item], total: priceBook.postPrice };
   }
 
+  /** Supplier-sourced line items (stubs with total=0 included) are always
+   *  emitted so the UI can show "product missing" rows. Plain material
+   *  items with total=0 are still filtered — they represent empty walls. */
+  const shouldEmit = (item: LineItem) => item.total > 0 || item.source !== undefined;
+
   if (building.type === 'muur') {
     const lineItems: LineItem[] = [];
     const wallIds = Object.keys(building.walls) as WallId[];
     for (const id of wallIds) {
-      const item = wallLineItem(id, building, effectiveHeight, priceBook, wallCatalog, doorCatalog, buildings);
-      if (item.total > 0) lineItems.push(item);
+      const items = wallLineItem(id, building, effectiveHeight, priceBook, wallCatalog, doorCatalog, supplierProducts, buildings);
+      for (const item of items) {
+        if (shouldEmit(item)) lineItems.push(item);
+      }
     }
     const total = lineItems.reduce((sum, item) => sum + item.total, 0);
     return { lineItems, total };
@@ -266,8 +345,10 @@ export function calculateBuildingQuote(
 
   const wallIds = Object.keys(building.walls) as WallId[];
   for (const id of wallIds) {
-    const item = wallLineItem(id, building, effectiveHeight, priceBook, wallCatalog, doorCatalog, buildings);
-    if (item.total > 0) lineItems.push(item);
+    const items = wallLineItem(id, building, effectiveHeight, priceBook, wallCatalog, doorCatalog, supplierProducts, buildings);
+    for (const item of items) {
+      if (shouldEmit(item)) lineItems.push(item);
+    }
   }
 
   const floor = floorLineItem(building, floorCatalog);
@@ -285,13 +366,14 @@ export function calculateTotalQuote(
   priceBook: PriceBook,
   materials: MaterialRow[],
   defaultHeight = 3,
+  supplierProducts: SupplierProductRow[] = [],
 ): {
   lineItems: LineItem[];
   total: number;
 } {
   const lineItems: LineItem[] = [];
   for (const building of buildings) {
-    const { lineItems: items } = calculateBuildingQuote(building, roof, defaultHeight, priceBook, materials, buildings);
+    const { lineItems: items } = calculateBuildingQuote(building, roof, defaultHeight, priceBook, materials, supplierProducts, buildings);
     lineItems.push(...items);
   }
   const total = lineItems.reduce((sum, item) => sum + item.total, 0);
