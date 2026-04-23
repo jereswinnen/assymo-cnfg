@@ -1,9 +1,9 @@
-'use client';
-import { Fragment } from 'react';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Separator } from '@/components/ui/separator';
+"use client";
+import { Fragment } from "react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,12 +11,12 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
+} from "@/components/ui/breadcrumb";
 import {
   AdminHeaderActions,
   useAdminHeaderTitleValue,
-} from '@/components/admin/AdminHeaderContext';
-import { getBreadcrumbs } from '@/components/admin/breadcrumbs';
+} from "@/components/admin/AdminHeaderContext";
+import { getBreadcrumbs } from "@/components/admin/breadcrumbs";
 
 function AdminBreadcrumbs() {
   const pathname = usePathname();
@@ -47,9 +47,12 @@ function AdminBreadcrumbs() {
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-10 px-4 flex h-16 shrink-0 items-center gap-2 border-b bg-background">
+    <header className="sticky top-0 z-10 px-4 flex h-16 shrink-0 items-center gap-2 border-b">
       <SidebarTrigger className="-ml-1" />
-      <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+      <Separator
+        orientation="vertical"
+        className="mr-2 data-[orientation=vertical]:h-4"
+      />
       <AdminBreadcrumbs />
       <div className="ml-auto flex items-center gap-2">
         <AdminHeaderActions />
