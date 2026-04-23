@@ -93,7 +93,7 @@ export function Sidebar({ kind, tenantId, name, email }: Props) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton asChild tooltip={t('admin.title')}>
               <Link href="/admin">
                 <span className="truncate font-medium">{t('admin.title')}</span>
               </Link>
