@@ -246,7 +246,7 @@ export default function ConfigureTab() {
                 {id === 'structure' && (
                   <>
                     <RoofConfigSection />
-                    {(selectedBuilding.type === 'berging') && (
+                    {(selectedBuilding.type === 'berging' || selectedBuilding.type === 'overkapping') && (
                       <FloorConfigSection />
                     )}
                     <CornerBracesToggle />
