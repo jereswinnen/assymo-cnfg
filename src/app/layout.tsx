@@ -12,6 +12,7 @@ import {
   supplierProductDbRowToDomain,
 } from '@/db/resolveTenant';
 import { TenantProvider } from '@/lib/TenantProvider';
+import { ThemeProvider } from '@/lib/ThemeProvider';
 import type { TenantContext } from '@/domain/tenant';
 import './globals.css';
 
@@ -59,9 +60,11 @@ export default async function RootLayout({
   };
 
   return (
-    <html lang={tenantRow.locale}>
+    <html lang={tenantRow.locale} suppressHydrationWarning>
       <body className="antialiased">
-        <TenantProvider value={tenantContext}>{children}</TenantProvider>
+        <ThemeProvider>
+          <TenantProvider value={tenantContext}>{children}</TenantProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
