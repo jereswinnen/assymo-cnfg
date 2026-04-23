@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Plus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -45,7 +46,10 @@ export function CreateTenantDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>{t('admin.tenants.create')}</Button>
+        <Button>
+          <Plus />
+          {t('admin.tenants.create')}
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

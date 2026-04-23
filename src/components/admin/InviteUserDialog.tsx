@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { UserPlus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -65,7 +66,10 @@ export function InviteUserDialog({ actorKind, actorTenantId, tenantOptions }: Pr
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>{t('admin.users.invite')}</Button>
+        <Button>
+          <UserPlus />
+          {t('admin.users.invite')}
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

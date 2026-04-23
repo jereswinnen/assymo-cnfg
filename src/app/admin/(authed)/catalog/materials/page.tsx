@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
+import { Plus } from 'lucide-react';
 import { auth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { getTenantMaterials, materialDbRowToDomain } from '@/db/resolveTenant';
@@ -20,6 +21,7 @@ export default async function CatalogMaterialsPage() {
       <PageHeaderActions>
         <Button asChild>
           <Link href="/admin/catalog/materials/new">
+            <Plus />
             {t('admin.catalog.materials.new')}
           </Link>
         </Button>

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { asc, eq } from 'drizzle-orm';
+import { Plus } from 'lucide-react';
 import { auth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { db } from '@/db/client';
@@ -29,6 +30,7 @@ export default async function CatalogProductsPage() {
       <PageHeaderActions>
         <Button asChild>
           <Link href="/admin/catalog/products/new">
+            <Plus />
             {t('admin.catalog.products.new')}
           </Link>
         </Button>

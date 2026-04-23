@@ -35,7 +35,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar';
 import { signOut } from '@/lib/auth-client';
@@ -90,9 +89,17 @@ export function Sidebar({ kind, tenantId, name, email }: Props) {
   };
 
   return (
-    <ShadcnSidebar collapsible="offcanvas">
+    <ShadcnSidebar variant="inset" collapsible="icon">
       <SidebarHeader>
-        <div className="px-2 py-1.5 text-sm font-semibold">{t('admin.title')}</div>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <Link href="/admin">
+                <span className="truncate font-medium">{t('admin.title')}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -225,7 +232,6 @@ export function Sidebar({ kind, tenantId, name, email }: Props) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
-      <SidebarRail />
     </ShadcnSidebar>
   );
 }
