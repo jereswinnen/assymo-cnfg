@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, ClipboardList, Receipt, TrendingUp, Users } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import { auth } from '@/lib/auth';
 import { db } from '@/db/client';
 import { invoices, orders, payments } from '@/db/schema';
@@ -126,10 +127,35 @@ export default async function AdminDashboard() {
     return { week: weekLabel(weekStart), orders: trendByWeek.get(key) ?? 0 };
   });
 
-  const satellites = [
-    { labelKey: 'admin.dashboard.kpi.openOrders', value: String(openOrders) },
-    { labelKey: 'admin.dashboard.kpi.unpaidInvoices', value: String(unpaidInvoices) },
-    { labelKey: 'admin.dashboard.kpi.activeClients', value: String(activeClients) },
+  const kpis = [
+    {
+      labelKey: 'admin.dashboard.kpi.openOrders',
+      hintKey: 'admin.dashboard.kpi.openOrders.hint',
+      value: String(openOrders),
+      icon: ClipboardList,
+      accent: 'var(--chart-1)',
+    },
+    {
+      labelKey: 'admin.dashboard.kpi.revenue',
+      hintKey: 'admin.dashboard.kpi.revenue.hint',
+      value: formatCents(revenueCents, 'EUR'),
+      icon: TrendingUp,
+      accent: 'var(--chart-2)',
+    },
+    {
+      labelKey: 'admin.dashboard.kpi.unpaidInvoices',
+      hintKey: 'admin.dashboard.kpi.unpaidInvoices.hint',
+      value: String(unpaidInvoices),
+      icon: Receipt,
+      accent: 'var(--chart-4)',
+    },
+    {
+      labelKey: 'admin.dashboard.kpi.activeClients',
+      hintKey: 'admin.dashboard.kpi.activeClients.hint',
+      value: String(activeClients),
+      icon: Users,
+      accent: 'var(--chart-3)',
+    },
   ];
 
   return (
@@ -151,35 +177,28 @@ export default async function AdminDashboard() {
         </div>
       </header>
 
-      {/* Hero KPI */}
-      <section className="grid grid-cols-12 gap-8 border-b py-14">
-        <div className="col-span-12 flex flex-col gap-6 md:col-span-7">
-          <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-[0.22em]">
-            {t('admin.dashboard.kpi.revenue')}
-          </span>
-          <div className="font-[family-name:var(--font-display)] text-[5.5rem] leading-none tracking-tight tabular-nums md:text-[7rem]">
-            {formatCents(revenueCents, 'EUR')}
-          </div>
-          <p className="text-muted-foreground text-sm">
-            {t('admin.dashboard.kpi.revenue.hint')}
-          </p>
-        </div>
-
-        <div className="col-span-12 grid grid-cols-3 gap-4 self-end md:col-span-5">
-          {satellites.map((s, i) => (
-            <div
-              key={s.labelKey}
-              className={`flex flex-col gap-3 pl-4 ${i > 0 ? 'border-l' : ''}`}
-            >
-              <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-[0.2em]">
-                {t(s.labelKey)}
-              </span>
-              <div className="font-[family-name:var(--font-display)] text-4xl leading-none tabular-nums">
-                {s.value}
+      {/* KPI row */}
+      <section className="grid grid-cols-1 border-b sm:grid-cols-2 sm:divide-x lg:grid-cols-4">
+        {kpis.map((k, i) => (
+          <div
+            key={k.labelKey}
+            className={`flex flex-col gap-6 px-6 py-10 sm:px-8 ${i >= 2 ? 'sm:border-t lg:border-t-0' : ''}`}
+            style={{ '--accent': k.accent } as CSSProperties}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex size-11 items-center justify-center rounded-xl bg-[var(--accent)]/12 text-[var(--accent)] ring-1 ring-[var(--accent)]/20 ring-inset">
+                <k.icon className="size-5" strokeWidth={1.75} />
               </div>
+              <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-[0.22em]">
+                {t(k.labelKey)}
+              </span>
             </div>
-          ))}
-        </div>
+            <div className="font-[family-name:var(--font-display)] text-[3.5rem] leading-[0.9] tracking-tight tabular-nums">
+              {k.value}
+            </div>
+            <p className="text-muted-foreground text-xs leading-snug">{t(k.hintKey)}</p>
+          </div>
+        ))}
       </section>
 
       {/* Chart */}

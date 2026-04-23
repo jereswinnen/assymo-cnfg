@@ -16,7 +16,7 @@ interface Point {
 const config = {
   orders: {
     label: t('admin.dashboard.chart.series.orders'),
-    color: 'var(--foreground)',
+    color: 'var(--chart-1)',
   },
 } satisfies ChartConfig;
 
