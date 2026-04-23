@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MoreHorizontal } from 'lucide-react';
+import { Layers, MoreHorizontal, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { AdminEmpty } from '../AdminEmpty';
 import { t } from '@/lib/i18n';
 import type { MaterialRow } from '@/domain/catalog';
 import { MaterialThumb } from './MaterialThumb';
@@ -53,9 +54,19 @@ export function MaterialsTable({ materials }: { materials: MaterialRow[] }) {
 
   if (materials.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-        {t('admin.catalog.materials.empty')}
-      </div>
+      <AdminEmpty
+        icon={Layers}
+        title={t('admin.catalog.materials.empty.title')}
+        description={t('admin.catalog.materials.empty.description')}
+        action={
+          <Button asChild>
+            <Link href="/admin/catalog/materials/new">
+              <Plus />
+              {t('admin.catalog.materials.new')}
+            </Link>
+          </Button>
+        }
+      />
     );
   }
   return (

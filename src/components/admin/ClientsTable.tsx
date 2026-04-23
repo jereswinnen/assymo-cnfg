@@ -1,10 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { Users } from 'lucide-react';
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { AdminEmpty } from './AdminEmpty';
 import { t } from '@/lib/i18n';
 
 interface Row {
@@ -35,8 +37,15 @@ export function ClientsTable() {
   }, []);
 
   if (rows === null) return <p className="text-sm text-neutral-500">…</p>;
-  if (rows.length === 0)
-    return <p className="text-sm text-neutral-500">{t('admin.clients.empty')}</p>;
+  if (rows.length === 0) {
+    return (
+      <AdminEmpty
+        icon={Users}
+        title={t('admin.clients.empty.title')}
+        description={t('admin.clients.empty.description')}
+      />
+    );
+  }
 
   return (
     <Table>

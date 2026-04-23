@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { Building2 } from 'lucide-react';
 import {
   Table,
   TableHeader,
@@ -9,15 +10,25 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import type { TenantRow } from '@/db/schema';
+import { AdminEmpty } from './AdminEmpty';
 import { t } from '@/lib/i18n';
 
 interface Props {
   tenants: TenantRow[];
+  /** Optional action for the empty state — typically the create dialog. */
+  emptyAction?: React.ReactNode;
 }
 
-export function TenantsTable({ tenants }: Props) {
+export function TenantsTable({ tenants, emptyAction }: Props) {
   if (tenants.length === 0) {
-    return <p className="text-sm text-neutral-500">{t('admin.tenants.empty')}</p>;
+    return (
+      <AdminEmpty
+        icon={Building2}
+        title={t('admin.tenants.empty.title')}
+        description={t('admin.tenants.empty.description')}
+        action={emptyAction}
+      />
+    );
   }
   return (
     <Table>

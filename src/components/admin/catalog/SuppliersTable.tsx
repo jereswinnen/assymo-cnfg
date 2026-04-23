@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MoreHorizontal } from 'lucide-react';
+import { Factory, MoreHorizontal, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { AdminEmpty } from '../AdminEmpty';
 import { t } from '@/lib/i18n';
 import type { SupplierRow } from '@/domain/supplier';
 
@@ -44,9 +45,19 @@ export function SuppliersTable({ suppliers }: { suppliers: SupplierRow[] }) {
 
   if (suppliers.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-        {t('admin.catalog.suppliers.empty')}
-      </div>
+      <AdminEmpty
+        icon={Factory}
+        title={t('admin.catalog.suppliers.empty.title')}
+        description={t('admin.catalog.suppliers.empty.description')}
+        action={
+          <Button asChild>
+            <Link href="/admin/catalog/suppliers/new">
+              <Plus />
+              {t('admin.catalog.suppliers.new')}
+            </Link>
+          </Button>
+        }
+      />
     );
   }
 

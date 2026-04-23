@@ -1,10 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { Package } from 'lucide-react';
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
 import { OrderStatusBadge } from './OrderStatusBadge';
+import { AdminEmpty } from './AdminEmpty';
 import { t } from '@/lib/i18n';
 import type { OrderStatus } from '@/domain/orders';
 
@@ -52,8 +54,15 @@ export function OrdersTable() {
   }, []);
 
   if (rows === null) return <p className="text-sm text-neutral-500">…</p>;
-  if (rows.length === 0)
-    return <p className="text-sm text-neutral-500">{t('admin.orders.empty')}</p>;
+  if (rows.length === 0) {
+    return (
+      <AdminEmpty
+        icon={Package}
+        title={t('admin.orders.empty.title')}
+        description={t('admin.orders.empty.description')}
+      />
+    );
+  }
 
   return (
     <Table>

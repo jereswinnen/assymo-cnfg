@@ -218,6 +218,9 @@ const nl: Record<string, string> = {
   "admin.tenants.title": "Tenants",
   "admin.tenants.create": "Nieuwe tenant",
   "admin.tenants.empty": "Nog geen tenants.",
+  "admin.tenants.empty.title": "Nog geen tenants",
+  "admin.tenants.empty.description":
+    "Maak een tenant aan om een nieuw merk op te zetten. Elke tenant krijgt een eigen prijsboek, branding en catalogus.",
   "admin.tenants.col.id": "ID",
   "admin.tenants.col.displayName": "Naam",
   "admin.tenants.col.locale": "Taal",
@@ -252,6 +255,9 @@ const nl: Record<string, string> = {
   "admin.users.title": "Gebruikers",
   "admin.users.invite": "Gebruiker uitnodigen",
   "admin.users.empty": "Nog geen gebruikers.",
+  "admin.users.empty.title": "Nog geen gebruikers",
+  "admin.users.empty.description":
+    "Nodig collega's uit om mee te werken. Nieuwe gebruikers krijgen een magische link toegestuurd waarmee ze direct kunnen inloggen.",
   "admin.users.col.email": "E-mail",
   "admin.users.col.name": "Naam",
   "admin.users.col.role": "Rol",
@@ -274,6 +280,9 @@ const nl: Record<string, string> = {
   "admin.nav.orders": "Bestellingen",
   "admin.orders.title": "Bestellingen",
   "admin.orders.empty": "Nog geen bestellingen.",
+  "admin.orders.empty.title": "Nog geen bestellingen",
+  "admin.orders.empty.description":
+    "Zodra een klant een bestelling plaatst in de configurator, verschijnt die hier met de offerte en contactgegevens.",
   "admin.orders.col.id": "Bestel-ID",
   "admin.orders.col.customer": "Klant",
   "admin.orders.col.email": "E-mail",
@@ -309,6 +318,9 @@ const nl: Record<string, string> = {
   "admin.nav.clients": "Klanten",
   "admin.clients.title": "Klanten",
   "admin.clients.empty": "Nog geen klanten.",
+  "admin.clients.empty.title": "Nog geen klanten",
+  "admin.clients.empty.description":
+    "Klantaccounts worden automatisch aangemaakt zodra iemand een bestelling plaatst. Hun gegevens en bestellingen vind je dan terug op deze pagina.",
   "admin.clients.col.email": "E-mail",
   "admin.clients.col.name": "Naam",
   "admin.clients.col.tenant": "Tenant",
@@ -476,6 +488,9 @@ const nl: Record<string, string> = {
   // Admin — invoices list
   "admin.invoices.title": "Facturen",
   "admin.invoices.empty": "Nog geen facturen.",
+  "admin.invoices.empty.title": "Nog geen facturen",
+  "admin.invoices.empty.description":
+    "Factureer een geaccepteerde bestelling om te beginnen. De factuur krijgt automatisch een uniek nummer en een PDF.",
   "admin.invoices.col.number": "Nummer",
   "admin.invoices.col.customer": "Klant",
   "admin.invoices.col.issuedAt": "Opgemaakt",
@@ -542,6 +557,9 @@ const nl: Record<string, string> = {
   "admin.catalog.materials.edit": "Materiaal bewerken",
   "admin.catalog.materials.empty":
     "Nog geen materialen. Maak er een aan om te beginnen.",
+  "admin.catalog.materials.empty.title": "Nog geen materialen",
+  "admin.catalog.materials.empty.description":
+    "Voeg wand-, dak-, vloer- en deurmaterialen toe zodat klanten die in de configurator kunnen kiezen.",
 
   "admin.catalog.materials.column.thumb": "Voorbeeld",
   "admin.catalog.materials.column.name": "Naam",
@@ -617,6 +635,9 @@ const nl: Record<string, string> = {
   "admin.catalog.products.edit": "Product bewerken",
   "admin.catalog.products.empty":
     "Nog geen producten. Voeg je eerste bouwset toe om te beginnen.",
+  "admin.catalog.products.empty.title": "Nog geen bouwsets",
+  "admin.catalog.products.empty.description":
+    "Definieer een bouwset met standaardafmetingen en materialen zodat klanten een kant-en-klaar startpunt hebben in de configurator.",
 
   "admin.catalog.products.column.hero": "Hero",
   "admin.catalog.products.column.name": "Naam",
@@ -785,6 +806,9 @@ const nl: Record<string, string> = {
   "admin.catalog.suppliers.edit": "Leverancier bewerken",
   "admin.catalog.suppliers.empty":
     "Nog geen leveranciers. Maak er een aan om te beginnen.",
+  "admin.catalog.suppliers.empty.title": "Nog geen leveranciers",
+  "admin.catalog.suppliers.empty.description":
+    "Koppel leveranciers om maatwerkdeuren en ramen aan te bieden naast je eigen materialen.",
 
   "admin.catalog.suppliers.column.name": "Naam",
   "admin.catalog.suppliers.column.slug": "Slug",
@@ -833,6 +857,10 @@ const nl: Record<string, string> = {
   "admin.catalog.supplierProducts.edit": "Product bewerken",
   "admin.catalog.supplierProducts.empty":
     "Nog geen producten voor deze leverancier.",
+  "admin.catalog.supplierProducts.empty.title":
+    "Nog geen producten voor deze leverancier",
+  "admin.catalog.supplierProducts.empty.description":
+    "Voeg deuren of ramen toe die klanten in de configurator kunnen kiezen. Elk product krijgt een eigen SKU en prijs.",
 
   "admin.catalog.supplierProducts.column.name": "Naam",
   "admin.catalog.supplierProducts.column.kind": "Type",

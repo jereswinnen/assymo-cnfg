@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { UserPlus } from 'lucide-react';
 import {
   Table,
   TableHeader,
@@ -8,6 +9,7 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
+import { AdminEmpty } from './AdminEmpty';
 import { t } from '@/lib/i18n';
 
 interface Row {
@@ -18,7 +20,12 @@ interface Row {
   tenantId: string | null;
 }
 
-export function UsersTable() {
+interface Props {
+  /** Optional action for the empty state — typically the invite dialog. */
+  emptyAction?: React.ReactNode;
+}
+
+export function UsersTable({ emptyAction }: Props = {}) {
   const [users, setUsers] = useState<Row[] | null>(null);
 
   useEffect(() => {
@@ -31,8 +38,16 @@ export function UsersTable() {
   }, []);
 
   if (users === null) return <p className="text-sm text-neutral-500">…</p>;
-  if (users.length === 0)
-    return <p className="text-sm text-neutral-500">{t('admin.users.empty')}</p>;
+  if (users.length === 0) {
+    return (
+      <AdminEmpty
+        icon={UserPlus}
+        title={t('admin.users.empty.title')}
+        description={t('admin.users.empty.description')}
+        action={emptyAction}
+      />
+    );
+  }
 
   return (
     <Table>

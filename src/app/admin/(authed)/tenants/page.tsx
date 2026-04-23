@@ -13,12 +13,12 @@ export default async function TenantsPage() {
 
   const rows = await db.select().from(tenants);
 
+  const createDialog = <CreateTenantDialog />;
+
   return (
     <div className="space-y-6">
-      <PageHeaderActions>
-        <CreateTenantDialog />
-      </PageHeaderActions>
-      <TenantsTable tenants={rows} />
+      <PageHeaderActions>{createDialog}</PageHeaderActions>
+      <TenantsTable tenants={rows} emptyAction={createDialog} />
     </div>
   );
 }

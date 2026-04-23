@@ -19,7 +19,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, MoreHorizontal } from 'lucide-react';
+import { GripVertical, MoreHorizontal, Package, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { AdminEmpty } from '../AdminEmpty';
 import { t } from '@/lib/i18n';
 import type { SupplierProductRow } from '@/domain/supplier';
 
@@ -163,9 +164,19 @@ export function SupplierProductsTable({
 
   if (items.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-        {t('admin.catalog.supplierProducts.empty')}
-      </div>
+      <AdminEmpty
+        icon={Package}
+        title={t('admin.catalog.supplierProducts.empty.title')}
+        description={t('admin.catalog.supplierProducts.empty.description')}
+        action={
+          <Button asChild>
+            <Link href={`/admin/catalog/suppliers/${supplierId}/products/new`}>
+              <Plus />
+              {t('admin.catalog.supplierProducts.new')}
+            </Link>
+          </Button>
+        }
+      />
     );
   }
 

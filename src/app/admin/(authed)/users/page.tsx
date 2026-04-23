@@ -14,16 +14,18 @@ export default async function UsersPage() {
   // For super_admin we need the full tenant list to populate the invite dialog.
   const allTenants = kind === 'super_admin' ? await db.select().from(tenants) : [];
 
+  const inviteDialog = (
+    <InviteUserDialog
+      actorKind={kind as 'super_admin' | 'tenant_admin'}
+      actorTenantId={tenantId}
+      tenantOptions={allTenants.map((tx) => ({ id: tx.id, displayName: tx.displayName }))}
+    />
+  );
+
   return (
     <div className="space-y-6">
-      <PageHeaderActions>
-        <InviteUserDialog
-          actorKind={kind as 'super_admin' | 'tenant_admin'}
-          actorTenantId={tenantId}
-          tenantOptions={allTenants.map((tx) => ({ id: tx.id, displayName: tx.displayName }))}
-        />
-      </PageHeaderActions>
-      <UsersTable />
+      <PageHeaderActions>{inviteDialog}</PageHeaderActions>
+      <UsersTable emptyAction={inviteDialog} />
     </div>
   );
 }

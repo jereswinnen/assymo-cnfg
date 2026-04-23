@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { Receipt } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -9,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { AdminEmpty } from './AdminEmpty';
 import { t } from '@/lib/i18n';
 
 interface Row {
@@ -47,12 +49,15 @@ export function InvoicesTable() {
     });
   }, []);
   if (rows === null) return <p className="text-sm text-muted-foreground">…</p>;
-  if (rows.length === 0)
+  if (rows.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        {t('admin.invoices.empty')}
-      </p>
+      <AdminEmpty
+        icon={Receipt}
+        title={t('admin.invoices.empty.title')}
+        description={t('admin.invoices.empty.description')}
+      />
     );
+  }
   return (
     <Table>
       <TableHeader>
