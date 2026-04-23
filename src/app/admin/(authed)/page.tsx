@@ -8,6 +8,7 @@ import { invoices, orders, payments } from '@/db/schema';
 import { resolveAdminTenantScope } from '@/lib/adminScope';
 import { t } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Empty, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 import {
   Table,
@@ -126,24 +127,28 @@ export default async function AdminDashboard() {
       hintKey: 'admin.dashboard.kpi.openOrders.hint',
       value: String(openOrders),
       icon: ClipboardList,
+      accent: 'var(--chart-1)',
     },
     {
       labelKey: 'admin.dashboard.kpi.revenue',
       hintKey: 'admin.dashboard.kpi.revenue.hint',
       value: formatCents(revenueCents, 'EUR'),
       icon: TrendingUp,
+      accent: 'var(--chart-2)',
     },
     {
       labelKey: 'admin.dashboard.kpi.unpaidInvoices',
       hintKey: 'admin.dashboard.kpi.unpaidInvoices.hint',
       value: String(unpaidInvoices),
       icon: Receipt,
+      accent: 'var(--chart-4)',
     },
     {
       labelKey: 'admin.dashboard.kpi.activeClients',
       hintKey: 'admin.dashboard.kpi.activeClients.hint',
       value: String(activeClients),
       icon: Users,
+      accent: 'var(--chart-5)',
     },
   ];
 
@@ -156,26 +161,36 @@ export default async function AdminDashboard() {
         <p className="text-muted-foreground">{t('admin.dashboard.subtitle')}</p>
       </header>
 
-      <div className="grid grid-cols-1 gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
-          <div key={k.labelKey} className="flex flex-col gap-3">
-            <div className="text-muted-foreground flex items-center gap-2 text-sm">
-              <k.icon className="size-4" />
-              {t(k.labelKey)}
-            </div>
-            <div className="text-4xl font-semibold tabular-nums tracking-tight">{k.value}</div>
-            <p className="text-muted-foreground text-sm">{t(k.hintKey)}</p>
-          </div>
+          <Card
+            key={k.labelKey}
+            className="gap-3 border-border/60 py-5 shadow-none transition-colors hover:bg-muted/40"
+            style={{ '--accent': k.accent } as React.CSSProperties}
+          >
+            <CardHeader className="flex flex-row items-center gap-3">
+              <div className="flex size-9 items-center justify-center rounded-lg bg-[var(--accent)]/15 text-[var(--accent)]">
+                <k.icon className="size-4" />
+              </div>
+              <CardDescription className="truncate text-sm">{t(k.labelKey)}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-1">
+              <div className="text-3xl font-semibold tabular-nums tracking-tight">{k.value}</div>
+              <p className="text-muted-foreground text-xs">{t(k.hintKey)}</p>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      <section className="flex flex-col gap-6">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-xl font-semibold tracking-tight">{t('admin.dashboard.chart.title')}</h2>
-          <p className="text-muted-foreground text-sm">{t('admin.dashboard.chart.subtitle')}</p>
-        </div>
-        <OrdersTrendChart data={chartData} />
-      </section>
+      <Card className="border-border/60 shadow-none">
+        <CardHeader>
+          <CardTitle>{t('admin.dashboard.chart.title')}</CardTitle>
+          <CardDescription>{t('admin.dashboard.chart.subtitle')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <OrdersTrendChart data={chartData} />
+        </CardContent>
+      </Card>
 
       <section className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
