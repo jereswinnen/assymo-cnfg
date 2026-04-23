@@ -244,7 +244,7 @@ Each phase ends in something deployable.
 
 ### Phase 5.5 — Catalog (Products + Materials + Pricing)
 
-Replace the hardcoded material registry and per-object catalog arrays with tenant-owned DB-backed Materials and Products (starter kits). Every tenant — Assymo first — authors its own catalog through the admin; the configurator reads from the catalog instead of from TypeScript constants. Prerequisite for real commerce on any tenant, including Assymo. See the dedicated design: `docs/superpowers/specs/2026-04-21-phase-5.5-catalog-design.md`.
+Replace the hardcoded material registry and per-object catalog arrays with tenant-owned DB-backed Materials and Products (starter kits). Every tenant — Assymo first — authors its own catalog through the admin; the configurator reads from the catalog instead of from TypeScript constants. Prerequisite for real commerce on any tenant, including Assymo. See the dedicated design: `docs/superpowers/plans/2026-04-21-phase-5.5-catalog-design.md`.
 
 Three internal sub-phases, each independently shippable:
 
@@ -292,7 +292,7 @@ Tick a box when the phase is merged to `main` and deployed. Each phase has its o
 - [x] Phase 4 — Webshop shell + client account — [plan](../plans/2026-04-21-phase-4-webshop-shell.md)
   - [x] Phase 4.5 — Material catalog filtering — [plan](../plans/2026-04-21-phase-4.5-material-catalog.md)
 - [x] Phase 5 — Invoices — [plan](../plans/2026-04-21-phase-5-invoices.md)
-- [x] Phase 5.5 — Catalog (Products + Materials + Pricing) — [design](./2026-04-21-phase-5.5-catalog-design.md)
+- [x] Phase 5.5 — Catalog (Products + Materials + Pricing) — [design](../plans/2026-04-21-phase-5.5-catalog-design.md)
   - [x] Phase 5.5.1 — Materials to DB + texture uploads — [plan](../plans/2026-04-21-phase-5.5.1-materials-to-db.md)
   - [x] Phase 5.5.2 — Products + landing UX — [plan](../plans/2026-04-21-phase-5.5.2-products-landing.md)
   - [x] Phase 5.5.3 — Hardening + share-code refactor + cleanup — [plan](../plans/2026-04-21-phase-5.5.3-hardening-cleanup.md)
