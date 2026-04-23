@@ -44,7 +44,7 @@ Pure TypeScript. No React, no three.js, no zustand. Safe to import from API rout
 - `catalog/` — per-tenant material + product catalog types + validators (`MaterialRow`, `ProductRow`, `validateMaterialCreate/Patch`, `validateProductCreate/Patch`, `applyProductDefaults`, `filterMaterialsForProduct`, `clampDimensions`, slug helpers). Products are starter kits built on `overkapping` / `berging`; `paal` + `muur` stay engine primitives. Consumed by admin + shop API routes, the configurator hydration logic, and `TenantContext.catalog.{materials, products}`.
 - `materials/` — per-category view types (`WallCatalogEntry` etc.), row→view converters (`buildWallCatalog` …), `getAtom`, `getAtomColor`, `getEffectiveWallMaterial`, `getEffectiveDoorMaterial`. All helpers take `MaterialRow[]` — framework-free, zero global state. Hardcoded material registry removed in Phase 5.5.1; DB-backed catalog is the single source of truth.
 - `tenant/` — `TenantContext` with `priceBook` + `branding` + `invoicing` + `catalog: { materials: MaterialRow[], products: ProductRow[] }` + `supplierCatalog: { suppliers: SupplierRow[], products: SupplierProductRow[] }`; host-based resolver; `brandingToCssVars` + `cssVarsToInlineBlock` for the branded shell; `validateBrandingPatch`, `validateInvoicingPatch` for admin PATCH validation. Phase 4.5's `enabledMaterials` allow-list was absorbed by row ownership in the `materials` table.
-- `invoicing/` — pure numbering (`formatInvoiceNumber`), VAT math (`computeInvoiceAmounts`), payment-status derivation (`derivePaymentStatus`), supplier-snapshot builder, and patch validators (`validateIssueInvoiceInput`, `validatePaymentInput`). All framework-free; consumed by the admin API + PDF renderer.
+- `invoicing/` — pure numbering (`formatInvoiceNumber`), VAT math (`computeInvoiceAmounts`), payment-status derivation (`derivePaymentStatus`), supplier-snapshot builder, and patch validators (`validateIssueInvoiceInput`, `validatePaymentInput`). Also exports `VAT_RATES` (canonical Belgian set `[0, 0.06, 0.12, 0.21]`) — consumed by both the tenant invoicing form and the issue-invoice dialog's VAT picker. All framework-free.
 - `supplier/` — per-tenant supplier catalog. Types (`SupplierRow`, `SupplierProductRow`), validators (`validateSupplierCreate/Patch`, `validateSupplierProductCreate/Patch`, `validateDoorMeta`, `validateWindowMeta`), quote line-item helpers, snapshot builder, and geometry placement validator (`validateSupplierPlacements`). `SupplierProductRow.kind` is `'door' | 'window'` — extensible to more kinds (shutter/skylight/etc.) by adding an enum value + meta validator, no schema migration needed.
 
 ### `src/lib/` — browser-coupled
@@ -242,6 +242,28 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   on auto-chain for `[id]` pages), add a sidebar nav item, write the page
   inside `src/app/admin/(authed)/…`. Page-level CTAs go into the header
   via `<PageHeaderActions>…</PageHeaderActions>`.
+- **Tenant scope on admin pages:** super_admin's `user.tenantId` is NULL
+  (enforced by the CHECK constraint). Admin pages that need a default
+  scope call `resolveAdminTenantScope(session)` from `@/lib/adminScope`,
+  which falls back to `DEFAULT_TENANT_ID` when the session has none —
+  stopgap until a proper scope switcher lands. Catalog forms
+  (Material/Product/Supplier) pass `tenantId` in the POST body so the
+  server doesn't fall back to the (NULL) session tenant.
+- **Color picker:** `src/components/admin/ColorPickerField.tsx` wraps
+  a shadcn `Popover` with a 2×5 preset grid, a native
+  `<input type="color">` swatch, and a hex text input. Used by
+  `BrandingSection` for primaryColor + accentColor.
+- **Logo upload:** `HeroImageUploadField` has a `previewFit` prop
+  (`'cover'` default; `'contain'` for logos). `BrandingSection` uses
+  `'contain'`. SVG is accepted on `/api/admin/uploads/images` (logos +
+  hero images render through `<img>` in secure mode; Blob URLs live
+  on a separate origin). `/textures` + `/supplier-images` stay
+  raster-only since three.js materials can't render vector.
+- **Blob upload routes:** super_admin may upload to any tenant's
+  namespace (they edit across tenants); tenant_admin is pinned to
+  their own. None of the routes declare `onUploadCompleted` — doing so
+  forces Vercel to register a public webhook URL, which fails on
+  localhost.
 
 ## Configurator submit flow
 
@@ -303,9 +325,19 @@ Every public-facing route (`/`, `/shop/*`) renders inside
    viewport).
 
 The configurator canvas itself stays unbranded — only the wrapper
-varies. Tenant-specific accents (future) should use
-`bg-[var(--brand-primary)]` / `text-[var(--brand-accent)]` so admins
-can recolour without touching component code.
+varies. The shop surface (`/`, `/shop/*`) consumes
+`var(--brand-primary)` on primary CTAs (landing-grid card button,
+shop sign-in submit, "In winkelmandje" trigger, "PDF downloaden",
+"Factuur bekijken") and on key link hovers (header sign-in, footer
+contact email, back-to-account, row links). When adding new
+branded surfaces use Tailwind arbitrary-value syntax:
+`bg-[var(--brand-primary)] text-white hover:opacity-90`.
+
+The `ShopHeader` logo-vs-displayName rule: when `branding.logoUrl`
+is set, render only the logo (`alt={displayName}` for a11y) — don't
+show the text sibling, because logos almost always embed the brand
+name already. Sign-out lives in `ShopHeaderUserMenu.tsx` — a shadcn
+`DropdownMenu` triggered by the signed-in user's email.
 
 ## White-label / multi-tenant
 
@@ -324,7 +356,7 @@ Anything that varies per brand lives on `TenantContext` — never in module-scop
 - **Testing**: tests live in `tests/` at repo root (centralised). Import from `'vite-plus/test'`. Every domain module has a spec; new domain functions should get at least a smoke test.
 - **`crypto.randomUUID()`** is used for building IDs (client) and decoded window IDs — keep Node 20+ assumptions.
 - **DB is source of truth** for tenants, hosts, and priceBooks. Every tenant lookup (layout, API routes, admin API) goes through `resolveTenantByHost` / `getTenantById` in `@/db/resolveTenant`. The `@/domain/tenant` folder keeps only pure host-normalization helpers and the `DEFAULT_TENANT_ID` constant — no hardcoded host map.
-- **Global-unique emails across tenants.** A user belongs to exactly one tenant (`user.tenantId`). super_admins can carry `tenantId=null`.
+- **Global-unique emails across tenants.** A user belongs to exactly one tenant (`user.tenantId`). super_admin rows MUST have `tenantId=null`; `tenant_admin` and `client` MUST have a non-null `tenantId`. Enforced at the DB layer by the `user_kind_tenant_check` CHECK constraint.
 - **Auth guards are split**: `@/lib/auth-guards` stays pure (no auth/DB imports, testable stand-alone). `@/lib/auth-session` holds the runtime-coupled `requireSession` / `withSession`. Guards: `requireBusiness(session, kinds: BusinessKind[])`, `requireClient(session)`, `requireTenantScope(session, tenantId)`. `UserKind = 'super_admin' | 'tenant_admin' | 'client'`; `BusinessKind = 'super_admin' | 'tenant_admin'`.
 - **Order state machine** lives in `@/domain/orders/transitions.ts`.
   Allowed transitions: `submitted → quoted | cancelled`,
@@ -336,7 +368,7 @@ Anything that varies per brand lives on `TenantContext` — never in module-scop
 
 ## Before committing
 
-- `pnpm test` must pass (304+ tests)
+- `pnpm test` must pass (413+ tests)
 - `pnpm build` must pass
 - `pnpm exec tsc --noEmit` must pass
 - Lint is noisy with pre-existing warnings — net-new errors only are a blocker
