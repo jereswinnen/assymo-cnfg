@@ -7,9 +7,9 @@ import { db } from '@/db/client';
 import { invoices, orders, payments } from '@/db/schema';
 import { resolveAdminTenantScope } from '@/lib/adminScope';
 import { t } from '@/lib/i18n';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
+import { Separator } from '@/components/ui/separator';
+import { Empty, EmptyHeader, EmptyTitle } from '@/components/ui/empty';
 import {
   Table,
   TableBody,
@@ -149,7 +149,7 @@ export default async function AdminDashboard() {
   ];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-10">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">
           {t('admin.dashboard.greeting', { name: session.user.name ?? session.user.email })}
@@ -157,81 +157,76 @@ export default async function AdminDashboard() {
         <p className="text-muted-foreground text-sm">{t('admin.dashboard.subtitle')}</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:divide-x lg:grid-cols-4">
         {kpis.map((k) => (
-          <Card key={k.labelKey}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardDescription>{t(k.labelKey)}</CardDescription>
-              <k.icon className="text-muted-foreground size-4" />
-            </CardHeader>
-            <CardContent className="flex flex-col gap-1">
-              <div className="text-2xl font-semibold tabular-nums">{k.value}</div>
-              <p className="text-muted-foreground text-xs">{t(k.hintKey)}</p>
-            </CardContent>
-          </Card>
+          <div key={k.labelKey} className="flex flex-col gap-1 md:px-6 md:first:pl-0">
+            <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium uppercase tracking-wide">
+              <k.icon className="size-3.5" />
+              {t(k.labelKey)}
+            </div>
+            <div className="text-3xl font-semibold tabular-nums">{k.value}</div>
+            <p className="text-muted-foreground text-xs">{t(k.hintKey)}</p>
+          </div>
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>{t('admin.dashboard.chart.title')}</CardTitle>
-            <CardDescription>{t('admin.dashboard.chart.subtitle')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <OrdersTrendChart data={chartData} />
-          </CardContent>
-        </Card>
+      <section className="flex flex-col gap-4">
+        <div className="flex items-baseline justify-between">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-lg font-semibold">{t('admin.dashboard.chart.title')}</h2>
+            <p className="text-muted-foreground text-xs">{t('admin.dashboard.chart.subtitle')}</p>
+          </div>
+        </div>
+        <OrdersTrendChart data={chartData} />
+      </section>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>{t('admin.dashboard.recent.title')}</CardTitle>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/admin/orders">
-                {t('admin.dashboard.recent.viewAll')}
-                <ArrowRight />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {recent.length === 0 ? (
-              <Empty>
-                <EmptyHeader>
-                  <EmptyTitle>{t('admin.dashboard.recent.empty')}</EmptyTitle>
-                  <EmptyDescription>{t('admin.dashboard.subtitle')}</EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('admin.orders.col.customer')}</TableHead>
-                    <TableHead>{t('admin.orders.col.status')}</TableHead>
-                    <TableHead className="text-right">{t('admin.orders.col.total')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recent.map((o) => (
-                    <TableRow key={o.id}>
-                      <TableCell>
-                        <Link href={`/admin/orders/${o.id}`} className="hover:underline">
-                          {o.contactName}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <OrderStatusBadge status={o.status as OrderStatus} />
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatCents(o.totalCents, o.currency)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <Separator />
+
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">{t('admin.dashboard.recent.title')}</h2>
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/admin/orders">
+              {t('admin.dashboard.recent.viewAll')}
+              <ArrowRight />
+            </Link>
+          </Button>
+        </div>
+        {recent.length === 0 ? (
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>{t('admin.dashboard.recent.empty')}</EmptyTitle>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('admin.orders.col.customer')}</TableHead>
+                <TableHead>{t('admin.orders.col.status')}</TableHead>
+                <TableHead className="text-right">{t('admin.orders.col.total')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recent.map((o) => (
+                <TableRow key={o.id}>
+                  <TableCell>
+                    <Link href={`/admin/orders/${o.id}`} className="hover:underline">
+                      {o.contactName}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <OrderStatusBadge status={o.status as OrderStatus} />
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatCents(o.totalCents, o.currency)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </section>
     </div>
   );
 }
