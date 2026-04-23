@@ -22,7 +22,7 @@ const config = {
 
 export function OrdersTrendChart({ data }: { data: Point[] }) {
   return (
-    <ChartContainer config={config} className="h-[220px] w-full">
+    <ChartContainer config={config} className="h-[280px] w-full">
       <BarChart accessibilityLayer data={data} margin={{ left: 4, right: 4, top: 8 }}>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
         <XAxis dataKey="week" tickLine={false} axisLine={false} tickMargin={8} />
