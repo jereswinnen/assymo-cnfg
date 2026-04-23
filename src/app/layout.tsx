@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Instrument_Serif } from 'next/font/google';
 import { headers } from 'next/headers';
 import {
   resolveTenantByHostOrDefault,
@@ -15,6 +16,13 @@ import { TenantProvider } from '@/lib/TenantProvider';
 import { ThemeProvider } from '@/lib/ThemeProvider';
 import type { TenantContext } from '@/domain/tenant';
 import './globals.css';
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ['latin'],
+  weight: '400',
+  style: ['normal', 'italic'],
+  variable: '--font-instrument-serif',
+});
 
 export async function generateMetadata(): Promise<Metadata> {
   const tenant = await resolveTenantByHostOrDefault((await headers()).get('host'));
@@ -60,7 +68,7 @@ export default async function RootLayout({
   };
 
   return (
-    <html lang={tenantRow.locale} suppressHydrationWarning>
+    <html lang={tenantRow.locale} className={instrumentSerif.variable} suppressHydrationWarning>
       <body className="antialiased">
         <ThemeProvider>
           <TenantProvider value={tenantContext}>{children}</TenantProvider>
