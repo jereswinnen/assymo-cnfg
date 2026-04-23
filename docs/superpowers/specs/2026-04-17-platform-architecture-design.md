@@ -261,6 +261,12 @@ Today, clients pay by manual bank transfer; Phase 5 covers that via `payments.me
 - "Betaal nu" button on `/shop/account/orders/[id]` for unpaid/partial invoices.
 - Test mode first; production keys only after invoice flow is validated against real bank-transfer orders.
 
+### Phase 6.5 — AI-assisted catalog ingest (design addendum)
+
+Opens an AI track on top of the commerce base. First feature: tenants upload a supplier's PDF / XLSX / CSV price list, an LLM drafts supplier-product rows, the admin reviews + one-click creates. Collapses hours of data entry into minutes. Gated per-tenant behind `tenants.flags.aiCatalogIngest`. Reuses the existing supplier-product validators + insert path — the LLM stays in an *input* lane, never an *authoritative output* lane. See the dedicated design: [plan](../plans/2026-04-23-phase-6.5-ai-catalog-ingest.md).
+
+Not a blocker for Phase 6; meant to land after payments ship. Later AI features (quote explanation, natural-language configuration, product-description generation) reuse the env var + flag + SDK setup from this phase.
+
 ### Cross-cutting (unchanged from ROADMAP.md)
 
 Pick up as they become painful.
@@ -299,3 +305,4 @@ Tick a box when the phase is merged to `main` and deployed. Each phase has its o
 - [x] Phase 5.6 — Unified materials (one row, multi-category, modular pricing) — [plan](../plans/2026-04-22-phase-5.6-unified-materials.md)
 - [x] Phase 5.7 — Supplier catalog (doors + windows) — [plan](../plans/2026-04-22-phase-5.7-supplier-catalog.md)
 - [ ] Phase 6 — Online payments (deferred until business-ready)
+- [ ] Phase 6.5 — AI-assisted catalog ingest — [plan](../plans/2026-04-23-phase-6.5-ai-catalog-ingest.md)
