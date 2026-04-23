@@ -1,5 +1,5 @@
 'use client';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
 import {
   ChartContainer,
   ChartTooltip,
@@ -22,38 +22,17 @@ const config = {
 
 export function OrdersTrendChart({ data }: { data: Point[] }) {
   return (
-    <ChartContainer config={config} className="h-[260px] w-full">
-      <BarChart
-        accessibilityLayer
-        data={data}
-        margin={{ left: 0, right: 0, top: 16, bottom: 0 }}
-        barCategoryGap="25%"
-      >
-        <CartesianGrid
-          vertical={false}
-          strokeDasharray="2 4"
-          stroke="var(--border)"
-          opacity={0.7}
-        />
+    <ChartContainer config={config} className="h-[240px] w-full">
+      <BarChart accessibilityLayer data={data}>
+        <CartesianGrid vertical={false} />
         <XAxis
           dataKey="week"
           tickLine={false}
           axisLine={false}
-          tickMargin={12}
-          tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+          tickMargin={8}
         />
-        <YAxis
-          tickLine={false}
-          axisLine={false}
-          width={32}
-          tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
-          allowDecimals={false}
-        />
-        <ChartTooltip
-          cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
-          content={<ChartTooltipContent indicator="line" />}
-        />
-        <Bar dataKey="orders" fill="var(--color-orders)" radius={[3, 3, 0, 0]} maxBarSize={28} />
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <Bar dataKey="orders" fill="var(--color-orders)" radius={4} />
       </BarChart>
     </ChartContainer>
   );
