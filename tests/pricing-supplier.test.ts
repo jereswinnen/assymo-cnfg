@@ -81,8 +81,8 @@ describe('pricing — supplier product branches', () => {
       cfg.roof,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
-      cfg.defaultHeight,
       [DOOR_PRODUCT],
+      cfg.defaultHeight,
     );
 
     const doorItem = lineItems.find((i) => i.source?.kind === 'supplierProduct');
@@ -121,8 +121,8 @@ describe('pricing — supplier product branches', () => {
       cfg.roof,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
-      cfg.defaultHeight,
       [],
+      cfg.defaultHeight,
     );
     // Should contain no supplier-sourced items
     expect(withDoor.lineItems.every((i) => !i.source)).toBe(true);
@@ -164,8 +164,8 @@ describe('pricing — supplier product branches', () => {
       cfg.roof,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
-      cfg.defaultHeight,
       [WINDOW_PRODUCT],
+      cfg.defaultHeight,
     );
 
     const winItem = lineItems.find((i) => i.source?.kind === 'supplierProduct');
@@ -205,8 +205,8 @@ describe('pricing — supplier product branches', () => {
         cfg.roof,
         DEFAULT_PRICE_BOOK,
         FIXTURE_MATERIALS,
-        cfg.defaultHeight,
         [],
+        cfg.defaultHeight,
       );
       const stubItem = lineItems.find((i) => i.labelKey === 'quote.line.supplierMissing');
       expect(stubItem).toBeDefined();
@@ -244,8 +244,8 @@ describe('pricing — supplier product branches', () => {
       cfg.roof,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
-      cfg.defaultHeight,
       [archived],
+      cfg.defaultHeight,
     );
     const stubItem = lineItems.find((i) => i.labelKey === 'quote.line.supplierMissing');
     expect(stubItem).toBeDefined();

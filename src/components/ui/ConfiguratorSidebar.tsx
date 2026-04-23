@@ -68,7 +68,7 @@ export default function Sidebar() {
 
       {/* Sidebar panel — flex child, not fixed, so canvas resizes */}
       <div
-        className={`relative h-dvh bg-background border-l border-border flex flex-col shrink-0 transition-all duration-200 ease-in-out overflow-hidden ${
+        className={`relative h-full bg-background border-l border-border flex flex-col shrink-0 transition-all duration-200 ease-in-out overflow-hidden ${
           sidebarCollapsed ? 'w-0 border-l-0' : 'w-[320px]'
         }`}
       >

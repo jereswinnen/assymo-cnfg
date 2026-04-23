@@ -199,8 +199,8 @@ const nl: Record<string, string> = {
   "code.saveFailed": "Opslaan mislukt. Probeer opnieuw.",
 
   // Admin shell
-  "admin.title": "Beheer",
-  "admin.signIn.title": "Inloggen bij beheer",
+  "admin.title": "Timbo",
+  "admin.signIn.title": "Inloggen bij Timbo",
   "admin.signIn.email": "E-mailadres",
   "admin.signIn.submit": "Stuur inloglink",
   "admin.signIn.sent": "Check je inbox voor de inloglink.",
@@ -351,9 +351,21 @@ const nl: Record<string, string> = {
     "Vragen over de factuur? Antwoord op deze e-mail.",
 
   // Configurator — "in winkelmandje" submit flow
-  "configurator.submit.cta": "In winkelmandje",
+  "configurator.submit.cta": "Plaats bestelling",
   "configurator.submit.cta.disabled": "Voeg eerst een object toe",
   "configurator.submit.dialog.title": "Bestelling plaatsen",
+
+  // Configurator — header actions (ellipsis menu)
+  "configurator.header.menu": "Opties",
+  "configurator.header.exportPlan": "Exporteer plan",
+  "configurator.header.generateCode": "Genereer code",
+  "configurator.header.reset": "Opnieuw starten",
+  "configurator.reset.confirm.title": "Opnieuw starten?",
+  "configurator.reset.confirm.description":
+    "Hiermee verwijder je alle geplaatste gebouwen en begin je met een lege configuratie. Deze actie kan niet ongedaan gemaakt worden.",
+  "configurator.reset.confirm.confirm": "Ja, opnieuw starten",
+  "configurator.reset.confirm.cancel": "Annuleren",
+
   "configurator.submit.dialog.description":
     "Laat je gegevens achter; wij sturen je binnen één werkdag een offerte op maat.",
   "configurator.submit.field.name.label": "Naam",

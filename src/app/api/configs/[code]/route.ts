@@ -49,8 +49,8 @@ export async function GET(
     migrated.roof,
     tenant.priceBook,
     materials,
-    migrated.defaultHeight,
     supplierProducts,
+    migrated.defaultHeight,
   );
 
   return NextResponse.json({

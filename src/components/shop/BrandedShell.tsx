@@ -14,13 +14,16 @@ interface Props {
    *  renders the slim header only and lets children own the rest of
    *  the viewport (the canvas needs `h-dvh`). */
   variant?: 'shop' | 'configurator';
+  /** Optional right-aligned slot for the configurator header (e.g. the
+   *  ellipsis menu + "Plaats bestelling" CTA). */
+  headerRight?: React.ReactNode;
   children: React.ReactNode;
 }
 
 /** Server-only shell that reads the tenant branding + session and
  *  injects brand CSS vars. Used by `/shop/*` routes and by the
  *  configurator root. */
-export async function BrandedShell({ variant = 'shop', children }: Props) {
+export async function BrandedShell({ variant = 'shop', headerRight, children }: Props) {
   const hdrs = await headers();
   const tenantRow = await resolveTenantByHostOrDefault(hdrs.get('host'));
   const branding = tenantRow?.branding ?? DEFAULT_ASSYMO_BRANDING;
@@ -38,7 +41,12 @@ export async function BrandedShell({ variant = 'shop', children }: Props) {
       <>
         <style dangerouslySetInnerHTML={{ __html: cssBlock }} />
         <div className="flex flex-col h-dvh">
-          <ShopHeader branding={branding} signedIn={signedIn} variant="configurator" />
+          <ShopHeader
+            branding={branding}
+            signedIn={signedIn}
+            variant="configurator"
+            rightSlot={headerRight}
+          />
           <main className="flex-1 relative min-h-0">{children}</main>
         </div>
       </>

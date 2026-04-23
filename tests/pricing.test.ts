@@ -55,6 +55,7 @@ describe('calculateTotalQuote', () => {
       cfg.roof,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
+      [],
       cfg.defaultHeight,
     );
     expect(total).toBeGreaterThan(0);
@@ -68,6 +69,7 @@ describe('calculateTotalQuote', () => {
       cfg.roof,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
+      [],
       cfg.defaultHeight,
     );
     for (const item of lineItems) {
@@ -85,6 +87,7 @@ describe('calculateTotalQuote', () => {
       cfg.roof,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
+      [],
       cfg.defaultHeight,
     );
     expect(total).toBe(DEFAULT_PRICE_BOOK.postPrice);
@@ -107,8 +110,8 @@ describe('calculateTotalQuote', () => {
         }),
       ],
     });
-    const a = calculateTotalQuote(withoutDoor.buildings, withoutDoor.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, withoutDoor.defaultHeight).total;
-    const b = calculateTotalQuote(withDoor.buildings, withDoor.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, withDoor.defaultHeight).total;
+    const a = calculateTotalQuote(withoutDoor.buildings, withoutDoor.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], withoutDoor.defaultHeight).total;
+    const b = calculateTotalQuote(withDoor.buildings, withDoor.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], withDoor.defaultHeight).total;
     expect(b).toBeGreaterThan(a);
     expect(b - a).toBeLessThan(DEFAULT_PRICE_BOOK.doorBase.enkel);
   });
@@ -116,8 +119,8 @@ describe('calculateTotalQuote', () => {
   it('adds skylight flat fee when roof has skylight', () => {
     const base = makeConfig();
     const withSkylight = makeConfig({ roof: makeRoof({ hasSkylight: true }) });
-    const a = calculateTotalQuote(base.buildings, base.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, base.defaultHeight).total;
-    const b = calculateTotalQuote(withSkylight.buildings, withSkylight.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, withSkylight.defaultHeight).total;
+    const a = calculateTotalQuote(base.buildings, base.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], base.defaultHeight).total;
+    const b = calculateTotalQuote(withSkylight.buildings, withSkylight.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], withSkylight.defaultHeight).total;
     expect(b - a).toBe(DEFAULT_PRICE_BOOK.skylightFee);
   });
 
@@ -128,8 +131,8 @@ describe('calculateTotalQuote', () => {
     const thick = makeConfig({
       roof: makeRoof({ insulation: true, insulationThickness: 200 }),
     });
-    const a = calculateTotalQuote(thin.buildings, thin.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, thin.defaultHeight).total;
-    const b = calculateTotalQuote(thick.buildings, thick.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, thick.defaultHeight).total;
+    const a = calculateTotalQuote(thin.buildings, thin.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], thin.defaultHeight).total;
+    const b = calculateTotalQuote(thick.buildings, thick.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], thick.defaultHeight).total;
     expect(b).toBeGreaterThan(a);
   });
 
@@ -142,6 +145,7 @@ describe('calculateTotalQuote', () => {
       cfg.roof,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
+      [],
       cfg.defaultHeight,
     );
     const posts = lineItems.find((i) => i.labelKey === 'quote.posts');

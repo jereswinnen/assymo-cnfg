@@ -18,7 +18,7 @@ interface BuildQuoteSnapshotInput {
   defaultHeight: number;
   currency: Currency;
   materials: MaterialRow[];
-  supplierProducts?: SupplierProductRow[];
+  supplierProducts: SupplierProductRow[];
   /** Override for tests; defaults to `Date.now()`. */
   now?: () => Date;
 }
@@ -33,14 +33,14 @@ const eurosToCents = (eur: number): number => Math.round(eur * 100);
  *  them so historical orders remain re-renderable even after the product
  *  is edited or archived. */
 export function buildQuoteSnapshot(input: BuildQuoteSnapshotInput): OrderQuoteSnapshot {
-  const supplierProducts = input.supplierProducts ?? [];
+  const supplierProducts = input.supplierProducts;
   const { lineItems, total } = calculateTotalQuote(
     input.buildings,
     input.roof,
     input.priceBook,
     input.materials,
-    input.defaultHeight,
     supplierProducts,
+    input.defaultHeight,
   );
 
   // Freeze full supplier-product data onto any line item that references one

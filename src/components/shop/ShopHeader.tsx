@@ -12,9 +12,11 @@ interface Props {
   /** Slim variant for the configurator — drops the auth slot entirely
    *  so the canvas owns the viewport. */
   variant?: 'shop' | 'configurator';
+  /** Optional right-aligned slot. Only honoured when `variant === 'configurator'`. */
+  rightSlot?: React.ReactNode;
 }
 
-export function ShopHeader({ branding, signedIn, variant = 'shop' }: Props) {
+export function ShopHeader({ branding, signedIn, variant = 'shop', rightSlot }: Props) {
   return (
     <header
       className="h-14 shrink-0 border-b border-black/10 bg-background flex items-center justify-between px-4"
@@ -54,6 +56,10 @@ export function ShopHeader({ branding, signedIn, variant = 'shop' }: Props) {
             </Link>
           )}
         </div>
+      )}
+
+      {variant === 'configurator' && rightSlot && (
+        <div className="flex items-center gap-2">{rightSlot}</div>
       )}
     </header>
   );

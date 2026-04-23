@@ -8,6 +8,7 @@ import { getAtom } from '@/domain/materials';
 import { calculateTotalQuote } from '@/domain/pricing';
 import type { PriceBook } from '@/domain/pricing';
 import type { MaterialRow } from '@/domain/catalog';
+import type { SupplierProductRow } from '@/domain/supplier';
 
 function wallMaterialLabel(materials: MaterialRow[], id: string): string {
   const atom = getAtom(materials, id, 'wall');
@@ -29,7 +30,24 @@ function doorMaterialLabel(materials: MaterialRow[], id: string): string {
   return atom ? atom.name : id;
 }
 
-function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHeight: number, priceBook: PriceBook, materials: MaterialRow[]): string {
+function supplierProductLabel(
+  products: SupplierProductRow[],
+  productId: string | null | undefined,
+): string | null {
+  if (!productId) return null;
+  const found = products.find((p) => p.id === productId);
+  if (!found) return t('quote.line.supplierMissing', { id: productId });
+  return `${found.name} (${found.sku})`;
+}
+
+function buildSpecRows(
+  buildings: BuildingEntity[],
+  roof: RoofConfig,
+  defaultHeight: number,
+  priceBook: PriceBook,
+  materials: MaterialRow[],
+  supplierProducts: SupplierProductRow[],
+): string {
   const rows: string[] = [];
 
   const row = (label: string, value: string) =>
@@ -67,13 +85,26 @@ function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHei
         if (!w) continue;
         const parts: string[] = [wallMaterialLabel(materials, w.materialId ?? b.primaryMaterialId)];
         if (w.hasDoor) {
-          const size = t(`surface.doorSize.${w.doorSize}`);
-          const mat = doorMaterialLabel(materials, w.doorMaterialId ?? b.primaryMaterialId);
-          const withWindow = w.doorHasWindow ? `, ${t('surface.doorHasWindow').toLowerCase()}` : '';
-          parts.push(`${t('surface.door')}: ${size} (${mat}${withWindow})`);
+          const supplierDoor = supplierProductLabel(supplierProducts, w.doorSupplierProductId);
+          if (supplierDoor) {
+            parts.push(`${t('surface.door')}: ${supplierDoor}`);
+          } else {
+            const size = t(`surface.doorSize.${w.doorSize}`);
+            const mat = doorMaterialLabel(materials, w.doorMaterialId ?? b.primaryMaterialId);
+            const withWindow = w.doorHasWindow ? `, ${t('surface.doorHasWindow').toLowerCase()}` : '';
+            parts.push(`${t('surface.door')}: ${size} (${mat}${withWindow})`);
+          }
         }
-        if ((w.windows ?? []).length > 0) {
-          parts.push(`${w.windows.length}× ${t('surface.windows').toLowerCase()}`);
+        const windows = w.windows ?? [];
+        if (windows.length > 0) {
+          const supplierWindows = windows
+            .map((win) => supplierProductLabel(supplierProducts, win.supplierProductId))
+            .filter((label): label is string => Boolean(label));
+          if (supplierWindows.length === windows.length) {
+            parts.push(`${windows.length}× ${t('surface.windows').toLowerCase()}: ${supplierWindows.join(', ')}`);
+          } else {
+            parts.push(`${windows.length}× ${t('surface.windows').toLowerCase()}`);
+          }
         }
         rows.push(row(t(`wall.${id}`), parts.join(' · ')));
       }
@@ -89,7 +120,7 @@ function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHei
   }
 
   // Quote
-  const { lineItems, total } = calculateTotalQuote(buildings, roof, priceBook, materials, defaultHeight);
+  const { lineItems, total } = calculateTotalQuote(buildings, roof, priceBook, materials, supplierProducts, defaultHeight);
   rows.push(`<tr><td colspan="2" style="padding:12px 0 6px;font-weight:600;font-size:14px;border-bottom:1px solid #eee">${t('section.6')}</td></tr>`);
   for (const item of lineItems) {
     rows.push(row(t(item.labelKey, item.labelParams), `€${item.total.toFixed(0)}`));
@@ -99,13 +130,23 @@ function buildSpecRows(buildings: BuildingEntity[], roof: RoofConfig, defaultHei
   return rows.join('\n');
 }
 
-export function exportFloorPlan(buildings: BuildingEntity[], connections: SnapConnection[], roof: RoofConfig, priceBook: PriceBook, materials: MaterialRow[], defaultHeight: number = 3, shareCode?: string) {
+export function exportFloorPlan(
+  buildings: BuildingEntity[],
+  connections: SnapConnection[],
+  roof: RoofConfig,
+  priceBook: PriceBook,
+  materials: MaterialRow[],
+  supplierProducts: SupplierProductRow[],
+  shareCode: string,
+  defaultHeight: number = 3,
+) {
+  void connections;
   const svgEl = document.querySelector('.schematic-svg');
   if (!svgEl) return;
   const svgMarkup = svgEl.outerHTML;
 
-  const specRows = buildSpecRows(buildings, roof, defaultHeight, priceBook, materials);
-  const configCode = shareCode ?? '—';
+  const specRows = buildSpecRows(buildings, roof, defaultHeight, priceBook, materials, supplierProducts);
+  const configCode = shareCode;
   const title = `${t('app.title')} — ${t('schematic.title')}`;
   const date = new Date().toLocaleDateString('nl-NL', {
     year: 'numeric',

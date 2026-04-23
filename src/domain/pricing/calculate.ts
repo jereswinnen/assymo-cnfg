@@ -365,8 +365,8 @@ export function calculateTotalQuote(
   roof: RoofConfig,
   priceBook: PriceBook,
   materials: MaterialRow[],
+  supplierProducts: SupplierProductRow[],
   defaultHeight = 3,
-  supplierProducts: SupplierProductRow[] = [],
 ): {
   lineItems: LineItem[];
   total: number;

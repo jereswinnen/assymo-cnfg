@@ -19,6 +19,7 @@ describe('buildQuoteSnapshot', () => {
       defaultHeight: config.defaultHeight,
       currency: 'EUR',
       materials: [...NO_MATERIALS],
+      supplierProducts: [],
     });
     expect(snap.items).toHaveLength(1);
     expect(snap.items[0].code).toBe(SAMPLE_CODE);
@@ -40,6 +41,7 @@ describe('buildQuoteSnapshot', () => {
       defaultHeight: config.defaultHeight,
       currency: 'EUR',
       materials: [...NO_MATERIALS],
+      supplierProducts: [],
     });
     expect(Number.isInteger(snap.totalCents)).toBe(true);
     for (const item of snap.items) {
@@ -58,6 +60,7 @@ describe('buildQuoteSnapshot', () => {
       defaultHeight: config.defaultHeight,
       currency: 'EUR',
       materials: [...NO_MATERIALS],
+      supplierProducts: [],
     });
     pb.postPrice = 999_999;
     expect(snap.priceBook.postPrice).not.toBe(999_999);

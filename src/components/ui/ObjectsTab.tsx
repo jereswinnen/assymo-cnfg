@@ -2,13 +2,9 @@
 
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
-import { exportFloorPlan } from '@/components/schematic/exportFloorPlan';
 import { t } from '@/lib/i18n';
 import { useTenant } from '@/lib/TenantProvider';
 import { applyProductDefaults } from '@/domain/catalog';
-import { RotateCcw, Download } from 'lucide-react';
-import ConfigCodeDialog from './ConfigCodeDialog';
-import OrderSubmitDialog from './OrderSubmitDialog';
 import type { BuildingType } from '@/domain/building';
 
 const PRIMITIVE_ITEMS: { type: BuildingType; icon: string }[] = [
@@ -28,7 +24,6 @@ export default function ObjectsTab() {
   const addBuilding = useConfigStore((s) => s.addBuilding);
   const removeBuilding = useConfigStore((s) => s.removeBuilding);
   const selectBuilding = useUIStore((s) => s.selectBuilding);
-  const resetConfig = useConfigStore((s) => s.resetConfig);
   const viewMode = useUIStore((s) => s.viewMode);
   const { catalog } = useTenant();
   const hasProducts = catalog.products.length > 0;
@@ -42,7 +37,7 @@ export default function ObjectsTab() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 space-y-4 pb-6">
         {/* Hint text */}
         <p className="text-xs text-muted-foreground uppercase tracking-wider">
           {canAdd ? t('sidebar.catalog.dragHint') : t('sidebar.catalog.switchTo2D')}
@@ -194,41 +189,6 @@ export default function ObjectsTab() {
         </div>
       </div>
 
-      {/* Footer: Reset + ConfigCode + Export */}
-      <SidebarFooter resetConfig={resetConfig} viewMode={viewMode} />
-    </div>
-  );
-}
-
-function SidebarFooter({ resetConfig, viewMode }: { resetConfig: () => void; viewMode: string }) {
-  const buildings = useConfigStore((s) => s.buildings);
-  const connections = useConfigStore((s) => s.connections);
-  const roof = useConfigStore((s) => s.roof);
-  const tenant = useTenant();
-  const defaultHeight = useConfigStore((s) => s.defaultHeight);
-
-  return (
-    <div className="shrink-0 border-t border-border p-3 flex items-center gap-2">
-      <button
-        onClick={resetConfig}
-        className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-      >
-        <RotateCcw className="h-3.5 w-3.5" />
-        {t('app.reset')}
-      </button>
-      <ConfigCodeDialog />
-      <div className="ml-auto flex items-center gap-2">
-        <OrderSubmitDialog />
-        {viewMode !== '3d' && (
-          <button
-            onClick={() => exportFloorPlan(buildings, connections, roof, tenant.priceBook, tenant.catalog.materials, defaultHeight)}
-            className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Download className="h-3.5 w-3.5" />
-            {t('export.button')}
-          </button>
-        )}
-      </div>
     </div>
   );
 }

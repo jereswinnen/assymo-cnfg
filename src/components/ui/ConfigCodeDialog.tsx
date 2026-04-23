@@ -1,20 +1,35 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { QrCode, Copy, Check, X, Loader2 } from 'lucide-react';
 import { useConfigStore } from '@/store/useConfigStore';
 import type { ConfigData } from '@/domain/config';
 import { t } from '@/lib/i18n';
 
-export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = {}) {
+interface ConfigCodeDialogProps {
+  iconOnly?: boolean;
+  /** When provided, the dialog is controlled by the parent and the built-in
+   *  trigger is hidden (parent supplies its own opener — e.g. a
+   *  DropdownMenuItem). */
+  open?: boolean;
+  onOpenChange?: (next: boolean) => void;
+}
+
+export default function ConfigCodeDialog({
+  iconOnly,
+  open: openProp,
+  onOpenChange,
+}: ConfigCodeDialogProps = {}) {
   const version = useConfigStore((s) => s.version);
   const buildings = useConfigStore((s) => s.buildings);
   const connections = useConfigStore((s) => s.connections);
   const roof = useConfigStore((s) => s.roof);
   const defaultHeight = useConfigStore((s) => s.defaultHeight);
 
-  const [open, setOpen] = useState(false);
+  const controlled = openProp !== undefined;
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlled ? (openProp as boolean) : uncontrolledOpen;
   const [code, setCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +67,11 @@ export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = 
   }, [code]);
 
   const handleOpenChange = (isOpen: boolean) => {
-    setOpen(isOpen);
+    if (controlled) {
+      onOpenChange?.(isOpen);
+    } else {
+      setUncontrolledOpen(isOpen);
+    }
     if (isOpen) {
       setCode(null);
       setError(null);
@@ -60,20 +79,33 @@ export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = 
     }
   };
 
+  // Controlled mode (header dropdown): mint the code automatically when
+  // the dialog opens. Saves a click compared to the uncontrolled flow
+  // where the user first sees an "Opslaan" button.
+  useEffect(() => {
+    if (!controlled || !open) return;
+    if (code || busy) return;
+    void handleSave();
+    // We only want to auto-mint on transitions to open; handleSave is
+    // stable-enough via useCallback deps.
+  }, [controlled, open, code, busy, handleSave]);
+
   return (
     <DialogPrimitive.Root open={open} onOpenChange={handleOpenChange}>
-      <DialogPrimitive.Trigger asChild>
-        {iconOnly ? (
-          <button className="flex items-center justify-center h-11 w-11 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-            <QrCode className="h-5 w-5" />
-          </button>
-        ) : (
-          <button className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-            <QrCode className="h-3.5 w-3.5" />
-            Code
-          </button>
-        )}
-      </DialogPrimitive.Trigger>
+      {!controlled && (
+        <DialogPrimitive.Trigger asChild>
+          {iconOnly ? (
+            <button className="flex items-center justify-center h-11 w-11 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+              <QrCode className="h-5 w-5" />
+            </button>
+          ) : (
+            <button className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+              <QrCode className="h-3.5 w-3.5" />
+              Code
+            </button>
+          )}
+        </DialogPrimitive.Trigger>
+      )}
 
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0" />
@@ -114,6 +146,14 @@ export default function ConfigCodeDialog({ iconOnly }: { iconOnly?: boolean } = 
                 </button>
               </div>
               <p className="text-xs text-muted-foreground">{t('code.shareHint')}</p>
+            </div>
+          ) : controlled ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {t('code.saveHint')}
+              </div>
+              {error && <p className="text-xs text-destructive">{error}</p>}
             </div>
           ) : (
             <div className="space-y-3">

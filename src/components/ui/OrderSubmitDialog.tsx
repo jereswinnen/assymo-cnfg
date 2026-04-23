@@ -50,7 +50,14 @@ function TranslatedFormMessage({ className }: { className?: string }) {
   );
 }
 
-export default function OrderSubmitDialog() {
+interface OrderSubmitDialogProps {
+  /** When provided, renders as the dialog trigger via `<DialogTrigger asChild>`.
+   *  Expected to handle its own `disabled` state if needed. Falls back to the
+   *  default inline pill when omitted. */
+  trigger?: React.ReactNode;
+}
+
+export default function OrderSubmitDialog({ trigger }: OrderSubmitDialogProps = {}) {
   const [open, setOpen] = useState(false);
   const buildingCount = useConfigStore((s) => s.buildings.length);
   const disabled = buildingCount === 0;
@@ -101,15 +108,16 @@ export default function OrderSubmitDialog() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <button
-          type="button"
-          disabled={disabled}
-          title={disabled ? t('configurator.submit.cta.disabled') : undefined}
-          className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium bg-[var(--brand-primary)] text-white hover:opacity-90 disabled:opacity-40 disabled:pointer-events-none transition-opacity"
-        >
-          <ShoppingBag className="h-3.5 w-3.5" />
-          {t('configurator.submit.cta')}
-        </button>
+        {trigger ?? (
+          <Button
+            disabled={disabled}
+            title={disabled ? t('configurator.submit.cta.disabled') : undefined}
+            className="bg-[var(--brand-primary)] text-white hover:bg-[var(--brand-primary)] hover:opacity-90"
+          >
+            <ShoppingBag />
+            {t('configurator.submit.cta')}
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-md">

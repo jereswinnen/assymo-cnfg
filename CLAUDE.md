@@ -358,6 +358,16 @@ Anything that varies per brand lives on `TenantContext` — never in module-scop
 - **DB is source of truth** for tenants, hosts, and priceBooks. Every tenant lookup (layout, API routes, admin API) goes through `resolveTenantByHost` / `getTenantById` in `@/db/resolveTenant`. The `@/domain/tenant` folder keeps only pure host-normalization helpers and the `DEFAULT_TENANT_ID` constant — no hardcoded host map.
 - **Global-unique emails across tenants.** A user belongs to exactly one tenant (`user.tenantId`). super_admin rows MUST have `tenantId=null`; `tenant_admin` and `client` MUST have a non-null `tenantId`. Enforced at the DB layer by the `user_kind_tenant_check` CHECK constraint.
 - **Auth guards are split**: `@/lib/auth-guards` stays pure (no auth/DB imports, testable stand-alone). `@/lib/auth-session` holds the runtime-coupled `requireSession` / `withSession`. Guards: `requireBusiness(session, kinds: BusinessKind[])`, `requireClient(session)`, `requireTenantScope(session, tenantId)`. `UserKind = 'super_admin' | 'tenant_admin' | 'client'`; `BusinessKind = 'super_admin' | 'tenant_admin'`.
+- **No silent-empty collection defaults.** Domain functions that accept
+  tenant-scoped collections (materials, supplierProducts, priceBook
+  entries, etc.) MUST require those args — never `param: T[] = []`
+  or `param?: T[]`. A forgotten catalog input otherwise produces a
+  silently-wrong-but-plausible result (e.g. quotes where every
+  supplier product becomes "Ontbrekend product"). Tests can't catch
+  that because they look correct from the callee's perspective.
+  Force callers to pass the data; the compiler is the test. Same
+  rule applies to identifiers the UI must always have at render time
+  (e.g. `shareCode` on PDF export) — no `?:` with a `—` fallback.
 - **Order state machine** lives in `@/domain/orders/transitions.ts`.
   Allowed transitions: `submitted → quoted | cancelled`,
   `quoted → accepted | cancelled`, `accepted → cancelled`,
