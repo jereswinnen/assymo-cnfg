@@ -17,7 +17,11 @@ const FROM_ADDRESS = process.env.AUTH_EMAIL_FROM ?? 'Assymo <auth@assymo.be>';
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: 'pg' }),
   secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL:
+    process.env.BETTER_AUTH_URL ??
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : undefined),
 
   emailAndPassword: {
     enabled: true,
