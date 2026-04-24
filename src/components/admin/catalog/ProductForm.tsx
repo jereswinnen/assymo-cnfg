@@ -1,6 +1,6 @@
 'use client';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -90,7 +90,7 @@ export function ProductForm({
 }) {
   const router = useRouter();
   const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: standardSchemaResolver(schema),
     defaultValues: initial
       ? {
           kind: initial.kind,

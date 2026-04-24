@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { ShoppingBag, CheckCircle2, Loader2 } from 'lucide-react';
 import {
   contactFormSchema,
@@ -65,7 +65,7 @@ export default function OrderSubmitDialog({ trigger }: OrderSubmitDialogProps = 
   const { state, submit, reset } = useSubmitOrder();
 
   const form = useForm<ContactFormValues>({
-    resolver: zodResolver(contactFormSchema),
+    resolver: standardSchemaResolver(contactFormSchema),
     defaultValues: { name: '', email: '', phone: '', notes: '' },
     mode: 'onSubmit',
   });
