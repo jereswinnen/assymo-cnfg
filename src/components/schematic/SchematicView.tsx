@@ -1179,8 +1179,14 @@ export default function SchematicView() {
               <g
                 key={b.id}
                 className={isSelected ? 'schematic-selected' : undefined}
+                onPointerDown={(e) => onBuildingPointerDown(e, b.id)}
               >
-                {/* Invisible hit target for drag — covers the full building rect */}
+                {/* Invisible hit target for drag — covers the full building
+                    rect. Pointerdown on walls/openings/poles bubbles up to
+                    the parent <g> handler above; children that need their
+                    own gesture (resize handles, opening drag, pole drag)
+                    stopPropagation so this fallback only fires for "click
+                    anywhere on the building" cases. */}
                 <rect
                   x={ox}
                   y={oz}
@@ -1189,7 +1195,6 @@ export default function SchematicView() {
                   fill="transparent"
                   stroke="none"
                   style={{ cursor: 'grab' }}
-                  onPointerDown={(e) => onBuildingPointerDown(e, b.id)}
                 />
 
                 {/* Building fill */}
@@ -1604,8 +1609,13 @@ export default function SchematicView() {
               <g
                 key={w.id}
                 className={isSelected ? 'schematic-selected' : undefined}
+                onPointerDown={(e) => onBuildingPointerDown(e, w.id)}
               >
-                {/* Enlarged invisible hit target for drag + double-click to rotate */}
+                {/* Enlarged invisible hit target — visible "grab" cursor
+                    + double-click to rotate. Pointerdown handling lives
+                    on the parent <g> so any element inside the muur
+                    (including the dimension chain ticks if a finger
+                    happens to land on one) still initiates a drag. */}
                 <rect
                   x={ox - hitOffsetX}
                   y={oz - hitOffsetY}
@@ -1614,7 +1624,6 @@ export default function SchematicView() {
                   fill="transparent"
                   stroke="none"
                   style={{ cursor: 'grab' }}
-                  onPointerDown={(e) => onBuildingPointerDown(e, w.id)}
                   onDoubleClick={(e) => {
                     e.stopPropagation();
                     setOrientation(w.id, isHorizontal ? 'vertical' : 'horizontal');
