@@ -16,6 +16,31 @@ import DimensionLine from './DimensionLine';
 import WallElevation from './WallElevation';
 import type { BuildingType, WallSide, WallId, SnapConnection, BuildingEntity } from '@/domain/building';
 
+/** True when the primary pointing device can't hover and isn't precise
+ *  (touchscreens). Module-scope so it's evaluated once per page load —
+ *  modality doesn't typically change mid-session, and re-detecting on
+ *  every interaction would be wasteful. */
+const IS_COARSE_POINTER =
+  typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+
+/** Drag dead zone in squared pixels. Tighter for mouse, looser for
+ *  touch (finger jitter on tap shouldn't fire a drag). */
+const DRAG_DEAD_ZONE_SQ = IS_COARSE_POINTER ? 81 : 25;     // 9px vs 5px
+
+/** Capture the pointer so subsequent pointermove/up events route to
+ *  the same element (and thus bubble up to the SVG handler) even if
+ *  the finger drifts off the small hit target underneath. Without this
+ *  Safari and Chromium can drop the gesture mid-drag on touch. */
+function capturePointer(e: React.PointerEvent) {
+  try {
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+  } catch {
+    // Some elements/browsers reject capture (e.g. when the element is
+    // already capturing another pointer). Silent fallback — the SVG's
+    // onPointerMove still receives bubbled events in the common case.
+  }
+}
+
 function getConnectedSides(buildingId: string, connections: SnapConnection[]): Set<WallSide> {
   const sides = new Set<WallSide>();
   for (const c of connections) {
@@ -125,7 +150,9 @@ function ResizeHandles({
 }) {
   const [ox, oz] = building.position;
   const { width, depth } = building.dimensions;
-  const r = 0.12;
+  // Larger resize handles on coarse pointers (touch) so a fingertip can
+  // grab them reliably; mouse users keep the tighter visual.
+  const r = IS_COARSE_POINTER ? 0.18 : 0.12;
   const isMuur = building.type === 'muur';
   const isVertMuur = isMuur && building.orientation === 'vertical';
 
@@ -364,6 +391,7 @@ export default function SchematicView() {
   const onBuildingPointerDown = useCallback((e: React.PointerEvent, buildingId: string) => {
     if (e.button !== 0) return;
     e.stopPropagation();
+    capturePointer(e);
     shiftOnDown.current = e.shiftKey;
 
     const svg = svgRef.current;
@@ -401,6 +429,7 @@ export default function SchematicView() {
   ) => {
     if (e.button !== 0) return;
     e.stopPropagation();
+    capturePointer(e);
 
     const svg = svgRef.current;
     if (!svg) return;
@@ -423,6 +452,7 @@ export default function SchematicView() {
     info: { buildingId: string; wallId: string; type: 'door' | 'window'; windowIndex?: number },
   ) => {
     e.stopPropagation();
+    capturePointer(e);
     const svg = svgRef.current;
     if (!svg) return;
 
@@ -464,6 +494,7 @@ export default function SchematicView() {
   ) => {
     if (e.button !== 0) return;
     e.stopPropagation();
+    capturePointer(e);
     pointerDownScreen.current = { x: e.clientX, y: e.clientY };
     draggingPole.current = info;
     setFrozenViewBox(computedViewBox);
@@ -477,7 +508,7 @@ export default function SchematicView() {
       if (down) {
         const dx = e.clientX - down.x;
         const dy = e.clientY - down.y;
-        if (dx * dx + dy * dy < 25) return; // 5px dead zone
+        if (dx * dx + dy * dy < DRAG_DEAD_ZONE_SQ) return; // 5px dead zone
       }
 
       const svg = svgRef.current;
@@ -501,7 +532,7 @@ export default function SchematicView() {
       if (down && !resizing.current) {
         const dx = e.clientX - down.x;
         const dy = e.clientY - down.y;
-        if (dx * dx + dy * dy < 25) return;
+        if (dx * dx + dy * dy < DRAG_DEAD_ZONE_SQ) return;
         resizing.current = true;
         useConfigStore.temporal.getState().pause();
       }
@@ -576,7 +607,7 @@ export default function SchematicView() {
       if (down) {
         const dx = e.clientX - down.x;
         const dy = e.clientY - down.y;
-        if (dx * dx + dy * dy < 25) return; // 5px dead zone
+        if (dx * dx + dy * dy < DRAG_DEAD_ZONE_SQ) return; // 5px dead zone
       }
 
       if (!polePreview) {
@@ -642,7 +673,7 @@ export default function SchematicView() {
       if (down) {
         const dx = e.clientX - down.x;
         const dy = e.clientY - down.y;
-        if (dx * dx + dy * dy < 25) return; // 5px dead zone
+        if (dx * dx + dy * dy < DRAG_DEAD_ZONE_SQ) return; // 5px dead zone
       }
 
       if (!openingDragPreview) {
@@ -748,7 +779,7 @@ export default function SchematicView() {
     if (down && !dragging.current) {
       const dx = e.clientX - down.x;
       const dy = e.clientY - down.y;
-      if (dx * dx + dy * dy < 25) return; // 5px dead zone
+      if (dx * dx + dy * dy < DRAG_DEAD_ZONE_SQ) return; // 5px dead zone
       dragging.current = true;
       setDraggedBuildingId(dragBuildingId.current);
       useConfigStore.temporal.getState().pause();
@@ -1017,6 +1048,7 @@ export default function SchematicView() {
     const svg = svgRef.current;
     if (!svg) return;
 
+    capturePointer(e);
     pointerDownScreen.current = { x: e.clientX, y: e.clientY };
     selectRectAnchor.current = clientToWorld(svg, e.clientX, e.clientY);
     setFrozenViewBox(computedViewBox);
@@ -1101,8 +1133,16 @@ export default function SchematicView() {
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerLeave={onPointerUp}
+          onPointerCancel={onPointerUp}
           onPointerDown={onSvgPointerDown}
-          style={{ cursor: (dragging.current || draggingOpening.current) ? 'grabbing' : undefined }}
+          style={{
+            cursor: (dragging.current || draggingOpening.current) ? 'grabbing' : undefined,
+            // Prevent the browser from claiming the gesture as a pan/zoom
+            // mid-drag on touch devices. Without this, Safari/Chrome on
+            // iPad cancel the pointer stream as soon as horizontal
+            // movement looks like a scroll.
+            touchAction: 'none',
+          }}
         >
           {!isElevationMode && (
           <>
