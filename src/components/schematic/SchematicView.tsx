@@ -1309,6 +1309,11 @@ export default function SchematicView() {
                       .sort((a, b) => a - b);
                     const edgeLen = (side === 'front' || side === 'back') ? width : depth;
                     const bookended = [0, ...effective, 1];
+                    // Without intermediate posts there's a single "gap"
+                    // covering the whole edge — that number is already
+                    // shown by the per-building width/depth dimension,
+                    // so suppress it here to avoid duplicates.
+                    if (bookended.length <= 2) return [] as React.ReactNode[];
                     const horizontal = side === 'front' || side === 'back';
                     // Offset the dimension line outward from the building edge.
                     // Positive in our helpers = below/right.

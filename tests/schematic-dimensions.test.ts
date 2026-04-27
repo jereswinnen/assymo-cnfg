@@ -39,21 +39,35 @@ describe('computePlanDimensions — context-aware emission', () => {
     expect(computePlanDimensions({ buildings: [], connections: [] })).toEqual([]);
   });
 
-  it('omits per-building and total lines when only one structural is present', () => {
+  it('emits per-building lines but suppresses totals when only one structural is present', () => {
     const cfg = makeConfig();
     const lines = computePlanDimensions({ buildings: cfg.buildings, connections: cfg.connections });
-    expect(lines.filter((l) => l.id === 'building.width')).toHaveLength(0);
-    expect(lines.filter((l) => l.id === 'building.depth')).toHaveLength(0);
+    expect(lines.filter((l) => l.id === 'building.width')).toHaveLength(1);
+    expect(lines.filter((l) => l.id === 'building.depth')).toHaveLength(1);
     expect(lines.filter((l) => l.id === 'total.width')).toHaveLength(0);
     expect(lines.filter((l) => l.id === 'total.depth')).toHaveLength(0);
   });
 
-  it('emits per-building and total lines when 2+ structurals are present', () => {
+  it('emits per-building and total when widths AND depths differ from totals', () => {
+    // Side-by-side: gebouw 3.6×3.0, overkapping 4.2×3.0. Widths sum to 7.8
+    // (each per-building != total), depths both equal total 3.0.
+    const a = makeBuilding({ id: 'a', type: 'berging', position: [0, 0], dimensions: { width: 3.6, depth: 3, height: 2.6 } });
+    const b = makeBuilding({ id: 'b', type: 'overkapping', position: [3.6, 0], dimensions: { width: 4.2, depth: 3, height: 2.6 } });
+    const lines = computePlanDimensions({ buildings: [a, b], connections: [] });
+    expect(lines.filter((l) => l.id === 'building.width')).toHaveLength(2);
+    expect(lines.filter((l) => l.id === 'building.depth')).toHaveLength(0);
+    expect(lines.filter((l) => l.id === 'total.width')).toHaveLength(1);
+    expect(lines.filter((l) => l.id === 'total.depth')).toHaveLength(1);
+  });
+
+  it('suppresses per-building lines on an axis when every value equals the total', () => {
+    // 4×3 + 4×3 side-by-side: widths both 4 != total 8 → per-building shown.
+    // Depths both 3 == total 3 → per-building.depth suppressed.
     const a = makeBuilding({ id: 'a', type: 'berging', position: [0, 0], dimensions: { width: 4, depth: 3, height: 2.6 } });
     const b = makeBuilding({ id: 'b', type: 'berging', position: [4, 0], dimensions: { width: 4, depth: 3, height: 2.6 } });
     const lines = computePlanDimensions({ buildings: [a, b], connections: [] });
     expect(lines.filter((l) => l.id === 'building.width')).toHaveLength(2);
-    expect(lines.filter((l) => l.id === 'building.depth')).toHaveLength(2);
+    expect(lines.filter((l) => l.id === 'building.depth')).toHaveLength(0);
     expect(lines.filter((l) => l.id === 'total.width')).toHaveLength(1);
     expect(lines.filter((l) => l.id === 'total.depth')).toHaveLength(1);
   });
@@ -81,8 +95,10 @@ describe('computePlanDimensions — context-aware emission', () => {
 });
 
 describe('computePlanDimensions — config gates', () => {
-  const a = makeBuilding({ id: 'a', type: 'berging', position: [0, 0], dimensions: { width: 4, depth: 3, height: 2.6 } });
-  const b = makeBuilding({ id: 'b', type: 'berging', position: [4, 0], dimensions: { width: 4, depth: 3, height: 2.6 } });
+  // Different depths so the per-building.depth lines aren't suppressed
+  // by the redundancy guard. Different widths likewise.
+  const a = makeBuilding({ id: 'a', type: 'berging', position: [0, 0], dimensions: { width: 3, depth: 4, height: 2.6 } });
+  const b = makeBuilding({ id: 'b', type: 'berging', position: [3, 0], dimensions: { width: 4, depth: 3, height: 2.6 } });
 
   function override(patch: Partial<DimensionConfig>): DimensionConfig {
     return {

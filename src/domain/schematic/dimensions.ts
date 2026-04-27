@@ -249,14 +249,35 @@ export function computePlanDimensions(input: PlanInputs): DimLine[] {
 
   const structurals = buildings.filter(isStructural);
   const muurs = buildings.filter((b) => b.type === 'muur');
-  const showPerBuilding = structurals.length > 1;
 
-  // 1. Per-building width / depth (only when 2+ structurals).
+  // Compute totals once. Per-building lines skip emitting on an axis
+  // when their value equals the total on that axis — that's the case
+  // for buildings stacked along an axis perpendicular to the dimension
+  // (e.g. two side-by-side bergings with the same depth produce a
+  // single useful "depth" number, not three identical labels). When
+  // there's only one structural the per-building line replaces the
+  // suppressed total instead.
+  const hasMultiple = structurals.length > 1;
+  const minX = structurals.length === 0 ? 0 : Math.min(...structurals.map((b) => b.position[0]));
+  const maxX = structurals.length === 0 ? 0 : Math.max(...structurals.map((b) => b.position[0] + b.dimensions.width));
+  const minZ = structurals.length === 0 ? 0 : Math.min(...structurals.map((b) => b.position[1]));
+  const maxZ = structurals.length === 0 ? 0 : Math.max(...structurals.map((b) => b.position[1] + b.dimensions.depth));
+  const totalW = maxX - minX;
+  const totalD = maxZ - minZ;
+  // Tolerance for "this per-building value equals the total". Tight
+  // enough to ignore floating-point noise, loose enough to absorb the
+  // step-snap rounding that the dimension inputs apply (1cm).
+  const EQ = 0.01;
+  const allWidthsMatchTotal = hasMultiple && structurals.every((b) => Math.abs(b.dimensions.width - totalW) < EQ);
+  const allDepthsMatchTotal = hasMultiple && structurals.every((b) => Math.abs(b.dimensions.depth - totalD) < EQ);
+
+  // 1. Per-building width / depth — emitted unless the value is
+  //    redundant with a total line that's about to be drawn.
   for (const b of structurals) {
     const [lx, tz] = b.position;
     const w = b.dimensions.width;
     const d = b.dimensions.depth;
-    if (showPerBuilding && config.building.width) {
+    if (config.building.width && !allWidthsMatchTotal) {
       lines.push({
         id: 'building.width',
         surface: 'plan',
@@ -266,7 +287,7 @@ export function computePlanDimensions(input: PlanInputs): DimLine[] {
         groupKey: `building:${b.id}`,
       });
     }
-    if (showPerBuilding && config.building.depth) {
+    if (config.building.depth && !allDepthsMatchTotal) {
       lines.push({
         id: 'building.depth',
         surface: 'plan',
@@ -278,19 +299,15 @@ export function computePlanDimensions(input: PlanInputs): DimLine[] {
     }
   }
 
-  // 2. Total width / depth (only when 2+ structurals — bounding box).
-  if (structurals.length > 1) {
-    const minX = Math.min(...structurals.map((b) => b.position[0]));
-    const maxX = Math.max(...structurals.map((b) => b.position[0] + b.dimensions.width));
-    const minZ = Math.min(...structurals.map((b) => b.position[1]));
-    const maxZ = Math.max(...structurals.map((b) => b.position[1] + b.dimensions.depth));
+  // 2. Total width / depth — emitted only with 2+ structurals.
+  if (hasMultiple) {
     if (config.total.width) {
       lines.push({
         id: 'total.width',
         surface: 'plan',
         x1: minX, y1: maxZ, x2: maxX, y2: maxZ,
         offset: OFFSET_TOTAL,
-        label: `${t('dim.width')}: ${fmt1(maxX - minX)}`,
+        label: `${t('dim.width')}: ${fmt1(totalW)}`,
         groupKey: 'total',
       });
     }
@@ -300,7 +317,7 @@ export function computePlanDimensions(input: PlanInputs): DimLine[] {
         surface: 'plan',
         x1: maxX, y1: minZ, x2: maxX, y2: maxZ,
         offset: -OFFSET_TOTAL,
-        label: `${t('dim.depth')}: ${fmt1(maxZ - minZ)}`,
+        label: `${t('dim.depth')}: ${fmt1(totalD)}`,
         groupKey: 'total',
       });
     }
