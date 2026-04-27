@@ -6,6 +6,7 @@ import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/domain/building';
 import { getConstraints, DOOR_W, DOUBLE_DOOR_W, WIN_W, xToFraction, clampOpeningPosition, fractionToX, getWallLength, autoPoleLayout } from '@/domain/building';
 import { getEffectivePrimaryMaterial, getAtomColor } from '@/domain/materials';
+import { computePlanDimensions, type DimLine } from '@/domain/schematic';
 import { useTenant } from '@/lib/TenantProvider';
 import { t } from '@/lib/i18n';
 import SchematicPosts from './SchematicPosts';
@@ -292,6 +293,52 @@ export default function SchematicView() {
   const totalW = maxX - minX;
   const totalD = maxZ - minZ;
   const showTotalDimension = buildings.length > 1 && connections.length > 0;
+
+  // Dimension registry — single source of truth for what gets rendered.
+  // computePlanDimensions handles context-aware suppression. The local
+  // arc-clearance pass below preserves the door-swing-clearance bump that
+  // the old inline blocks applied to per-building width/depth offsets.
+  const planLines = useMemo<DimLine[]>(
+    () => computePlanDimensions({ buildings, connections }),
+    [buildings, connections],
+  );
+
+  const arcClearance = useMemo(() => {
+    const front: Record<string, number> = {};
+    const right: Record<string, number> = {};
+    for (const b of buildings) {
+      if (b.type === 'paal' || b.type === 'muur') continue;
+      const fw = b.walls['front'];
+      const rw = b.walls['right'];
+      front[b.id] = (fw?.hasDoor && fw.doorSwing === 'naar_buiten')
+        ? (fw.doorSize === 'dubbel' ? DOUBLE_DOOR_W / 2 : DOOR_W)
+        : 0;
+      right[b.id] = (rw?.hasDoor && rw.doorSwing === 'naar_buiten')
+        ? (rw.doorSize === 'dubbel' ? DOUBLE_DOOR_W / 2 : DOOR_W)
+        : 0;
+    }
+    return { front, right };
+  }, [buildings]);
+
+  const adjustedPlanLines = useMemo<DimLine[]>(() => {
+    return planLines.map((d) => {
+      if (!d.groupKey?.startsWith('building:')) return d;
+      const id = d.groupKey.slice('building:'.length);
+      if (d.id === 'building.width') {
+        const arc = arcClearance.front[id] ?? 0;
+        // Width line sits south of the building; bump positive offset
+        // outward when the front-wall door swings into the dimension lane.
+        return { ...d, offset: Math.max(d.offset, arc + 0.5) };
+      }
+      if (d.id === 'building.depth') {
+        const arc = arcClearance.right[id] ?? 0;
+        // Depth line sits east; offset is negative, so push more
+        // negative when the right-wall door swings outward.
+        return { ...d, offset: Math.min(d.offset, -(arc + 0.5)) };
+      }
+      return d;
+    });
+  }, [planLines, arcClearance]);
 
   const pad = showTotalDimension ? 2.8 : 2.0;
   const computedViewBox = `${minX - pad} ${minZ - pad} ${totalW + 2 * pad} ${totalD + 2 * pad}`;
@@ -1393,29 +1440,10 @@ export default function SchematicView() {
                   />
                 </g>
 
-                {/* Per-building width dimension */}
-                <g pointerEvents="none">
-                  <DimensionLine
-                    x1={ox}
-                    y1={oz + depth}
-                    x2={ox + width}
-                    y2={oz + depth}
-                    offset={Math.max(showTotalDimension ? 1.0 : 0.8, frontArc + 0.5)}
-                    label={`${t('dim.width')}: ${width.toFixed(1)}m`}
-                  />
-                </g>
-
-                {/* Per-building length dimension */}
-                <g pointerEvents="none">
-                  <DimensionLine
-                    x1={ox + width}
-                    y1={oz}
-                    x2={ox + width}
-                    y2={oz + depth}
-                    offset={Math.min(-0.8, -(rightArc + 0.5))}
-                    label={`${t('dim.depth')}: ${depth.toFixed(1)}m`}
-                  />
-                </g>
+                {/* Per-building width + depth dimensions — emitted by
+                    computePlanDimensions and rendered in the unified block
+                    below. The local frontArc / rightArc values still drive
+                    the wall-label placement and are preserved. */}
 
                 {/* Door and window symbols — rendered after dimensions so
                     naar_buiten arcs aren't clipped by dimension label backgrounds */}
@@ -1562,28 +1590,8 @@ export default function SchematicView() {
                   />
                 </g>
 
-                {/* Dimension line showing wall length */}
-                <g pointerEvents="none">
-                  {isHorizontal ? (
-                    <DimensionLine
-                      x1={ox}
-                      y1={oz + wallD / 2}
-                      x2={ox + w.dimensions.width}
-                      y2={oz + wallD / 2}
-                      offset={0.5}
-                      label={`${w.dimensions.width.toFixed(1)}m`}
-                    />
-                  ) : (
-                    <DimensionLine
-                      x1={ox + wallW}
-                      y1={oz}
-                      x2={ox + wallW}
-                      y2={oz + w.dimensions.width}
-                      offset={-0.5}
-                      label={`${w.dimensions.width.toFixed(1)}m`}
-                    />
-                  )}
-                </g>
+                {/* Muur length dimension — emitted by computePlanDimensions
+                    in the unified block below. */}
 
                 {/* Door and window symbols — after dimensions so arcs aren't clipped */}
                 <g>
@@ -1702,33 +1710,26 @@ export default function SchematicView() {
             </rect>
           )}
 
-          {/* Total depth dimension — only when multiple connected buildings */}
-          {showTotalDimension && (
-            <g pointerEvents="none">
+          {/* All dimension lines — single unified block driven by the
+              dimension registry. computePlanDimensions handles
+              context-aware suppression (per-building hidden when only one
+              structural; totals likewise) and emits opening-gap chains
+              for any wall with door/windows. The local arc-clearance pass
+              preserves the legacy door-swing-clearance behaviour for
+              per-building lines. */}
+          <g pointerEvents="none">
+            {adjustedPlanLines.map((d) => (
               <DimensionLine
-                x1={maxX}
-                y1={minZ}
-                x2={maxX}
-                y2={maxZ}
-                offset={-2.0}
-                label={`${t('dim.depth')}: ${totalD.toFixed(1)}m`}
+                key={`${d.id}|${d.groupKey ?? ''}|${d.x1.toFixed(3)},${d.y1.toFixed(3)}->${d.x2.toFixed(3)},${d.y2.toFixed(3)}`}
+                x1={d.x1}
+                y1={d.y1}
+                x2={d.x2}
+                y2={d.y2}
+                offset={d.offset}
+                label={d.label}
               />
-            </g>
-          )}
-
-          {/* Total width dimension spanning all buildings */}
-          {showTotalDimension && (
-            <g pointerEvents="none">
-              <DimensionLine
-                x1={minX}
-                y1={maxZ}
-                x2={maxX}
-                y2={maxZ}
-                offset={1.8}
-                label={`${t('dim.width')}: ${totalW.toFixed(1)}m`}
-              />
-            </g>
-          )}
+            ))}
+          </g>
           </>
           )}
 

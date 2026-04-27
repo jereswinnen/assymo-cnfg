@@ -10,8 +10,10 @@ import {
   WIN_MIN_SIZE,
 } from '@/domain/building';
 import { getAtomColor, getEffectiveWallMaterial } from '@/domain/materials';
+import { computeElevationDimensions } from '@/domain/schematic';
 import { useTenant } from '@/lib/TenantProvider';
 import { t } from '@/lib/i18n';
+import DimensionLine from './DimensionLine';
 import type { WallId } from '@/domain/building';
 
 interface WallElevationProps {
@@ -301,6 +303,13 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
   const wallHeight = getEffectiveHeight(building, defaultHeight);
   const wallColor = getAtomColor(materials, getEffectiveWallMaterial(wallCfg, building, buildings), 'wall');
 
+  // Opening-gap chain — single source of truth via the dimension registry.
+  // Generator emits 1D segments with y = 0; we pin them to y = wallHeight
+  // (the ground line) so the offset places the chain below the wall.
+  const openingGapLines = computeElevationDimensions({
+    building, wallId, defaultHeight,
+  }).map((d) => ({ ...d, y1: wallHeight, y2: wallHeight }));
+
   const windows = wallCfg.windows ?? [];
 
   // Door dimensions and position
@@ -550,6 +559,20 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
           </g>
         );
       })}
+
+      {/* Opening-gap chain along the wall baseline — distances between
+          the wall edges and each opening's edges. Driven by the same
+          dimension registry that powers the plan view. */}
+      <g pointerEvents="none">
+        {openingGapLines.map((d) => (
+          <DimensionLine
+            key={`${d.id}|${d.x1.toFixed(3)}-${d.x2.toFixed(3)}`}
+            x1={d.x1} y1={d.y1} x2={d.x2} y2={d.y2}
+            offset={d.offset}
+            label={d.label}
+          />
+        ))}
+      </g>
     </g>
   );
 }
