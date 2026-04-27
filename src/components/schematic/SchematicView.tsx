@@ -16,18 +16,10 @@ import DimensionLine from './DimensionLine';
 import WallElevation from './WallElevation';
 import type { BuildingType, WallSide, WallId, SnapConnection, BuildingEntity } from '@/domain/building';
 
-/** True when ANY pointing device on the system is coarse (touch).
- *  `any-pointer: coarse` matches a hybrid iPad-with-trackpad better
- *  than `pointer: coarse`, which only inspects the primary pointer
- *  and can flip between true/false depending on what the user touched
- *  most recently. Module-scope: modality doesn't change mid-session
- *  and re-querying on every interaction would be wasteful. */
-const IS_COARSE_POINTER =
-  typeof window !== 'undefined' && window.matchMedia('(any-pointer: coarse)').matches;
-
-/** Drag dead zone in squared pixels. Tighter for mouse, looser for
- *  touch (finger jitter on tap shouldn't fire a drag). */
-const DRAG_DEAD_ZONE_SQ = IS_COARSE_POINTER ? 81 : 25;     // 9px vs 5px
+// Single source of truth for these constants is `@/lib/useDragGesture`
+// — re-exported here so SchematicView's hand-rolled gesture stack
+// (which predates the hook) stays aligned with the hook's defaults.
+import { DRAG_DEAD_ZONE_SQ, IS_COARSE_POINTER } from '@/lib/useDragGesture';
 
 /** Capture the pointer to the SVG so subsequent pointermove/up events
  *  route directly to the SVG handler regardless of where the finger
