@@ -250,13 +250,12 @@ export function computePlanDimensions(input: PlanInputs): DimLine[] {
   const structurals = buildings.filter(isStructural);
   const muurs = buildings.filter((b) => b.type === 'muur');
 
-  // Compute totals once. Per-building lines skip emitting on an axis
-  // when their value equals the total on that axis — that's the case
-  // for buildings stacked along an axis perpendicular to the dimension
-  // (e.g. two side-by-side bergings with the same depth produce a
-  // single useful "depth" number, not three identical labels). When
-  // there's only one structural the per-building line replaces the
-  // suppressed total instead.
+  // Compute totals once. A per-building line is suppressed on an axis
+  // when its value equals the total on that axis — the total label
+  // already conveys the same number. The check runs per building
+  // (not across all): an overkapping that defines the total on its
+  // axis loses its redundant per-building label, while a smaller
+  // gebouw next to it still gets one because its number is distinct.
   const hasMultiple = structurals.length > 1;
   const minX = structurals.length === 0 ? 0 : Math.min(...structurals.map((b) => b.position[0]));
   const maxX = structurals.length === 0 ? 0 : Math.max(...structurals.map((b) => b.position[0] + b.dimensions.width));
@@ -268,8 +267,6 @@ export function computePlanDimensions(input: PlanInputs): DimLine[] {
   // enough to ignore floating-point noise, loose enough to absorb the
   // step-snap rounding that the dimension inputs apply (1cm).
   const EQ = 0.01;
-  const allWidthsMatchTotal = hasMultiple && structurals.every((b) => Math.abs(b.dimensions.width - totalW) < EQ);
-  const allDepthsMatchTotal = hasMultiple && structurals.every((b) => Math.abs(b.dimensions.depth - totalD) < EQ);
 
   // 1. Per-building width / depth — emitted unless the value is
   //    redundant with a total line that's about to be drawn.
@@ -277,7 +274,9 @@ export function computePlanDimensions(input: PlanInputs): DimLine[] {
     const [lx, tz] = b.position;
     const w = b.dimensions.width;
     const d = b.dimensions.depth;
-    if (config.building.width && !allWidthsMatchTotal) {
+    const widthMatchesTotal = hasMultiple && Math.abs(w - totalW) < EQ;
+    const depthMatchesTotal = hasMultiple && Math.abs(d - totalD) < EQ;
+    if (config.building.width && !widthMatchesTotal) {
       lines.push({
         id: 'building.width',
         surface: 'plan',
@@ -287,7 +286,7 @@ export function computePlanDimensions(input: PlanInputs): DimLine[] {
         groupKey: `building:${b.id}`,
       });
     }
-    if (config.building.depth && !allDepthsMatchTotal) {
+    if (config.building.depth && !depthMatchesTotal) {
       lines.push({
         id: 'building.depth',
         surface: 'plan',

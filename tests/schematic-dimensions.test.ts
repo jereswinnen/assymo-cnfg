@@ -72,6 +72,20 @@ describe('computePlanDimensions — context-aware emission', () => {
     expect(lines.filter((l) => l.id === 'total.depth')).toHaveLength(1);
   });
 
+  it('suppresses only the per-building line whose own value equals the total', () => {
+    // gebouw 3.6×3.1, overkapping 4.2×4.3 side-by-side: total depth = 4.3.
+    // Overkapping.depth (4.3) duplicates the total → drop it.
+    // Gebouw.depth (3.1) is distinct → keep it.
+    const a = makeBuilding({ id: 'a', type: 'berging', position: [0, 0], dimensions: { width: 3.6, depth: 3.1, height: 2.6 } });
+    const b = makeBuilding({ id: 'b', type: 'overkapping', position: [3.6, 0], dimensions: { width: 4.2, depth: 4.3, height: 2.6 } });
+    const lines = computePlanDimensions({ buildings: [a, b], connections: [] });
+    expect(lines.filter((l) => l.id === 'building.width')).toHaveLength(2);
+    const depthLines = lines.filter((l) => l.id === 'building.depth');
+    expect(depthLines).toHaveLength(1);
+    expect(depthLines[0].groupKey).toBe('building:a');
+    expect(lines.filter((l) => l.id === 'total.depth')).toHaveLength(1);
+  });
+
   it('emits muur.length regardless of structural count', () => {
     const muur = makeBuilding({
       id: 'm', type: 'muur', position: [0, 0],
@@ -95,10 +109,11 @@ describe('computePlanDimensions — context-aware emission', () => {
 });
 
 describe('computePlanDimensions — config gates', () => {
-  // Different depths so the per-building.depth lines aren't suppressed
-  // by the redundancy guard. Different widths likewise.
-  const a = makeBuilding({ id: 'a', type: 'berging', position: [0, 0], dimensions: { width: 3, depth: 4, height: 2.6 } });
-  const b = makeBuilding({ id: 'b', type: 'berging', position: [3, 0], dimensions: { width: 4, depth: 3, height: 2.6 } });
+  // Buildings spread on both axes so neither per-building width nor
+  // depth equals its respective total — the redundancy guard then
+  // leaves both pairs intact and the config gate is what we're testing.
+  const a = makeBuilding({ id: 'a', type: 'berging', position: [0, 0], dimensions: { width: 3, depth: 2, height: 2.6 } });
+  const b = makeBuilding({ id: 'b', type: 'berging', position: [5, 5], dimensions: { width: 4, depth: 3, height: 2.6 } });
 
   function override(patch: Partial<DimensionConfig>): DimensionConfig {
     return {
