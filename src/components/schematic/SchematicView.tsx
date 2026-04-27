@@ -1045,6 +1045,35 @@ export default function SchematicView() {
   // Escape handling moved into the central `useConfiguratorShortcuts`
   // registry mounted by ConfiguratorClient.
 
+  // Bypass React's synthetic event delegation for move/up. Native window
+  // listeners fire reliably regardless of which SVG element the gesture
+  // started on or what React re-renders during the drag — including the
+  // edge case where iOS Safari drops React-managed pointermove deliveries
+  // when the captured target's subtree is reconciled mid-gesture.
+  // Refs keep the handlers fresh across renders without re-binding the
+  // window listeners (which would lose any in-flight gesture).
+  const moveRef = useRef(onPointerMove);
+  const upRef = useRef(onPointerUp);
+  moveRef.current = onPointerMove;
+  upRef.current = onPointerUp;
+
+  useEffect(() => {
+    function handleMove(e: PointerEvent) {
+      moveRef.current(e as unknown as React.PointerEvent);
+    }
+    function handleUp() {
+      upRef.current();
+    }
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleUp);
+    window.addEventListener('pointercancel', handleUp);
+    return () => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+      window.removeEventListener('pointercancel', handleUp);
+    };
+  }, []);
+
   const onSvgPointerDown = useCallback((e: React.PointerEvent) => {
     if (isElevationMode) return;
     if (e.target !== svgRef.current) return;
@@ -1138,10 +1167,9 @@ export default function SchematicView() {
           ref={svgRef}
           viewBox={isElevationMode ? elevationViewBox : activeViewBox}
           className="schematic-svg w-full h-full select-none"
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerLeave={onPointerUp}
-          onPointerCancel={onPointerUp}
+          // Move/up/cancel are handled by native window listeners (above) for
+          // touch reliability — React's delegated SVG listeners can drop
+          // events mid-drag when the subtree re-renders heavily on iPad.
           onPointerDown={onSvgPointerDown}
           style={{
             cursor: (dragging.current || draggingOpening.current) ? 'grabbing' : undefined,
