@@ -1,5 +1,5 @@
 import type { BuildingEntity, SnapConnection, WallSide } from '@/domain/building';
-import { POST_SIZE } from '@/domain/building';
+import { autoPoleLayout, POST_SIZE } from './constants';
 
 export const SNAP_THRESHOLD = 0.5;
 export const SNAP_ALIGN_THRESHOLD = 0.3;
@@ -296,8 +296,15 @@ export interface WallSnapResult {
 }
 
 /** Snap a standalone wall to building edges, poles, and other wall endpoints.
- *  Pass 1: edge slide (long edge along building edges).
- *  Pass 2: endpoint detent (short ends snap to corners/poles/wall ends). */
+ *  Pass 1: long-edge slide. The wall's long edge snaps along a structural
+ *    building's front, back, OR centerline (likewise left/right/centerline
+ *    for vertical walls), so the wall can sit on the perimeter or split
+ *    the building down the middle.
+ *  Pass 2: endpoint detent. The wall's short ends snap to corners,
+ *    intermediate post positions (auto + manual) on the structural
+ *    building's perimeter, standalone poles, and other muur endpoints.
+ *    This lets a wall placed inside an overkapping land flush with the
+ *    existing post grid. */
 export function detectWallSnap(
   wallPos: [number, number],
   wallWidth: number,
@@ -312,7 +319,9 @@ export function detectWallSnap(
 
   const halfShort = POST_SIZE / 2;
 
-  // Pass 1: edge slide — wall's long edge slides along building edges
+  // Pass 1: edge slide — wall's long edge snaps to a structural building's
+  // front/back (horizontal wall) or left/right (vertical) edge, OR the
+  // building's centerline so the wall can split it down the middle.
   for (const b of buildings) {
     if (b.type === 'paal' || b.type === 'muur') continue;
 
@@ -321,10 +330,11 @@ export function detectWallSnap(
     const d = b.dimensions.depth;
 
     if (orientation === 'horizontal') {
-      // Wall runs along X — snap Z to top/bottom edges of buildings
+      // Wall runs along X — snap Z to top, bottom, or centerline
       const edges = [
-        { z: tz,     xMin: lx, xMax: lx + w },
-        { z: tz + d, xMin: lx, xMax: lx + w },
+        { z: tz,         xMin: lx, xMax: lx + w },  // front
+        { z: tz + d,     xMin: lx, xMax: lx + w },  // back
+        { z: tz + d / 2, xMin: lx, xMax: lx + w },  // centerline
       ];
       for (const e of edges) {
         const dist = Math.abs((wz + halfShort) - e.z);
@@ -338,10 +348,11 @@ export function detectWallSnap(
         }
       }
     } else {
-      // Wall runs along Z — snap X to left/right edges of buildings
+      // Wall runs along Z — snap X to left, right, or centerline
       const edges = [
-        { x: lx,     zMin: tz, zMax: tz + d },
-        { x: lx + w, zMin: tz, zMax: tz + d },
+        { x: lx,         zMin: tz, zMax: tz + d },  // left
+        { x: lx + w,     zMin: tz, zMax: tz + d },  // right
+        { x: lx + w / 2, zMin: tz, zMax: tz + d },  // centerline
       ];
       for (const e of edges) {
         const dist = Math.abs((wx + halfShort) - e.x);
@@ -357,7 +368,9 @@ export function detectWallSnap(
     }
   }
 
-  // Pass 2: endpoint detent — wall endpoints snap to corners, poles, other wall endpoints
+  // Pass 2: endpoint detent — wall endpoints snap to corners, intermediate
+  // posts on structural buildings (auto-placed grid + manual overrides via
+  // building.poles), standalone poles, and other muur endpoints.
   // wallEndpoints are the visual line endpoints (center of wall thickness)
   const wallEndpoints: [number, number][] = orientation === 'horizontal'
     ? [[snapX, snapZ + halfShort], [snapX + wallWidth, snapZ + halfShort]]
@@ -387,7 +400,8 @@ export function detectWallSnap(
       }
       continue;
     }
-    // Building corners + edge midpoints
+    // Structural building: corners + edge midpoints + every intermediate
+    // post position (manual `poles` config or auto layout fallback).
     const [lx, tz] = b.position;
     const w = b.dimensions.width;
     const d = b.dimensions.depth;
@@ -399,6 +413,11 @@ export function detectWallSnap(
       [cx, tz], [cx, tz + d],
       [lx, cz], [lx + w, cz],
     );
+    const poles = b.poles ?? autoPoleLayout(w, d);
+    for (const f of poles.front) targets.push([lx + f * w, tz]);
+    for (const f of poles.back)  targets.push([lx + f * w, tz + d]);
+    for (const f of poles.left)  targets.push([lx,         tz + f * d]);
+    for (const f of poles.right) targets.push([lx + w,     tz + f * d]);
   }
 
   for (const ep of wallEndpoints) {

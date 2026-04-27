@@ -85,6 +85,56 @@ describe('detectWallSnap (standalone muur)', () => {
     const res = detectWallSnap([0.5, -0.1], 3, 'horizontal', [structural]);
     expect(res.attachedTo).toBe('b1');
   });
+
+  it('snaps a horizontal wall to the building centerline', () => {
+    // 4×4 building. Centerline z = 2. Place wall midline near z=2.
+    // Wall position is the top-left corner; midline = z + POST_SIZE/2.
+    // To land midline on z=2, position z = 2 - 0.075 = 1.925.
+    // Drag near it: 1.85 → midline at 1.925, distance 0.075 from centerline.
+    const res = detectWallSnap([0.5, 1.85], 3, 'horizontal', [structural]);
+    expect(res.attachedTo).toBe('b1');
+    expect(res.position[1]).toBeCloseTo(1.925, 3);
+  });
+
+  it('snaps a vertical wall to the building centerline', () => {
+    // 4×4 building. Centerline x = 2. Wall midline = x + POST_SIZE/2.
+    const res = detectWallSnap([1.85, 0.5], 3, 'vertical', [structural]);
+    expect(res.attachedTo).toBe('b1');
+    expect(res.position[0]).toBeCloseTo(1.925, 3);
+  });
+
+  it('snaps a wall endpoint to an auto-placed intermediate post', () => {
+    // 8×4 overkapping → autoPoleLayout puts intermediate posts at
+    // x = position[0] + 0.5 * 8 = 4 (front + back). Place a horizontal
+    // wall whose right endpoint is near (4, 0) — front edge already
+    // captured by Pass 1 edge slide, then Pass 2 detents the endpoint.
+    const overkapping = makeBuilding({
+      id: 'ok',
+      type: 'overkapping',
+      position: [0, 0],
+      dimensions: { width: 8, depth: 4, height: 2.6 },
+    });
+    // Wall length 4, right endpoint at x=4.05 → near the auto post at x=4.
+    const res = detectWallSnap([0.05, -0.075], 4, 'horizontal', [overkapping]);
+    expect(res.attachedTo).toBe('ok');
+    // Right endpoint should land on x=4, so position[0] = 4 - 4 = 0.
+    expect(res.position[0]).toBeCloseTo(0, 3);
+  });
+
+  it('honors a manually-overridden poles config when detenting endpoints', () => {
+    const overkapping = makeBuilding({
+      id: 'ok',
+      type: 'overkapping',
+      position: [0, 0],
+      dimensions: { width: 6, depth: 4, height: 2.6 },
+      poles: { front: [0.25, 0.75], back: [], left: [], right: [] },
+    });
+    // Manual front pole at x = 0.25 * 6 = 1.5, on z=0.
+    // Place a horizontal wall whose left endpoint is near (1.5, 0).
+    const res = detectWallSnap([1.55, -0.075], 2, 'horizontal', [overkapping]);
+    expect(res.attachedTo).toBe('ok');
+    expect(res.position[0]).toBeCloseTo(1.5, 3);
+  });
 });
 
 describe('detectResizeSnap', () => {
