@@ -20,6 +20,7 @@ interface BoxData {
 export default function TimberFrame() {
   const buildingId = useBuildingId();
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
+  const buildings = useConfigStore((s) => s.buildings);
   const roof = useConfigStore((s) => s.roof);
   const connections = useConfigStore((s) => s.connections);
 
@@ -45,7 +46,7 @@ export default function TimberFrame() {
     return sides;
   }, [connections, buildingId]);
 
-  const poleMaterialId = building ? getEffectivePoleMaterial(building) : 'wood';
+  const poleMaterialId = building ? getEffectivePoleMaterial(building, buildings) : 'wood';
   const timberMat = usePoleMaterial(poleMaterialId);
 
   const elements = useMemo(() => {

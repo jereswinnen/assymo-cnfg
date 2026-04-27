@@ -72,11 +72,27 @@ function rectsOverlap(
   return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 }
 
+/** Minimum thickness used when growing a muur's selection AABB so the
+ *  thin (15cm) wall can be picked up by a drag-rect that crosses its
+ *  visible hit target. Mirrors the `Math.max(wallD, 0.5)` enlargement
+ *  applied to the muur hit target rect in the render block below. */
+const MUUR_SELECT_MIN_THICKNESS = 0.5;
+
 function getBuildingAABB(b: BuildingEntity): [number, number, number, number] {
-  const isVertMuur = b.type === 'muur' && b.orientation === 'vertical';
-  const w = isVertMuur ? b.dimensions.depth : b.dimensions.width;
-  const d = isVertMuur ? b.dimensions.width : b.dimensions.depth;
-  return [b.position[0], b.position[1], w, d];
+  if (b.type === 'muur') {
+    const isVert = b.orientation === 'vertical';
+    const wallW = isVert ? b.dimensions.depth : b.dimensions.width;
+    const wallD = isVert ? b.dimensions.width : b.dimensions.depth;
+    // Grow the thin axis so the selection footprint matches the
+    // visible hit target. For horizontal muur that's the y-axis; for
+    // vertical, the x-axis. The other axis is already the wall length.
+    const grownW = isVert ? Math.max(wallW, MUUR_SELECT_MIN_THICKNESS) : wallW;
+    const grownD = !isVert ? Math.max(wallD, MUUR_SELECT_MIN_THICKNESS) : wallD;
+    const offsetX = (grownW - wallW) / 2;
+    const offsetY = (grownD - wallD) / 2;
+    return [b.position[0] - offsetX, b.position[1] - offsetY, grownW, grownD];
+  }
+  return [b.position[0], b.position[1], b.dimensions.width, b.dimensions.depth];
 }
 
 function clientToWorld(
@@ -96,9 +112,15 @@ function clientToWorld(
 function ResizeHandles({
   building,
   onResizePointerDown,
+  interactive = true,
 }: {
   building: BuildingEntity;
   onResizePointerDown: (e: React.PointerEvent, buildingId: string, edge: 'left' | 'right' | 'top' | 'bottom') => void;
+  /** When false, handles render as a visual indicator only (pointer-events
+   *  off, dimmed). Used during multi-select so the user sees which entities
+   *  are in the selection without enabling per-handle resize interactions
+   *  that wouldn't apply to the whole group. */
+  interactive?: boolean;
 }) {
   const [ox, oz] = building.position;
   const { width, depth } = building.dimensions;
@@ -132,7 +154,7 @@ function ResizeHandles({
   }
 
   return (
-    <g>
+    <g pointerEvents={interactive ? undefined : 'none'}>
       {handles.map((h) => (
         <circle
           key={h.edge}
@@ -140,10 +162,13 @@ function ResizeHandles({
           cy={h.cy}
           r={r}
           fill="#3b82f6"
+          fillOpacity={interactive ? 1 : 0.55}
           stroke="white"
           strokeWidth={0.03}
-          style={{ cursor: h.cursor }}
-          onPointerDown={(e) => onResizePointerDown(e, building.id, h.edge)}
+          style={interactive ? { cursor: h.cursor } : undefined}
+          onPointerDown={interactive
+            ? (e) => onResizePointerDown(e, building.id, h.edge)
+            : undefined}
         />
       ))}
     </g>
@@ -151,7 +176,8 @@ function ResizeHandles({
 }
 
 export default function SchematicView() {
-  const { catalog: { materials }, supplierCatalog } = useTenant();
+  const { catalog: { materials }, supplierCatalog, features } = useTenant();
+  const wallElevationEnabled = features.wallElevationView;
   const buildings = useConfigStore((s) => s.buildings);
   const connections = useConfigStore((s) => s.connections);
   const selectedElement = useUIStore((s) => s.selectedElement);
@@ -916,7 +942,10 @@ export default function SchematicView() {
         useUIStore.getState().toggleBuildingSelection(dragBuildingId.current);
       } else {
         const clicked = useConfigStore.getState().buildings.find(b => b.id === dragBuildingId.current);
-        if (clicked?.type === 'muur') {
+        if (clicked?.type === 'muur' && wallElevationEnabled) {
+          // Wall elevation view (per-tenant feature flag, off by default).
+          // When disabled, a single click on a muur selects the entity like
+          // any other building.
           useUIStore.getState().selectElement({ type: 'wall', id: 'front', buildingId: clicked.id });
         } else {
           selectBuilding(dragBuildingId.current);
@@ -930,19 +959,8 @@ export default function SchematicView() {
     setFrozenViewBox(null);
   }, [selectBuilding, setDraggedBuildingId, setConnections, updateBuildingWall, openingDragPreview, polePreview]);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (isElevationMode) {
-          useUIStore.getState().selectElement(null);
-        } else {
-          useUIStore.getState().selectBuildings([]);
-        }
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [isElevationMode]);
+  // Escape handling moved into the central `useConfiguratorShortcuts`
+  // registry mounted by ConfiguratorClient.
 
   const onSvgPointerDown = useCallback((e: React.PointerEvent) => {
     if (isElevationMode) return;
@@ -1017,8 +1035,9 @@ export default function SchematicView() {
   }, [addBuilding, updateBuildingPosition, setPoleAttachment, setConnections, selectBuilding]);
 
   const onWallClick = useCallback((wallId: WallId, buildingId: string) => {
+    if (!wallElevationEnabled) return;
     useUIStore.getState().selectElement({ type: 'wall', id: wallId, buildingId });
-  }, []);
+  }, [wallElevationEnabled]);
 
   return (
     <div
@@ -1500,8 +1519,12 @@ export default function SchematicView() {
             // Visual dimensions after orientation
             const wallW = isHorizontal ? w.dimensions.width : w.dimensions.depth;
             const wallD = isHorizontal ? w.dimensions.depth : w.dimensions.width;
-            // Enlarged hit target (0.5m min) so thin walls are easy to click/drag
-            const hitH = Math.max(wallD, 0.5);
+            // Enlarged hit target (0.5m min on each axis) so thin walls are
+            // easy to click/drag in either orientation. Kept in sync with
+            // getBuildingAABB so visible hit target == selection footprint.
+            const hitW = Math.max(wallW, MUUR_SELECT_MIN_THICKNESS);
+            const hitH = Math.max(wallD, MUUR_SELECT_MIN_THICKNESS);
+            const hitOffsetX = (hitW - wallW) / 2;
             const hitOffsetY = (hitH - wallD) / 2;
 
             return (
@@ -1511,9 +1534,9 @@ export default function SchematicView() {
               >
                 {/* Enlarged invisible hit target for drag + double-click to rotate */}
                 <rect
-                  x={ox}
+                  x={ox - hitOffsetX}
                   y={oz - hitOffsetY}
-                  width={wallW}
+                  width={hitW}
                   height={hitH}
                   fill="transparent"
                   stroke="none"
@@ -1636,16 +1659,24 @@ export default function SchematicView() {
             />
           ))}
 
-          {/* Resize handles on selected building */}
-          {selectedBuildingId && selectedBuildingIds.length === 1 && (() => {
-            const selected = buildings.find(b => b.id === selectedBuildingId);
-            if (!selected || selected.type === 'paal') return null;
-            return (
-              <ResizeHandles
-                building={selected}
-                onResizePointerDown={onResizePointerDown}
-              />
-            );
+          {/* Resize handles on every selected non-paal building.
+              Single-select: handles are interactive (drag to resize).
+              Multi-select: handles render as visual indicators only — they
+              show which entities are in the selection without offering a
+              per-handle resize that wouldn't apply to the whole group. */}
+          {(() => {
+            const isMulti = selectedBuildingIds.length > 1;
+            return selectedBuildingIds
+              .map((id) => buildings.find((b) => b.id === id))
+              .filter((b): b is BuildingEntity => !!b && b.type !== 'paal')
+              .map((b) => (
+                <ResizeHandles
+                  key={b.id}
+                  building={b}
+                  onResizePointerDown={onResizePointerDown}
+                  interactive={!isMulti}
+                />
+              ));
           })()}
 
           {/* Selection rectangle — marching ants */}

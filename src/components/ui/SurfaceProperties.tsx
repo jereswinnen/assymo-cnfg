@@ -22,7 +22,7 @@ export default function SurfaceProperties() {
   const selectedWall = selectedElement?.type === 'wall' && selectedBuilding
     ? (() => {
         const cfg = selectedBuilding.walls[selectedElement.id as WallId];
-        return cfg ? getEffectiveWallMaterial(cfg, selectedBuilding) : null;
+        return cfg ? getEffectiveWallMaterial(cfg, selectedBuilding, buildings) : null;
       })()
     : null;
   const { wall: wallCatalog, sourceProduct } = useTenantCatalogs(
@@ -45,7 +45,7 @@ export default function SurfaceProperties() {
   if (!wallCfg) return null;
 
   const label = t(`wall.${wallId}`);
-  const effectiveMaterial = building ? getEffectiveWallMaterial(wallCfg, building) : 'wood';
+  const effectiveMaterial = building ? getEffectiveWallMaterial(wallCfg, building, buildings) : 'wood';
   const currentWallEntry = wallCatalog.find(e => e.atomId === effectiveMaterial);
   const isGlass = currentWallEntry?.clearsOpenings === true;
 

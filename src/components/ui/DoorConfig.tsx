@@ -28,11 +28,12 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
     return b?.walls[wallId] ?? null;
   });
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
+  const buildings = useConfigStore((s) => s.buildings);
   const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
   const setDoorSupplierProduct = useConfigStore((s) => s.setDoorSupplierProduct);
   const [expanded, setExpanded] = useState(false);
   const effectiveDoor = wallCfg && building
-    ? getEffectiveDoorMaterial(wallCfg, building)
+    ? getEffectiveDoorMaterial(wallCfg, building, buildings)
     : null;
   const { door: doorCatalog, sourceProduct } = useTenantCatalogs(
     { door: effectiveDoor },
@@ -153,7 +154,7 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
                           onCheckedChange={(checked) => {
                             handleChange(
                               'doorMaterialId',
-                              checked ? getEffectiveDoorMaterial(wallCfg, building) : undefined,
+                              checked ? getEffectiveDoorMaterial(wallCfg, building, buildings) : undefined,
                             );
                           }}
                         />
@@ -162,7 +163,7 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
                     </div>
                     <MaterialSelect
                       catalog={doorCatalog}
-                      value={getEffectiveDoorMaterial(wallCfg, building)}
+                      value={getEffectiveDoorMaterial(wallCfg, building, buildings)}
                       disabled={wallCfg.doorMaterialId === undefined}
                       onChange={(atomId) => handleChange('doorMaterialId', atomId as DoorMaterialId)}
                       category="door"

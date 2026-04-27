@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useConfigStore } from '@/store/useConfigStore';
 import { useUIStore } from "@/store/useUIStore";
 import { t } from '@/lib/i18n';
 import ObjectsTab from './ObjectsTab';
@@ -29,26 +28,9 @@ export default function Sidebar() {
   const selectedCount = useUIStore((s) => s.selectedBuildingIds.length);
   const isDesktop = useIsDesktop();
 
-  // Keyboard shortcuts: [ to toggle sidebar, Delete/Backspace to remove selected building
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
-      if (e.key === '[') {
-        setSidebarCollapsed(!sidebarCollapsed);
-      }
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        const ids = useUIStore.getState().selectedBuildingIds;
-        const sid = ids.length === 1 ? ids[0] : null;
-        if (sid) {
-          e.preventDefault();
-          useConfigStore.getState().removeBuilding(sid);
-        }
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [sidebarCollapsed, setSidebarCollapsed]);
+  // Keyboard shortcuts (`[` toggle sidebar, Delete/Backspace remove selection,
+  // Escape deselect, ⌘C/⌘V copy/paste) live in `useConfiguratorShortcuts`,
+  // mounted once in ConfiguratorClient.
 
   if (!isDesktop) {
     return <MobileBottomSheet />;

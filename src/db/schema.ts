@@ -20,7 +20,13 @@ import type {
   InvoiceSupplierSnapshot,
 } from '@/domain/invoicing';
 import type { PriceBook } from '@/domain/pricing';
-import type { Branding, Currency, Locale, TenantInvoicing } from '@/domain/tenant';
+import type {
+  Branding,
+  Currency,
+  Locale,
+  TenantFeatures,
+  TenantInvoicing,
+} from '@/domain/tenant';
 import type {
   MaterialCategory,
   MaterialFlags,
@@ -51,6 +57,10 @@ export const tenants = pgTable('tenants', {
    *  `TenantInvoicing` + `validateInvoicingPatch`. NOT NULL; seeded
    *  with `DEFAULT_ASSYMO_INVOICING`. */
   invoicing: jsonb('invoicing').$type<TenantInvoicing>().notNull(),
+  /** Configurator feature flags (e.g. `wallElevationView`). Defaults to
+   *  `{}` so older rows resolve through `resolveTenantFeatures` against
+   *  `DEFAULT_TENANT_FEATURES`. See `@/domain/tenant` → `TenantFeatures`. */
+  features: jsonb('features').$type<Partial<TenantFeatures>>().notNull().default({}),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

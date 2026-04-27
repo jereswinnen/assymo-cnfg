@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import type { SelectedElement, WallId } from '@/domain/building';
+import type { BuildingEntity, SelectedElement, WallId } from '@/domain/building';
+import { useConfigStore } from '@/store/useConfigStore';
 
 export type SidebarTab = 'objects' | 'configure';
 export type ConfigSection = 'dimensions' | 'material' | 'structure' | 'walls' | 'quote' | null;
@@ -16,6 +17,11 @@ interface UIState {
   activeConfigSection: ConfigSection;
   viewMode: ViewMode;
   qualityTier: QualityTier;
+  /** Per-tab clipboard for copy/paste of building entities. Holds the
+   *  snapshotted entities at copy time, not ids — the source can be
+   *  deleted/edited and the clipboard still pastes the original. Cleared
+   *  on full reload (not persisted). */
+  clipboard: BuildingEntity[] | null;
 
   selectBuilding: (id: string | null) => void;
   selectBuildings: (ids: string[]) => void;
@@ -32,6 +38,14 @@ interface UIState {
   setViewMode: (mode: ViewMode) => void;
   setQualityTier: (tier: QualityTier) => void;
 
+  /** Snapshot the currently-selected buildings into the clipboard. No-op
+   *  when nothing is selected. */
+  copySelection: () => void;
+  /** Append a fresh copy of the clipboard into the scene at the default
+   *  paste offset and select the new entities. No-op when the clipboard
+   *  is empty. */
+  pasteClipboard: () => void;
+
   /** Reset UI to the initial landing state. Called alongside config resets. */
   resetUI: (initialSelectedId?: string | null) => void;
 }
@@ -40,7 +54,7 @@ const INITIAL_UI: Omit<UIState, keyof Pick<UIState,
   'selectBuilding' | 'selectBuildings' | 'toggleBuildingSelection' |
   'selectElement' | 'clearSelection' | 'clearCameraTarget' | 'setDraggedBuildingId' |
   'setSidebarTab' | 'setSidebarCollapsed' | 'setActiveConfigSection' |
-  'setViewMode' | 'setQualityTier' | 'resetUI'
+  'setViewMode' | 'setQualityTier' | 'copySelection' | 'pasteClipboard' | 'resetUI'
 >> = {
   selectedBuildingIds: [],
   selectedElement: null,
@@ -51,9 +65,10 @@ const INITIAL_UI: Omit<UIState, keyof Pick<UIState,
   activeConfigSection: 'dimensions',
   viewMode: 'plan',
   qualityTier: 'high',
+  clipboard: null,
 };
 
-export const useUIStore = create<UIState>()((set) => ({
+export const useUIStore = create<UIState>()((set, get) => ({
   ...INITIAL_UI,
 
   selectBuilding: (id) =>
@@ -100,6 +115,29 @@ export const useUIStore = create<UIState>()((set) => ({
   setActiveConfigSection: (section) => set({ activeConfigSection: section }),
   setViewMode: (mode) => set({ viewMode: mode }),
   setQualityTier: (tier) => set({ qualityTier: tier }),
+
+  copySelection: () => {
+    const ids = get().selectedBuildingIds;
+    if (ids.length === 0) return;
+    const buildings = useConfigStore.getState().buildings;
+    const picked = ids
+      .map((id) => buildings.find((b) => b.id === id))
+      .filter((b): b is BuildingEntity => b !== undefined);
+    if (picked.length === 0) return;
+    set({ clipboard: picked.map((b) => structuredClone(b)) });
+  },
+
+  pasteClipboard: () => {
+    const clip = get().clipboard;
+    if (!clip || clip.length === 0) return;
+    const ids = useConfigStore.getState().pasteBuildings(clip);
+    set({
+      selectedBuildingIds: ids,
+      selectedElement: null,
+      sidebarTab: 'configure',
+      sidebarCollapsed: false,
+    });
+  },
 
   resetUI: (initialSelectedId = null) =>
     set({

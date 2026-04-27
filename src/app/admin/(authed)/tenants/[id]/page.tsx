@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm';
 import { TenantDetailsSection } from '@/components/admin/TenantDetailsSection';
 import { HostsSection } from '@/components/admin/HostsSection';
 import { BrandingSection } from '@/components/admin/BrandingSection';
+import { FeaturesSection } from '@/components/admin/FeaturesSection';
 import { PriceBookSection } from '@/components/admin/PriceBookSection';
 import { InvoicingSection } from '@/components/admin/InvoicingSection';
 import { PageTitle } from '@/components/admin/PageTitle';
@@ -32,6 +33,7 @@ export default async function TenantDetailPage({
       <TenantDetailsSection tenant={tenant} />
       <HostsSection tenantId={tenant.id} initialHosts={hosts} />
       <BrandingSection tenantId={tenant.id} initialBranding={tenant.branding} />
+      <FeaturesSection tenantId={tenant.id} initialFeatures={tenant.features} />
       <PriceBookSection tenantId={tenant.id} initialPriceBook={tenant.priceBook} />
       <InvoicingSection tenantId={tenant.id} initialInvoicing={tenant.invoicing} />
     </div>

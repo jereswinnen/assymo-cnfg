@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vite-plus/test';
 import {
   addBuilding,
   makeInitialConfig,
+  pasteBuildings,
+  PASTE_OFFSET,
   removeBuilding,
   setBuildingPrimaryMaterial,
   setHeightOverride,
@@ -40,11 +42,16 @@ describe('addBuilding', () => {
 });
 
 describe('removeBuilding', () => {
-  it('refuses to remove the last structural building', () => {
+  it('removes the last structural building (scene becomes empty)', () => {
     const cfg = makeConfig();
-    const before = cfg.buildings.length;
     const next = removeBuilding(cfg, cfg.buildings[0].id);
-    expect(next.buildings).toHaveLength(before);
+    expect(next.buildings).toHaveLength(0);
+  });
+
+  it('returns the same config when the id does not exist', () => {
+    const cfg = makeConfig();
+    const next = removeBuilding(cfg, 'does-not-exist');
+    expect(next).toBe(cfg);
   });
 
   it('removes a pole and any connections referencing it', () => {
@@ -192,5 +199,83 @@ describe('setHeightOverride', () => {
     const id = cfg.buildings[0].id;
     const next = setHeightOverride(cfg, id, null);
     expect(next.buildings[0].heightOverride).toBeNull();
+  });
+});
+
+describe('pasteBuildings', () => {
+  it('appends a copy with a fresh id and the default offset', () => {
+    const cfg = makeConfig();
+    const source = cfg.buildings[0];
+    const { cfg: next, ids } = pasteBuildings(cfg, [source]);
+    expect(next.buildings).toHaveLength(cfg.buildings.length + 1);
+    expect(ids).toHaveLength(1);
+    expect(ids[0]).not.toBe(source.id);
+    const pasted = next.buildings.at(-1)!;
+    expect(pasted.id).toBe(ids[0]);
+    expect(pasted.position).toEqual([
+      source.position[0] + PASTE_OFFSET[0],
+      source.position[1] + PASTE_OFFSET[1],
+    ]);
+    expect(pasted.dimensions).toEqual(source.dimensions);
+    expect(pasted.primaryMaterialId).toBe(source.primaryMaterialId);
+  });
+
+  it('strips attachedTo and sourceProductId so paste lands as a free primitive', () => {
+    const cfg = makeConfig({
+      buildings: [
+        makeBuilding({
+          id: 'p',
+          type: 'paal',
+          attachedTo: 'b1',
+          sourceProductId: 'kit-1',
+        }),
+      ],
+    });
+    const { cfg: next } = pasteBuildings(cfg, [cfg.buildings[0]]);
+    const pasted = next.buildings.at(-1)!;
+    expect(pasted.attachedTo).toBeUndefined();
+    expect(pasted.sourceProductId).toBeUndefined();
+  });
+
+  it('preserves relative positions when pasting multiple', () => {
+    const a = makeBuilding({ id: 'a', type: 'paal', position: [2, 3] });
+    const b = makeBuilding({ id: 'b', type: 'paal', position: [5, 7] });
+    const cfg = makeConfig({ buildings: [a, b] });
+    const { cfg: next } = pasteBuildings(cfg, [a, b]);
+    const pasted = next.buildings.slice(-2);
+    expect(pasted[0].position).toEqual([2 + PASTE_OFFSET[0], 3 + PASTE_OFFSET[1]]);
+    expect(pasted[1].position).toEqual([5 + PASTE_OFFSET[0], 7 + PASTE_OFFSET[1]]);
+    const dxBefore = b.position[0] - a.position[0];
+    const dxAfter = pasted[1].position[0] - pasted[0].position[0];
+    expect(dxAfter).toBe(dxBefore);
+  });
+
+  it('does not mutate the source entity', () => {
+    const cfg = makeConfig();
+    const source = cfg.buildings[0];
+    const sourceWalls = source.walls;
+    const { cfg: next } = pasteBuildings(cfg, [source]);
+    expect(source.walls).toBe(sourceWalls);
+    const pasted = next.buildings.at(-1)!;
+    expect(pasted.walls).not.toBe(source.walls);
+  });
+
+  it('does not duplicate snap connections', () => {
+    const a = makeBuilding({ id: 'a', type: 'berging' });
+    const b = makeBuilding({ id: 'b', type: 'berging' });
+    const cfg = makeConfig({
+      buildings: [a, b],
+      connections: [{ buildingAId: 'a', sideA: 'right', buildingBId: 'b', sideB: 'left', isOpen: false }],
+    });
+    const { cfg: next } = pasteBuildings(cfg, [a]);
+    expect(next.connections).toHaveLength(cfg.connections.length);
+  });
+
+  it('respects a custom offset', () => {
+    const cfg = makeConfig();
+    const source = cfg.buildings[0];
+    const { cfg: next } = pasteBuildings(cfg, [source], [3, -2]);
+    const pasted = next.buildings.at(-1)!;
+    expect(pasted.position).toEqual([source.position[0] + 3, source.position[1] - 2]);
   });
 });

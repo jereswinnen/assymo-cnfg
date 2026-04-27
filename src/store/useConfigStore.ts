@@ -20,6 +20,7 @@ import {
   isWallHiddenByConnection as mIsWallHiddenByConnection,
   makeInitialConfig,
   migrateConfig,
+  pasteBuildings as mPasteBuildings,
   removeBuilding as mRemoveBuilding,
   resetBuildingPoles as mResetBuildingPoles,
   resetBuildingToDefaults as mResetBuildingToDefaults,
@@ -56,6 +57,9 @@ interface ConfigStore extends ConfigData {
    *  backed building at the origin. Intended for the ?product= hydration
    *  path only — not for general use. */
   replaceWithProduct: (productDefaults: ProductBuildingDefaults) => string;
+  /** Append cloned entities to the scene at the default paste offset.
+   *  Returns the freshly minted ids in input order. */
+  pasteBuildings: (entities: readonly BuildingEntity[]) => string[];
   removeBuilding: (id: string) => void;
   updateBuildingPositions: (updates: { id: string; position: [number, number] }[]) => void;
   updateBuildingDimensions: (id: string, dims: Partial<BuildingDimensions>) => void;
@@ -100,6 +104,12 @@ export const useConfigStore = create<ConfigStore>()(
         set(cfg);
         useUIStore.getState().selectBuilding(id);
         return id;
+      },
+
+      pasteBuildings: (entities) => {
+        const { cfg, ids } = mPasteBuildings(get(), entities);
+        set(cfg);
+        return ids;
       },
 
       replaceWithProduct: (productDefaults) => {

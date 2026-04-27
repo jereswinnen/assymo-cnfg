@@ -40,9 +40,11 @@ function SliderRow({ label, value, min, max, step, unit, onChange, badge, onRese
     setEditing(false);
     const parsed = parseFloat(inputValue.replace(',', '.'));
     if (isNaN(parsed)) return;
+    // Typed input clamps to [min, max] only; the slider keeps its `step`
+    // for tactile dragging. Matches canvas-drag behaviour, which also
+    // bypasses step (e.g. muur width step is 0.5 but 0.8 is a valid value).
     const clamped = Math.min(max, Math.max(min, parsed));
-    const stepped = step > 0 ? Math.round(clamped / step) * step : clamped;
-    onChange(stepped);
+    onChange(clamped);
   };
 
   return (

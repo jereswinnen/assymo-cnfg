@@ -12,6 +12,7 @@ import { applyProductDefaults } from '@/domain/catalog';
 import { t } from '@/lib/i18n';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useGPUQuality } from '@/hooks/useGPUQuality';
+import { useConfiguratorShortcuts } from '@/lib/configuratorShortcuts';
 
 const BuildingScene = dynamic(
   () => import('@/components/canvas/BuildingScene'),
@@ -150,6 +151,7 @@ function ViewToggle() {
 export default function ConfiguratorClient() {
   useUndoRedo();
   useGPUQuality();
+  useConfiguratorShortcuts();
   const viewMode = useUIStore((s) => s.viewMode);
 
   // Note: h-full (not h-dvh) here — the BrandedShell's <main> provides

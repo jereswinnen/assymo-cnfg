@@ -74,6 +74,29 @@ describe('getEffectivePrimaryMaterial (attachment chain)', () => {
     });
     expect(getEffectivePrimaryMaterial(pole)).toBe('wood');
   });
+
+  it('standalone paal (no attachedTo) inherits the ambient berging primary', () => {
+    const berging = makeBuilding({ id: 'b', type: 'berging', primaryMaterialId: 'brick' });
+    const pole = makeBuilding({ id: 'p', type: 'paal', primaryMaterialId: 'wood' });
+    expect(getEffectivePrimaryMaterial(pole, [berging, pole])).toBe('brick');
+  });
+
+  it('standalone muur (no attachedTo) inherits the ambient berging primary', () => {
+    const berging = makeBuilding({ id: 'b', type: 'berging', primaryMaterialId: 'brick' });
+    const wall = makeBuilding({ id: 'w', type: 'muur', primaryMaterialId: 'wood' });
+    expect(getEffectivePrimaryMaterial(wall, [berging, wall])).toBe('brick');
+  });
+
+  it('falls back to ambient host when attachment chain is broken but a structural exists', () => {
+    const berging = makeBuilding({ id: 'b', type: 'berging', primaryMaterialId: 'brick' });
+    const pole = makeBuilding({
+      id: 'p',
+      type: 'paal',
+      primaryMaterialId: 'wood',
+      attachedTo: 'ghost',
+    });
+    expect(getEffectivePrimaryMaterial(pole, [berging, pole])).toBe('brick');
+  });
 });
 
 describe('getAtom / getAtomColor category scoping (unified materials)', () => {

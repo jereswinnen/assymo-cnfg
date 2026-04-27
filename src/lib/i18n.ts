@@ -265,6 +265,9 @@ const nl: Record<string, string> = {
   "admin.tenant.save": "Opslaan",
   "admin.tenant.saved": "Opgeslagen",
   "admin.tenant.saveError": "Opslaan mislukt: {error}",
+  "admin.tenant.section.features": "Configurator-instellingen",
+  "admin.tenant.features.wallElevationView": "Wand-aanzicht (elevation view)",
+  "admin.tenant.features.wallElevationView.help": "Wanneer aan, opent de configurator een 2D-vooraanzicht van een wand wanneer de gebruiker erop klikt. Standaard uit.",
 
   // Admin — users
   "admin.users.title": "Gebruikers",

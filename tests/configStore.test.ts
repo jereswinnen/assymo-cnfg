@@ -18,11 +18,38 @@ describe('useConfigStore', () => {
     expect(useUIStore.getState().selectedBuildingIds).toEqual([id]);
   });
 
-  it('removeBuilding keeps at least one structural building when one remains', () => {
+  it('removeBuilding deletes the lone structural building (scene becomes empty)', () => {
     useConfigStore.getState().addBuilding('berging');
     const { buildings } = useConfigStore.getState();
     useConfigStore.getState().removeBuilding(buildings[0].id);
+    expect(useConfigStore.getState().buildings).toHaveLength(0);
+  });
+
+  it('removeBuilding deletes a single paal even when a structural is present', () => {
+    useConfigStore.getState().addBuilding('berging');
+    const paalId = useConfigStore.getState().addBuilding('paal');
+    expect(useConfigStore.getState().buildings).toHaveLength(2);
+    useConfigStore.getState().removeBuilding(paalId);
     expect(useConfigStore.getState().buildings).toHaveLength(1);
+    expect(useConfigStore.getState().buildings[0].type).toBe('berging');
+  });
+
+  it('removing all selected entities works for both single and multi', () => {
+    useConfigStore.getState().addBuilding('berging');
+    const a = useConfigStore.getState().addBuilding('paal');
+    const b = useConfigStore.getState().addBuilding('muur');
+    // Mirror the registry handler: snapshot ids, then iterate.
+    useUIStore.getState().selectBuildings([a, b]);
+    const ids = [...useUIStore.getState().selectedBuildingIds];
+    for (const id of ids) useConfigStore.getState().removeBuilding(id);
+    expect(useConfigStore.getState().buildings).toHaveLength(1);
+    // And single-select via the same path.
+    const c = useConfigStore.getState().addBuilding('paal');
+    useUIStore.getState().selectBuildings([c]);
+    for (const id of [...useUIStore.getState().selectedBuildingIds]) {
+      useConfigStore.getState().removeBuilding(id);
+    }
+    expect(useConfigStore.getState().buildings.find((bb) => bb.id === c)).toBeUndefined();
   });
 
   it('updateBuildingDimensions applies the patch', () => {

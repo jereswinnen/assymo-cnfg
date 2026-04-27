@@ -164,17 +164,51 @@ export function addBuilding(
   return { cfg: nextCfg, id: building.id };
 }
 
-/** Remove a building, keeping at least one structural (non-paal, non-muur).
- *  Returns the same config unchanged if the removal isn't allowed. */
+/** Default offset (metres on x and z) applied when pasting from the
+ *  clipboard, so pasted entities don't sit exactly on top of the originals. */
+export const PASTE_OFFSET: [number, number] = [1, 1];
+
+/** Paste a list of detached building entities into the scene. Each entity
+ *  receives a fresh id, has `attachedTo` and `sourceProductId` stripped
+ *  (paste lands as a free-standing primitive that no longer follows a
+ *  product kit), and is offset on (x, z) so it doesn't sit on top of the
+ *  source. Snap connections are not duplicated — pasted entities are
+ *  independent and the user can re-snap by dragging. */
+export function pasteBuildings(
+  cfg: ConfigData,
+  entities: readonly BuildingEntity[],
+  offset: [number, number] = PASTE_OFFSET,
+): { cfg: ConfigData; ids: string[] } {
+  const ids: string[] = [];
+  const next = entities.map((e) => {
+    const id = crypto.randomUUID();
+    ids.push(id);
+    const cloned: BuildingEntity = {
+      ...e,
+      id,
+      position: [e.position[0] + offset[0], e.position[1] + offset[1]],
+      walls: Object.fromEntries(
+        Object.entries(e.walls).map(([k, v]) => [k, { ...v, windows: [...(v.windows ?? [])] }]),
+      ),
+      floor: { ...e.floor },
+      dimensions: { ...e.dimensions },
+      poles: e.poles ? { ...e.poles } : undefined,
+    };
+    delete cloned.attachedTo;
+    delete cloned.sourceProductId;
+    return cloned;
+  });
+  return {
+    cfg: { ...cfg, buildings: [...cfg.buildings, ...next] },
+    ids,
+  };
+}
+
+/** Remove a building. Allowed for any entity, including the last structural
+ *  one — the user can re-add from the Objects sidebar. Returns the same
+ *  config unchanged when the id doesn't exist. */
 export function removeBuilding(cfg: ConfigData, id: string): ConfigData {
-  const target = cfg.buildings.find((b) => b.id === id);
-  if (!target) return cfg;
-  const structuralCount = cfg.buildings.filter(
-    (b) => b.type !== 'paal' && b.type !== 'muur',
-  ).length;
-  if (target.type !== 'paal' && target.type !== 'muur' && structuralCount <= 1) {
-    return cfg;
-  }
+  if (!cfg.buildings.some((b) => b.id === id)) return cfg;
   return {
     ...cfg,
     buildings: cfg.buildings.filter((b) => b.id !== id),

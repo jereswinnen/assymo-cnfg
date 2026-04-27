@@ -148,9 +148,6 @@ export default function ObjectsTab() {
               // Per-type numbering: count how many of this type appear before this one
               const typeIndex = buildings.filter(x => x.type === b.type).indexOf(b) + 1;
               const effectiveH = getEffectiveHeight(b, defaultHeight);
-              const structuralCount = buildings.filter(x => x.type !== 'paal' && x.type !== 'muur').length;
-              const canDelete = b.type === 'paal' || b.type === 'muur' || structuralCount > 1;
-
               return (
                 <div
                   key={b.id}
@@ -174,14 +171,12 @@ export default function ObjectsTab() {
                       }
                     </span>
                   </div>
-                  {canDelete && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); removeBuilding(b.id); }}
-                      className="text-xs text-muted-foreground hover:text-destructive transition-colors px-1"
-                    >
-                      ✕
-                    </button>
-                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removeBuilding(b.id); }}
+                    className="text-xs text-muted-foreground hover:text-destructive transition-colors px-1"
+                  >
+                    ✕
+                  </button>
                 </div>
               );
             })}

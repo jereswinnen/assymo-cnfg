@@ -2,6 +2,7 @@ import type { MaterialRow, ProductRow } from '@/domain/catalog';
 import type { PriceBook } from '@/domain/pricing';
 import type { SupplierRow, SupplierProductRow } from '@/domain/supplier';
 import type { Branding } from './branding';
+import type { TenantFeatures } from './features';
 import type { TenantInvoicing } from './invoicing';
 
 export type TenantId = string;
@@ -24,6 +25,7 @@ export interface TenantContext {
   priceBook: PriceBook;
   branding: Branding;
   invoicing: TenantInvoicing;
+  features: TenantFeatures;
   catalog: {
     materials: MaterialRow[];
     products: ProductRow[];
