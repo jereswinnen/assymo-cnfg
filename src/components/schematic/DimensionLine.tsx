@@ -6,9 +6,13 @@ interface DimensionLineProps {
   /** Perpendicular offset from the measured edge (positive = down/right) */
   offset: number;
   label: string;
+  /** Render with a smaller, tighter label. Used for opening-gap chains
+   *  whose numbers sit close together along a wall and would otherwise
+   *  collide with each other. Defaults to false (regular size). */
+  compact?: boolean;
 }
 
-export default function DimensionLine({ x1, y1, x2, y2, offset, label }: DimensionLineProps) {
+export default function DimensionLine({ x1, y1, x2, y2, offset, label, compact = false }: DimensionLineProps) {
   const dx = x2 - x1;
   const dy = y2 - y1;
   const len = Math.sqrt(dx * dx + dy * dy);
@@ -37,10 +41,14 @@ export default function DimensionLine({ x1, y1, x2, y2, offset, label }: Dimensi
   if (angle > 90) angle -= 180;
   if (angle < -90) angle += 180;
 
-  // Estimate label bounding box for the white background
-  const charW = 0.13;
-  const labelW = label.length * charW + 0.1;
-  const labelH = 0.26;
+  // Estimate label bounding box for the white background. Compact mode
+  // halves the visual weight so small gap numbers don't compete with the
+  // larger structural dimensions on the same canvas.
+  const fontSize = compact ? 0.14 : 0.22;
+  const fontWeight = compact ? 500 : 600;
+  const charW = compact ? 0.085 : 0.13;
+  const labelW = label.length * charW + (compact ? 0.06 : 0.1);
+  const labelH = compact ? 0.18 : 0.26;
 
   return (
     <g stroke="#777" strokeWidth={0.02} fill="none">
@@ -95,10 +103,10 @@ export default function DimensionLine({ x1, y1, x2, y2, offset, label }: Dimensi
         textAnchor="middle"
         dominantBaseline="central"
         transform={`rotate(${angle}, ${tx}, ${ty})`}
-        fontSize={0.22}
-        fontWeight={600}
+        fontSize={fontSize}
+        fontWeight={fontWeight}
         fontFamily="system-ui, sans-serif"
-        fill="#444"
+        fill={compact ? '#666' : '#444'}
         stroke="none"
       >
         {label}

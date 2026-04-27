@@ -1732,6 +1732,7 @@ export default function SchematicView() {
                 y2={d.y2}
                 offset={d.offset}
                 label={d.label}
+                compact={d.id === 'wall.openingGaps.plan'}
               />
             ))}
           </g>
