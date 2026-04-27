@@ -21,6 +21,7 @@ import {
   WALL_DIMENSIONS,
 } from '@/domain/building';
 import type { ProductBuildingDefaults } from '@/domain/catalog';
+import { randomId } from '@/domain/random';
 import type { ConfigData } from './types';
 import { CONFIG_VERSION } from './types';
 
@@ -65,7 +66,7 @@ export function createBuilding(type: BuildingType, position: [number, number]): 
     : { ...DEFAULT_DIMENSIONS };
 
   return {
-    id: crypto.randomUUID(),
+    id: randomId(),
     type,
     position,
     dimensions,
@@ -124,7 +125,7 @@ export function addBuilding(
         : { ...DEFAULT_FLOOR };
 
     building = {
-      id: crypto.randomUUID(),
+      id: randomId(),
       type,
       position: resolvedPos,
       dimensions: {
@@ -181,7 +182,7 @@ export function pasteBuildings(
 ): { cfg: ConfigData; ids: string[] } {
   const ids: string[] = [];
   const next = entities.map((e) => {
-    const id = crypto.randomUUID();
+    const id = randomId();
     ids.push(id);
     const cloned: BuildingEntity = {
       ...e,

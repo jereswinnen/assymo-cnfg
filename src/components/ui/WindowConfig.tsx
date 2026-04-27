@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
+import { randomId } from '@/domain/random';
 import { useTenant } from '@/lib/TenantProvider';
 import { t } from '@/lib/i18n';
 import {
@@ -54,7 +55,7 @@ export default function WindowConfig({ wallId, buildingId }: WindowConfigProps) 
     }
     const pos = findBestNewPosition(wallLength, WIN_W, existingOpenings);
     const win: WallWindow = {
-      id: crypto.randomUUID(),
+      id: randomId(),
       position: pos,
       width: WIN_W_DEFAULT,
       height: WIN_H_DEFAULT,
