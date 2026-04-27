@@ -16,28 +16,33 @@ import DimensionLine from './DimensionLine';
 import WallElevation from './WallElevation';
 import type { BuildingType, WallSide, WallId, SnapConnection, BuildingEntity } from '@/domain/building';
 
-/** True when the primary pointing device can't hover and isn't precise
- *  (touchscreens). Module-scope so it's evaluated once per page load —
- *  modality doesn't typically change mid-session, and re-detecting on
- *  every interaction would be wasteful. */
+/** True when ANY pointing device on the system is coarse (touch).
+ *  `any-pointer: coarse` matches a hybrid iPad-with-trackpad better
+ *  than `pointer: coarse`, which only inspects the primary pointer
+ *  and can flip between true/false depending on what the user touched
+ *  most recently. Module-scope: modality doesn't change mid-session
+ *  and re-querying on every interaction would be wasteful. */
 const IS_COARSE_POINTER =
-  typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+  typeof window !== 'undefined' && window.matchMedia('(any-pointer: coarse)').matches;
 
 /** Drag dead zone in squared pixels. Tighter for mouse, looser for
  *  touch (finger jitter on tap shouldn't fire a drag). */
 const DRAG_DEAD_ZONE_SQ = IS_COARSE_POINTER ? 81 : 25;     // 9px vs 5px
 
-/** Capture the pointer so subsequent pointermove/up events route to
- *  the same element (and thus bubble up to the SVG handler) even if
- *  the finger drifts off the small hit target underneath. Without this
- *  Safari and Chromium can drop the gesture mid-drag on touch. */
-function capturePointer(e: React.PointerEvent) {
+/** Capture the pointer to the SVG so subsequent pointermove/up events
+ *  route directly to the SVG handler regardless of where the finger
+ *  drifts. We deliberately capture on the SVG (a stable element across
+ *  the entire session) instead of `e.currentTarget` (a small child
+ *  element that React may unmount and remount during the drag — store
+ *  updates on every pointermove can break per-child capture). */
+function captureOnSvg(svg: SVGSVGElement | null, e: React.PointerEvent) {
+  if (!svg) return;
   try {
-    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    svg.setPointerCapture(e.pointerId);
   } catch {
-    // Some elements/browsers reject capture (e.g. when the element is
-    // already capturing another pointer). Silent fallback — the SVG's
-    // onPointerMove still receives bubbled events in the common case.
+    // Some browsers reject capture (e.g. already capturing another
+    // pointer for multitouch). Silent fallback: the SVG's onPointerMove
+    // still receives bubbled events in the common case.
   }
 }
 
@@ -391,7 +396,7 @@ export default function SchematicView() {
   const onBuildingPointerDown = useCallback((e: React.PointerEvent, buildingId: string) => {
     if (e.button !== 0) return;
     e.stopPropagation();
-    capturePointer(e);
+    captureOnSvg(svgRef.current, e);
     shiftOnDown.current = e.shiftKey;
 
     const svg = svgRef.current;
@@ -429,7 +434,7 @@ export default function SchematicView() {
   ) => {
     if (e.button !== 0) return;
     e.stopPropagation();
-    capturePointer(e);
+    captureOnSvg(svgRef.current, e);
 
     const svg = svgRef.current;
     if (!svg) return;
@@ -452,7 +457,7 @@ export default function SchematicView() {
     info: { buildingId: string; wallId: string; type: 'door' | 'window'; windowIndex?: number },
   ) => {
     e.stopPropagation();
-    capturePointer(e);
+    captureOnSvg(svgRef.current, e);
     const svg = svgRef.current;
     if (!svg) return;
 
@@ -494,7 +499,7 @@ export default function SchematicView() {
   ) => {
     if (e.button !== 0) return;
     e.stopPropagation();
-    capturePointer(e);
+    captureOnSvg(svgRef.current, e);
     pointerDownScreen.current = { x: e.clientX, y: e.clientY };
     draggingPole.current = info;
     setFrozenViewBox(computedViewBox);
@@ -1048,7 +1053,7 @@ export default function SchematicView() {
     const svg = svgRef.current;
     if (!svg) return;
 
-    capturePointer(e);
+    captureOnSvg(svgRef.current, e);
     pointerDownScreen.current = { x: e.clientX, y: e.clientY };
     selectRectAnchor.current = clientToWorld(svg, e.clientX, e.clientY);
     setFrozenViewBox(computedViewBox);
@@ -1124,8 +1129,11 @@ export default function SchematicView() {
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      // Defence-in-depth so a touch that drifts onto the wrapper during
+      // a drag isn't reclaimed by the browser as a pan gesture.
+      style={{ touchAction: 'none' }}
     >
-      <div className="flex-1 min-h-0 flex items-center justify-center">
+      <div className="flex-1 min-h-0 flex items-center justify-center" style={{ touchAction: 'none' }}>
         <svg
           ref={svgRef}
           viewBox={isElevationMode ? elevationViewBox : activeViewBox}
