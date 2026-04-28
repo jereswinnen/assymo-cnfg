@@ -548,6 +548,19 @@ export interface ProductBuildingDefaults {
   floor?: { materialId: string };
   roof?: { coveringId?: string; trimMaterialId?: string };
   door?: { doorMaterialId?: string };
+  /** Only populated when `type === 'poort'`. Mirrors `Partial<GateConfig>`
+   *  from `@/domain/building`; declared inline to keep `catalog` free of
+   *  reverse-dependencies on `building`. The configurator's `addBuilding`
+   *  spreads this into `createGateBuildingEntity`, so any field omitted
+   *  here falls back to `defaultGateConfig()`. */
+  gateConfig?: {
+    partCount?: 1 | 2;
+    partWidthMm?: number;
+    heightMm?: number;
+    materialId?: string;
+    swingDirection?: 'inward' | 'outward' | 'sliding';
+    motorized?: boolean;
+  };
 }
 
 /** Build a partial BuildingEntity defaults payload from a product. */
@@ -557,6 +570,22 @@ export function applyProductDefaults(product: ProductRow): ProductBuildingDefaul
     type: product.kind,
     dimensions: {},
   };
+
+  if (product.kind === 'poort') {
+    const p = product.defaults.poort;
+    if (p) {
+      const gateConfig: NonNullable<ProductBuildingDefaults['gateConfig']> = {};
+      if (p.partCount !== undefined) gateConfig.partCount = p.partCount;
+      if (p.partWidthMm !== undefined) gateConfig.partWidthMm = p.partWidthMm;
+      if (p.heightMm !== undefined) gateConfig.heightMm = p.heightMm;
+      if (p.swingDirection !== undefined) gateConfig.swingDirection = p.swingDirection;
+      if (p.motorized !== undefined) gateConfig.motorized = p.motorized;
+      if (p.materialId !== undefined) gateConfig.materialId = p.materialId;
+      if (Object.keys(gateConfig).length > 0) out.gateConfig = gateConfig;
+    }
+    return out;
+  }
+
   if (product.defaults.width !== undefined) out.dimensions.width = product.defaults.width;
   if (product.defaults.depth !== undefined) out.dimensions.depth = product.defaults.depth;
   if (product.defaults.height !== undefined) out.dimensions.height = product.defaults.height;
