@@ -13,10 +13,6 @@ const GATE_THICKNESS = 0.04;
 const GATE_SEAM = 0.01;
 const GATE_FALLBACK_COLOR = '#888888';
 
-const GATE_TEXTURE_TINT: Record<string, string> = {
-  wood: '#C4955A',
-};
-
 export default function Gate() {
   const { catalog: { materials } } = useTenant();
   const buildingId = useBuildingId();
@@ -88,7 +84,7 @@ interface GatePanelProps {
 
 function GatePanel({ width, height, x, materialId, color, hovered, pointerHandlers }: GatePanelProps) {
   const texture = useGateTexture(materialId, width, height);
-  const tint = texture ? (GATE_TEXTURE_TINT[materialId] ?? '#ffffff') : color;
+  const tint = texture ? '#ffffff' : color;
 
   return (
     <mesh position={[x, 0, 0]} castShadow receiveShadow {...pointerHandlers}>
