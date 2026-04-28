@@ -270,6 +270,8 @@ export type ProductPatchInput = Partial<Omit<ProductCreateInput, 'kind'>>;
 
 export type ProductValidationError =
   | 'kind_invalid'
+  | 'kind_unsupported_for_tenant'
+  | 'kind_field_mismatch'
   | 'slug_invalid'
   | 'slug_taken'
   | 'name_invalid'
@@ -280,7 +282,13 @@ export type ProductValidationError =
   | 'sort_order_invalid'
   | 'default_material_not_found'
   | 'allowed_material_not_found'
-  | 'constraints_invalid';
+  | 'constraints_invalid'
+  | 'poort_part_count_invalid'
+  | 'poort_part_width_invalid'
+  | 'poort_height_invalid'
+  | 'poort_swing_invalid'
+  | 'poort_motorized_invalid'
+  | 'poort_material_invalid';
 
 export interface ProductValidationFieldError {
   field: string;

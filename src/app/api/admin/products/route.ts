@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { asc, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { db } from '@/db/client';
-import { products, type ProductDbRow } from '@/db/schema';
-import { productDbRowToDomain } from '@/db/resolveTenant';
+import { materials, products, type ProductDbRow } from '@/db/schema';
+import { materialDbRowToDomain, productDbRowToDomain } from '@/db/resolveTenant';
 import { validateProductCreate } from '@/domain/catalog';
 import { requireBusiness, requireTenantScope } from '@/lib/auth-guards';
 import { withSession } from '@/lib/auth-session';
@@ -42,7 +42,19 @@ export const POST = withSession(async (session, req: Request) => {
     return NextResponse.json({ error: 'invalid_json' }, { status: 400 });
   }
 
-  const result = validateProductCreate(body);
+  const scopeTenantId = (body as { tenantId?: string }).tenantId ?? session.user.tenantId;
+  if (!scopeTenantId)
+    return NextResponse.json({ error: 'tenant_scope_required' }, { status: 400 });
+  requireTenantScope(session, scopeTenantId);
+
+  const tenantMaterials = (
+    await db
+      .select()
+      .from(materials)
+      .where(eq(materials.tenantId, scopeTenantId))
+  ).map(materialDbRowToDomain);
+
+  const result = validateProductCreate(body, tenantMaterials);
   if (!result.ok) {
     return NextResponse.json(
       { error: 'validation_failed', details: result.errors },
@@ -50,11 +62,6 @@ export const POST = withSession(async (session, req: Request) => {
     );
   }
   const input = result.value;
-
-  const scopeTenantId = (body as { tenantId?: string }).tenantId ?? session.user.tenantId;
-  if (!scopeTenantId)
-    return NextResponse.json({ error: 'tenant_scope_required' }, { status: 400 });
-  requireTenantScope(session, scopeTenantId);
 
   const refErrors = await checkProductMaterialReferences(
     scopeTenantId,
