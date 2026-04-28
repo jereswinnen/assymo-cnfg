@@ -156,6 +156,81 @@ describe('validateMaterialCreate', () => {
   });
 });
 
+describe('validateMaterialCreate — gate category', () => {
+  it('accepts a valid gate material with perSqm pricing', () => {
+    const r = validateMaterialCreate(
+      base({
+        categories: ['gate'],
+        slug: 'staal-antraciet',
+        name: 'Staal antraciet',
+        color: '#3a3d40',
+        pricing: { gate: { perSqm: 18000 } },
+      }),
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  it('rejects negative gate.perSqm', () => {
+    const r = validateMaterialCreate(
+      base({
+        categories: ['gate'],
+        slug: 'staal',
+        pricing: { gate: { perSqm: -1 } },
+      }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors).toContainEqual({ field: 'pricing.gate', code: 'pricing_invalid' });
+  });
+
+  it('rejects non-finite gate.perSqm', () => {
+    const r = validateMaterialCreate(
+      base({
+        categories: ['gate'],
+        slug: 'staal',
+        pricing: { gate: { perSqm: Number.POSITIVE_INFINITY } },
+      }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors).toContainEqual({ field: 'pricing.gate', code: 'pricing_invalid' });
+  });
+
+  it('rejects gate pricing on a wall-only material', () => {
+    const r = validateMaterialCreate(
+      base({
+        categories: ['wall'],
+        pricing: { wall: { perSqm: 50 }, gate: { perSqm: 18000 } } as never,
+      }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.some((e) => e.code === 'pricing_category_mismatch')).toBe(true);
+  });
+
+  it('rejects gate material with door-shaped pricing', () => {
+    const r = validateMaterialCreate(
+      base({
+        categories: ['gate'],
+        slug: 'staal',
+        pricing: { gate: { surcharge: 18000 } } as never,
+      }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors).toContainEqual({ field: 'pricing.gate', code: 'pricing_invalid' });
+  });
+
+  it('rejects clearsOpenings flag on a gate-only material', () => {
+    const r = validateMaterialCreate(
+      base({
+        categories: ['gate'],
+        slug: 'staal',
+        pricing: { gate: { perSqm: 18000 } },
+        flags: { clearsOpenings: true },
+      }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors).toContainEqual({ field: 'flags', code: 'flags_invalid' });
+  });
+});
+
 describe('validateMaterialPatch', () => {
   it('accepts an empty patch', () => {
     const r = validateMaterialPatch({});
@@ -186,6 +261,11 @@ describe('validateMaterialPatch', () => {
 
   it('accepts clearing textures to null', () => {
     const r = validateMaterialPatch({ textures: null });
+    expect(r.ok).toBe(true);
+  });
+
+  it('accepts a patch that adds gate pricing (shape-only)', () => {
+    const r = validateMaterialPatch({ pricing: { gate: { perSqm: 18000 } } });
     expect(r.ok).toBe(true);
   });
 });

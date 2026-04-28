@@ -20,7 +20,7 @@ export interface MaterialTextures {
 
 /** Per-category pricing entries. Each category contributes its own
  *  pricing shape: `perSqm` for surface-charged slots (wall / roof-cover /
- *  floor), `surcharge` for flat-added slots (door). `roof-trim` has no
+ *  floor / gate), `surcharge` for flat-added slots (door). `roof-trim` has no
  *  pricing, so it's omitted from the map rather than stored as empty. */
 export interface WallPricing {
   perSqm: number;
@@ -34,6 +34,9 @@ export interface FloorPricing {
 export interface DoorPricing {
   surcharge: number;
 }
+export interface GatePricing {
+  perSqm: number;
+}
 
 /** Per-category pricing map. Only categories the material is sold under
  *  appear — and only categories in `MaterialRow.categories` can have an
@@ -43,6 +46,7 @@ export interface MaterialPricing {
   'roof-cover'?: RoofCoverPricing;
   floor?: FloorPricing;
   door?: DoorPricing;
+  gate?: GatePricing;
 }
 
 /** Behaviour flags. Each flag is category-gated: `clearsOpenings` only
@@ -124,14 +128,13 @@ export type ValidationResult<T> =
   | { ok: true; value: T }
   | { ok: false; errors: ValidationFieldError[] };
 
-// 'gate' is intentionally absent here until Task 2 lands the validator + pricing shape.
-// The MaterialCategory type union admits 'gate'; the runtime accept-list does not yet.
 export const MATERIAL_CATEGORIES: readonly MaterialCategory[] = [
   'wall',
   'roof-cover',
   'roof-trim',
   'floor',
   'door',
+  'gate',
 ] as const;
 
 // ─────────────────────────────────────────────────────────────────────
