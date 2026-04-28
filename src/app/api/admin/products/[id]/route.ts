@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { eq, sql } from 'drizzle-orm';
 import { db } from '@/db/client';
-import { products } from '@/db/schema';
-import { productDbRowToDomain } from '@/db/resolveTenant';
+import { materials, products } from '@/db/schema';
+import { materialDbRowToDomain, productDbRowToDomain } from '@/db/resolveTenant';
 import { validateProductCreate, validateProductPatch } from '@/domain/catalog';
 import { requireBusiness, requireTenantScope } from '@/lib/auth-guards';
 import { withSession } from '@/lib/auth-session';
@@ -58,7 +58,10 @@ export const PATCH = withSession(
       basePriceCents: result.value.basePriceCents ?? existing.basePriceCents,
       sortOrder: result.value.sortOrder ?? existing.sortOrder,
     };
-    const shape = validateProductCreate(merged);
+    const tenantMaterials = (
+      await db.select().from(materials).where(eq(materials.tenantId, existing.tenantId))
+    ).map(materialDbRowToDomain);
+    const shape = validateProductCreate(merged, tenantMaterials);
     if (!shape.ok) {
       return NextResponse.json(
         { error: 'validation_failed', details: shape.errors },

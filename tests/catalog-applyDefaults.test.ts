@@ -49,4 +49,61 @@ describe('applyProductDefaults', () => {
     const r = applyProductDefaults(p);
     expect('walls' in r).toBe(false);
   });
+
+  describe('kind="poort"', () => {
+    it('sets type and emits a full gateConfig override when all six fields are set', () => {
+      const p = mk({
+        kind: 'poort',
+        defaults: {
+          poort: {
+            partCount: 2,
+            partWidthMm: 1800,
+            heightMm: 2400,
+            swingDirection: 'sliding',
+            motorized: true,
+            materialId: 'staal-antraciet',
+          },
+        },
+      });
+      const r = applyProductDefaults(p);
+      expect(r.type).toBe('poort');
+      expect(r.gateConfig).toEqual({
+        partCount: 2,
+        partWidthMm: 1800,
+        heightMm: 2400,
+        swingDirection: 'sliding',
+        motorized: true,
+        materialId: 'staal-antraciet',
+      });
+    });
+
+    it('emits only the explicitly-set fields when defaults.poort is partial', () => {
+      const p = mk({
+        kind: 'poort',
+        defaults: { poort: { partCount: 2, motorized: true } },
+      });
+      const r = applyProductDefaults(p);
+      expect(r.gateConfig).toEqual({ partCount: 2, motorized: true });
+    });
+
+    it('emits no gateConfig when the product has no defaults.poort key', () => {
+      const p = mk({ kind: 'poort', defaults: {} });
+      const r = applyProductDefaults(p);
+      expect(r.type).toBe('poort');
+      expect(r.gateConfig).toBeUndefined();
+    });
+
+    it('omits structural-kit fields for poort products', () => {
+      const p = mk({
+        kind: 'poort',
+        defaults: { poort: { partCount: 1 } },
+      });
+      const r = applyProductDefaults(p);
+      expect(r.dimensions).toEqual({});
+      expect(r.primaryMaterialId).toBeUndefined();
+      expect(r.floor).toBeUndefined();
+      expect(r.roof).toBeUndefined();
+      expect(r.door).toBeUndefined();
+    });
+  });
 });

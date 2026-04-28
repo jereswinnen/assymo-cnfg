@@ -3,6 +3,7 @@ import {
   PRODUCT_KINDS,
   PRODUCT_SLOT_TO_CATEGORY,
   PRODUCT_SLOTS,
+  type MaterialRow,
   type ProductConstraints,
   type ProductCreateInput,
   type ProductDefaults,
@@ -19,6 +20,25 @@ const NAME_MAX = 100;
 const DESCRIPTION_MAX = 1000;
 const DIM_MIN = 0.5;
 const DIM_MAX = 40;
+
+// Poort dimension envelope (mirrors `getConstraints('poort')` from
+// `@/domain/building/constants`, in millimeters). Inlined to avoid a
+// circular import: `building/index` re-exports `kinds`, which already
+// imports `catalog` types.
+const POORT_PART_WIDTH_MIN_MM = 500;
+const POORT_PART_WIDTH_MAX_MM = 6000;
+const POORT_HEIGHT_MIN_MM = 1500;
+const POORT_HEIGHT_MAX_MM = 3000;
+const POORT_SWING_DIRECTIONS = ['inward', 'outward', 'sliding'] as const;
+type PoortSwing = (typeof POORT_SWING_DIRECTIONS)[number];
+
+function isPoortSwing(v: unknown): v is PoortSwing {
+  return typeof v === 'string' && (POORT_SWING_DIRECTIONS as readonly string[]).includes(v);
+}
+
+function isPositiveInt(v: unknown): v is number {
+  return typeof v === 'number' && Number.isInteger(v) && v > 0;
+}
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -75,6 +95,63 @@ function validateDefaults(
       mats[slot] = slug as string;
     }
     out.materials = mats;
+  }
+  if ('poort' in value) {
+    const p = (value as Record<string, unknown>).poort;
+    if (!isObject(p)) {
+      errors.push({ field: 'defaults.poort', code: 'constraints_invalid' });
+      return undefined;
+    }
+    const poort: NonNullable<ProductDefaults['poort']> = {};
+    if ('partCount' in p) {
+      const n = p.partCount;
+      if (n !== 1 && n !== 2) {
+        errors.push({ field: 'defaults.poort.partCount', code: 'poort_part_count_invalid' });
+        return undefined;
+      }
+      poort.partCount = n;
+    }
+    if ('partWidthMm' in p) {
+      const n = p.partWidthMm;
+      if (!isPositiveInt(n) || n < POORT_PART_WIDTH_MIN_MM || n > POORT_PART_WIDTH_MAX_MM) {
+        errors.push({ field: 'defaults.poort.partWidthMm', code: 'poort_part_width_invalid' });
+        return undefined;
+      }
+      poort.partWidthMm = n;
+    }
+    if ('heightMm' in p) {
+      const n = p.heightMm;
+      if (!isPositiveInt(n) || n < POORT_HEIGHT_MIN_MM || n > POORT_HEIGHT_MAX_MM) {
+        errors.push({ field: 'defaults.poort.heightMm', code: 'poort_height_invalid' });
+        return undefined;
+      }
+      poort.heightMm = n;
+    }
+    if ('swingDirection' in p) {
+      if (!isPoortSwing(p.swingDirection)) {
+        errors.push({ field: 'defaults.poort.swingDirection', code: 'poort_swing_invalid' });
+        return undefined;
+      }
+      poort.swingDirection = p.swingDirection;
+    }
+    if ('motorized' in p) {
+      if (typeof p.motorized !== 'boolean') {
+        errors.push({ field: 'defaults.poort.motorized', code: 'poort_motorized_invalid' });
+        return undefined;
+      }
+      poort.motorized = p.motorized;
+    }
+    if ('materialId' in p) {
+      const s = p.materialId;
+      if (s !== undefined && s !== '') {
+        if (typeof s !== 'string' || !isValidSlug(s)) {
+          errors.push({ field: 'defaults.poort.materialId', code: 'poort_material_invalid' });
+          return undefined;
+        }
+        poort.materialId = s;
+      }
+    }
+    out.poort = poort;
   }
   return out;
 }
@@ -137,14 +214,121 @@ function validateConstraints(
     void PRODUCT_SLOT_TO_CATEGORY; // kept for future cross-category checks
     out.allowedMaterialsBySlot = allow;
   }
+  if ('poort' in value) {
+    const p = (value as Record<string, unknown>).poort;
+    if (!isObject(p)) {
+      errors.push({ field: 'constraints.poort', code: 'constraints_invalid' });
+      return undefined;
+    }
+    const poort: NonNullable<ProductConstraints['poort']> = {};
+    if ('partCountAllowed' in p) {
+      const arr = p.partCountAllowed;
+      if (!Array.isArray(arr) || arr.length === 0) {
+        errors.push({ field: 'constraints.poort.partCountAllowed', code: 'poort_part_count_invalid' });
+        return undefined;
+      }
+      const seen = new Set<number>();
+      for (const v of arr) {
+        if (v !== 1 && v !== 2) {
+          errors.push({ field: 'constraints.poort.partCountAllowed', code: 'poort_part_count_invalid' });
+          return undefined;
+        }
+        if (seen.has(v)) {
+          errors.push({ field: 'constraints.poort.partCountAllowed', code: 'poort_part_count_invalid' });
+          return undefined;
+        }
+        seen.add(v);
+      }
+      poort.partCountAllowed = [...seen] as (1 | 2)[];
+    }
+    for (const k of ['partWidthMinMm', 'partWidthMaxMm'] as const) {
+      if (k in p) {
+        const n = (p as Record<string, unknown>)[k];
+        if (!isPositiveInt(n) || n < POORT_PART_WIDTH_MIN_MM || n > POORT_PART_WIDTH_MAX_MM) {
+          errors.push({ field: `constraints.poort.${k}`, code: 'poort_part_width_invalid' });
+          return undefined;
+        }
+        poort[k] = n;
+      }
+    }
+    if (
+      poort.partWidthMinMm !== undefined &&
+      poort.partWidthMaxMm !== undefined &&
+      poort.partWidthMinMm > poort.partWidthMaxMm
+    ) {
+      errors.push({ field: 'constraints.poort', code: 'constraints_invalid' });
+      return undefined;
+    }
+    for (const k of ['heightMinMm', 'heightMaxMm'] as const) {
+      if (k in p) {
+        const n = (p as Record<string, unknown>)[k];
+        if (!isPositiveInt(n) || n < POORT_HEIGHT_MIN_MM || n > POORT_HEIGHT_MAX_MM) {
+          errors.push({ field: `constraints.poort.${k}`, code: 'poort_height_invalid' });
+          return undefined;
+        }
+        poort[k] = n;
+      }
+    }
+    if (
+      poort.heightMinMm !== undefined &&
+      poort.heightMaxMm !== undefined &&
+      poort.heightMinMm > poort.heightMaxMm
+    ) {
+      errors.push({ field: 'constraints.poort', code: 'constraints_invalid' });
+      return undefined;
+    }
+    if ('swingsAllowed' in p) {
+      const arr = p.swingsAllowed;
+      if (!Array.isArray(arr) || arr.length === 0) {
+        errors.push({ field: 'constraints.poort.swingsAllowed', code: 'poort_swing_invalid' });
+        return undefined;
+      }
+      const seen = new Set<PoortSwing>();
+      for (const v of arr) {
+        if (!isPoortSwing(v) || seen.has(v)) {
+          errors.push({ field: 'constraints.poort.swingsAllowed', code: 'poort_swing_invalid' });
+          return undefined;
+        }
+        seen.add(v);
+      }
+      poort.swingsAllowed = [...seen];
+    }
+    if ('motorizedAllowed' in p) {
+      if (typeof p.motorizedAllowed !== 'boolean') {
+        errors.push({ field: 'constraints.poort.motorizedAllowed', code: 'poort_motorized_invalid' });
+        return undefined;
+      }
+      poort.motorizedAllowed = p.motorizedAllowed;
+    }
+    if ('allowedMaterialSlugs' in p) {
+      const arr = p.allowedMaterialSlugs;
+      if (!Array.isArray(arr)) {
+        errors.push({ field: 'constraints.poort.allowedMaterialSlugs', code: 'poort_material_invalid' });
+        return undefined;
+      }
+      const seen = new Set<string>();
+      for (const s of arr) {
+        if (typeof s !== 'string' || !isValidSlug(s)) {
+          errors.push({ field: 'constraints.poort.allowedMaterialSlugs', code: 'poort_material_invalid' });
+          return undefined;
+        }
+        seen.add(s);
+      }
+      poort.allowedMaterialSlugs = [...seen];
+    }
+    out.poort = poort;
+  }
   return out;
 }
 
-/** Create-body validator. Pure — does not check cross-table references
- *  to `materials` (that happens in the route handler, which has DB
- *  access). Uniqueness (`slug_taken`) is DB-enforced. */
+/** Create-body validator. Pure — `materials` is the tenant's full
+ *  material list (used for the `kind === 'poort'` tenant-feature-flag
+ *  rule and for resolving gate-material slug references). Uniqueness
+ *  (`slug_taken`) and cross-table material-slug refs for non-poort
+ *  slots are DB-enforced in the route handler. */
 export function validateProductCreate(
   input: unknown,
+  materials: MaterialRow[],
 ): ProductValidationResult<ProductCreateInput> {
   if (!isObject(input)) {
     return { ok: false, errors: [{ field: 'body', code: 'name_invalid' }] };
@@ -197,6 +381,61 @@ export function validateProductCreate(
       errors.push({ field: 'sortOrder', code: 'sort_order_invalid' });
     } else {
       sortOrderOut = sortOrder;
+    }
+  }
+
+  // Cross-kind contamination + poort tenant/material-availability rules.
+  if (isKind(kind) && defaultsOut !== undefined && constraintsOut !== undefined) {
+    if (kind === 'poort') {
+      // Reject structural fields that don't apply to gate primitives.
+      if (
+        defaultsOut.width !== undefined ||
+        defaultsOut.depth !== undefined ||
+        defaultsOut.height !== undefined
+      ) {
+        errors.push({ field: 'defaults', code: 'kind_field_mismatch' });
+      }
+      if (defaultsOut.materials !== undefined) {
+        errors.push({ field: 'defaults.materials', code: 'kind_field_mismatch' });
+      }
+      if (
+        constraintsOut.minWidth !== undefined ||
+        constraintsOut.maxWidth !== undefined ||
+        constraintsOut.minDepth !== undefined ||
+        constraintsOut.maxDepth !== undefined ||
+        constraintsOut.minHeight !== undefined ||
+        constraintsOut.maxHeight !== undefined ||
+        constraintsOut.allowedMaterialsBySlot !== undefined
+      ) {
+        errors.push({ field: 'constraints', code: 'kind_field_mismatch' });
+      }
+      // Tenant feature-flag: at least one non-archived gate material.
+      const gateMaterials = materials.filter(
+        (m) => m.archivedAt === null && m.categories.includes('gate'),
+      );
+      if (gateMaterials.length === 0) {
+        errors.push({ field: 'kind', code: 'kind_unsupported_for_tenant' });
+      } else {
+        const gateSlugs = new Set(gateMaterials.map((m) => m.slug));
+        if (defaultsOut.poort?.materialId !== undefined && !gateSlugs.has(defaultsOut.poort.materialId)) {
+          errors.push({ field: 'defaults.poort.materialId', code: 'poort_material_invalid' });
+        }
+        if (constraintsOut.poort?.allowedMaterialSlugs) {
+          for (const s of constraintsOut.poort.allowedMaterialSlugs) {
+            if (!gateSlugs.has(s)) {
+              errors.push({ field: 'constraints.poort.allowedMaterialSlugs', code: 'poort_material_invalid' });
+              break;
+            }
+          }
+        }
+      }
+    } else {
+      if (defaultsOut.poort !== undefined) {
+        errors.push({ field: 'defaults.poort', code: 'kind_field_mismatch' });
+      }
+      if (constraintsOut.poort !== undefined) {
+        errors.push({ field: 'constraints.poort', code: 'kind_field_mismatch' });
+      }
     }
   }
 
@@ -309,6 +548,19 @@ export interface ProductBuildingDefaults {
   floor?: { materialId: string };
   roof?: { coveringId?: string; trimMaterialId?: string };
   door?: { doorMaterialId?: string };
+  /** Only populated when `type === 'poort'`. Mirrors `Partial<GateConfig>`
+   *  from `@/domain/building`; declared inline to keep `catalog` free of
+   *  reverse-dependencies on `building`. The configurator's `addBuilding`
+   *  spreads this into `createGateBuildingEntity`, so any field omitted
+   *  here falls back to `defaultGateConfig()`. */
+  gateConfig?: {
+    partCount?: 1 | 2;
+    partWidthMm?: number;
+    heightMm?: number;
+    materialId?: string;
+    swingDirection?: 'inward' | 'outward' | 'sliding';
+    motorized?: boolean;
+  };
 }
 
 /** Build a partial BuildingEntity defaults payload from a product. */
@@ -318,6 +570,22 @@ export function applyProductDefaults(product: ProductRow): ProductBuildingDefaul
     type: product.kind,
     dimensions: {},
   };
+
+  if (product.kind === 'poort') {
+    const p = product.defaults.poort;
+    if (p) {
+      const gateConfig: NonNullable<ProductBuildingDefaults['gateConfig']> = {};
+      if (p.partCount !== undefined) gateConfig.partCount = p.partCount;
+      if (p.partWidthMm !== undefined) gateConfig.partWidthMm = p.partWidthMm;
+      if (p.heightMm !== undefined) gateConfig.heightMm = p.heightMm;
+      if (p.swingDirection !== undefined) gateConfig.swingDirection = p.swingDirection;
+      if (p.motorized !== undefined) gateConfig.motorized = p.motorized;
+      if (p.materialId !== undefined) gateConfig.materialId = p.materialId;
+      if (Object.keys(gateConfig).length > 0) out.gateConfig = gateConfig;
+    }
+    return out;
+  }
+
   if (product.defaults.width !== undefined) out.dimensions.width = product.defaults.width;
   if (product.defaults.depth !== undefined) out.dimensions.depth = product.defaults.depth;
   if (product.defaults.height !== undefined) out.dimensions.height = product.defaults.height;

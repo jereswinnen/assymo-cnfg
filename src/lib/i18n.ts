@@ -690,6 +690,7 @@ const nl: Record<string, string> = {
 
   "admin.catalog.products.kind.overkapping": "Overkapping",
   "admin.catalog.products.kind.berging": "Berging",
+  "admin.catalog.products.kind.poort": "Poort",
 
   "admin.catalog.products.field.kind": "Type bouwset",
   "admin.catalog.products.field.name": "Naam",
@@ -760,6 +761,51 @@ const nl: Record<string, string> = {
     "Toegestaan materiaal bestaat niet in deze categorie",
   "admin.catalog.products.error.constraints_invalid":
     "Ongeldige grenzen (min ≤ max, slugs moeten bestaan)",
+  "admin.catalog.products.error.kind_unsupported_for_tenant":
+    "Dit type is niet beschikbaar voor deze tenant",
+  "admin.catalog.products.error.kind_field_mismatch":
+    "Velden komen niet overeen met het gekozen type",
+  "admin.catalog.products.error.poort_part_count_invalid":
+    "Aantal delen moet 1 of 2 zijn",
+  "admin.catalog.products.error.poort_part_width_invalid":
+    "Breedte per deel valt buiten het toegestane bereik",
+  "admin.catalog.products.error.poort_height_invalid":
+    "Hoogte valt buiten het toegestane bereik",
+  "admin.catalog.products.error.poort_swing_invalid":
+    "Ongeldige beweging (binnen, buiten of schuivend)",
+  "admin.catalog.products.error.poort_motorized_invalid":
+    "Ongeldige motoriseringswaarde",
+  "admin.catalog.products.error.poort_material_invalid":
+    "Materiaal moet een geldige poort-slug zijn",
+
+  "admin.catalog.products.field.poort": "Poort instellingen",
+  "admin.catalog.products.field.poort.defaults": "Standaardwaarden poort",
+  "admin.catalog.products.field.poort.constraints": "Beperkingen poort",
+  "admin.catalog.products.field.poort.partCount": "Aantal delen",
+  "admin.catalog.products.field.poort.partWidthMm": "Breedte per deel (mm)",
+  "admin.catalog.products.field.poort.heightMm": "Hoogte (mm)",
+  "admin.catalog.products.field.poort.swingDirection": "Standaard beweging",
+  "admin.catalog.products.field.poort.motorized": "Gemotoriseerd",
+  "admin.catalog.products.field.poort.material": "Standaard materiaal",
+  "admin.catalog.products.field.poort.partCountAllowed": "Aantal delen toegestaan",
+  "admin.catalog.products.field.poort.partWidthMinMm": "Min breedte per deel (mm)",
+  "admin.catalog.products.field.poort.partWidthMaxMm": "Max breedte per deel (mm)",
+  "admin.catalog.products.field.poort.heightMinMm": "Min hoogte (mm)",
+  "admin.catalog.products.field.poort.heightMaxMm": "Max hoogte (mm)",
+  "admin.catalog.products.field.poort.swingsAllowed": "Bewegingen toegestaan",
+  "admin.catalog.products.field.poort.motorizedAllowed": "Motorisering toegestaan",
+  "admin.catalog.products.field.poort.allowedMaterialSlugs": "Toegestane materialen",
+  "admin.catalog.products.field.poort.motorizedAllowed.any": "Geen beperking",
+  "admin.catalog.products.field.poort.motorizedAllowed.always": "Altijd",
+  "admin.catalog.products.field.poort.motorizedAllowed.never": "Nooit",
+  "admin.catalog.products.field.poort.partCountAllowed.hint":
+    "Leeg = beide aantallen toegestaan.",
+  "admin.catalog.products.field.poort.swingsAllowed.hint":
+    "Leeg = alle bewegingen toegestaan.",
+  "admin.catalog.products.field.poort.allowedMaterialSlugs.hint":
+    "Leeg = alle poort-materialen toegestaan.",
+  "admin.catalog.products.field.poort.mmHint": "{mm} mm = {m} m",
+  "admin.catalog.products.field.poort.material.placeholder": "Geen standaard",
 
   // Admin — catalog / form sections + actions
   "admin.catalog.form.section.basics": "Basis",

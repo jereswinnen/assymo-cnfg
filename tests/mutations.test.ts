@@ -298,6 +298,43 @@ describe('addBuilding (poort)', () => {
     const { id: id2 } = addBuilding(c1, 'poort');
     expect(id1).not.toBe(id2);
   });
+
+  it('applies productDefaults.gateConfig overrides and stamps sourceProductId', () => {
+    const cfg = makeInitialConfig();
+    const { cfg: next, id } = addBuilding(cfg, 'poort', [1, 2], {
+      sourceProductId: 'gate-kit-1',
+      type: 'poort',
+      dimensions: {},
+      gateConfig: { partCount: 2, motorized: true },
+    });
+    const b = next.buildings.find((x) => x.id === id)!;
+    const baseline = defaultGateConfig();
+    expect(b.type).toBe('poort');
+    expect(b.position).toEqual([1, 2]);
+    expect(b.sourceProductId).toBe('gate-kit-1');
+    expect(b.gateConfig?.partCount).toBe(2);
+    expect(b.gateConfig?.motorized).toBe(true);
+    expect(b.gateConfig?.partWidthMm).toBe(baseline.partWidthMm);
+    expect(b.gateConfig?.heightMm).toBe(baseline.heightMm);
+    expect(b.gateConfig?.swingDirection).toBe(baseline.swingDirection);
+    expect(b.gateConfig?.materialId).toBe(baseline.materialId);
+    expect(b.dimensions.width).toBeCloseTo(
+      (2 * baseline.partWidthMm) / 1000,
+      6,
+    );
+  });
+
+  it('falls back to defaultGateConfig when productDefaults omits gateConfig', () => {
+    const cfg = makeInitialConfig();
+    const { cfg: next, id } = addBuilding(cfg, 'poort', [0, 0], {
+      sourceProductId: 'gate-kit-2',
+      type: 'poort',
+      dimensions: {},
+    });
+    const b = next.buildings.find((x) => x.id === id)!;
+    expect(b.gateConfig).toEqual(defaultGateConfig());
+    expect(b.sourceProductId).toBe('gate-kit-2');
+  });
 });
 
 describe('updateGateConfig', () => {
