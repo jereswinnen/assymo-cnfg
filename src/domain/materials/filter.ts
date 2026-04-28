@@ -5,6 +5,7 @@ import type {
   RoofCoveringCatalogEntry,
   FloorCatalogEntry,
   DoorCatalogEntry,
+  GateCatalogEntry,
 } from './types';
 
 function rowsByCategory(
@@ -44,6 +45,10 @@ function rowToDoor(m: MaterialRow): DoorCatalogEntry {
   return { atomId: m.slug, surcharge: m.pricing.door?.surcharge ?? 0 };
 }
 
+function rowToGate(m: MaterialRow): GateCatalogEntry {
+  return { atomId: m.slug, pricePerSqm: m.pricing.gate?.perSqm ?? 0 };
+}
+
 export function buildWallCatalog(materials: MaterialRow[]): WallCatalogEntry[] {
   return rowsByCategory(materials, 'wall').map(rowToWall);
 }
@@ -58,6 +63,9 @@ export function buildFloorCatalog(materials: MaterialRow[]): FloorCatalogEntry[]
 }
 export function buildDoorCatalog(materials: MaterialRow[]): DoorCatalogEntry[] {
   return rowsByCategory(materials, 'door').map(rowToDoor);
+}
+export function buildGateCatalog(materials: MaterialRow[]): GateCatalogEntry[] {
+  return rowsByCategory(materials, 'gate').map(rowToGate);
 }
 
 /** Given a built catalog and the current selection, keep the current

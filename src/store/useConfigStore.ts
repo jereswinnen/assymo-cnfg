@@ -5,6 +5,7 @@ import type {
   BuildingEntity,
   BuildingType,
   FloorConfig,
+  GateConfig,
   Orientation,
   PolesConfig,
   RoofConfig,
@@ -41,6 +42,7 @@ import {
   updateBuildingPosition as mUpdateBuildingPosition,
   updateBuildingPositions as mUpdateBuildingPositions,
   updateBuildingWall as mUpdateBuildingWall,
+  updateGateConfig as mUpdateGateConfig,
   updateRoof as mUpdateRoof,
 } from '@/domain/config';
 import type { ConfigData, LegacyBuilding } from '@/domain/config';
@@ -67,6 +69,7 @@ interface ConfigStore extends ConfigData {
   setPoleAttachment: (id: string, attachedTo: string | null) => void;
   updateBuildingWall: (id: string, wallId: WallId, patch: Partial<WallConfig>) => void;
   updateBuildingFloor: (id: string, patch: Partial<FloorConfig>) => void;
+  updateGateConfig: (id: string, patch: Partial<GateConfig>) => void;
   setBuildingPrimaryMaterial: (id: string, materialId: string) => void;
   toggleBuildingBraces: (id: string) => void;
   updateBuildingPoles: (id: string, poles: PolesConfig) => void;
@@ -144,6 +147,7 @@ export const useConfigStore = create<ConfigStore>()(
       setPoleAttachment: (id, attachedTo) => set(mSetPoleAttachment(get(), id, attachedTo)),
       updateBuildingWall: (id, wallId, patch) => set(mUpdateBuildingWall(get(), id, wallId, patch)),
       updateBuildingFloor: (id, patch) => set(mUpdateBuildingFloor(get(), id, patch)),
+      updateGateConfig: (id, patch) => set(mUpdateGateConfig(get(), id, patch)),
       setBuildingPrimaryMaterial: (id, materialId) => set(mSetBuildingPrimaryMaterial(get(), id, materialId)),
       toggleBuildingBraces: (id) => set(mToggleBuildingBraces(get(), id)),
       updateBuildingPoles: (id, poles) => set(mUpdateBuildingPoles(get(), id, poles)),

@@ -6,7 +6,14 @@ import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/domain/building';
 import { getConstraints, DOOR_W, DOUBLE_DOOR_W, WIN_W, xToFraction, clampOpeningPosition, fractionToX, getWallLength, autoPoleLayout } from '@/domain/building';
 import { getEffectivePrimaryMaterial, getAtomColor } from '@/domain/materials';
-import { computePlanDimensions, type DimLine } from '@/domain/schematic';
+import {
+  computePlanDimensions,
+  getGateFootprint,
+  getGateSeam,
+  getGateSlideArrow,
+  getGateSwingArcs,
+  type DimLine,
+} from '@/domain/schematic';
 import { useTenant } from '@/lib/TenantProvider';
 import { t } from '@/lib/i18n';
 import SchematicPosts from './SchematicPosts';
@@ -102,7 +109,7 @@ function rectsOverlap(
 const MUUR_SELECT_MIN_THICKNESS = 0.5;
 
 function getBuildingAABB(b: BuildingEntity): [number, number, number, number] {
-  if (b.type === 'muur') {
+  if (b.type === 'muur' || b.type === 'poort') {
     const isVert = b.orientation === 'vertical';
     const wallW = isVert ? b.dimensions.depth : b.dimensions.width;
     const wallD = isVert ? b.dimensions.width : b.dimensions.depth;
@@ -151,12 +158,14 @@ function ResizeHandles({
   // grab them reliably; mouse users keep the tighter visual.
   const r = IS_COARSE_POINTER ? 0.18 : 0.12;
   const isMuur = building.type === 'muur';
-  const isVertMuur = isMuur && building.orientation === 'vertical';
+  const isPoort = building.type === 'poort';
+  const isWallLike = isMuur || isPoort;
+  const isVertWallLike = isWallLike && building.orientation === 'vertical';
 
   const handles: { cx: number; cy: number; edge: 'left' | 'right' | 'top' | 'bottom'; cursor: string }[] = [];
 
-  if (isMuur) {
-    if (isVertMuur) {
+  if (isWallLike) {
+    if (isVertWallLike) {
       const visualW = building.dimensions.depth;
       const visualD = building.dimensions.width;
       handles.push(
@@ -296,17 +305,18 @@ export default function SchematicView() {
   // Ghost preview for drag-and-drop from sidebar
   const [dragGhost, setDragGhost] = useState<{ x: number; y: number } | null>(null);
 
-  const normalBuildings = buildings.filter(b => b.type !== 'paal' && b.type !== 'muur');
+  const normalBuildings = buildings.filter(b => b.type !== 'paal' && b.type !== 'muur' && b.type !== 'poort');
   const walls = buildings.filter(b => b.type === 'muur');
+  const gates = buildings.filter(b => b.type === 'poort');
   const poles = buildings.filter(b => b.type === 'paal');
 
   // Compute bounding box of all buildings (including poles)
   let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
   for (const b of buildings) {
     const [lx, lz] = b.position;
-    const isVertMuur = b.type === 'muur' && b.orientation === 'vertical';
-    const bw = isVertMuur ? b.dimensions.depth : b.dimensions.width;
-    const bd = isVertMuur ? b.dimensions.width : b.dimensions.depth;
+    const isVertWallLike = (b.type === 'muur' || b.type === 'poort') && b.orientation === 'vertical';
+    const bw = isVertWallLike ? b.dimensions.depth : b.dimensions.width;
+    const bd = isVertWallLike ? b.dimensions.width : b.dimensions.depth;
     const pad2 = b.type === 'paal' ? 0.3 : 0;
     minX = Math.min(minX, lx - pad2);
     maxX = Math.max(maxX, lx + bw + pad2);
@@ -550,11 +560,12 @@ export default function SchematicView() {
 
       const constraints = getConstraints(building.type);
       const isMuur = building.type === 'muur';
-      const isVertMuur = isMuur && building.orientation === 'vertical';
-      const others = allBuildings.filter(b => b.id !== buildingId && b.type !== 'paal' && b.type !== 'muur');
+      const isWallLike = isMuur || building.type === 'poort';
+      const isVertWallLike = isWallLike && building.orientation === 'vertical';
+      const others = allBuildings.filter(b => b.id !== buildingId && b.type !== 'paal' && b.type !== 'muur' && b.type !== 'poort');
 
-      // For vertical muur, top/bottom edges control width (wall length), not depth
-      if (isVertMuur) {
+      // For vertical muur or poort, top/bottom edges control width (wall length), not depth
+      if (isVertWallLike) {
         if (edge === 'bottom') {
           const candidateBottom = detectResizeSnap(wz, 'z', 'back', startPos[0], startPos[0] + startDims.depth, others);
           const newLen = Math.max(constraints.width.min, Math.min(constraints.width.max, candidateBottom - startPos[1]));
@@ -818,7 +829,7 @@ export default function SchematicView() {
         snappedDx = snappedCorner[0] - draggedStartPos[0];
         snappedDz = snappedCorner[1] - draggedStartPos[1];
         setPoleAttachment(building.id, snapped.attachedTo);
-      } else if (building.type === 'muur') {
+      } else if (building.type === 'muur' || building.type === 'poort') {
         const snapped = detectWallSnap(
           newDraggedPos,
           building.dimensions.width,
@@ -829,7 +840,7 @@ export default function SchematicView() {
         snappedDz = snapped.position[1] - draggedStartPos[1];
         setPoleAttachment(building.id, snapped.attachedTo);
       } else {
-        const others = allBuildings.filter(b => !groupDragStartPositions.current.has(b.id) && b.type !== 'paal' && b.type !== 'muur');
+        const others = allBuildings.filter(b => !groupDragStartPositions.current.has(b.id) && b.type !== 'paal' && b.type !== 'muur' && b.type !== 'poort');
         const tempBuilding = { ...building, position: newDraggedPos };
         const { snappedPosition } = detectSnap(tempBuilding, others);
         snappedDx = snappedPosition[0] - draggedStartPos[0];
@@ -859,7 +870,7 @@ export default function SchematicView() {
         );
         updateBuildingPosition(building.id, [snapped.center[0] - halfW, snapped.center[1] - halfD]);
         setPoleAttachment(building.id, snapped.attachedTo);
-      } else if (building.type === 'muur') {
+      } else if (building.type === 'muur' || building.type === 'poort') {
         const snapped = detectWallSnap(
           newPos,
           building.dimensions.width,
@@ -869,7 +880,7 @@ export default function SchematicView() {
         updateBuildingPosition(building.id, snapped.position);
         setPoleAttachment(building.id, snapped.attachedTo);
       } else {
-        const others = allBuildings.filter(b => b.id !== building.id && b.type !== 'paal' && b.type !== 'muur');
+        const others = allBuildings.filter(b => b.id !== building.id && b.type !== 'paal' && b.type !== 'muur' && b.type !== 'poort');
         const tempBuilding = { ...building, position: newPos };
         const { snappedPosition, newConnections } = detectSnap(tempBuilding, others);
         updateBuildingPosition(building.id, snappedPosition);
@@ -995,7 +1006,7 @@ export default function SchematicView() {
         const allBuildings = useConfigStore.getState().buildings;
         // Rebuild all connections by checking each non-pole/non-muur building
         let allConnections: SnapConnection[] = [];
-        const structuralBuildings = allBuildings.filter(b => b.type !== 'paal' && b.type !== 'muur');
+        const structuralBuildings = allBuildings.filter(b => b.type !== 'paal' && b.type !== 'muur' && b.type !== 'poort');
         for (const building of structuralBuildings) {
           const others = structuralBuildings.filter(b => b.id !== building.id);
           const { newConnections } = detectSnap(building, others);
@@ -1120,7 +1131,7 @@ export default function SchematicView() {
       );
       updateBuildingPosition(newId, [snapped.center[0] - halfW, snapped.center[1] - halfD]);
       setPoleAttachment(newId, snapped.attachedTo);
-    } else if (building.type === 'muur') {
+    } else if (building.type === 'muur' || building.type === 'poort') {
       const snapped = detectWallSnap(
         building.position,
         building.dimensions.width,
@@ -1130,7 +1141,7 @@ export default function SchematicView() {
       updateBuildingPosition(newId, snapped.position);
       setPoleAttachment(newId, snapped.attachedTo);
     } else {
-      const others = allBuildings.filter(b => b.id !== newId && b.type !== 'paal' && b.type !== 'muur');
+      const others = allBuildings.filter(b => b.id !== newId && b.type !== 'paal' && b.type !== 'muur' && b.type !== 'poort');
       const { snappedPosition, newConnections } = detectSnap(building, others);
       updateBuildingPosition(newId, snappedPosition);
       setConnections(newConnections);
@@ -1702,6 +1713,129 @@ export default function SchematicView() {
                   pointerEvents="none"
                 >
                   {t(`building.name.${w.type}`)}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Standalone gates — schematic-only swing/seam indicators.
+              The gate's footprint mirrors the muur drag/select pattern:
+              an enlarged invisible hit target on the parent <g> handles
+              pointerdown for drag/select; double-click rotates orientation. */}
+          {gates.map((g) => {
+            const fp = getGateFootprint(g);
+            const seam = getGateSeam(g);
+            const swingArcs = getGateSwingArcs(g);
+            const slideArrow = getGateSlideArrow(g);
+            const isSelected = selectedBuildingIds.includes(g.id) || previewSelectedIds.has(g.id);
+
+            // Enlarged hit target so thin gates remain easy to grab in either
+            // orientation. Mirrors the muur enlargement (see getBuildingAABB).
+            const hitW = Math.max(fp.width, MUUR_SELECT_MIN_THICKNESS);
+            const hitH = Math.max(fp.depth, MUUR_SELECT_MIN_THICKNESS);
+            const hitOffsetX = (hitW - fp.width) / 2;
+            const hitOffsetY = (hitH - fp.depth) / 2;
+
+            return (
+              <g
+                key={g.id}
+                className={isSelected ? 'schematic-selected' : undefined}
+                onPointerDown={(e) => onBuildingPointerDown(e, g.id)}
+              >
+                <rect
+                  x={fp.x - hitOffsetX}
+                  y={fp.y - hitOffsetY}
+                  width={hitW}
+                  height={hitH}
+                  fill="transparent"
+                  stroke="none"
+                  style={{ cursor: 'grab' }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    setOrientation(g.id, fp.horizontal ? 'vertical' : 'horizontal');
+                  }}
+                />
+
+                {/* Gate body — solid rectangle along its long axis */}
+                <rect
+                  x={fp.x}
+                  y={fp.y}
+                  width={fp.width}
+                  height={fp.depth}
+                  fill={isSelected ? '#3b82f6' : '#666'}
+                  stroke={isSelected ? '#3b82f6' : '#444'}
+                  strokeWidth={0.03}
+                  pointerEvents="none"
+                />
+
+                {/* Centre seam tick for 2-part gates */}
+                {seam && (
+                  <line
+                    x1={seam.x1}
+                    y1={seam.y1}
+                    x2={seam.x2}
+                    y2={seam.y2}
+                    stroke="#fff"
+                    strokeWidth={0.04}
+                    pointerEvents="none"
+                  />
+                )}
+
+                {/* Swing arcs (inward / outward) */}
+                {swingArcs.map((arc, i) => (
+                  <path
+                    key={`swing-${i}`}
+                    d={arc.path}
+                    fill="none"
+                    stroke="#888"
+                    strokeWidth={0.025}
+                    strokeDasharray="0.1 0.06"
+                    pointerEvents="none"
+                  />
+                ))}
+
+                {/* Sliding-gate arrow */}
+                {slideArrow && (() => {
+                  const head = 0.18;
+                  const dx = slideArrow.x2 - slideArrow.x1;
+                  const dy = slideArrow.y2 - slideArrow.y1;
+                  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                  const ux = dx / len;
+                  const uy = dy / len;
+                  // Perpendicular for arrowhead wings.
+                  const px = -uy;
+                  const py = ux;
+                  const wing = head * 0.6;
+                  const a1x = slideArrow.x1 + ux * head;
+                  const a1y = slideArrow.y1 + uy * head;
+                  const a2x = slideArrow.x2 - ux * head;
+                  const a2y = slideArrow.y2 - uy * head;
+                  return (
+                    <g pointerEvents="none" stroke="#888" strokeWidth={0.025} strokeLinecap="round">
+                      <line x1={slideArrow.x1} y1={slideArrow.y1} x2={slideArrow.x2} y2={slideArrow.y2} />
+                      {/* Left arrowhead */}
+                      <line x1={slideArrow.x1} y1={slideArrow.y1} x2={a1x + px * wing} y2={a1y + py * wing} />
+                      <line x1={slideArrow.x1} y1={slideArrow.y1} x2={a1x - px * wing} y2={a1y - py * wing} />
+                      {/* Right arrowhead */}
+                      <line x1={slideArrow.x2} y1={slideArrow.y2} x2={a2x + px * wing} y2={a2y + py * wing} />
+                      <line x1={slideArrow.x2} y1={slideArrow.y2} x2={a2x - px * wing} y2={a2y - py * wing} />
+                    </g>
+                  );
+                })()}
+
+                {/* Type label */}
+                <text
+                  x={fp.x + fp.width / 2}
+                  y={fp.y + fp.depth / 2}
+                  fontSize={0.16}
+                  fontWeight={500}
+                  fontFamily="system-ui, sans-serif"
+                  fill="#fff"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  pointerEvents="none"
+                >
+                  {t(`building.name.${g.type}`)}
                 </text>
               </g>
             );

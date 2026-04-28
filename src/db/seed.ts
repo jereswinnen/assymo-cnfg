@@ -6,7 +6,8 @@ import { DEFAULT_PRICE_BOOK } from '../domain/pricing/priceBook.ts';
 import { DEFAULT_ASSYMO_BRANDING } from '../domain/tenant/branding.ts';
 import { DEFAULT_ASSYMO_INVOICING } from '../domain/tenant/invoicing.ts';
 import * as schema from './schema.ts';
-import { products, tenantHosts, tenants, suppliers, supplierProducts } from './schema.ts';
+import { materials, products, tenantHosts, tenants, suppliers, supplierProducts } from './schema.ts';
+import type { MaterialCategory, MaterialFlags, MaterialPricing, MaterialTextures } from '../domain/catalog/types.ts';
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL is not set — run with --env-file=.env.local');
@@ -15,6 +16,64 @@ const db = drizzle({ client: neon(process.env.DATABASE_URL), schema });
 
 const DEFAULT_HOSTS = ['localhost', 'localhost:3000', 'assymo.be'];
 const TENANT_ID = 'assymo';
+
+/** Assymo priceBook — overrides the all-zero `poort` defaults from
+ *  DEFAULT_PRICE_BOOK so a fresh dev environment shows non-trivial gate
+ *  pricing. Values are EUROS (not cents), matching the bare-named scalar
+ *  convention for priceBook fields. */
+const ASSYMO_PRICE_BOOK = {
+  ...DEFAULT_PRICE_BOOK,
+  poort: {
+    motorSurcharge: 850,
+    slidingSurcharge: 450,
+    perLeafBase: 125,
+  },
+};
+
+/** Gate materials seeded for Assymo. `pricing.gate.perSqm` is in EUROS,
+ *  matching the wall/roof-cover/floor convention. No textures bundled
+ *  yet — colour-only fallback renders fine in 3D. */
+const ASSYMO_GATE_MATERIALS: ReadonlyArray<{
+  slug: string;
+  name: string;
+  color: string;
+  categories: MaterialCategory[];
+  pricing: MaterialPricing;
+  flags: MaterialFlags;
+  textures: MaterialTextures | null;
+  tileSize: [number, number] | null;
+}> = [
+  {
+    slug: 'staal-antraciet',
+    name: 'Staal antraciet',
+    color: '#3a3d40',
+    categories: ['gate'],
+    pricing: { gate: { perSqm: 180 } },
+    flags: {},
+    textures: null,
+    tileSize: null,
+  },
+  {
+    slug: 'hout-verticaal',
+    name: 'Hout verticaal',
+    color: '#7c5a3a',
+    categories: ['gate'],
+    pricing: { gate: { perSqm: 140 } },
+    flags: {},
+    textures: null,
+    tileSize: null,
+  },
+  {
+    slug: 'aluminium-horizontaal',
+    name: 'Aluminium horizontaal',
+    color: '#a8aaad',
+    categories: ['gate'],
+    pricing: { gate: { perSqm: 220 } },
+    flags: {},
+    textures: null,
+    tileSize: null,
+  },
+];
 
 const DEMO_SUPPLIER = {
   slug: 'demo',
@@ -132,7 +191,7 @@ async function main() {
       displayName: 'Assymo',
       locale: 'nl',
       currency: 'EUR',
-      priceBook: DEFAULT_PRICE_BOOK,
+      priceBook: ASSYMO_PRICE_BOOK,
       branding: DEFAULT_ASSYMO_BRANDING,
       invoicing: DEFAULT_ASSYMO_INVOICING,
     })
@@ -158,7 +217,45 @@ async function main() {
 
   console.log(`[seed] tenant: ${TENANT_ID} (${DEFAULT_HOSTS.length} hosts)`);
 
-  // 2. Products — skip any (tenant, slug) that already exists.
+  // 2. Gate materials — skip any (tenant, slug) that already exists.
+  //    Phase 5.8.1: only the gate (poort) category is seeded; wall/roof/
+  //    floor/door catalogs were seeded during Phase 5.5.1 and are managed
+  //    via the admin catalog UI from then on.
+  let materialsInserted = 0;
+  let materialsSkipped = 0;
+  for (const m of ASSYMO_GATE_MATERIALS) {
+    const [existing] = await db
+      .select({ id: materials.id })
+      .from(materials)
+      .where(
+        and(
+          eq(materials.tenantId, TENANT_ID),
+          eq(materials.slug, m.slug),
+        ),
+      )
+      .limit(1);
+    if (existing) { materialsSkipped += 1; continue; }
+
+    await db.insert(materials).values({
+      id: randomUUID(),
+      tenantId: TENANT_ID,
+      categories: m.categories,
+      slug: m.slug,
+      name: m.name,
+      color: m.color,
+      textures: m.textures,
+      tileSize: m.tileSize,
+      pricing: m.pricing,
+      flags: m.flags,
+    });
+    materialsInserted += 1;
+  }
+
+  console.log(
+    `[seed] gate materials: ${materialsInserted} inserted / ${materialsSkipped} already present (total ${ASSYMO_GATE_MATERIALS.length})`,
+  );
+
+  // 3. Products — skip any (tenant, slug) that already exists.
   let productsInserted = 0;
   let productsSkipped = 0;
   for (const p of ASSYMO_SEED_PRODUCTS) {
@@ -194,7 +291,7 @@ async function main() {
     `[seed] products: ${productsInserted} inserted / ${productsSkipped} already present (total ${ASSYMO_SEED_PRODUCTS.length})`,
   );
 
-  // 3. Demo supplier + products — idempotent via onConflictDoNothing.
+  // 4. Demo supplier + products — idempotent via onConflictDoNothing.
   const [existingSupplier] = await db
     .select({ id: suppliers.id })
     .from(suppliers)

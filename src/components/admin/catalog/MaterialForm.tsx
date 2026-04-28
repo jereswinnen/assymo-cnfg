@@ -51,6 +51,7 @@ const schema = z.object({
   priceRoofCover: z.number().nullable(),
   priceFloor: z.number().nullable(),
   priceDoor: z.number().nullable(),
+  priceGate: z.number().nullable(),
   clearsOpenings: z.boolean(),
   isVoid: z.boolean(),
 });
@@ -84,6 +85,7 @@ export function MaterialForm({
           priceRoofCover: initial.pricing['roof-cover']?.perSqm ?? null,
           priceFloor: initial.pricing.floor?.perSqm ?? null,
           priceDoor: initial.pricing.door?.surcharge ?? null,
+          priceGate: initial.pricing.gate?.perSqm ?? null,
           clearsOpenings: initial.flags.clearsOpenings ?? false,
           isVoid: initial.flags.isVoid ?? false,
         }
@@ -101,6 +103,7 @@ export function MaterialForm({
           priceRoofCover: null,
           priceFloor: null,
           priceDoor: null,
+          priceGate: null,
           clearsOpenings: false,
           isVoid: false,
         },
@@ -113,6 +116,7 @@ export function MaterialForm({
   const hasRoofCover = categories.includes('roof-cover');
   const hasFloor = categories.includes('floor');
   const hasDoor = categories.includes('door');
+  const hasGate = categories.includes('gate');
 
   async function onSubmit(values: FormValues) {
     const pricing: MaterialPricing = {};
@@ -120,6 +124,7 @@ export function MaterialForm({
     if (values.categories.includes('roof-cover')) pricing['roof-cover'] = { perSqm: values.priceRoofCover ?? 0 };
     if (values.categories.includes('floor')) pricing.floor = { perSqm: values.priceFloor ?? 0 };
     if (values.categories.includes('door')) pricing.door = { surcharge: values.priceDoor ?? 0 };
+    if (values.categories.includes('gate')) pricing.gate = { perSqm: values.priceGate ?? 0 };
 
     const body: Record<string, unknown> = {
       tenantId,
@@ -364,7 +369,7 @@ export function MaterialForm({
         </Card>
 
         {/* Prijs — one input per selected pricing-bearing category */}
-        {(hasWall || hasRoofCover || hasFloor || hasDoor) && (
+        {(hasWall || hasRoofCover || hasFloor || hasDoor || hasGate) && (
           <Card>
             <CardHeader>
               <CardTitle>{t('admin.catalog.materials.field.pricing')}</CardTitle>
@@ -399,6 +404,14 @@ export function MaterialForm({
                   label={t('admin.catalog.materials.field.price.door')}
                   suffix="€"
                   name="priceDoor"
+                  form={form}
+                />
+              )}
+              {hasGate && (
+                <PriceRow
+                  label={t('admin.catalog.materials.field.price.gate')}
+                  suffix="€/m²"
+                  name="priceGate"
                   form={form}
                 />
               )}
@@ -508,7 +521,7 @@ function PriceRow({
 }: {
   label: string;
   suffix: string;
-  name: 'priceWall' | 'priceRoofCover' | 'priceFloor' | 'priceDoor';
+  name: 'priceWall' | 'priceRoofCover' | 'priceFloor' | 'priceDoor' | 'priceGate';
   form: ReturnType<typeof useForm<FormValues>>;
 }) {
   return (

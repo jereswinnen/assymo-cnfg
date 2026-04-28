@@ -29,6 +29,7 @@ import {
 import type { SupplierProductSnapshot } from '@/domain/supplier/snapshot';
 import { buildSupplierProductSnapshot } from '@/domain/supplier/snapshot';
 import type { PriceBook } from './priceBook';
+import { gateLineItems } from './gate';
 
 function findPrice(
   items: readonly { atomId: string; pricePerSqm: number }[],
@@ -88,12 +89,18 @@ export function postCount(width: number, depth: number): number {
 }
 
 /** Source annotation for line items produced from a supplier-product
- *  lookup rather than the material-based pricing path. */
-export interface LineItemSource {
-  kind: 'supplierProduct';
-  productId: string;
-  sku: string;
-}
+ *  lookup or the gate (poort) pricing path. */
+export type LineItemSource =
+  | {
+      kind: 'supplierProduct';
+      productId: string;
+      sku: string;
+    }
+  | {
+      kind: 'gate';
+      buildingId: string;
+      materialSlug: string;
+    };
 
 /** Structured line item — label formatting deferred to the caller so the
  *  quote can be rendered in any locale or surface (configurator UI, PDF,
@@ -315,6 +322,12 @@ export function calculateBuildingQuote(
       total: priceBook.postPrice,
     };
     return { lineItems: [item], total: priceBook.postPrice };
+  }
+
+  if (building.type === 'poort') {
+    const items = gateLineItems(building, materials, priceBook);
+    const total = items.reduce((sum, item) => sum + item.total, 0);
+    return { lineItems: items, total };
   }
 
   /** Supplier-sourced line items (stubs with total=0 included) are always

@@ -87,7 +87,8 @@ describe('pricing — supplier product branches', () => {
 
     const doorItem = lineItems.find((i) => i.source?.kind === 'supplierProduct');
     expect(doorItem).toBeDefined();
-    expect(doorItem?.source?.productId).toBe(DOOR_PRODUCT.id);
+    const doorSource = doorItem?.source;
+    expect(doorSource?.kind === 'supplierProduct' && doorSource.productId).toBe(DOOR_PRODUCT.id);
     expect(doorItem?.total).toBe(DOOR_PRODUCT.priceCents / 100);
 
     // No doorBase line item should appear (that key only appears on wall items)
@@ -170,7 +171,8 @@ describe('pricing — supplier product branches', () => {
 
     const winItem = lineItems.find((i) => i.source?.kind === 'supplierProduct');
     expect(winItem).toBeDefined();
-    expect(winItem?.source?.productId).toBe(WINDOW_PRODUCT.id);
+    const winSource = winItem?.source;
+    expect(winSource?.kind === 'supplierProduct' && winSource.productId).toBe(WINDOW_PRODUCT.id);
     expect(winItem?.total).toBe(WINDOW_PRODUCT.priceCents / 100);
 
     // Wall item should have extrasCost 0 (windowFee skipped for supplier windows)
@@ -250,6 +252,7 @@ describe('pricing — supplier product branches', () => {
     const stubItem = lineItems.find((i) => i.labelKey === 'quote.line.supplierMissing');
     expect(stubItem).toBeDefined();
     expect(stubItem?.total).toBe(0);
-    expect(stubItem?.source?.productId).toBe(archived.id);
+    const stubSource = stubItem?.source;
+    expect(stubSource?.kind === 'supplierProduct' && stubSource.productId).toBe(archived.id);
   });
 });

@@ -7,12 +7,14 @@ import {
   buildRoofCoverCatalog,
   buildFloorCatalog,
   buildDoorCatalog,
+  buildGateCatalog,
   filterCatalogAllowing,
   type WallCatalogEntry,
   type RoofTrimCatalogEntry,
   type RoofCoveringCatalogEntry,
   type FloorCatalogEntry,
   type DoorCatalogEntry,
+  type GateCatalogEntry,
 } from '@/domain/materials';
 import {
   filterMaterialsForProduct,
@@ -27,6 +29,7 @@ interface CurrentSelections {
   roofCover?: string | null;
   floor?: string | null;
   door?: string | null;
+  gate?: string | null;
 }
 
 export interface TenantCatalogs {
@@ -35,6 +38,7 @@ export interface TenantCatalogs {
   roofCover: readonly RoofCoveringCatalogEntry[];
   floor: readonly FloorCatalogEntry[];
   door: readonly DoorCatalogEntry[];
+  gate: readonly GateCatalogEntry[];
   /** Resolved product when the hook was called with a matching
    *  `sourceProductId`. Useful for UI affordances like "Beperkt door
    *  bouwset" chips. Null when unconstrained. */
@@ -63,6 +67,7 @@ export function useTenantCatalogs(
     const roofCover = buildRoofCoverCatalog(rcovMats);
     const floor     = buildFloorCatalog(floorMats);
     const door      = buildDoorCatalog(doorMats);
+    const gate      = buildGateCatalog(materials);
 
     return {
       wall: filterCatalogAllowing(
@@ -93,7 +98,11 @@ export function useTenantCatalogs(
         door, current.door ?? null, materials, 'door',
         (m) => ({ atomId: m.slug, surcharge: m.pricing.door?.surcharge ?? 0 }),
       ),
+      gate: filterCatalogAllowing(
+        gate, current.gate ?? null, materials, 'gate',
+        (m) => ({ atomId: m.slug, pricePerSqm: m.pricing.gate?.perSqm ?? 0 }),
+      ),
       sourceProduct,
     };
-  }, [materials, sourceProduct, current.wall, current.roofTrim, current.roofCover, current.floor, current.door]);
+  }, [materials, sourceProduct, current.wall, current.roofTrim, current.roofCover, current.floor, current.door, current.gate]);
 }

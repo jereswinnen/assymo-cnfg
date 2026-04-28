@@ -66,7 +66,8 @@ describe('buildQuoteSnapshot — supplier product freezing', () => {
     const allLineItems = snap.items.flatMap((i) => i.lineItems);
     const doorItem = allLineItems.find((i) => i.source?.kind === 'supplierProduct');
     expect(doorItem).toBeDefined();
-    expect(doorItem?.source?.productId).toBe(DOOR_PRODUCT.id);
+    const doorSource = doorItem?.source;
+    expect(doorSource?.kind === 'supplierProduct' && doorSource.productId).toBe(DOOR_PRODUCT.id);
     expect(doorItem?.supplierProduct).toBeDefined();
     expect(doorItem?.supplierProduct?.id).toBe(DOOR_PRODUCT.id);
     expect(doorItem?.supplierProduct?.sku).toBe(DOOR_PRODUCT.sku);
@@ -116,7 +117,8 @@ describe('buildQuoteSnapshot — supplier product freezing', () => {
     // buildSupplierProductSnapshot is only called for active products;
     // the archived product won't be found in the active-only pricing pass
     // so supplierProduct is not frozen (the pricing helper returns sku:'')
-    expect(stub?.source?.productId).toBe(archived.id);
+    const stubSource = stub?.source;
+    expect(stubSource?.kind === 'supplierProduct' && stubSource.productId).toBe(archived.id);
   });
 });
 

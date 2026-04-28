@@ -1,21 +1,22 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import { t } from '@/lib/i18n';
 import { useTenant } from '@/lib/TenantProvider';
-import { applyProductDefaults } from '@/domain/catalog';
+import { applyProductDefaults, type MaterialCategory } from '@/domain/catalog';
 import type { BuildingType } from '@/domain/building';
+import { BUILDING_KIND_META } from '@/domain/building/kinds';
+import { filterTrayEntries } from '@/lib/tray';
 
-const PRIMITIVE_ITEMS: { type: BuildingType; icon: string }[] = [
-  { type: 'paal', icon: '📍' },
-  { type: 'muur', icon: '🧱' },
-];
-
-const STRUCTURAL_ITEMS: { type: BuildingType; icon: string }[] = [
-  { type: 'berging', icon: '🏠' },
-  { type: 'overkapping', icon: '☂️' },
-];
+const TRAY_VIEW: Record<BuildingType, { icon: string }> = {
+  paal:        { icon: '📍' },
+  muur:        { icon: '🧱' },
+  poort:       { icon: '🚪' },
+  berging:     { icon: '🏠' },
+  overkapping: { icon: '☂️' },
+};
 
 export default function ObjectsTab() {
   const buildings = useConfigStore((s) => s.buildings);
@@ -27,6 +28,20 @@ export default function ObjectsTab() {
   const viewMode = useUIStore((s) => s.viewMode);
   const { catalog } = useTenant();
   const hasProducts = catalog.products.length > 0;
+
+  const availableCategories = useMemo<ReadonlySet<MaterialCategory>>(() => {
+    const set = new Set<MaterialCategory>();
+    for (const m of catalog.materials) {
+      if (m.archivedAt) continue;
+      for (const c of m.categories) set.add(c);
+    }
+    return set;
+  }, [catalog.materials]);
+
+  const { primitives: primitiveEntries, structurals: structuralEntries } = useMemo(
+    () => filterTrayEntries(BUILDING_KIND_META, availableCategories),
+    [availableCategories],
+  );
 
   const handleDragStart = (e: React.DragEvent, type: BuildingType) => {
     e.dataTransfer.setData('application/building-type', type);
@@ -91,8 +106,7 @@ export default function ObjectsTab() {
             {t('configurator.tray.primitives')}
           </p>
           <div className="grid grid-cols-2 gap-2">
-            {/* Paal + Muur are always shown */}
-            {PRIMITIVE_ITEMS.map(({ type, icon }) => (
+            {primitiveEntries.map(({ type }) => (
               <div
                 key={type}
                 draggable={canAdd}
@@ -106,14 +120,13 @@ export default function ObjectsTab() {
                     : 'opacity-50 cursor-not-allowed'
                 }`}
               >
-                <span className="text-xl">{icon}</span>
+                <span className="text-xl">{TRAY_VIEW[type].icon}</span>
                 <span className="text-xs font-medium text-muted-foreground">
                   {t(`building.name.${type}`)}
                 </span>
               </div>
             ))}
-            {/* Overkapping + Berging: shown only when no products (fallback) */}
-            {!hasProducts && STRUCTURAL_ITEMS.map(({ type, icon }) => (
+            {!hasProducts && structuralEntries.map(({ type }) => (
               <div
                 key={type}
                 draggable={canAdd}
@@ -127,7 +140,7 @@ export default function ObjectsTab() {
                     : 'opacity-50 cursor-not-allowed'
                 }`}
               >
-                <span className="text-xl">{icon}</span>
+                <span className="text-xl">{TRAY_VIEW[type].icon}</span>
                 <span className="text-xs font-medium text-muted-foreground">
                   {t(`building.name.${type}`)}
                 </span>

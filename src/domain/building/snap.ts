@@ -199,7 +199,7 @@ export function detectPoleSnap(
     const d = b.dimensions.depth;
 
     let edges: { fixed: 'x' | 'z'; val: number; min: number; max: number }[];
-    if (b.type === 'muur') {
+    if (b.type === 'muur' || b.type === 'poort') {
       // Muurs are thin walls — snap the pole to the wall's midline so it
       // sits ON the wall rather than at one of its two parallel edges.
       // For vertical muurs, dimensions.width is the wall length (along Z)
@@ -257,8 +257,8 @@ export function detectPoleSnap(
     const cz = tz + d / 2;
 
     let targets: [number, number][];
-    if (b.type === 'muur') {
-      // For a muur, meaningful detents are the two midline endpoints.
+    if (b.type === 'muur' || b.type === 'poort') {
+      // For a muur or poort, meaningful detents are the two midline endpoints.
       if (b.orientation === 'vertical') {
         const midX = lx + d / 2;
         targets = [[midX, tz], [midX, tz + w]];
@@ -323,7 +323,7 @@ export function detectWallSnap(
   // front/back (horizontal wall) or left/right (vertical) edge, OR the
   // building's centerline so the wall can split it down the middle.
   for (const b of buildings) {
-    if (b.type === 'paal' || b.type === 'muur') continue;
+    if (b.type === 'paal' || b.type === 'muur' || b.type === 'poort') continue;
 
     const [lx, tz] = b.position;
     const w = b.dimensions.width;
@@ -388,7 +388,7 @@ export function detectWallSnap(
       targets.push([b.position[0] + b.dimensions.width / 2, b.position[1] + b.dimensions.depth / 2]);
       continue;
     }
-    if (b.type === 'muur') {
+    if (b.type === 'muur' || b.type === 'poort') {
       if (b.orientation === 'horizontal') {
         const cy = b.position[1] + b.dimensions.depth / 2;
         targets.push([b.position[0], cy]);

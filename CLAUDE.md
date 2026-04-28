@@ -37,11 +37,11 @@ Three layers, strictly separated:
 
 Pure TypeScript. No React, no three.js, no zustand. Safe to import from API routes, admin pages, and the future webshop without pulling a browser runtime.
 
-- `building/` — entity types (`BuildingEntity`, `WallConfig`, `RoofConfig`, `SnapConnection`), geometric constants, snap detection, opening geometry helpers
+- `building/` — entity types (`BuildingEntity`, `WallConfig`, `RoofConfig`, `SnapConnection`), geometric constants, snap detection, opening geometry helpers. `BuildingType` is `'overkapping' | 'berging' | 'paal' | 'muur' | 'poort'`; per-type metadata (footprint mode, allowed connections, tray copy) lives in the `BUILDING_KIND_META` registry in `kinds.ts` — extend the registry to add a new primitive, never branch on `type` in component code.
 - `config/` — the canonical `ConfigData` contract + versioning (`CONFIG_VERSION`), `canonicalizeConfig` + SHA-256 `contentHash` for per-tenant dedup on save, `migrateConfig` for legacy input, pure `mutations.ts` (used by stores and future API), `validateConfig` returning stable error codes
 - `pricing/` — `PriceBook` (per-tenant scalar dials) + `calculateTotalQuote`; line items are structured `{ labelKey, labelParams }` so UIs format labels at render time
 - `orders/` — pure order types (`OrderStatus`, `OrderQuoteSnapshot`, `OrderConfigSnapshot`, `OrderRecord`), state machine (`ALLOWED_TRANSITIONS`, `validateOrderTransition`, `allowedNextStatuses`), and `buildQuoteSnapshot` / `buildConfigSnapshot` for freezing the priced quote + ConfigData at submit time
-- `catalog/` — per-tenant material + product catalog types + validators (`MaterialRow`, `ProductRow`, `validateMaterialCreate/Patch`, `validateProductCreate/Patch`, `applyProductDefaults`, `filterMaterialsForProduct`, `clampDimensions`, slug helpers). Products are starter kits built on `overkapping` / `berging`; `paal` + `muur` stay engine primitives. Consumed by admin + shop API routes, the configurator hydration logic, and `TenantContext.catalog.{materials, products}`.
+- `catalog/` — per-tenant material + product catalog types + validators (`MaterialRow`, `ProductRow`, `validateMaterialCreate/Patch`, `validateProductCreate/Patch`, `applyProductDefaults`, `filterMaterialsForProduct`, `clampDimensions`, slug helpers). `MaterialCategory` is `'wall' | 'roof-cover' | 'roof-trim' | 'floor' | 'door' | 'gate'`; the `'gate'` category was added in Phase 5.8.1 for the `poort` primitive (pricing shape: `gate.perSqm` in EUROS). Products are starter kits built on `overkapping` / `berging`; `paal` + `muur` + `poort` stay engine primitives. Consumed by admin + shop API routes, the configurator hydration logic, and `TenantContext.catalog.{materials, products}`.
 - `materials/` — per-category view types (`WallCatalogEntry` etc.), row→view converters (`buildWallCatalog` …), `getAtom`, `getAtomColor`, `getEffectiveWallMaterial`, `getEffectiveDoorMaterial`. All helpers take `MaterialRow[]` — framework-free, zero global state. Hardcoded material registry removed in Phase 5.5.1; DB-backed catalog is the single source of truth.
 - `tenant/` — `TenantContext` with `priceBook` + `branding` + `invoicing` + `catalog: { materials: MaterialRow[], products: ProductRow[] }` + `supplierCatalog: { suppliers: SupplierRow[], products: SupplierProductRow[] }`; host-based resolver; `brandingToCssVars` + `cssVarsToInlineBlock` for the branded shell; `validateBrandingPatch`, `validateInvoicingPatch` for admin PATCH validation. Phase 4.5's `enabledMaterials` allow-list was absorbed by row ownership in the `materials` table.
 - `invoicing/` — pure numbering (`formatInvoiceNumber`), VAT math (`computeInvoiceAmounts`), payment-status derivation (`derivePaymentStatus`), supplier-snapshot builder, and patch validators (`validateIssueInvoiceInput`, `validatePaymentInput`). Also exports `VAT_RATES` (canonical Belgian set `[0, 0.06, 0.12, 0.21]`) — consumed by both the tenant invoicing form and the issue-invoice dialog's VAT picker. All framework-free.
@@ -96,7 +96,7 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   the in-memory `@/domain/tenant` registry for now).
 - `migrations/` — committed SQL. Never edit a migration by hand after
   it's applied in any environment; write a follow-up migration instead.
-- `seed.ts` — idempotent upsert of the `assymo` tenant from `DEFAULT_PRICE_BOOK` + hosts + the two example products (Standaard Overkapping 4×3, Standaard Berging 3×3). No material seed — every environment seeded materials during Phase 5.5.1. Subsequent runs are no-ops.
+- `seed.ts` — idempotent upsert of the `assymo` tenant from an Assymo-tuned priceBook (overrides `DEFAULT_PRICE_BOOK.poort` zeros with real EUR values: `motorSurcharge: 850`, `slidingSurcharge: 450`, `perLeafBase: 125`) + hosts + the two example products (Standaard Overkapping 4×3, Standaard Berging 3×3) + three example gate materials (`staal-antraciet`, `hout-verticaal`, `aluminium-horizontaal`; `pricing.gate.perSqm` in EUROS, no textures). Wall/roof/floor/door catalogs were seeded during Phase 5.5.1; subsequent runs are no-ops apart from re-applying the tenant priceBook on conflict.
 
 ### Routes
 
@@ -345,6 +345,7 @@ Anything that varies per brand lives on `TenantContext` — never in module-scop
 
 - Price numbers → `priceBook` on `TenantContext`
 - Material availability → `catalog.materials: MaterialRow[]` on `TenantContext`; configurator pickers read via `useTenantCatalogs()` (in `src/lib/`), which memoises per-category catalogs built from the DB-backed row list. Phase 4.5's allow-list (`enabledMaterials`) removed — row ownership in the `materials` table is the single gate.
+- Engine primitives are tray-gated by catalog presence: the `poort` (gate) tray button only renders when the tenant has at least one `categories: ['gate']` material. Phase 5.8.1 added `poort` (registry-driven via `BUILDING_KIND_META`; configurable parts/swing/material/motor; pricing dials on `priceBook.poort` in EUROS, per-m² material cost on `MaterialPricing.gate.perSqm`).
 - UI copy → i18n overlay via tenant later; for now `src/lib/i18n.ts` is the source
 
 ## Conventions

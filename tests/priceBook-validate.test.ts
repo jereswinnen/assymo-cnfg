@@ -73,4 +73,63 @@ describe('validatePriceBookPatch', () => {
     expect(priceBook).toEqual({ postPrice: 150 });
     expect(errors).toEqual([]);
   });
+
+  it('accepts a full poort sub-patch', () => {
+    const { priceBook, errors } = validatePriceBookPatch({
+      poort: {
+        motorSurcharge: 850,
+        slidingSurcharge: 450,
+        perLeafBase: 125,
+      },
+    });
+    expect(priceBook.poort).toEqual({
+      motorSurcharge: 850,
+      slidingSurcharge: 450,
+      perLeafBase: 125,
+    });
+    expect(errors).toEqual([]);
+  });
+
+  it('accepts a partial poort sub-patch (PATCH semantics)', () => {
+    const { priceBook, errors } = validatePriceBookPatch({
+      poort: { motorSurcharge: 900 },
+    });
+    expect(priceBook.poort).toEqual({ motorSurcharge: 900 });
+    expect(errors).toEqual([]);
+  });
+
+  it('rejects invalid values inside poort with a dotted path', () => {
+    const { priceBook, errors } = validatePriceBookPatch({
+      poort: { motorSurcharge: 850, slidingSurcharge: -1 },
+    });
+    expect(priceBook.poort).toEqual({ motorSurcharge: 850 });
+    expect(errors).toContain('poort.slidingSurcharge');
+  });
+
+  it('rejects non-numeric values inside poort', () => {
+    const { errors } = validatePriceBookPatch({
+      poort: { perLeafBase: '125' as unknown },
+    });
+    expect(errors).toContain('poort.perLeafBase');
+  });
+
+  it('rejects non-finite values inside poort', () => {
+    const { errors } = validatePriceBookPatch({
+      poort: { motorSurcharge: Number.POSITIVE_INFINITY },
+    });
+    expect(errors).toContain('poort.motorSurcharge');
+  });
+
+  it('rejects values over PRICE_BOOK_MAX inside poort', () => {
+    const { errors } = validatePriceBookPatch({
+      poort: { perLeafBase: PRICE_BOOK_MAX + 1 },
+    });
+    expect(errors).toContain('poort.perLeafBase');
+  });
+
+  it('flags poort itself when not an object', () => {
+    const { priceBook, errors } = validatePriceBookPatch({ poort: 'nope' });
+    expect(priceBook.poort).toBeUndefined();
+    expect(errors).toContain('poort');
+  });
 });

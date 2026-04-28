@@ -4,6 +4,7 @@ export type {
   RoofCoveringCatalogEntry,
   FloorCatalogEntry,
   DoorCatalogEntry,
+  GateCatalogEntry,
   BaseCatalogEntry,
 } from './types';
 export * from './filter';

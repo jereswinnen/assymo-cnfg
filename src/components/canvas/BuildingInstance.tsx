@@ -26,9 +26,9 @@ export default function BuildingInstance({ buildingId }: BuildingInstanceProps) 
 
   const isSelected = selectedBuildingId === buildingId;
 
-  const isVertMuur = building.type === 'muur' && building.orientation === 'vertical';
-  const bw = isVertMuur ? building.dimensions.depth : building.dimensions.width;
-  const bd = isVertMuur ? building.dimensions.width : building.dimensions.depth;
+  const isVertWallLike = (building.type === 'muur' || building.type === 'poort') && building.orientation === 'vertical';
+  const bw = isVertWallLike ? building.dimensions.depth : building.dimensions.width;
+  const bd = isVertWallLike ? building.dimensions.width : building.dimensions.depth;
 
   return (
     <BuildingProvider value={buildingId}>
@@ -43,8 +43,8 @@ export default function BuildingInstance({ buildingId }: BuildingInstanceProps) 
         <Building />
         {isSelected && (
           <SelectionOutline
-            width={building.type === 'muur' && building.orientation === 'vertical' ? building.dimensions.depth : building.dimensions.width}
-            depth={building.type === 'muur' && building.orientation === 'vertical' ? building.dimensions.width : building.dimensions.depth}
+            width={isVertWallLike ? building.dimensions.depth : building.dimensions.width}
+            depth={isVertWallLike ? building.dimensions.width : building.dimensions.depth}
             height={getEffectiveHeight(building, defaultHeight)}
             isPole={building.type === 'paal'}
           />

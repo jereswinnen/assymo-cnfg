@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vite-plus/test';
-import { buildWallCatalog, filterCatalogAllowing } from '@/domain/materials';
+import { buildWallCatalog, buildGateCatalog, filterCatalogAllowing } from '@/domain/materials';
 import type { MaterialRow } from '@/domain/catalog';
 
 const row = (
@@ -36,6 +36,31 @@ describe('buildWallCatalog', () => {
     const rows = [row({ slug: 'glass', flags: { clearsOpenings: true } })];
     const out = buildWallCatalog(rows);
     expect(out[0].clearsOpenings).toBe(true);
+  });
+});
+
+describe('buildGateCatalog', () => {
+  it('returns one entry per non-archived gate material, skipping other categories', () => {
+    const rows = [
+      row({ id: 'a', slug: 'sectional', category: 'gate', pricing: { gate: { perSqm: 180 } } }),
+      row({ id: 'b', slug: 'mesh', category: 'gate', pricing: { gate: { perSqm: 120 } } }),
+      row({ id: 'c', slug: 'old', category: 'gate', archivedAt: '2026-01-01T00:00:00Z', pricing: { gate: { perSqm: 90 } } }),
+      row({ id: 'd', slug: 'wood' }),
+    ];
+    const out = buildGateCatalog(rows);
+    expect(out.map((e) => e.atomId)).toEqual(['sectional', 'mesh']);
+  });
+
+  it('maps gate.perSqm pricing through', () => {
+    const rows = [row({ slug: 'sectional', category: 'gate', pricing: { gate: { perSqm: 180 } } })];
+    const out = buildGateCatalog(rows);
+    expect(out[0]).toEqual({ atomId: 'sectional', pricePerSqm: 180 });
+  });
+
+  it('defaults pricePerSqm to 0 when gate pricing is missing', () => {
+    const rows = [row({ slug: 'plain', category: 'gate', pricing: {} })];
+    const out = buildGateCatalog(rows);
+    expect(out[0].pricePerSqm).toBe(0);
   });
 });
 

@@ -45,8 +45,9 @@ export function buildQuoteSnapshot(input: BuildQuoteSnapshotInput): OrderQuoteSn
 
   // Freeze full supplier-product data onto any line item that references one
   const frozenLineItems = lineItems.map((item) => {
-    if (!item.source || item.source.kind !== 'supplierProduct') return item;
-    const productRow = supplierProducts.find((p) => p.id === item.source!.productId);
+    const source = item.source;
+    if (!source || source.kind !== 'supplierProduct') return item;
+    const productRow = supplierProducts.find((p) => p.id === source.productId);
     if (!productRow) return item;
     return { ...item, supplierProduct: buildSupplierProductSnapshot(productRow) };
   });

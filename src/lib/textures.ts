@@ -113,6 +113,48 @@ export function useDoorTexture(
   return textures;
 }
 
+/** Returns PBR textures for a gate panel, tiled to match the given dimensions */
+export function useGateTexture(
+  materialId: string,
+  panelWidth: number,
+  panelHeight: number,
+): PBRTextures | null {
+  const { catalog: { materials } } = useTenant();
+  const atom = getAtom(materials, materialId, 'gate');
+  const paths = atom?.textures ?? null;
+  const tileSize = atom?.tileSize ?? [1.5, 1.5];
+
+  const textures = useMemo(() => {
+    if (!paths) return null;
+    return {
+      map: loadTexture(paths.color, true).clone(),
+      normalMap: loadTexture(paths.normal, false).clone(),
+      roughnessMap: loadTexture(paths.roughness, false).clone(),
+    };
+  }, [paths]);
+
+  useEffect(() => {
+    if (textures) {
+      const rx = panelWidth / tileSize[0];
+      const ry = panelHeight / tileSize[1];
+      textures.map.repeat.set(rx, ry);
+      textures.normalMap.repeat.set(rx, ry);
+      textures.roughnessMap.repeat.set(rx, ry);
+    }
+  }, [textures, tileSize, panelWidth, panelHeight]);
+
+  useEffect(() => {
+    if (!textures) return;
+    return () => {
+      textures.map.dispose();
+      textures.normalMap.dispose();
+      textures.roughnessMap.dispose();
+    };
+  }, [textures]);
+
+  return textures;
+}
+
 /** Returns PBR textures for a roof covering, tiled to match the given dimensions */
 export function useRoofTexture(
   coveringId: string,

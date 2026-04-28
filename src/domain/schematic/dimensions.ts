@@ -95,7 +95,7 @@ const OFFSET_MUUR_LENGTH = 0.5;
 const MIN_SEGMENT_LENGTH = 0.05;
 
 function isStructural(b: BuildingEntity): boolean {
-  return b.type !== 'paal' && b.type !== 'muur';
+  return b.type !== 'paal' && b.type !== 'muur' && b.type !== 'poort';
 }
 
 function fmt1(value: number): string {

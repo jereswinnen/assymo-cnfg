@@ -155,6 +155,7 @@ const nl: Record<string, string> = {
   "building.name.overkapping": "Overkapping",
   "building.name.paal": "Paal",
   "building.name.muur": "Muur",
+  "building.name.poort": "Poort",
   "connection.open": "Open doorgang",
   "connection.closed": "Gesloten",
 
@@ -183,8 +184,23 @@ const nl: Record<string, string> = {
   "material.inherit": "Volgt hoofdmateriaal",
   "material.override": "Eigen materiaal",
   "sidebar.section.walls": "Wanden & Openingen",
+  "sidebar.section.gate": "Poort",
   "sidebar.section.quote": "Offerte",
   "sidebar.connections": "Verbindingen",
+
+  // Gate (poort) config panel
+  "configurator.gate.parts": "Aantal delen",
+  "configurator.gate.parts.one": "1 deel",
+  "configurator.gate.parts.two": "2 delen",
+  "configurator.gate.partWidth": "Breedte per deel",
+  "configurator.gate.height": "Hoogte",
+  "configurator.gate.material": "Materiaal",
+  "configurator.gate.material.placeholder": "Kies materiaal",
+  "configurator.gate.swing": "Beweging",
+  "configurator.gate.swing.inward": "Naar binnen",
+  "configurator.gate.swing.outward": "Naar buiten",
+  "configurator.gate.swing.sliding": "Schuivend",
+  "configurator.gate.motorized": "Gemotoriseerd",
 
   // Config code
   "code.title": "Configuratiecode",
@@ -251,6 +267,10 @@ const nl: Record<string, string> = {
   "admin.tenant.section.hosts": "Hosts",
   "admin.tenant.section.branding": "Branding",
   "admin.tenant.section.priceBook": "Prijsboek",
+  "admin.tenant.section.priceBookPoort": "Poorten",
+  "admin.priceBook.poort.motorSurcharge": "Motor-toeslag",
+  "admin.priceBook.poort.slidingSurcharge": "Schuiftoeslag",
+  "admin.priceBook.poort.perLeafBase": "Per deel — basisbedrag",
   "admin.tenant.hosts.add": "Host toevoegen",
   "admin.tenant.hosts.placeholder": "partner.configurator.be",
   "admin.tenant.hosts.empty": "Nog geen hosts gekoppeld.",
@@ -595,6 +615,7 @@ const nl: Record<string, string> = {
   "admin.catalog.materials.category.roof-trim": "Daktrim",
   "admin.catalog.materials.category.floor": "Vloeren",
   "admin.catalog.materials.category.door": "Deuren",
+  "admin.catalog.materials.category.gate": "Poorten",
 
   "admin.catalog.materials.field.name": "Naam",
   "admin.catalog.materials.field.slug": "Slug",
@@ -762,6 +783,7 @@ const nl: Record<string, string> = {
     "Prijs als dakbedekking (per m²)",
   "admin.catalog.materials.field.price.floor": "Prijs als vloer (per m²)",
   "admin.catalog.materials.field.price.door": "Toeslag als deur",
+  "admin.catalog.materials.field.price.gate": "Prijs als poort (per m²)",
 
   "admin.catalog.products.archive.title": "Product archiveren?",
   "admin.catalog.products.archive.description":
@@ -983,6 +1005,13 @@ const nl: Record<string, string> = {
   "quote.line.supplierDoor": "Deur — {name} ({sku})",
   "quote.line.supplierWindow": "Raam — {name} ({sku})",
   "quote.line.supplierMissing": "Ontbrekend product ({id})",
+
+  // Quote line items for gates (poort)
+  "quote.line.gateMaterial": "Poort — {materialName} ({sqm} m²)",
+  "quote.line.gateMaterialMissing": "Poort — ontbrekend materiaal ({materialId})",
+  "quote.line.gatePerLeaf": "Poort — basis per deel × {count}",
+  "quote.line.gateMotor": "Poort — motor",
+  "quote.line.gateSliding": "Poort — schuifmechanisme",
 };
 
 export function t(

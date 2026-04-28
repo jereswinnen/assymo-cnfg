@@ -4,6 +4,7 @@ import type {
   BuildingType,
   FloorConfig,
   FloorMaterialId,
+  GateConfig,
   Orientation,
   PolesConfig,
   RoofConfig,
@@ -14,6 +15,7 @@ import type {
   WallSide,
 } from '@/domain/building';
 import {
+  createGateBuildingEntity,
   DEFAULT_DIMENSIONS,
   DEFAULT_FLOOR,
   DEFAULT_PRIMARY_MATERIAL,
@@ -39,6 +41,7 @@ function wallsForType(type: BuildingType): Record<string, WallConfig> {
   switch (type) {
     case 'overkapping':
     case 'paal':
+    case 'poort':
       return {};
     case 'berging':
       return {
@@ -59,6 +62,10 @@ function wallsForType(type: BuildingType): Record<string, WallConfig> {
 export const INITIAL_DEFAULT_HEIGHT = 2.6;
 
 export function createBuilding(type: BuildingType, position: [number, number]): BuildingEntity {
+  if (type === 'poort') {
+    return createGateBuildingEntity({ position });
+  }
+
   const dimensions = type === 'paal'
     ? { ...POLE_DIMENSIONS }
     : type === 'muur'
@@ -112,7 +119,7 @@ export function addBuilding(
   }
 
   let building: BuildingEntity;
-  if (productDefaults) {
+  if (productDefaults && type !== 'poort') {
     const baseDims = type === 'paal'
       ? { ...POLE_DIMENSIONS }
       : type === 'muur'
@@ -296,6 +303,31 @@ export function updateBuildingFloor(
   patch: Partial<FloorConfig>,
 ): ConfigData {
   return mapBuilding(cfg, id, (b) => ({ ...b, floor: { ...b.floor, ...patch } }));
+}
+
+/** Patch a poort building's `gateConfig`. No-op when the id doesn't exist
+ *  or when the targeted building is not a poort. The footprint dimensions
+ *  derived from `partCount`, `partWidthMm`, and `heightMm` are kept in sync
+ *  with the patched config so 3D/2D consumers stay correct without a
+ *  separate sync pass. */
+export function updateGateConfig(
+  cfg: ConfigData,
+  id: string,
+  patch: Partial<GateConfig>,
+): ConfigData {
+  return mapBuilding(cfg, id, (b) => {
+    if (b.type !== 'poort' || !b.gateConfig) return b;
+    const nextGate: GateConfig = { ...b.gateConfig, ...patch };
+    return {
+      ...b,
+      gateConfig: nextGate,
+      dimensions: {
+        ...b.dimensions,
+        width: (nextGate.partCount * nextGate.partWidthMm) / 1000,
+        height: nextGate.heightMm / 1000,
+      },
+    };
+  });
 }
 
 /** Set primary material for a building and every building connected to it

@@ -1,4 +1,4 @@
-export type BuildingType = 'overkapping' | 'berging' | 'paal' | 'muur';
+export type BuildingType = 'overkapping' | 'berging' | 'paal' | 'muur' | 'poort';
 export type Orientation = 'horizontal' | 'vertical';
 export type RoofType = 'flat' | 'pitched';
 export type RoofCoveringId = 'dakpannen' | 'riet' | 'epdm' | 'polycarbonaat' | 'metaal';
@@ -40,6 +40,17 @@ export interface WallConfig {
   doorMirror?: boolean;
   doorSupplierProductId?: string | null;
   windows: WallWindow[];
+}
+
+export type GateSwingDirection = 'inward' | 'outward' | 'sliding';
+
+export interface GateConfig {
+  partCount: 1 | 2;
+  partWidthMm: number;
+  heightMm: number;
+  materialId: string;
+  swingDirection: GateSwingDirection;
+  motorized: boolean;
 }
 
 export type FloorMaterialId = 'geen' | 'tegels' | 'beton' | 'hout';
@@ -95,6 +106,8 @@ export interface BuildingEntity {
    *  buildings. Rides along into `configSnapshot` at order submit so
    *  historical orders record which product spawned each building. */
   sourceProductId?: string;
+  /** Only set when `type === 'poort'`. */
+  gateConfig?: GateConfig;
 }
 
 export interface SnapConnection {
