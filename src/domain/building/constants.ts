@@ -145,12 +145,17 @@ export const DIMENSION_CONSTRAINTS: Record<string, DimensionConstraints> = {
     depth:  { min: 0.15, max: 0.15, step: 0 },
     height: { min: 2.2,  max: 3,   step: 0.1 },
   },
+  poort: {
+    width:  { min: 0.5,  max: 6,    step: 0.5 },  // 0.5–3m per part, 1 or 2 parts
+    depth:  { min: 0.15, max: 0.15, step: 0 },    // gates are thin like walls
+    height: { min: 1.5,  max: 3,    step: 0.1 },  // shorter than walls — gates often 2.0m
+  },
 };
 
 export function getConstraints(type: BuildingType): DimensionConstraints {
   if (type === 'muur') return DIMENSION_CONSTRAINTS.muur;
   if (type === 'paal') return DIMENSION_CONSTRAINTS.paal;
-  if (type === 'poort') return DIMENSION_CONSTRAINTS.muur;
+  if (type === 'poort') return DIMENSION_CONSTRAINTS.poort;
   return DIMENSION_CONSTRAINTS.structural;
 }
 

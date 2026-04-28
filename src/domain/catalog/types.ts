@@ -124,6 +124,8 @@ export type ValidationResult<T> =
   | { ok: true; value: T }
   | { ok: false; errors: ValidationFieldError[] };
 
+// 'gate' is intentionally absent here until Task 2 lands the validator + pricing shape.
+// The MaterialCategory type union admits 'gate'; the runtime accept-list does not yet.
 export const MATERIAL_CATEGORIES: readonly MaterialCategory[] = [
   'wall',
   'roof-cover',

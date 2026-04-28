@@ -3,6 +3,8 @@ import {
   createGateBuildingEntity,
   defaultGateConfig,
 } from '@/domain/building';
+import { validateConfig } from '@/domain/config';
+import { makeConfig } from './fixtures';
 
 describe('defaultGateConfig', () => {
   it('returns the documented defaults', () => {
@@ -62,5 +64,23 @@ describe('createGateBuildingEntity', () => {
   it('doubles the footprint width for 2-part gates', () => {
     const e = createGateBuildingEntity({ gateConfig: { partCount: 2 } });
     expect(e.dimensions.width).toBeCloseTo(3.0, 6);
+  });
+
+  it('produces a poort that satisfies validateConfig out of the box', () => {
+    // A fresh poort defaults to 1500mm × 2000mm. Round-trip it through
+    // validateConfig (alongside a structural building, since validateConfig
+    // requires one) and assert no out_of_range errors fire on the poort.
+    const poort = createGateBuildingEntity();
+    const cfg = makeConfig({
+      buildings: [
+        // makeConfig's default berging stays as the structural anchor; we
+        // append the poort entity afterwards.
+        ...makeConfig().buildings,
+        poort,
+      ],
+    });
+    const errors = validateConfig(cfg);
+    const poortErrors = errors.filter((e) => e.path.startsWith('buildings[1]'));
+    expect(poortErrors).toEqual([]);
   });
 });
