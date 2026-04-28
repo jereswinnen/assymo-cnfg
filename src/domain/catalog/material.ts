@@ -133,7 +133,7 @@ function validatePricing(
       out.door = { surcharge: s };
       continue;
     }
-    // wall / roof-cover / floor: expect { perSqm: number }
+    // wall / roof-cover / floor / gate: expect { perSqm: number }
     const p = (entry as Record<string, unknown>).perSqm;
     if (typeof p !== 'number' || p < 0 || !Number.isFinite(p) || entryKeys.some((k) => k !== 'perSqm')) {
       errors.push({ field: `pricing.${key}`, code: 'pricing_invalid' });
