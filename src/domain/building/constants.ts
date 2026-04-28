@@ -146,9 +146,9 @@ export const DIMENSION_CONSTRAINTS: Record<string, DimensionConstraints> = {
     height: { min: 2.2,  max: 3,   step: 0.1 },
   },
   poort: {
-    width:  { min: 0.3,  max: 6,    step: 0.1 },  // 0.3m fence-gate part up to 6m total span
+    width:  { min: 0.1,  max: 6,    step: 0.1 },  // permissive — picket-gate parts up to 6m total span
     depth:  { min: 0.15, max: 0.15, step: 0 },    // gates are thin like walls
-    height: { min: 0.5,  max: 3.5,  step: 0.1 },  // garden fence gates ~0.5m up to industrial 3.5m
+    height: { min: 0.1,  max: 3.5,  step: 0.1 },  // permissive — picket gates up to industrial 3.5m
   },
 };
 

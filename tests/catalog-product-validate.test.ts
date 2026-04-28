@@ -190,7 +190,7 @@ describe('validateProductCreate — poort branch', () => {
 
   it('rejects defaults.poort.heightMm below the envelope', () => {
     const input = poortBase({
-      defaults: { poort: { heightMm: 100 } },
+      defaults: { poort: { heightMm: 50 } },
     });
     const r = validateProductCreate(input, [gateMaterial()]);
     expect(r.ok).toBe(false);
