@@ -16,6 +16,12 @@ const SCALAR_KEYS = [
 
 const DOOR_SIZES = ['enkel', 'dubbel'] as const;
 
+const POORT_KEYS = [
+  'motorSurcharge',
+  'slidingSurcharge',
+  'perLeafBase',
+] as const satisfies readonly (keyof PriceBook['poort'])[];
+
 export interface PriceBookValidationResult {
   /** The subset of the patch that validated cleanly — safe to spread
    *  onto the current priceBook. */
@@ -66,6 +72,26 @@ export function validatePriceBookPatch(body: unknown): PriceBookValidationResult
       }
       if (Object.keys(doorBase).length > 0) {
         priceBook.doorBase = doorBase as PriceBook['doorBase'];
+      }
+    }
+  }
+
+  if (patch.poort !== undefined) {
+    if (!patch.poort || typeof patch.poort !== 'object') {
+      errors.push('poort');
+    } else {
+      const pp = patch.poort as Record<string, unknown>;
+      const poort: Partial<PriceBook['poort']> = {};
+      for (const key of POORT_KEYS) {
+        if (pp[key] === undefined) continue;
+        if (isValidNumber(pp[key])) {
+          poort[key] = pp[key] as number;
+        } else {
+          errors.push(`poort.${key}`);
+        }
+      }
+      if (Object.keys(poort).length > 0) {
+        priceBook.poort = poort as PriceBook['poort'];
       }
     }
   }

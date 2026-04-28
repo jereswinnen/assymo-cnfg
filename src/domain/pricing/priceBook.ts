@@ -18,6 +18,17 @@ export interface PriceBook {
   postPrice: number;
   /** Price per corner brace (building uses 8 when enabled). */
   bracePrice: number;
+  /** Gate (poort) configuration surcharges. Per-m² material cost
+   *  lives on the material catalog (`MaterialPricing.gate.perSqm`);
+   *  these are dial-in line items added on top. */
+  poort: {
+    /** Added when the gate is motorized. */
+    motorSurcharge: number;
+    /** Added when swingDirection is 'sliding'. */
+    slidingSurcharge: number;
+    /** Added once per leaf (× partCount). */
+    perLeafBase: number;
+  };
 }
 
 /** Current Assymo price list. New tenants start from this and override
@@ -33,4 +44,9 @@ export const DEFAULT_PRICE_BOOK: PriceBook = {
   skylightFee: 780,
   postPrice: 120,
   bracePrice: 45,
+  poort: {
+    motorSurcharge: 0,
+    slidingSurcharge: 0,
+    perLeafBase: 0,
+  },
 };
