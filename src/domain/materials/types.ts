@@ -30,3 +30,7 @@ export interface DoorCatalogEntry extends BaseCatalogEntry {
   /** Flat surcharge added to door base price. */
   surcharge: number;
 }
+
+export interface GateCatalogEntry extends BaseCatalogEntry {
+  pricePerSqm: number;
+}
