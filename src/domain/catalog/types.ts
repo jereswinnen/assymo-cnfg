@@ -142,10 +142,12 @@ export const MATERIAL_CATEGORIES: readonly MaterialCategory[] = [
 // ─────────────────────────────────────────────────────────────────────
 
 /** Engine primitives that can back a starter-kit Product. `paal` and
- *  `muur` are NEVER products — they are loose tray primitives. */
-export type ProductKind = 'overkapping' | 'berging';
+ *  `muur` are NEVER products — they are loose tray primitives. `poort`
+ *  joined the list in Phase 5.8.2 (Phase 5.8.1 shipped `poort` as a
+ *  primitive; 5.8.2 wraps it as an admin-curated starter kit). */
+export type ProductKind = 'overkapping' | 'berging' | 'poort';
 
-export const PRODUCT_KINDS: readonly ProductKind[] = ['overkapping', 'berging'] as const;
+export const PRODUCT_KINDS: readonly ProductKind[] = ['overkapping', 'berging', 'poort'] as const;
 
 /** Slot keys a product may carry defaults + constraints for. Keys are
  *  stable identifiers — every category that feeds a picker gets one slot.
@@ -184,6 +186,20 @@ export interface ProductDefaults {
   depth?: number;
   height?: number;
   materials?: Partial<Record<ProductSlot, string>>;
+  /** Discriminated subobject — only meaningful when the product's
+   *  `kind === 'poort'`. Mirrors `GateConfig` from `@/domain/building`
+   *  but every field is optional so a product can specify some defaults
+   *  and let the rest fall back to `defaultGateConfig()` at hydrate time.
+   *  `materialId` here is a material *slug* (resolved against the tenant's
+   *  `gate`-category catalog), not a row id. */
+  poort?: {
+    partCount?: 1 | 2;
+    partWidthMm?: number;
+    heightMm?: number;
+    swingDirection?: 'inward' | 'outward' | 'sliding';
+    motorized?: boolean;
+    materialId?: string;
+  };
 }
 
 /** Per-product constraints. Empty/missing = "no constraint". */
@@ -200,6 +216,22 @@ export interface ProductConstraints {
    *  `materials` rows of the right category for this tenant (checked
    *  at route-handler time with a DB lookup). */
   allowedMaterialsBySlot?: Partial<Record<ProductSlot, string[]>>;
+  /** Discriminated subobject — only meaningful when the product's
+   *  `kind === 'poort'`. Each field narrows the global gate envelope
+   *  (`getConstraints('poort')` + the `gate` material category) to a
+   *  product-specific subset. Empty/missing = "no narrowing for that
+   *  field". Allow-list slugs must exist as `gate`-category material
+   *  rows for the tenant (checked at route-handler time). */
+  poort?: {
+    partCountAllowed?: (1 | 2)[];
+    partWidthMinMm?: number;
+    partWidthMaxMm?: number;
+    heightMinMm?: number;
+    heightMaxMm?: number;
+    swingsAllowed?: ('inward' | 'outward' | 'sliding')[];
+    motorizedAllowed?: boolean;
+    allowedMaterialSlugs?: string[];
+  };
 }
 
 /** Transport shape of a product row. */
