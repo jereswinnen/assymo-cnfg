@@ -7,7 +7,7 @@ import { DEFAULT_ASSYMO_BRANDING } from '../domain/tenant/branding.ts';
 import { DEFAULT_ASSYMO_INVOICING } from '../domain/tenant/invoicing.ts';
 import * as schema from './schema.ts';
 import { materials, products, tenantHosts, tenants, suppliers, supplierProducts } from './schema.ts';
-import type { MaterialCategory, MaterialFlags, MaterialPricing, MaterialTextures } from '../domain/catalog/types.ts';
+import type { MaterialCategory, MaterialFlags, MaterialPricing, MaterialTextures, ProductDefaults, ProductConstraints, ProductKind } from '../domain/catalog/types.ts';
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL is not set — run with --env-file=.env.local');
@@ -143,7 +143,16 @@ const DEMO_SUPPLIER_PRODUCTS = [
   },
 ];
 
-const ASSYMO_SEED_PRODUCTS = [
+const ASSYMO_SEED_PRODUCTS: ReadonlyArray<{
+  slug: string;
+  kind: ProductKind;
+  name: string;
+  description: string;
+  defaults: ProductDefaults;
+  constraints: ProductConstraints;
+  basePriceCents: number;
+  sortOrder: number;
+}> = [
   {
     slug: 'standaard-overkapping-4x3',
     kind: 'overkapping' as const,
@@ -179,6 +188,35 @@ const ASSYMO_SEED_PRODUCTS = [
     constraints: {},
     basePriceCents: 0,
     sortOrder: 20,
+  },
+  {
+    slug: 'standaard-poort-3m-enkel',
+    kind: 'poort' as const,
+    name: 'Standaard Poort 3m enkel',
+    description: 'Enkele dubbele poort, 3 meter breed, 2 meter hoog, naar binnen draaiend en niet gemotoriseerd.',
+    defaults: {
+      poort: {
+        partCount: 1,
+        partWidthMm: 3000,
+        heightMm: 2000,
+        swingDirection: 'inward',
+        motorized: false,
+        materialId: 'staal-antraciet',
+      },
+    },
+    constraints: {
+      poort: {
+        partCountAllowed: [1, 2],
+        partWidthMinMm: 1000,
+        partWidthMaxMm: 4000,
+        heightMinMm: 1500,
+        heightMaxMm: 2500,
+        swingsAllowed: ['inward', 'outward', 'sliding'],
+        motorizedAllowed: true,
+      },
+    },
+    basePriceCents: 0,
+    sortOrder: 30,
   },
 ];
 
