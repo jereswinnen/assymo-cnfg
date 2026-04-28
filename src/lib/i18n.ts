@@ -251,6 +251,10 @@ const nl: Record<string, string> = {
   "admin.tenant.section.hosts": "Hosts",
   "admin.tenant.section.branding": "Branding",
   "admin.tenant.section.priceBook": "Prijsboek",
+  "admin.tenant.section.priceBookPoort": "Poorten",
+  "admin.priceBook.poort.motorSurcharge": "Motor-toeslag",
+  "admin.priceBook.poort.slidingSurcharge": "Schuiftoeslag",
+  "admin.priceBook.poort.perLeafBase": "Per deel — basisbedrag",
   "admin.tenant.hosts.add": "Host toevoegen",
   "admin.tenant.hosts.placeholder": "partner.configurator.be",
   "admin.tenant.hosts.empty": "Nog geen hosts gekoppeld.",
@@ -595,6 +599,7 @@ const nl: Record<string, string> = {
   "admin.catalog.materials.category.roof-trim": "Daktrim",
   "admin.catalog.materials.category.floor": "Vloeren",
   "admin.catalog.materials.category.door": "Deuren",
+  "admin.catalog.materials.category.gate": "Poorten",
 
   "admin.catalog.materials.field.name": "Naam",
   "admin.catalog.materials.field.slug": "Slug",
@@ -762,6 +767,7 @@ const nl: Record<string, string> = {
     "Prijs als dakbedekking (per m²)",
   "admin.catalog.materials.field.price.floor": "Prijs als vloer (per m²)",
   "admin.catalog.materials.field.price.door": "Toeslag als deur",
+  "admin.catalog.materials.field.price.gate": "Prijs als poort (per m²)",
 
   "admin.catalog.products.archive.title": "Product archiveren?",
   "admin.catalog.products.archive.description":
