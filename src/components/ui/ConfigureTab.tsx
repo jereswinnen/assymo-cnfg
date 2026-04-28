@@ -15,15 +15,17 @@ import FloorConfigSection from './FloorConfigSection';
 import WallSelector from './WallSelector';
 import SurfaceProperties from './SurfaceProperties';
 import QuoteSummary from './QuoteSummary';
+import GateConfigPanel from './GateConfigPanel';
 import type { BuildingType } from '@/domain/building';
 
-type ConfigSection = 'dimensions' | 'material' | 'structure' | 'walls' | 'quote';
+type ConfigSection = 'dimensions' | 'material' | 'structure' | 'walls' | 'gate' | 'quote';
 
 const SECTIONS: { id: ConfigSection; labelKey: string; icon: string; showFor?: BuildingType[] }[] = [
   { id: 'dimensions', labelKey: 'sidebar.section.dimensions', icon: '📐' },
   { id: 'material', labelKey: 'sidebar.section.material', icon: '🎨' },
   { id: 'structure', labelKey: 'sidebar.section.structure', icon: '🏗' },
   { id: 'walls', labelKey: 'sidebar.section.walls', icon: '🧱', showFor: ['berging', 'muur'] },
+  { id: 'gate', labelKey: 'sidebar.section.gate', icon: '🚪', showFor: ['poort'] },
   { id: 'quote', labelKey: 'sidebar.section.quote', icon: '💰' },
 ];
 
@@ -260,6 +262,7 @@ export default function ConfigureTab() {
                     buildingId={selectedBuilding.id}
                   />
                 )}
+                {id === 'gate' && <GateConfigPanel />}
                 {id === 'quote' && <QuoteSummary />}
               </div>
             )}

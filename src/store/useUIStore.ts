@@ -3,7 +3,7 @@ import type { BuildingEntity, SelectedElement, WallId } from '@/domain/building'
 import { useConfigStore } from '@/store/useConfigStore';
 
 export type SidebarTab = 'objects' | 'configure';
-export type ConfigSection = 'dimensions' | 'material' | 'structure' | 'walls' | 'quote' | null;
+export type ConfigSection = 'dimensions' | 'material' | 'structure' | 'walls' | 'gate' | 'quote' | null;
 export type ViewMode = 'plan' | '3d' | 'split';
 export type QualityTier = 'high' | 'low';
 

@@ -184,8 +184,23 @@ const nl: Record<string, string> = {
   "material.inherit": "Volgt hoofdmateriaal",
   "material.override": "Eigen materiaal",
   "sidebar.section.walls": "Wanden & Openingen",
+  "sidebar.section.gate": "Poort",
   "sidebar.section.quote": "Offerte",
   "sidebar.connections": "Verbindingen",
+
+  // Gate (poort) config panel
+  "configurator.gate.parts": "Aantal delen",
+  "configurator.gate.parts.one": "1 deel",
+  "configurator.gate.parts.two": "2 delen",
+  "configurator.gate.partWidth": "Breedte per deel",
+  "configurator.gate.height": "Hoogte",
+  "configurator.gate.material": "Materiaal",
+  "configurator.gate.material.placeholder": "Kies materiaal",
+  "configurator.gate.swing": "Beweging",
+  "configurator.gate.swing.inward": "Naar binnen",
+  "configurator.gate.swing.outward": "Naar buiten",
+  "configurator.gate.swing.sliding": "Schuivend",
+  "configurator.gate.motorized": "Gemotoriseerd",
 
   // Config code
   "code.title": "Configuratiecode",
