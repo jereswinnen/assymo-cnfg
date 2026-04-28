@@ -1,7 +1,6 @@
 'use client';
 import { useForm, Controller } from 'react-hook-form';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
-import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -39,43 +38,13 @@ import {
   PRODUCT_KINDS,
   normalizeSlug,
   type MaterialRow,
-  type ProductKind,
   type ProductRow,
   type ProductSlot,
 } from '@/domain/catalog';
 import { HeroImageUploadField } from './HeroImageUploadField';
 import { MaterialMultiSelect } from './MaterialMultiSelect';
-
-const schema = z.object({
-  kind: z.enum(PRODUCT_KINDS as unknown as [ProductKind, ...ProductKind[]]),
-  slug: z.string().min(1).max(48),
-  name: z.string().min(1).max(100),
-  description: z.string().max(1000).nullable(),
-  heroImage: z.string().nullable(),
-  width: z.number().nullable(),
-  depth: z.number().nullable(),
-  height: z.number().nullable(),
-  wallSlug: z.string().nullable(),
-  roofCoverSlug: z.string().nullable(),
-  roofTrimSlug: z.string().nullable(),
-  floorSlug: z.string().nullable(),
-  doorSlug: z.string().nullable(),
-  minWidth: z.number().nullable(),
-  maxWidth: z.number().nullable(),
-  minDepth: z.number().nullable(),
-  maxDepth: z.number().nullable(),
-  minHeight: z.number().nullable(),
-  maxHeight: z.number().nullable(),
-  allowWall: z.array(z.string()),
-  allowRoofCover: z.array(z.string()),
-  allowRoofTrim: z.array(z.string()),
-  allowFloor: z.array(z.string()),
-  allowDoor: z.array(z.string()),
-  basePriceEur: z.number().nullable(),
-  sortOrder: z.number().int(),
-});
-
-type FormValues = z.infer<typeof schema>;
+import { GateProductDefaults } from './GateProductDefaults';
+import { productFormSchema, type ProductFormValues } from './productFormSchema';
 
 export function ProductForm({
   tenantId,
@@ -89,8 +58,8 @@ export function ProductForm({
   materials: MaterialRow[];
 }) {
   const router = useRouter();
-  const form = useForm<FormValues>({
-    resolver: standardSchemaResolver(schema),
+  const form = useForm<ProductFormValues>({
+    resolver: standardSchemaResolver(productFormSchema),
     defaultValues: initial
       ? {
           kind: initial.kind,
@@ -117,6 +86,20 @@ export function ProductForm({
           allowRoofTrim: initial.constraints.allowedMaterialsBySlot?.roofTrim ?? [],
           allowFloor: initial.constraints.allowedMaterialsBySlot?.floor ?? [],
           allowDoor: initial.constraints.allowedMaterialsBySlot?.door ?? [],
+          poortPartCount: initial.defaults.poort?.partCount,
+          poortPartWidthMm: initial.defaults.poort?.partWidthMm,
+          poortHeightMm: initial.defaults.poort?.heightMm,
+          poortSwingDirection: initial.defaults.poort?.swingDirection,
+          poortMotorized: initial.defaults.poort?.motorized,
+          poortMaterialSlug: initial.defaults.poort?.materialId ?? null,
+          poortPartCountAllowed: initial.constraints.poort?.partCountAllowed ?? [],
+          poortPartWidthMinMm: initial.constraints.poort?.partWidthMinMm,
+          poortPartWidthMaxMm: initial.constraints.poort?.partWidthMaxMm,
+          poortHeightMinMm: initial.constraints.poort?.heightMinMm,
+          poortHeightMaxMm: initial.constraints.poort?.heightMaxMm,
+          poortSwingsAllowed: initial.constraints.poort?.swingsAllowed ?? [],
+          poortMotorizedAllowed: initial.constraints.poort?.motorizedAllowed,
+          poortAllowedMaterialSlugs: initial.constraints.poort?.allowedMaterialSlugs ?? [],
           basePriceEur: initial.basePriceCents > 0 ? initial.basePriceCents / 100 : null,
           sortOrder: initial.sortOrder,
         }
@@ -145,12 +128,28 @@ export function ProductForm({
           allowRoofTrim: [],
           allowFloor: [],
           allowDoor: [],
+          poortPartCount: undefined,
+          poortPartWidthMm: undefined,
+          poortHeightMm: undefined,
+          poortSwingDirection: undefined,
+          poortMotorized: undefined,
+          poortMaterialSlug: null,
+          poortPartCountAllowed: [],
+          poortPartWidthMinMm: undefined,
+          poortPartWidthMaxMm: undefined,
+          poortHeightMinMm: undefined,
+          poortHeightMaxMm: undefined,
+          poortSwingsAllowed: [],
+          poortMotorizedAllowed: undefined,
+          poortAllowedMaterialSlugs: [],
           basePriceEur: null,
           sortOrder: 0,
         },
   });
 
   const slug = form.watch('slug');
+  const kind = form.watch('kind');
+  const isPoort = kind === 'poort';
 
   const byCategory = (cat: MaterialRow['categories'][number]) =>
     materials.filter((m) => m.categories.includes(cat) && !m.archivedAt);
@@ -160,40 +159,71 @@ export function ProductForm({
   const roofTrimOpts = byCategory('roof-trim');
   const floorOpts = byCategory('floor');
   const doorOpts = byCategory('door');
+  const gateOpts = byCategory('gate');
 
-  async function onSubmit(values: FormValues) {
-    const materialsObj: Partial<Record<ProductSlot, string>> = {};
-    if (values.wallSlug) materialsObj.wallCladding = values.wallSlug;
-    if (values.roofCoverSlug) materialsObj.roofCovering = values.roofCoverSlug;
-    if (values.roofTrimSlug) materialsObj.roofTrim = values.roofTrimSlug;
-    if (values.floorSlug) materialsObj.floor = values.floorSlug;
-    if (values.doorSlug) materialsObj.door = values.doorSlug;
-
-    const dims: Record<string, number> = {};
-    if (values.width) dims.width = values.width;
-    if (values.depth) dims.depth = values.depth;
-    if (values.height) dims.height = values.height;
-
-    const allow: Partial<Record<ProductSlot, string[]>> = {};
-    if (values.allowWall.length) allow.wallCladding = values.allowWall;
-    if (values.allowRoofCover.length) allow.roofCovering = values.allowRoofCover;
-    if (values.allowRoofTrim.length) allow.roofTrim = values.allowRoofTrim;
-    if (values.allowFloor.length) allow.floor = values.allowFloor;
-    if (values.allowDoor.length) allow.door = values.allowDoor;
-
+  async function onSubmit(values: ProductFormValues) {
+    const defaults: Record<string, unknown> = {};
     const cons: Record<string, unknown> = {};
-    for (const k of [
-      'minWidth',
-      'maxWidth',
-      'minDepth',
-      'maxDepth',
-      'minHeight',
-      'maxHeight',
-    ] as const) {
-      const v = values[k];
-      if (v !== null) cons[k] = v;
+
+    if (values.kind === 'poort') {
+      const poortDefaults: Record<string, unknown> = {};
+      if (values.poortPartCount !== undefined) poortDefaults.partCount = values.poortPartCount;
+      if (values.poortPartWidthMm !== undefined) poortDefaults.partWidthMm = values.poortPartWidthMm;
+      if (values.poortHeightMm !== undefined) poortDefaults.heightMm = values.poortHeightMm;
+      if (values.poortSwingDirection !== undefined)
+        poortDefaults.swingDirection = values.poortSwingDirection;
+      if (values.poortMotorized !== undefined) poortDefaults.motorized = values.poortMotorized;
+      if (values.poortMaterialSlug) poortDefaults.materialId = values.poortMaterialSlug;
+      if (Object.keys(poortDefaults).length) defaults.poort = poortDefaults;
+
+      const poortCons: Record<string, unknown> = {};
+      if (values.poortPartCountAllowed.length)
+        poortCons.partCountAllowed = values.poortPartCountAllowed;
+      if (values.poortPartWidthMinMm !== undefined)
+        poortCons.partWidthMinMm = values.poortPartWidthMinMm;
+      if (values.poortPartWidthMaxMm !== undefined)
+        poortCons.partWidthMaxMm = values.poortPartWidthMaxMm;
+      if (values.poortHeightMinMm !== undefined) poortCons.heightMinMm = values.poortHeightMinMm;
+      if (values.poortHeightMaxMm !== undefined) poortCons.heightMaxMm = values.poortHeightMaxMm;
+      if (values.poortSwingsAllowed.length) poortCons.swingsAllowed = values.poortSwingsAllowed;
+      if (values.poortMotorizedAllowed !== undefined)
+        poortCons.motorizedAllowed = values.poortMotorizedAllowed;
+      if (values.poortAllowedMaterialSlugs.length)
+        poortCons.allowedMaterialSlugs = values.poortAllowedMaterialSlugs;
+      if (Object.keys(poortCons).length) cons.poort = poortCons;
+    } else {
+      const materialsObj: Partial<Record<ProductSlot, string>> = {};
+      if (values.wallSlug) materialsObj.wallCladding = values.wallSlug;
+      if (values.roofCoverSlug) materialsObj.roofCovering = values.roofCoverSlug;
+      if (values.roofTrimSlug) materialsObj.roofTrim = values.roofTrimSlug;
+      if (values.floorSlug) materialsObj.floor = values.floorSlug;
+      if (values.doorSlug) materialsObj.door = values.doorSlug;
+
+      if (values.width) defaults.width = values.width;
+      if (values.depth) defaults.depth = values.depth;
+      if (values.height) defaults.height = values.height;
+      if (Object.keys(materialsObj).length) defaults.materials = materialsObj;
+
+      const allow: Partial<Record<ProductSlot, string[]>> = {};
+      if (values.allowWall.length) allow.wallCladding = values.allowWall;
+      if (values.allowRoofCover.length) allow.roofCovering = values.allowRoofCover;
+      if (values.allowRoofTrim.length) allow.roofTrim = values.allowRoofTrim;
+      if (values.allowFloor.length) allow.floor = values.allowFloor;
+      if (values.allowDoor.length) allow.door = values.allowDoor;
+
+      for (const k of [
+        'minWidth',
+        'maxWidth',
+        'minDepth',
+        'maxDepth',
+        'minHeight',
+        'maxHeight',
+      ] as const) {
+        const v = values[k];
+        if (v !== null) cons[k] = v;
+      }
+      if (Object.keys(allow).length) cons.allowedMaterialsBySlot = allow;
     }
-    if (Object.keys(allow).length) cons.allowedMaterialsBySlot = allow;
 
     const body: Record<string, unknown> = {
       tenantId,
@@ -202,10 +232,7 @@ export function ProductForm({
       name: values.name,
       description: values.description,
       heroImage: values.heroImage,
-      defaults: {
-        ...dims,
-        ...(Object.keys(materialsObj).length ? { materials: materialsObj } : {}),
-      },
+      defaults,
       constraints: cons,
       basePriceCents: values.basePriceEur ? Math.round(values.basePriceEur * 100) : 0,
       sortOrder: values.sortOrder,
@@ -357,154 +384,160 @@ export function ProductForm({
           </CardContent>
         </Card>
 
-        {/* Standaardwaarden */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('admin.catalog.products.field.defaults')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              {(['width', 'depth', 'height'] as const).map((k) => (
-                <FormField
-                  key={k}
-                  control={form.control}
-                  name={k}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {t(`admin.catalog.products.field.defaults.${k}`)}
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={field.value ?? ''}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value === '' ? null : Number(e.target.value),
-                            )
-                          }
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              ))}
-            </div>
+        {isPoort ? (
+          <GateProductDefaults control={form.control} gateMaterials={gateOpts} />
+        ) : (
+          <>
+            {/* Standaardwaarden */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('admin.catalog.products.field.defaults')}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  {(['width', 'depth', 'height'] as const).map((k) => (
+                    <FormField
+                      key={k}
+                      control={form.control}
+                      name={k}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t(`admin.catalog.products.field.defaults.${k}`)}
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              value={field.value ?? ''}
+                              onChange={(e) =>
+                                field.onChange(
+                                  e.target.value === '' ? null : Number(e.target.value),
+                                )
+                              }
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
 
-            {(
-              [
-                ['wallSlug', 'wall', 'defaults.wall'],
-                ['roofCoverSlug', 'roof-cover', 'defaults.roofCover'],
-                ['roofTrimSlug', 'roof-trim', 'defaults.roofTrim'],
-                ['floorSlug', 'floor', 'defaults.floor'],
-                ['doorSlug', 'door', 'defaults.door'],
-              ] as const
-            ).map(([name, cat, labelKey]) => (
-              <FormField
-                key={name}
-                control={form.control}
-                name={name}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {t(`admin.catalog.products.field.${labelKey}`)}
-                    </FormLabel>
-                    <Select
-                      value={field.value ?? '__none__'}
-                      onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="—" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="__none__">—</SelectItem>
-                        {byCategory(cat).map((m) => (
-                          <SelectItem key={m.slug} value={m.slug}>
-                            {m.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Grenzen */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('admin.catalog.products.field.constraints')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              {(
-                [
-                  ['minWidth', 'constraints.minWidth'],
-                  ['maxWidth', 'constraints.maxWidth'],
-                  ['minDepth', 'constraints.minDepth'],
-                  ['maxDepth', 'constraints.maxDepth'],
-                  ['minHeight', 'constraints.minHeight'],
-                  ['maxHeight', 'constraints.maxHeight'],
-                ] as const
-              ).map(([k, labelKey]) => (
-                <FormField
-                  key={k}
-                  control={form.control}
-                  name={k}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {t(`admin.catalog.products.field.${labelKey}`)}
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={field.value ?? ''}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value === '' ? null : Number(e.target.value),
-                            )
-                          }
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              ))}
-            </div>
-
-            {(
-              [
-                ['allowWall', wallOpts, 'constraints.allowed.wall'],
-                ['allowRoofCover', roofCoverOpts, 'constraints.allowed.roofCover'],
-                ['allowRoofTrim', roofTrimOpts, 'constraints.allowed.roofTrim'],
-                ['allowFloor', floorOpts, 'constraints.allowed.floor'],
-                ['allowDoor', doorOpts, 'constraints.allowed.door'],
-              ] as const
-            ).map(([name, opts, labelKey]) => (
-              <Controller
-                key={name}
-                control={form.control}
-                name={name}
-                render={({ field }) => (
-                  <MaterialMultiSelect
-                    label={t(`admin.catalog.products.field.${labelKey}`)}
-                    hint={t('admin.catalog.products.field.constraints.allowed.hint')}
-                    options={opts}
-                    value={field.value}
-                    onChange={field.onChange}
+                {(
+                  [
+                    ['wallSlug', 'wall', 'defaults.wall'],
+                    ['roofCoverSlug', 'roof-cover', 'defaults.roofCover'],
+                    ['roofTrimSlug', 'roof-trim', 'defaults.roofTrim'],
+                    ['floorSlug', 'floor', 'defaults.floor'],
+                    ['doorSlug', 'door', 'defaults.door'],
+                  ] as const
+                ).map(([name, cat, labelKey]) => (
+                  <FormField
+                    key={name}
+                    control={form.control}
+                    name={name}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {t(`admin.catalog.products.field.${labelKey}`)}
+                        </FormLabel>
+                        <Select
+                          value={field.value ?? '__none__'}
+                          onValueChange={(v) => field.onChange(v === '__none__' ? null : v)}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="—" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="__none__">—</SelectItem>
+                            {byCategory(cat).map((m) => (
+                              <SelectItem key={m.slug} value={m.slug}>
+                                {m.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
                   />
-                )}
-              />
-            ))}
-          </CardContent>
-        </Card>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Grenzen */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('admin.catalog.products.field.constraints')}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  {(
+                    [
+                      ['minWidth', 'constraints.minWidth'],
+                      ['maxWidth', 'constraints.maxWidth'],
+                      ['minDepth', 'constraints.minDepth'],
+                      ['maxDepth', 'constraints.maxDepth'],
+                      ['minHeight', 'constraints.minHeight'],
+                      ['maxHeight', 'constraints.maxHeight'],
+                    ] as const
+                  ).map(([k, labelKey]) => (
+                    <FormField
+                      key={k}
+                      control={form.control}
+                      name={k}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t(`admin.catalog.products.field.${labelKey}`)}
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              value={field.value ?? ''}
+                              onChange={(e) =>
+                                field.onChange(
+                                  e.target.value === '' ? null : Number(e.target.value),
+                                )
+                              }
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+
+                {(
+                  [
+                    ['allowWall', wallOpts, 'constraints.allowed.wall'],
+                    ['allowRoofCover', roofCoverOpts, 'constraints.allowed.roofCover'],
+                    ['allowRoofTrim', roofTrimOpts, 'constraints.allowed.roofTrim'],
+                    ['allowFloor', floorOpts, 'constraints.allowed.floor'],
+                    ['allowDoor', doorOpts, 'constraints.allowed.door'],
+                  ] as const
+                ).map(([name, opts, labelKey]) => (
+                  <Controller
+                    key={name}
+                    control={form.control}
+                    name={name}
+                    render={({ field }) => (
+                      <MaterialMultiSelect
+                        label={t(`admin.catalog.products.field.${labelKey}`)}
+                        hint={t('admin.catalog.products.field.constraints.allowed.hint')}
+                        options={opts}
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                ))}
+              </CardContent>
+            </Card>
+          </>
+        )}
 
         {/* Prijs & volgorde */}
         <Card>
