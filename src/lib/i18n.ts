@@ -155,6 +155,7 @@ const nl: Record<string, string> = {
   "building.name.overkapping": "Overkapping",
   "building.name.paal": "Paal",
   "building.name.muur": "Muur",
+  "building.name.poort": "Poort",
   "connection.open": "Open doorgang",
   "connection.closed": "Gesloten",
 
