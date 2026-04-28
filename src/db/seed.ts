@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { DEFAULT_PRICE_BOOK } from '../domain/pricing/priceBook.ts';
 import { DEFAULT_ASSYMO_BRANDING } from '../domain/tenant/branding.ts';
 import { DEFAULT_ASSYMO_INVOICING } from '../domain/tenant/invoicing.ts';
@@ -183,7 +183,10 @@ const ASSYMO_SEED_PRODUCTS = [
 ];
 
 async function main() {
-  // 1. Tenant + hosts.
+  // 1. Tenant + hosts. Once a tenant row exists, its priceBook / branding /
+  //    invoicing / displayName are owned by the admin UI — re-running the
+  //    seed must not clobber those edits. We INSERT defaults on first run
+  //    and treat subsequent runs as no-ops at the tenant level.
   await db
     .insert(tenants)
     .values({
@@ -195,18 +198,7 @@ async function main() {
       branding: DEFAULT_ASSYMO_BRANDING,
       invoicing: DEFAULT_ASSYMO_INVOICING,
     })
-    .onConflictDoUpdate({
-      target: tenants.id,
-      set: {
-        displayName: sql`excluded.display_name`,
-        locale: sql`excluded.locale`,
-        currency: sql`excluded.currency`,
-        priceBook: sql`excluded.price_book`,
-        branding: sql`excluded.branding`,
-        invoicing: sql`excluded.invoicing`,
-        updatedAt: sql`now()`,
-      },
-    });
+    .onConflictDoNothing({ target: tenants.id });
 
   for (const hostname of DEFAULT_HOSTS) {
     await db

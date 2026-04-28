@@ -96,7 +96,7 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
   the in-memory `@/domain/tenant` registry for now).
 - `migrations/` — committed SQL. Never edit a migration by hand after
   it's applied in any environment; write a follow-up migration instead.
-- `seed.ts` — idempotent upsert of the `assymo` tenant from an Assymo-tuned priceBook (overrides `DEFAULT_PRICE_BOOK.poort` zeros with real EUR values: `motorSurcharge: 850`, `slidingSurcharge: 450`, `perLeafBase: 125`) + hosts + the two example products (Standaard Overkapping 4×3, Standaard Berging 3×3) + three example gate materials (`staal-antraciet`, `hout-verticaal`, `aluminium-horizontaal`; `pricing.gate.perSqm` in EUROS, no textures). Wall/roof/floor/door catalogs were seeded during Phase 5.5.1; subsequent runs are no-ops apart from re-applying the tenant priceBook on conflict.
+- `seed.ts` — idempotent first-run setup for the `assymo` tenant: inserts the tenant row with an Assymo-tuned priceBook (`DEFAULT_PRICE_BOOK` plus `poort` overrides — `motorSurcharge: 850`, `slidingSurcharge: 450`, `perLeafBase: 125`, EUROS) + hosts + branding + invoicing on first run only. Once the tenant row exists, re-runs leave it untouched — `priceBook`, `branding`, `invoicing`, `displayName` are admin-UI-owned. Other entities (gate materials `staal-antraciet`/`hout-verticaal`/`aluminium-horizontaal`, the two example products, the demo supplier + its products) use skip-if-exists by `(tenant_id, slug)` / `(tenant_id, kind, sku)`, so missing rows get added on subsequent runs without touching anything else. Wall/roof/floor/door catalogs were seeded during Phase 5.5.1.
 
 ### Routes
 
