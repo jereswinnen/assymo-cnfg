@@ -306,7 +306,7 @@ Tick a box when the phase is merged to `main` and deployed. Each phase has its o
 - [x] Phase 5.7 — Supplier catalog (doors + windows) — [plan](../plans/2026-04-22-phase-5.7-supplier-catalog.md)
 - [ ] Phase 5.8 — Poorten (gates) — [design](../plans/2026-04-28-phase-5.8-poorten-design.md)
   - [x] Phase 5.8.1 — Building kind registry + poort primitive + gate material category — [plan](../plans/2026-04-28-phase-5.8.1-poort-primitive.md)
-  - [ ] Phase 5.8.2 — Poort ProductKind + landing card + deep-link hydration
+  - [ ] Phase 5.8.2 — Poort ProductKind + landing card + deep-link hydration — [plan](../plans/2026-04-28-phase-5.8.2-poort-products.md)
   - [ ] Phase 5.8.3 — Gate SupplierProductKind + per-instance SKU/options picker
 - [ ] Phase 6 — Online payments (deferred until business-ready)
 - [ ] Phase 6.5 — AI-assisted catalog ingest — [plan](../plans/2026-04-23-phase-6.5-ai-catalog-ingest.md)
