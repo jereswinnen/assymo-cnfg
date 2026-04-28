@@ -119,7 +119,15 @@ export function addBuilding(
   }
 
   let building: BuildingEntity;
-  if (productDefaults && type !== 'poort') {
+  if (productDefaults && type === 'poort') {
+    building = {
+      ...createGateBuildingEntity({
+        position: resolvedPos,
+        gateConfig: productDefaults.gateConfig ?? {},
+      }),
+      sourceProductId: productDefaults.sourceProductId,
+    };
+  } else if (productDefaults) {
     const baseDims = type === 'paal'
       ? { ...POLE_DIMENSIONS }
       : type === 'muur'
