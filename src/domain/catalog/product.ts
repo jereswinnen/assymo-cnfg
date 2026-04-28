@@ -25,10 +25,10 @@ const DIM_MAX = 40;
 // `@/domain/building/constants`, in millimeters). Inlined to avoid a
 // circular import: `building/index` re-exports `kinds`, which already
 // imports `catalog` types.
-const POORT_PART_WIDTH_MIN_MM = 500;
+const POORT_PART_WIDTH_MIN_MM = 300;
 const POORT_PART_WIDTH_MAX_MM = 6000;
-const POORT_HEIGHT_MIN_MM = 1500;
-const POORT_HEIGHT_MAX_MM = 3000;
+const POORT_HEIGHT_MIN_MM = 500;
+const POORT_HEIGHT_MAX_MM = 3500;
 const POORT_SWING_DIRECTIONS = ['inward', 'outward', 'sliding'] as const;
 type PoortSwing = (typeof POORT_SWING_DIRECTIONS)[number];
 
