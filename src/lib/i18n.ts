@@ -983,6 +983,13 @@ const nl: Record<string, string> = {
   "quote.line.supplierDoor": "Deur — {name} ({sku})",
   "quote.line.supplierWindow": "Raam — {name} ({sku})",
   "quote.line.supplierMissing": "Ontbrekend product ({id})",
+
+  // Quote line items for gates (poort)
+  "quote.line.gateMaterial": "Poort — {materialName} ({sqm} m²)",
+  "quote.line.gateMaterialMissing": "Poort — ontbrekend materiaal ({materialId})",
+  "quote.line.gatePerLeaf": "Poort — basis per deel × {count}",
+  "quote.line.gateMotor": "Poort — motor",
+  "quote.line.gateSliding": "Poort — schuifmechanisme",
 };
 
 export function t(
