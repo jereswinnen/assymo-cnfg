@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import { useBuildingId } from '@/lib/BuildingContext';
-import { useConfigStore } from '@/store/useConfigStore';
+import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore } from '@/store/useUIStore';
 import { useTenant } from '@/lib/TenantProvider';
 import { getAtomColor } from '@/domain/materials';
@@ -17,6 +17,7 @@ export default function Gate() {
   const { catalog: { materials } } = useTenant();
   const buildingId = useBuildingId();
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
+  const defaultHeight = useConfigStore((s) => s.defaultHeight);
   const selectBuilding = useUIStore((s) => s.selectBuilding);
 
   const onSelect = useCallback(() => selectBuilding(buildingId), [selectBuilding, buildingId]);
@@ -25,9 +26,9 @@ export default function Gate() {
   if (!building || building.type !== 'poort' || !building.gateConfig) return null;
 
   const { gateConfig } = building;
-  const totalWidth = (gateConfig.partCount * gateConfig.partWidthMm) / 1000;
-  const height = gateConfig.heightMm / 1000;
-  const partWidth = gateConfig.partWidthMm / 1000;
+  const totalWidth = building.dimensions.width;
+  const height = getEffectiveHeight(building, defaultHeight);
+  const partWidth = totalWidth / gateConfig.partCount;
   const materialId = gateConfig.materialId;
 
   const color = materialId

@@ -27,8 +27,11 @@ describe('getGateFootprint', () => {
     expect(fp.horizontal).toBe(false);
   });
 
-  it('doubles long-axis width for 2-part gates', () => {
-    const g = createGateBuildingEntity({ gateConfig: { partCount: 2 } });
+  it('takes the gate footprint width from dimensions, regardless of partCount', () => {
+    const g = createGateBuildingEntity({
+      gateConfig: { partCount: 2 },
+      dimensions: { width: 3.0 },
+    });
     const fp = getGateFootprint(g);
     expect(fp.width).toBeCloseTo(3.0, 6);
   });
@@ -41,7 +44,11 @@ describe('getGateSeam', () => {
   });
 
   it('crosses the thin axis at the long-axis midpoint for horizontal 2-part', () => {
-    const g = createGateBuildingEntity({ position: [0, 0], gateConfig: { partCount: 2 } });
+    const g = createGateBuildingEntity({
+      position: [0, 0],
+      gateConfig: { partCount: 2 },
+      dimensions: { width: 3.0 },
+    });
     const seam = getGateSeam(g);
     expect(seam).not.toBeNull();
     expect(seam!.x1).toBeCloseTo(1.5, 6);
@@ -51,7 +58,11 @@ describe('getGateSeam', () => {
   });
 
   it('crosses the thin axis horizontally when vertical', () => {
-    const g = createGateBuildingEntity({ position: [0, 0], gateConfig: { partCount: 2 } });
+    const g = createGateBuildingEntity({
+      position: [0, 0],
+      gateConfig: { partCount: 2 },
+      dimensions: { width: 3.0 },
+    });
     g.orientation = 'vertical';
     const seam = getGateSeam(g);
     expect(seam).not.toBeNull();

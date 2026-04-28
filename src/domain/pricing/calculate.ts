@@ -325,7 +325,7 @@ export function calculateBuildingQuote(
   }
 
   if (building.type === 'poort') {
-    const items = gateLineItems(building, materials, priceBook);
+    const items = gateLineItems(building, materials, priceBook, effectiveHeight);
     const total = items.reduce((sum, item) => sum + item.total, 0);
     return { lineItems: items, total };
   }

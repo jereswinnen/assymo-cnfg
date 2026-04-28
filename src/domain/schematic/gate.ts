@@ -74,7 +74,7 @@ export function getGateSwingArcs(building: BuildingEntity): GateSwingArc[] {
 
   const fp = getGateFootprint(building);
   const partCount = building.gateConfig?.partCount ?? 1;
-  const partWidthM = (building.gateConfig?.partWidthMm ?? 1500) / 1000;
+  const partWidthM = building.dimensions.width / partCount;
 
   // Outward sign on the perpendicular axis. inward → +1 (south for
   // horizontal, east for vertical); outward → −1. Picking the +Y / +X

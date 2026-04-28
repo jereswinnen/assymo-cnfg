@@ -51,7 +51,7 @@ describe('applyProductDefaults', () => {
   });
 
   describe('kind="poort"', () => {
-    it('sets type and emits a full gateConfig override when all six fields are set', () => {
+    it('translates partWidthMm/heightMm into entity dimensions; gateConfig keeps gate-only knobs', () => {
       const p = mk({
         kind: 'poort',
         defaults: {
@@ -67,10 +67,11 @@ describe('applyProductDefaults', () => {
       });
       const r = applyProductDefaults(p);
       expect(r.type).toBe('poort');
+      // partCount × partWidthMm / 1000 → dimensions.width; heightMm / 1000 → dimensions.height
+      expect(r.dimensions.width).toBeCloseTo(3.6, 6);
+      expect(r.dimensions.height).toBeCloseTo(2.4, 6);
       expect(r.gateConfig).toEqual({
         partCount: 2,
-        partWidthMm: 1800,
-        heightMm: 2400,
         swingDirection: 'sliding',
         motorized: true,
         materialId: 'staal-antraciet',

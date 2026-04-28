@@ -135,7 +135,9 @@ export default function DimensionsControl() {
   const { dimensions } = building;
   const isPole = building.type === 'paal';
   const isMuur = building.type === 'muur';
-  const isStructural = !isPole && !isMuur;
+  const isPoort = building.type === 'poort';
+  const isWallLike = isMuur || isPoort;
+  const isStructural = !isPole && !isWallLike;
   const effectiveHeight = getEffectiveHeight(building, defaultHeight);
   const hasHeightOverride = building.heightOverride !== null;
   const constraints = getConstraints(building.type);
@@ -155,7 +157,7 @@ export default function DimensionsControl() {
 
   return (
     <div className="space-y-4">
-      {(isStructural || isMuur) && (
+      {(isStructural || isWallLike) && (
         <SliderRow
           label={t('dim.width')}
           value={dimensions.width}
@@ -218,7 +220,7 @@ export default function DimensionsControl() {
         />
       )}
 
-      {isMuur && (
+      {isWallLike && (
         <div className="space-y-2">
           <Label>{t('dim.orientation')}</Label>
           <ToggleGroup

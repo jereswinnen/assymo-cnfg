@@ -46,8 +46,6 @@ export type GateSwingDirection = 'inward' | 'outward' | 'sliding';
 
 export interface GateConfig {
   partCount: 1 | 2;
-  partWidthMm: number;
-  heightMm: number;
   materialId: string;
   swingDirection: GateSwingDirection;
   motorized: boolean;

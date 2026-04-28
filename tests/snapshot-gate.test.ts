@@ -53,8 +53,6 @@ describe('buildConfigSnapshot — gate building', () => {
       position: [3, 5],
       gateConfig: {
         partCount: 2,
-        partWidthMm: 1500,
-        heightMm: 2200,
         materialId: 'staal',
         swingDirection: 'sliding',
         motorized: true,
@@ -70,8 +68,6 @@ describe('buildConfigSnapshot — gate building', () => {
     expect(frozen.position).toEqual([3, 5]);
     expect(frozen.gateConfig).toEqual({
       partCount: 2,
-      partWidthMm: 1500,
-      heightMm: 2200,
       materialId: 'staal',
       swingDirection: 'sliding',
       motorized: true,
@@ -87,16 +83,17 @@ describe('buildConfigSnapshot — gate building', () => {
 
 describe('buildQuoteSnapshot — gate line items', () => {
   it("freezes a gate's material line with source.kind='gate', buildingId, and materialSlug", () => {
-    const poort = createGateBuildingEntity({
-      gateConfig: {
-        partCount: 1,
-        partWidthMm: 1500,
-        heightMm: 2000,
-        materialId: 'staal',
-        swingDirection: 'inward',
-        motorized: false,
-      },
-    });
+    const poort = {
+      ...createGateBuildingEntity({
+        gateConfig: {
+          partCount: 1,
+          materialId: 'staal',
+          swingDirection: 'inward',
+          motorized: false,
+        },
+      }),
+      heightOverride: 2.0,
+    };
     const config = makeConfig({ buildings: [poort] });
 
     const snap = buildQuoteSnapshot({
@@ -131,16 +128,17 @@ describe('buildQuoteSnapshot — gate line items', () => {
         slidingSurcharge: 450,
       },
     };
-    const poort = createGateBuildingEntity({
-      gateConfig: {
-        partCount: 2,
-        partWidthMm: 1500,
-        heightMm: 2000,
-        materialId: 'staal',
-        swingDirection: 'sliding',
-        motorized: true,
-      },
-    });
+    const poort = {
+      ...createGateBuildingEntity({
+        gateConfig: {
+          partCount: 2,
+          materialId: 'staal',
+          swingDirection: 'sliding',
+          motorized: true,
+        },
+      }),
+      heightOverride: 2.0,
+    };
     const config = makeConfig({ buildings: [poort] });
 
     const snap = buildQuoteSnapshot({
@@ -176,16 +174,17 @@ describe('buildQuoteSnapshot — gate line items', () => {
 describe('buildQuoteSnapshot — mixed scene (overkapping + poort)', () => {
   it('snapshot contains both kinds of line items and totalCents matches the priced sum', () => {
     const overkapping = makeBuilding({ id: 'o1', type: 'overkapping', walls: {} });
-    const poort = createGateBuildingEntity({
-      gateConfig: {
-        partCount: 1,
-        partWidthMm: 1500,
-        heightMm: 2000,
-        materialId: 'staal',
-        swingDirection: 'inward',
-        motorized: false,
-      },
-    });
+    const poort = {
+      ...createGateBuildingEntity({
+        gateConfig: {
+          partCount: 1,
+          materialId: 'staal',
+          swingDirection: 'inward',
+          motorized: false,
+        },
+      }),
+      heightOverride: 2.0,
+    };
     const config = {
       version: CONFIG_VERSION,
       buildings: [overkapping, poort],

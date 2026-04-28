@@ -299,12 +299,12 @@ describe('addBuilding (poort)', () => {
     expect(id1).not.toBe(id2);
   });
 
-  it('applies productDefaults.gateConfig overrides and stamps sourceProductId', () => {
+  it('applies productDefaults.gateConfig + dimensions and stamps sourceProductId', () => {
     const cfg = makeInitialConfig();
     const { cfg: next, id } = addBuilding(cfg, 'poort', [1, 2], {
       sourceProductId: 'gate-kit-1',
       type: 'poort',
-      dimensions: {},
+      dimensions: { width: 3.0, height: 2.4 },
       gateConfig: { partCount: 2, motorized: true },
     });
     const b = next.buildings.find((x) => x.id === id)!;
@@ -314,14 +314,10 @@ describe('addBuilding (poort)', () => {
     expect(b.sourceProductId).toBe('gate-kit-1');
     expect(b.gateConfig?.partCount).toBe(2);
     expect(b.gateConfig?.motorized).toBe(true);
-    expect(b.gateConfig?.partWidthMm).toBe(baseline.partWidthMm);
-    expect(b.gateConfig?.heightMm).toBe(baseline.heightMm);
     expect(b.gateConfig?.swingDirection).toBe(baseline.swingDirection);
     expect(b.gateConfig?.materialId).toBe(baseline.materialId);
-    expect(b.dimensions.width).toBeCloseTo(
-      (2 * baseline.partWidthMm) / 1000,
-      6,
-    );
+    expect(b.dimensions.width).toBeCloseTo(3.0, 6);
+    expect(b.dimensions.height).toBeCloseTo(2.4, 6);
   });
 
   it('falls back to defaultGateConfig when productDefaults omits gateConfig', () => {
@@ -338,14 +334,13 @@ describe('addBuilding (poort)', () => {
 });
 
 describe('updateGateConfig', () => {
-  it('patches partCount, leaving other fields intact and re-deriving width', () => {
+  it('toggles partCount 1→2 and doubles dimensions.width to preserve per-part width', () => {
     const start = makeInitialConfig();
     const { cfg, id } = addBuilding(start, 'poort');
+    // Default: 1 part × 1.5m = 1.5m total. Toggle to 2 parts → 2 × 1.5m = 3.0m total.
     const next = updateGateConfig(cfg, id, { partCount: 2 });
     const b = next.buildings.find((x) => x.id === id)!;
     expect(b.gateConfig?.partCount).toBe(2);
-    expect(b.gateConfig?.heightMm).toBe(2000);
-    expect(b.gateConfig?.partWidthMm).toBe(1500);
     expect(b.gateConfig?.swingDirection).toBe('inward');
     expect(b.gateConfig?.motorized).toBe(false);
     expect(b.dimensions.width).toBeCloseTo(3.0, 6);

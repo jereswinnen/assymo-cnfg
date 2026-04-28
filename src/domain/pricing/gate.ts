@@ -8,11 +8,15 @@ import type { PriceBook } from './priceBook';
  *  doesn't resolve to a `gate`-category material). Surcharges are
  *  conditional on `priceBook.poort` dials being non-zero. All values are
  *  in euros — `MaterialPricing.gate.perSqm` and every `priceBook.poort.*`
- *  field share the same euro unit as the rest of the price book. */
+ *  field share the same euro unit as the rest of the price book.
+ *
+ *  Area is the gate's outer footprint (`dimensions.width × effectiveHeight`)
+ *  — same source as 3D rendering and snap, so authoring stays consistent. */
 export function gateLineItems(
   building: BuildingEntity,
   materials: MaterialRow[],
   priceBook: PriceBook,
+  effectiveHeight: number,
 ): LineItem[] {
   const gate = building.gateConfig;
   if (!gate) return [];
@@ -20,7 +24,7 @@ export function gateLineItems(
   const items: LineItem[] = [];
 
   const partCount = gate.partCount;
-  const areaSqm = (partCount * gate.partWidthMm * gate.heightMm) / 1_000_000;
+  const areaSqm = building.dimensions.width * effectiveHeight;
 
   const material = materials.find(
     (m) => m.slug === gate.materialId && m.categories.includes('gate'),

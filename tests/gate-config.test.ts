@@ -10,8 +10,6 @@ describe('defaultGateConfig', () => {
   it('returns the documented defaults', () => {
     expect(defaultGateConfig()).toEqual({
       partCount: 1,
-      partWidthMm: 1500,
-      heightMm: 2000,
       materialId: '',
       swingDirection: 'inward',
       motorized: false,
@@ -44,9 +42,9 @@ describe('createGateBuildingEntity', () => {
   it('deep-merges gateConfig overrides on top of the defaults', () => {
     const e = createGateBuildingEntity({ gateConfig: { partCount: 2 } });
     expect(e.gateConfig.partCount).toBe(2);
-    expect(e.gateConfig.heightMm).toBe(2000);
-    expect(e.gateConfig.partWidthMm).toBe(1500);
     expect(e.gateConfig.swingDirection).toBe('inward');
+    expect(e.gateConfig.motorized).toBe(false);
+    expect(e.gateConfig.materialId).toBe('');
   });
 
   it('produces different UUIDs across calls', () => {
@@ -55,15 +53,21 @@ describe('createGateBuildingEntity', () => {
     expect(a.id).not.toBe(b.id);
   });
 
-  it('derives footprint dimensions from the gate config (1-part 1500mm wide, 2000mm tall)', () => {
+  it('uses GATE_DEFAULT_DIMENSIONS for a fresh entity (1.5m × 0.15m × 2.0m)', () => {
     const e = createGateBuildingEntity();
     expect(e.dimensions.width).toBeCloseTo(1.5, 6);
+    expect(e.dimensions.depth).toBeCloseTo(0.15, 6);
     expect(e.dimensions.height).toBeCloseTo(2.0, 6);
   });
 
-  it('doubles the footprint width for 2-part gates', () => {
-    const e = createGateBuildingEntity({ gateConfig: { partCount: 2 } });
+  it('accepts dimensions overrides independently of gateConfig', () => {
+    const e = createGateBuildingEntity({
+      gateConfig: { partCount: 2 },
+      dimensions: { width: 3.0, height: 2.4 },
+    });
     expect(e.dimensions.width).toBeCloseTo(3.0, 6);
+    expect(e.dimensions.height).toBeCloseTo(2.4, 6);
+    expect(e.gateConfig.partCount).toBe(2);
   });
 
   it('produces a poort that satisfies validateConfig out of the box', () => {

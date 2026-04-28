@@ -552,11 +552,11 @@ export interface ProductBuildingDefaults {
    *  from `@/domain/building`; declared inline to keep `catalog` free of
    *  reverse-dependencies on `building`. The configurator's `addBuilding`
    *  spreads this into `createGateBuildingEntity`, so any field omitted
-   *  here falls back to `defaultGateConfig()`. */
+   *  here falls back to `defaultGateConfig()`. Dimensions for poort flow
+   *  through the generic `dimensions` field above (translated from the
+   *  product-authored `partWidthMm`/`heightMm` at apply time). */
   gateConfig?: {
     partCount?: 1 | 2;
-    partWidthMm?: number;
-    heightMm?: number;
     materialId?: string;
     swingDirection?: 'inward' | 'outward' | 'sliding';
     motorized?: boolean;
@@ -574,10 +574,18 @@ export function applyProductDefaults(product: ProductRow): ProductBuildingDefaul
   if (product.kind === 'poort') {
     const p = product.defaults.poort;
     if (p) {
+      // Translate product-authored dimensions (partWidthMm × partCount, heightMm)
+      // into the entity's `dimensions`. partWidthMm/heightMm don't survive into
+      // runtime — `dimensions.width` and `effectiveHeight` are the source of truth.
+      const partCount = p.partCount ?? 1;
+      if (p.partWidthMm !== undefined) {
+        out.dimensions.width = (partCount * p.partWidthMm) / 1000;
+      }
+      if (p.heightMm !== undefined) {
+        out.dimensions.height = p.heightMm / 1000;
+      }
       const gateConfig: NonNullable<ProductBuildingDefaults['gateConfig']> = {};
       if (p.partCount !== undefined) gateConfig.partCount = p.partCount;
-      if (p.partWidthMm !== undefined) gateConfig.partWidthMm = p.partWidthMm;
-      if (p.heightMm !== undefined) gateConfig.heightMm = p.heightMm;
       if (p.swingDirection !== undefined) gateConfig.swingDirection = p.swingDirection;
       if (p.motorized !== undefined) gateConfig.motorized = p.motorized;
       if (p.materialId !== undefined) gateConfig.materialId = p.materialId;

@@ -49,8 +49,6 @@ const FIXTURE_MATERIALS_FOR_MIXED: MaterialRow[] = [
 function makeGate(overrides: Partial<GateConfig> = {}): GateConfig {
   return {
     partCount: 1,
-    partWidthMm: 1500,
-    heightMm: 2000,
     materialId: 'staal',
     swingDirection: 'inward',
     motorized: false,
@@ -58,22 +56,35 @@ function makeGate(overrides: Partial<GateConfig> = {}): GateConfig {
   };
 }
 
-function makePoort(overrides: Partial<BuildingEntity> & { gateConfig?: GateConfig } = {}): BuildingEntity {
+interface MakePoortOpts {
+  gateConfig?: GateConfig;
+  dimensions?: { width?: number; depth?: number; height?: number };
+}
+
+/** Default fixture: 1.5m × 0.15m × 2.0m → 3.0 sqm at the standard
+ *  effectiveHeight test value of 2.0m. */
+function makePoort(opts: MakePoortOpts = {}): BuildingEntity {
   return makeBuilding({
     id: 'g1',
     type: 'poort',
     walls: {},
-    gateConfig: makeGate(overrides.gateConfig ?? {}),
-    ...overrides,
+    gateConfig: makeGate(opts.gateConfig ?? {}),
+    dimensions: {
+      width: opts.dimensions?.width ?? 1.5,
+      depth: opts.dimensions?.depth ?? 0.15,
+      height: opts.dimensions?.height ?? 2.0,
+    },
   });
 }
 
+/** Test default for effectiveHeight — gates render at this height in the
+ *  3D pipeline (matches the default building.dimensions.height). */
+const TEST_EFFECTIVE_HEIGHT = 2.0;
+
 describe('gateLineItems', () => {
   it('computes per-m² material cost for a 1-part gate', () => {
-    const building = makePoort({
-      gateConfig: makeGate({ partCount: 1, partWidthMm: 1500, heightMm: 2000 }),
-    });
-    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK);
+    const building = makePoort();
+    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT);
     expect(items).toHaveLength(1);
     const mat = items[0];
     expect(mat.labelKey).toBe('quote.line.gateMaterial');
@@ -83,11 +94,12 @@ describe('gateLineItems', () => {
     expect(mat.source).toEqual({ kind: 'gate', buildingId: 'g1', materialSlug: 'staal' });
   });
 
-  it('scales with partCount for a 2-part gate', () => {
+  it('scales with the gate footprint (3m wide × 2m tall = 6 m²)', () => {
     const building = makePoort({
-      gateConfig: makeGate({ partCount: 2, partWidthMm: 1500, heightMm: 2000 }),
+      gateConfig: makeGate({ partCount: 2 }),
+      dimensions: { width: 3.0 },
     });
-    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK);
+    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT);
     const mat = items.find((i) => i.labelKey === 'quote.line.gateMaterial');
     expect(mat).toBeDefined();
     expect(mat!.area).toBeCloseTo(6.0, 4);
@@ -98,7 +110,7 @@ describe('gateLineItems', () => {
     const building = makePoort({
       gateConfig: makeGate({ materialId: 'not-in-list' }),
     });
-    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK);
+    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT);
     expect(items).toHaveLength(1);
     expect(items[0].labelKey).toBe('quote.line.gateMaterialMissing');
     expect(items[0].labelParams?.materialId).toBe('not-in-list');
@@ -112,7 +124,7 @@ describe('gateLineItems', () => {
       poort: { ...DEFAULT_PRICE_BOOK.poort, perLeafBase: 100 },
     };
     const building = makePoort({ gateConfig: makeGate({ partCount: 2 }) });
-    const items = gateLineItems(building, GATE_MATERIALS, priceBook);
+    const items = gateLineItems(building, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT);
     const perLeaf = items.find((i) => i.labelKey === 'quote.line.gatePerLeaf');
     expect(perLeaf).toBeDefined();
     expect(perLeaf!.labelParams?.count).toBe(2);
@@ -127,8 +139,8 @@ describe('gateLineItems', () => {
     const motor = makePoort({ gateConfig: makeGate({ motorized: true }) });
     const noMotor = makePoort({ gateConfig: makeGate({ motorized: false }) });
 
-    const motorItems = gateLineItems(motor, GATE_MATERIALS, priceBook);
-    const noMotorItems = gateLineItems(noMotor, GATE_MATERIALS, priceBook);
+    const motorItems = gateLineItems(motor, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT);
+    const noMotorItems = gateLineItems(noMotor, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT);
 
     const motorLine = motorItems.find((i) => i.labelKey === 'quote.line.gateMotor');
     expect(motorLine).toBeDefined();
@@ -145,8 +157,8 @@ describe('gateLineItems', () => {
     const sliding = makePoort({ gateConfig: makeGate({ swingDirection: 'sliding' }) });
     const inward = makePoort({ gateConfig: makeGate({ swingDirection: 'inward' }) });
 
-    const slidingItems = gateLineItems(sliding, GATE_MATERIALS, priceBook);
-    const inwardItems = gateLineItems(inward, GATE_MATERIALS, priceBook);
+    const slidingItems = gateLineItems(sliding, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT);
+    const inwardItems = gateLineItems(inward, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT);
 
     const slidingLine = slidingItems.find((i) => i.labelKey === 'quote.line.gateSliding');
     expect(slidingLine).toBeDefined();
@@ -159,7 +171,7 @@ describe('gateLineItems', () => {
     const building = makePoort({
       gateConfig: makeGate({ partCount: 2, motorized: true, swingDirection: 'sliding' }),
     });
-    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK);
+    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT);
     expect(items).toHaveLength(1);
     expect(items[0].labelKey).toBe('quote.line.gateMaterial');
   });
@@ -172,9 +184,12 @@ describe('calculateTotalQuote — mixed scene with poort', () => {
       type: 'overkapping',
       walls: {},
     });
-    const poort = makePoort({
-      gateConfig: makeGate({ partCount: 1, partWidthMm: 1500, heightMm: 2000 }),
-    });
+    // heightOverride pins effectiveHeight to 2.0m so the gate's area stays a
+    // predictable 1.5 × 2.0 = 3.0 m² regardless of the scene defaultHeight.
+    const poort = {
+      ...makePoort({ gateConfig: makeGate({ partCount: 1 }) }),
+      heightOverride: 2.0,
+    };
     const cfg = {
       version: CONFIG_VERSION,
       buildings: [overkapping, poort],

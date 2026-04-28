@@ -123,6 +123,7 @@ export function addBuilding(
     building = {
       ...createGateBuildingEntity({
         position: resolvedPos,
+        dimensions: productDefaults.dimensions,
         gateConfig: productDefaults.gateConfig ?? {},
       }),
       sourceProductId: productDefaults.sourceProductId,
@@ -314,10 +315,9 @@ export function updateBuildingFloor(
 }
 
 /** Patch a poort building's `gateConfig`. No-op when the id doesn't exist
- *  or when the targeted building is not a poort. The footprint dimensions
- *  derived from `partCount`, `partWidthMm`, and `heightMm` are kept in sync
- *  with the patched config so 3D/2D consumers stay correct without a
- *  separate sync pass. */
+ *  or when the targeted building is not a poort. When `partCount` changes,
+ *  the per-part width is preserved by adjusting `dimensions.width`
+ *  proportionally (toggling 1→2 doubles the gate's total span). */
 export function updateGateConfig(
   cfg: ConfigData,
   id: string,
@@ -326,15 +326,12 @@ export function updateGateConfig(
   return mapBuilding(cfg, id, (b) => {
     if (b.type !== 'poort' || !b.gateConfig) return b;
     const nextGate: GateConfig = { ...b.gateConfig, ...patch };
-    return {
-      ...b,
-      gateConfig: nextGate,
-      dimensions: {
-        ...b.dimensions,
-        width: (nextGate.partCount * nextGate.partWidthMm) / 1000,
-        height: nextGate.heightMm / 1000,
-      },
-    };
+    let nextDims = b.dimensions;
+    if (patch.partCount !== undefined && patch.partCount !== b.gateConfig.partCount) {
+      const oldPerPart = b.dimensions.width / b.gateConfig.partCount;
+      nextDims = { ...nextDims, width: oldPerPart * patch.partCount };
+    }
+    return { ...b, gateConfig: nextGate, dimensions: nextDims };
   });
 }
 

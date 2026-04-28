@@ -1,11 +1,15 @@
 import { randomId } from '@/domain/random';
-import type { BuildingEntity, GateConfig } from './types';
+import type { BuildingDimensions, BuildingEntity, GateConfig } from './types';
+
+export const GATE_DEFAULT_DIMENSIONS: BuildingDimensions = {
+  width: 1.5,
+  depth: 0.15,
+  height: 2.0,
+};
 
 export function defaultGateConfig(): GateConfig {
   return {
     partCount: 1,
-    partWidthMm: 1500,
-    heightMm: 2000,
     materialId: '',
     swingDirection: 'inward',
     motorized: false,
@@ -14,6 +18,7 @@ export function defaultGateConfig(): GateConfig {
 
 export interface CreateGateBuildingOverrides {
   position?: [number, number];
+  dimensions?: Partial<BuildingDimensions>;
   gateConfig?: Partial<GateConfig>;
 }
 
@@ -21,8 +26,10 @@ export interface CreateGateBuildingOverrides {
  *  shape still requires geometry/wall/floor fields — they're populated
  *  with sensible no-op defaults so existing consumers (drag preview,
  *  pricing fall-through, snapshot serialization) keep working without
- *  per-type guards. The `gateConfig` is the source of truth for the
- *  poort's actual size + behavior. */
+ *  per-type guards. The entity's `dimensions` + `heightOverride` (resolved
+ *  via `getEffectiveHeight`) are the source of truth for the gate's
+ *  visible size; `gateConfig` carries only gate-specific knobs (parts,
+ *  material, swing, motor). */
 export function createGateBuildingEntity(
   overrides?: CreateGateBuildingOverrides,
 ): BuildingEntity & { type: 'poort'; gateConfig: GateConfig } {
@@ -30,14 +37,16 @@ export function createGateBuildingEntity(
     ...defaultGateConfig(),
     ...(overrides?.gateConfig ?? {}),
   };
-  const totalWidthM = (gateConfig.partCount * gateConfig.partWidthMm) / 1000;
-  const heightM = gateConfig.heightMm / 1000;
+  const dimensions: BuildingDimensions = {
+    ...GATE_DEFAULT_DIMENSIONS,
+    ...(overrides?.dimensions ?? {}),
+  };
 
   return {
     id: randomId(),
     type: 'poort',
     position: overrides?.position ?? [0, 0],
-    dimensions: { width: totalWidthM, depth: 0.15, height: heightM },
+    dimensions,
     primaryMaterialId: '',
     walls: {},
     hasCornerBraces: false,
