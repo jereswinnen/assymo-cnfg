@@ -135,6 +135,46 @@ describe('detectWallSnap (standalone muur)', () => {
     expect(res.attachedTo).toBe('ok');
     expect(res.position[0]).toBeCloseTo(1.5, 3);
   });
+
+  it('detents a wall endpoint to a 1-part poort the same way it does to a muur', () => {
+    // Horizontal poort 1.5m wide at (2, 1), thickness 0.15. Midline z = 1.075.
+    // Midline endpoints: (2, 1.075) and (3.5, 1.075).
+    const poort = makeBuilding({
+      id: 'gate1',
+      type: 'poort',
+      position: [2, 1],
+      dimensions: { width: 1.5, depth: 0.15, height: 2.0 },
+      orientation: 'horizontal',
+    });
+    // Dragged horizontal wall, 2m long, position [2.05, 1] →
+    // left endpoint (with half-thickness offset) at (2.05, 1.075),
+    // 0.05m east of the poort's left midline endpoint (2, 1.075).
+    const res = detectWallSnap([2.05, 1], 2, 'horizontal', [poort]);
+    // Pass-1 doesn't engage on poort (it's a primitive), so attachedTo
+    // stays null — but Pass-2 detent must shift the wall onto the poort
+    // endpoint. Mirror-check against a muur at the same position.
+    const muur = makeBuilding({ ...poort, id: 'wall1', type: 'muur' });
+    const muurRes = detectWallSnap([2.05, 1], 2, 'horizontal', [muur]);
+    expect(res.position[0]).toBeCloseTo(muurRes.position[0], 6);
+    expect(res.position[1]).toBeCloseTo(muurRes.position[1], 6);
+    // Concretely: left endpoint should land at x=2 → position[0]=2.
+    expect(res.position[0]).toBeCloseTo(2, 6);
+  });
+
+  it('uses the full outer footprint width of a 2-part poort for endpoint detents', () => {
+    // 2-part poort: 3.0m wide, horizontal at (0, 0). Right midline endpoint = (3.0, 0.075).
+    const poort = makeBuilding({
+      id: 'gate2',
+      type: 'poort',
+      position: [0, 0],
+      dimensions: { width: 3.0, depth: 0.15, height: 2.0 },
+      orientation: 'horizontal',
+    });
+    // Drop a 1m horizontal wall whose left endpoint is near (3.0, 0.075).
+    const res = detectWallSnap([2.95, 0], 1, 'horizontal', [poort]);
+    // Detent should pull the left endpoint onto x=3.0 → position[0]=3.0.
+    expect(res.position[0]).toBeCloseTo(3.0, 6);
+  });
 });
 
 describe('detectResizeSnap', () => {

@@ -33,6 +33,8 @@ export function getAvailableWallIds(type: BuildingType): WallId[] {
       return [];
     case 'muur':
       return ['front'];
+    case 'poort':
+      return [];
     default: {
       const _exhaustive: never = type;
       return _exhaustive;
@@ -148,6 +150,7 @@ export const DIMENSION_CONSTRAINTS: Record<string, DimensionConstraints> = {
 export function getConstraints(type: BuildingType): DimensionConstraints {
   if (type === 'muur') return DIMENSION_CONSTRAINTS.muur;
   if (type === 'paal') return DIMENSION_CONSTRAINTS.paal;
+  if (type === 'poort') return DIMENSION_CONSTRAINTS.muur;
   return DIMENSION_CONSTRAINTS.structural;
 }
 

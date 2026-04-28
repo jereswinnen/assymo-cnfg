@@ -37,7 +37,7 @@ export function migrateBuilding(b: LegacyBuilding): BuildingEntity {
  *  feed back into the rest of the domain without further guards. */
 export function migrateConfig(raw: LegacyConfig): ConfigData {
   const buildings = raw.buildings.map(migrateBuilding);
-  const structural = buildings.find((b) => b.type !== 'paal' && b.type !== 'muur');
+  const structural = buildings.find((b) => b.type !== 'paal' && b.type !== 'muur' && b.type !== 'poort');
   const defaultHeight = raw.defaultHeight ?? structural?.dimensions.height ?? 3;
 
   return {

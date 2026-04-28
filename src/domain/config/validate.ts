@@ -256,7 +256,7 @@ export function validateConfig(cfg: ConfigData, materials: MaterialRow[] = []): 
   }
 
   const hasStructural = cfg.buildings.some(
-    (b) => b.type !== 'paal' && b.type !== 'muur',
+    (b) => b.type !== 'paal' && b.type !== 'muur' && b.type !== 'poort',
   );
   if (!hasStructural) {
     errors.push({

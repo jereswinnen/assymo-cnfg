@@ -7,7 +7,8 @@ export type MaterialCategory =
   | 'roof-cover'
   | 'roof-trim'
   | 'floor'
-  | 'door';
+  | 'door'
+  | 'gate';
 
 /** Per-PBR texture set. Blob URLs on persisted rows; unknown during
  *  create-draft. All three are required when `textures` is non-null. */

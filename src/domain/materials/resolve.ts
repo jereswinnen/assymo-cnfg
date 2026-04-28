@@ -4,7 +4,7 @@ import type { BuildingEntity, WallConfig } from '@/domain/building';
  *  as the "main" primary-material source for any free-standing Muur or Paal
  *  that has no attachment or whose attachment chain never reaches one. */
 function getAmbientHost(buildings: BuildingEntity[]): BuildingEntity | null {
-  return buildings.find(b => b.type !== 'paal' && b.type !== 'muur') ?? null;
+  return buildings.find(b => b.type !== 'paal' && b.type !== 'muur' && b.type !== 'poort') ?? null;
 }
 
 /** The primary material a building renders with.

@@ -1,0 +1,66 @@
+import { describe, it, expect } from 'vite-plus/test';
+import {
+  createGateBuildingEntity,
+  defaultGateConfig,
+} from '@/domain/building';
+
+describe('defaultGateConfig', () => {
+  it('returns the documented defaults', () => {
+    expect(defaultGateConfig()).toEqual({
+      partCount: 1,
+      partWidthMm: 1500,
+      heightMm: 2000,
+      materialId: '',
+      swingDirection: 'inward',
+      motorized: false,
+    });
+  });
+
+  it('returns a fresh object each call (no shared reference)', () => {
+    const a = defaultGateConfig();
+    const b = defaultGateConfig();
+    expect(a).not.toBe(b);
+    a.partCount = 2;
+    expect(b.partCount).toBe(1);
+  });
+});
+
+describe('createGateBuildingEntity', () => {
+  it('returns a poort entity with a fresh UUID, default config, default position [0,0]', () => {
+    const e = createGateBuildingEntity();
+    expect(e.type).toBe('poort');
+    expect(e.id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(e.position).toEqual([0, 0]);
+    expect(e.gateConfig).toEqual(defaultGateConfig());
+  });
+
+  it('overrides position when provided', () => {
+    const e = createGateBuildingEntity({ position: [3, 4] });
+    expect(e.position).toEqual([3, 4]);
+  });
+
+  it('deep-merges gateConfig overrides on top of the defaults', () => {
+    const e = createGateBuildingEntity({ gateConfig: { partCount: 2 } });
+    expect(e.gateConfig.partCount).toBe(2);
+    expect(e.gateConfig.heightMm).toBe(2000);
+    expect(e.gateConfig.partWidthMm).toBe(1500);
+    expect(e.gateConfig.swingDirection).toBe('inward');
+  });
+
+  it('produces different UUIDs across calls', () => {
+    const a = createGateBuildingEntity();
+    const b = createGateBuildingEntity();
+    expect(a.id).not.toBe(b.id);
+  });
+
+  it('derives footprint dimensions from the gate config (1-part 1500mm wide, 2000mm tall)', () => {
+    const e = createGateBuildingEntity();
+    expect(e.dimensions.width).toBeCloseTo(1.5, 6);
+    expect(e.dimensions.height).toBeCloseTo(2.0, 6);
+  });
+
+  it('doubles the footprint width for 2-part gates', () => {
+    const e = createGateBuildingEntity({ gateConfig: { partCount: 2 } });
+    expect(e.dimensions.width).toBeCloseTo(3.0, 6);
+  });
+});

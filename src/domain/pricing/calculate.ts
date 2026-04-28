@@ -317,6 +317,13 @@ export function calculateBuildingQuote(
     return { lineItems: [item], total: priceBook.postPrice };
   }
 
+  // Poort pricing lands in Phase 5.8.2 (Task 2) — for now emit no
+  // line items so the registry-only Task 1 doesn't double-count poort
+  // walls under the structural fall-through.
+  if (building.type === 'poort') {
+    return { lineItems: [], total: 0 };
+  }
+
   /** Supplier-sourced line items (stubs with total=0 included) are always
    *  emitted so the UI can show "product missing" rows. Plain material
    *  items with total=0 are still filtered — they represent empty walls. */

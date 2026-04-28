@@ -39,6 +39,7 @@ function wallsForType(type: BuildingType): Record<string, WallConfig> {
   switch (type) {
     case 'overkapping':
     case 'paal':
+    case 'poort':
       return {};
     case 'berging':
       return {
