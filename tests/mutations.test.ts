@@ -12,7 +12,9 @@ import {
   updateBuildingDimensions,
   updateBuildingFloor,
   updateBuildingWall,
+  updateGateConfig,
 } from '@/domain/config';
+import { defaultGateConfig } from '@/domain/building';
 import { makeBuilding, makeConfig } from './fixtures';
 
 describe('addBuilding', () => {
@@ -277,5 +279,65 @@ describe('pasteBuildings', () => {
     const { cfg: next } = pasteBuildings(cfg, [source], [3, -2]);
     const pasted = next.buildings.at(-1)!;
     expect(pasted.position).toEqual([source.position[0] + 3, source.position[1] - 2]);
+  });
+});
+
+describe('addBuilding (poort)', () => {
+  it('spawns a poort with default gateConfig and the supplied position', () => {
+    const cfg = makeInitialConfig();
+    const { cfg: next, id } = addBuilding(cfg, 'poort', [3, 4]);
+    const b = next.buildings.find((x) => x.id === id)!;
+    expect(b.type).toBe('poort');
+    expect(b.position).toEqual([3, 4]);
+    expect(b.gateConfig).toEqual(defaultGateConfig());
+  });
+
+  it('mints distinct ids across consecutive poort spawns', () => {
+    const cfg = makeInitialConfig();
+    const { cfg: c1, id: id1 } = addBuilding(cfg, 'poort');
+    const { id: id2 } = addBuilding(c1, 'poort');
+    expect(id1).not.toBe(id2);
+  });
+});
+
+describe('updateGateConfig', () => {
+  it('patches partCount, leaving other fields intact and re-deriving width', () => {
+    const start = makeInitialConfig();
+    const { cfg, id } = addBuilding(start, 'poort');
+    const next = updateGateConfig(cfg, id, { partCount: 2 });
+    const b = next.buildings.find((x) => x.id === id)!;
+    expect(b.gateConfig?.partCount).toBe(2);
+    expect(b.gateConfig?.heightMm).toBe(2000);
+    expect(b.gateConfig?.partWidthMm).toBe(1500);
+    expect(b.gateConfig?.swingDirection).toBe('inward');
+    expect(b.gateConfig?.motorized).toBe(false);
+    expect(b.dimensions.width).toBeCloseTo(3.0, 6);
+  });
+
+  it('flips motorized without touching partCount', () => {
+    const start = makeInitialConfig();
+    const { cfg, id } = addBuilding(start, 'poort');
+    const next = updateGateConfig(cfg, id, { motorized: true });
+    const b = next.buildings.find((x) => x.id === id)!;
+    expect(b.gateConfig?.motorized).toBe(true);
+    expect(b.gateConfig?.partCount).toBe(1);
+  });
+
+  it('is a no-op when the id does not exist', () => {
+    const start = makeInitialConfig();
+    const { cfg } = addBuilding(start, 'poort');
+    const next = updateGateConfig(cfg, 'does-not-exist', { partCount: 2 });
+    expect(next.buildings).toEqual(cfg.buildings);
+  });
+
+  it('is a no-op when the targeted building is not a poort', () => {
+    const cfg = makeConfig({
+      buildings: [makeBuilding({ id: 'wall1', type: 'muur' })],
+    });
+    const next = updateGateConfig(cfg, 'wall1', { partCount: 2 });
+    const b = next.buildings.find((x) => x.id === 'wall1')!;
+    expect(b.type).toBe('muur');
+    expect((b as { gateConfig?: unknown }).gateConfig).toBeUndefined();
+    expect(b.dimensions.width).toBe(cfg.buildings[0].dimensions.width);
   });
 });
