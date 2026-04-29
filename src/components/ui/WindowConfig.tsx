@@ -236,8 +236,9 @@ export default function WindowConfig({ wallId, buildingId }: WindowConfigProps) 
                   if (!segEnabled && !sfEnabled) return null;
 
                   const ctrl = resolveWindowControls(win, product);
-                  const maxOptions = productMeta.segments?.maxCount ?? 8;
                   const overrideValue = win.segmentCountOverride;
+                  const declaredMax = productMeta.segments?.maxCount ?? 8;
+                  const maxOptions = Math.max(declaredMax, overrideValue ?? 0);
                   const isAuto = overrideValue === undefined;
                   const autoCount = ctrl.segments.count;
 
