@@ -30,6 +30,7 @@ import {
   setBuildingPrimaryMaterial as mSetBuildingPrimaryMaterial,
   setWallDoorSupplierProduct as mSetWallDoorSupplierProduct,
   setWallWindowSupplierProduct as mSetWallWindowSupplierProduct,
+  setWallWindowSegmentOverride as mSetWallWindowSegmentOverride,
   setConnections as mSetConnections,
   setDefaultHeight as mSetDefaultHeight,
   setHeightOverride as mSetHeightOverride,
@@ -90,6 +91,12 @@ interface ConfigStore extends ConfigData {
 
   setDoorSupplierProduct: (buildingId: string, wallSide: WallSide, id: string | null) => void;
   setWindowSupplierProduct: (buildingId: string, wallSide: WallSide, windowId: string, id: string | null) => void;
+  setWallWindowSegmentOverride: (
+    buildingId: string,
+    wallSide: WallSide,
+    windowId: string,
+    count: number | null,
+  ) => void;
 
   setConnections: (conns: SnapConnection[]) => void;
   toggleConnectionOpen: (aId: string, sideA: WallSide, bId: string, sideB: WallSide) => void;
@@ -183,6 +190,8 @@ export const useConfigStore = create<ConfigStore>()(
         set(mSetWallDoorSupplierProduct(get(), buildingId, wallSide, id)),
       setWindowSupplierProduct: (buildingId, wallSide, windowId, id) =>
         set(mSetWallWindowSupplierProduct(get(), buildingId, wallSide, windowId, id)),
+      setWallWindowSegmentOverride: (buildingId, wallSide, windowId, count) =>
+        set(mSetWallWindowSegmentOverride(get(), buildingId, wallSide, windowId, count)),
 
       setConnections: (conns) => set(mSetConnections(get(), conns)),
       toggleConnectionOpen: (aId, sideA, bId, sideB) =>
