@@ -22,7 +22,17 @@ interface WindowMeshProps {
 
 /** Glazing pane with a loaded texture. Only mounted when heroUrl is
  *  non-null so `useLoader`'s suspense never fires during idle renders. */
-function SupplierWindowGlazing({ width, height, heroUrl }: { width: number; height: number; heroUrl: string }) {
+function SupplierWindowGlazing({
+  width,
+  height,
+  heroUrl,
+  glassDepth = WIN_DEPTH,
+}: {
+  width: number;
+  height: number;
+  heroUrl: string;
+  glassDepth?: number;
+}) {
   const texture = useLoader(TextureLoader, heroUrl);
   const glazingMat = useMemo(() => {
     const mat = new MeshStandardMaterial({ roughness: 0.05, metalness: 0.1, color: '#ffffff' });
@@ -38,7 +48,7 @@ function SupplierWindowGlazing({ width, height, heroUrl }: { width: number; heig
 
   return (
     <mesh>
-      <boxGeometry args={[width, height, WIN_DEPTH]} />
+      <boxGeometry args={[width, height, glassDepth]} />
       <primitive object={glazingMat} attach="material" />
     </mesh>
   );
@@ -126,6 +136,11 @@ function SupplierWindowMesh({
 const PANE_OVERLAP_M = 0.03; // ~30mm overlap on the rail axis
 const SLIDE_SPEED = 5; // lerp speed factor — matches DoorMesh SWING_SPEED
 
+/** Schuifraam glass thickness — far thinner than WIN_DEPTH (which is the
+ *  full frame depth). Prevents interpenetration between adjacent panes
+ *  on different rails when slid open. */
+const SCHUIFRAAM_GLASS_DEPTH = 0.01;
+
 function SchuifraamPanes({
   width,
   height,
@@ -156,7 +171,7 @@ function SchuifraamPanes({
             width={paneW}
             height={height}
             heroUrl={heroUrl}
-            zOffset={i % 2 === 0 ? 0 : WIN_DEPTH * 0.6}
+            zOffset={i % 2 === 0 ? -WIN_DEPTH * 0.2 : WIN_DEPTH * 0.2}
           />
         );
       })}
@@ -212,10 +227,15 @@ function SchuifraamPane({
   return (
     <group ref={groupRef} position={[0, 0, zOffset]}>
       {heroUrl ? (
-        <SupplierWindowGlazing width={width} height={height} heroUrl={heroUrl} />
+        <SupplierWindowGlazing
+          width={width}
+          height={height}
+          heroUrl={heroUrl}
+          glassDepth={SCHUIFRAAM_GLASS_DEPTH}
+        />
       ) : (
         <mesh material={glassMat}>
-          <boxGeometry args={[width, height, WIN_DEPTH]} />
+          <boxGeometry args={[width, height, SCHUIFRAAM_GLASS_DEPTH]} />
         </mesh>
       )}
       {/* Per-pane frame: top */}
