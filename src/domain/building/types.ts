@@ -23,6 +23,10 @@ export interface WallWindow {
   height: number;      // meters
   sillHeight: number;  // meters from ground to bottom of window
   supplierProductId?: string | null;
+  /** User override for segment count. `undefined` → auto-derive from width.
+   *  `0` → explicitly no segments. Ignored when the resolved supplier
+   *  product has no `segments.enabled`. */
+  segmentCountOverride?: number;
 }
 
 export interface WallConfig {
