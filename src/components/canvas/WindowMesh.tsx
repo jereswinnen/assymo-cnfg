@@ -205,6 +205,10 @@ function SchuifraamPane({
     }
   });
 
+  // Per-pane frame thickness — thinner than the outer window frame so leaves
+  // read as light hardware, not stacked window frames.
+  const PANE_FRAME_T = FRAME_T * 0.5;
+
   return (
     <group ref={groupRef} position={[0, 0, zOffset]}>
       {heroUrl ? (
@@ -214,6 +218,34 @@ function SchuifraamPane({
           <boxGeometry args={[width, height, WIN_DEPTH]} />
         </mesh>
       )}
+      {/* Per-pane frame: top */}
+      <mesh
+        position={[0, height / 2 - PANE_FRAME_T / 2, 0]}
+        material={frameMat}
+      >
+        <boxGeometry args={[width, PANE_FRAME_T, FRAME_D]} />
+      </mesh>
+      {/* Per-pane frame: bottom */}
+      <mesh
+        position={[0, -height / 2 + PANE_FRAME_T / 2, 0]}
+        material={frameMat}
+      >
+        <boxGeometry args={[width, PANE_FRAME_T, FRAME_D]} />
+      </mesh>
+      {/* Per-pane frame: left */}
+      <mesh
+        position={[-width / 2 + PANE_FRAME_T / 2, 0, 0]}
+        material={frameMat}
+      >
+        <boxGeometry args={[PANE_FRAME_T, height, FRAME_D]} />
+      </mesh>
+      {/* Per-pane frame: right */}
+      <mesh
+        position={[width / 2 - PANE_FRAME_T / 2, 0, 0]}
+        material={frameMat}
+      >
+        <boxGeometry args={[PANE_FRAME_T, height, FRAME_D]} />
+      </mesh>
     </group>
   );
 }
