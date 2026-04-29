@@ -141,7 +141,7 @@ function SupplierWindowMesh({
 }
 
 const PANE_OVERLAP_M = 0.03; // ~30mm overlap on the rail axis
-const SLIDE_SPEED = 2.5; // lerp speed factor — slower than door swing for smoother schuifraam glide
+const SLIDE_SPEED = 3.5; // lerp speed factor — slower than door swing for smoother schuifraam glide
 
 /** Schuifraam glass thickness — far thinner than WIN_DEPTH (which is the
  *  full frame depth). Prevents interpenetration between adjacent panes
