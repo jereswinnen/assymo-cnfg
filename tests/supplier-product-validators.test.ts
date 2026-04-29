@@ -4,6 +4,7 @@ import {
   validateSupplierProductPatch,
   validateDoorMeta,
   validateWindowMeta,
+  validateGateMeta,
   SUPPLIER_ERROR_CODES,
 } from '@/domain/supplier';
 
@@ -134,6 +135,108 @@ describe('validateWindowMeta', () => {
   });
 });
 
+describe('validateGateMeta', () => {
+  it('accepts an empty meta object', () => {
+    const { value, errors } = validateGateMeta({});
+    expect(errors).toEqual([]);
+    expect(value).toEqual({});
+  });
+
+  it('accepts a fully populated gate meta', () => {
+    const { value, errors } = validateGateMeta({
+      partCount: 'configurable',
+      motorized: 'optional',
+      motorizedSurchargeCents: 85000,
+      swingDirections: ['inward', 'outward', 'sliding'],
+      defaultDimensions: { widthMm: 3000, heightMm: 2000 },
+      maxDimensions: { widthMm: 4000, heightMm: 2500 },
+      glazing: 'partial',
+      availableColors: [
+        { sku: 'ral-7016', label: 'Antraciet', ralCode: 'RAL 7016' },
+        { sku: 'ral-9005', label: 'Zwart', ralCode: 'RAL 9005', surchargeCents: 5000 },
+      ],
+      availableLocks: [{ sku: 'cyl', label: 'Cilinderslot' }],
+      availableHandles: [{ sku: 'standard', labelKey: 'gate.handle.std' }],
+      rValue: 1.2,
+      leadTimeDays: 14,
+    });
+    expect(errors).toEqual([]);
+    expect(value?.partCount).toBe('configurable');
+    expect(value?.availableColors?.[1].surchargeCents).toBe(5000);
+  });
+
+  it('rejects unknown top-level meta key', () => {
+    const { errors } = validateGateMeta({ unknownKey: 1 });
+    expect(errors).toContain(SUPPLIER_ERROR_CODES.metaInvalid);
+  });
+
+  it('rejects invalid partCount', () => {
+    const { errors } = validateGateMeta({ partCount: 3 });
+    expect(errors.some((e) => e.includes('partCount'))).toBe(true);
+  });
+
+  it('rejects invalid motorized', () => {
+    const { errors } = validateGateMeta({ motorized: 'maybe' });
+    expect(errors.some((e) => e.includes('motorized'))).toBe(true);
+  });
+
+  it('rejects invalid swingDirections entry', () => {
+    const { errors } = validateGateMeta({ swingDirections: ['inward', 'sideways'] });
+    expect(errors.some((e) => e.includes('swingDirections'))).toBe(true);
+  });
+
+  it('rejects invalid glazing', () => {
+    const { errors } = validateGateMeta({ glazing: 'tempered' });
+    expect(errors.some((e) => e.includes('glazing'))).toBe(true);
+  });
+
+  it('rejects defaultDimensions with extra keys', () => {
+    const { errors } = validateGateMeta({
+      defaultDimensions: { widthMm: 1000, heightMm: 1000, depthMm: 100 },
+    });
+    expect(errors.some((e) => e.includes('defaultDimensions'))).toBe(true);
+  });
+
+  it('rejects maxDimensions with non-positive values', () => {
+    const { errors } = validateGateMeta({ maxDimensions: { widthMm: 0, heightMm: 1000 } });
+    expect(errors.some((e) => e.includes('maxDimensions'))).toBe(true);
+  });
+
+  it('rejects an option without sku', () => {
+    const { errors } = validateGateMeta({ availableColors: [{ label: 'X' }] });
+    expect(errors.some((e) => e.includes('availableColors'))).toBe(true);
+  });
+
+  it('rejects an option without label or labelKey', () => {
+    const { errors } = validateGateMeta({ availableLocks: [{ sku: 'x' }] });
+    expect(errors.some((e) => e.includes('availableLocks'))).toBe(true);
+  });
+
+  it('rejects an option with negative surcharge', () => {
+    const { errors } = validateGateMeta({
+      availableHandles: [{ sku: 'x', label: 'Greep', surchargeCents: -1 }],
+    });
+    expect(errors.some((e) => e.includes('availableHandles'))).toBe(true);
+  });
+
+  it('rejects duplicate option skus within one list', () => {
+    const { errors } = validateGateMeta({
+      availableColors: [
+        { sku: 'a', label: 'A' },
+        { sku: 'a', label: 'B' },
+      ],
+    });
+    expect(errors.some((e) => e.includes('availableColors'))).toBe(true);
+  });
+
+  it('rejects an option with unknown key', () => {
+    const { errors } = validateGateMeta({
+      availableColors: [{ sku: 'a', label: 'A', extra: 1 }],
+    });
+    expect(errors.some((e) => e.includes('availableColors'))).toBe(true);
+  });
+});
+
 describe('validateSupplierProductCreate', () => {
   it('accepts a valid door product', () => {
     const { value, errors } = validateSupplierProductCreate(baseDoor());
@@ -159,7 +262,7 @@ describe('validateSupplierProductCreate', () => {
   });
 
   it('rejects invalid kind', () => {
-    const { errors } = validateSupplierProductCreate(baseDoor({ kind: 'gate' }));
+    const { errors } = validateSupplierProductCreate(baseDoor({ kind: 'shutter' }));
     expect(errors).toContain(SUPPLIER_ERROR_CODES.kindInvalid);
   });
 

@@ -84,7 +84,7 @@ const TEST_EFFECTIVE_HEIGHT = 2.0;
 describe('gateLineItems', () => {
   it('computes per-m² material cost for a 1-part gate', () => {
     const building = makePoort();
-    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT);
+    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT, []);
     expect(items).toHaveLength(1);
     const mat = items[0];
     expect(mat.labelKey).toBe('quote.line.gateMaterial');
@@ -99,7 +99,7 @@ describe('gateLineItems', () => {
       gateConfig: makeGate({ partCount: 2 }),
       dimensions: { width: 3.0 },
     });
-    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT);
+    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT, []);
     const mat = items.find((i) => i.labelKey === 'quote.line.gateMaterial');
     expect(mat).toBeDefined();
     expect(mat!.area).toBeCloseTo(6.0, 4);
@@ -110,7 +110,7 @@ describe('gateLineItems', () => {
     const building = makePoort({
       gateConfig: makeGate({ materialId: 'not-in-list' }),
     });
-    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT);
+    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT, []);
     expect(items).toHaveLength(1);
     expect(items[0].labelKey).toBe('quote.line.gateMaterialMissing');
     expect(items[0].labelParams?.materialId).toBe('not-in-list');
@@ -124,7 +124,7 @@ describe('gateLineItems', () => {
       poort: { ...DEFAULT_PRICE_BOOK.poort, perLeafBase: 100 },
     };
     const building = makePoort({ gateConfig: makeGate({ partCount: 2 }) });
-    const items = gateLineItems(building, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT);
+    const items = gateLineItems(building, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT, []);
     const perLeaf = items.find((i) => i.labelKey === 'quote.line.gatePerLeaf');
     expect(perLeaf).toBeDefined();
     expect(perLeaf!.labelParams?.count).toBe(2);
@@ -139,8 +139,8 @@ describe('gateLineItems', () => {
     const motor = makePoort({ gateConfig: makeGate({ motorized: true }) });
     const noMotor = makePoort({ gateConfig: makeGate({ motorized: false }) });
 
-    const motorItems = gateLineItems(motor, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT);
-    const noMotorItems = gateLineItems(noMotor, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT);
+    const motorItems = gateLineItems(motor, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT, []);
+    const noMotorItems = gateLineItems(noMotor, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT, []);
 
     const motorLine = motorItems.find((i) => i.labelKey === 'quote.line.gateMotor');
     expect(motorLine).toBeDefined();
@@ -157,8 +157,8 @@ describe('gateLineItems', () => {
     const sliding = makePoort({ gateConfig: makeGate({ swingDirection: 'sliding' }) });
     const inward = makePoort({ gateConfig: makeGate({ swingDirection: 'inward' }) });
 
-    const slidingItems = gateLineItems(sliding, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT);
-    const inwardItems = gateLineItems(inward, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT);
+    const slidingItems = gateLineItems(sliding, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT, []);
+    const inwardItems = gateLineItems(inward, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT, []);
 
     const slidingLine = slidingItems.find((i) => i.labelKey === 'quote.line.gateSliding');
     expect(slidingLine).toBeDefined();
@@ -171,7 +171,7 @@ describe('gateLineItems', () => {
     const building = makePoort({
       gateConfig: makeGate({ partCount: 2, motorized: true, swingDirection: 'sliding' }),
     });
-    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT);
+    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT, []);
     expect(items).toHaveLength(1);
     expect(items[0].labelKey).toBe('quote.line.gateMaterial');
   });
@@ -216,5 +216,156 @@ describe('calculateTotalQuote — mixed scene with poort', () => {
       4,
     );
     expect(gateLine!.total).toBeCloseTo(3.0 * STAAL_PER_SQM, 4);
+  });
+});
+
+// ── SKU-driven gate pricing (Phase 5.8.3) ──────────────────────────────
+
+import type { GateMeta, SupplierProductRow } from '@/domain/supplier';
+
+function makeGateProduct(overrides: Partial<SupplierProductRow> = {}): SupplierProductRow {
+  return {
+    id: 'gp-1',
+    tenantId: 't',
+    supplierId: 's1',
+    sku: 'GATE-001',
+    name: 'Vleugelpoort Standaard',
+    kind: 'gate',
+    heroImage: null,
+    widthMm: 3000,
+    heightMm: 2000,
+    priceCents: 145000, // €1450
+    meta: {} as GateMeta,
+    sortOrder: 0,
+    archivedAt: null,
+    createdAt: '',
+    updatedAt: '',
+    ...overrides,
+  };
+}
+
+describe('gateLineItems — SKU path', () => {
+  it('emits supplier base + per-leaf when an active SKU is referenced', () => {
+    const product = makeGateProduct({
+      meta: { motorized: 'optional', motorizedSurchargeCents: 85000 } as GateMeta,
+    });
+    const building = makePoort({
+      gateConfig: makeGate({ supplierProductId: 'gp-1' }),
+    });
+    const priceBook: PriceBook = {
+      ...DEFAULT_PRICE_BOOK,
+      poort: { motorSurcharge: 850, slidingSurcharge: 450, perLeafBase: 125 },
+    };
+    const items = gateLineItems(building, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT, [product]);
+    const baseLine = items.find((i) => i.labelKey === 'quote.line.gateSupplier');
+    expect(baseLine?.total).toBe(1450);
+    expect(baseLine?.source?.kind).toBe('supplierProduct');
+    // Naked-path material line is NOT emitted when SKU resolves
+    expect(items.some((i) => i.labelKey === 'quote.line.gateMaterial')).toBe(false);
+    // Per-leaf still applies (priceBook-level dial)
+    const leafLine = items.find((i) => i.labelKey === 'quote.line.gatePerLeaf');
+    expect(leafLine?.total).toBe(125);
+  });
+
+  it('emits a line per selected option with non-zero surcharge', () => {
+    const product = makeGateProduct({
+      meta: {
+        availableColors: [
+          { sku: 'ral-7016', label: 'Antraciet' },
+          { sku: 'ral-9005', label: 'Zwart', surchargeCents: 5000 },
+        ],
+        availableLocks: [
+          { sku: 'cyl', label: 'Cilinderslot' },
+          { sku: 'mp', label: 'Meerpuntsslot', surchargeCents: 12500 },
+        ],
+        availableHandles: [{ sku: 'std', label: 'Standaard' }],
+      } as GateMeta,
+    });
+    const building = makePoort({
+      gateConfig: makeGate({
+        supplierProductId: 'gp-1',
+        selectedColorSku: 'ral-9005',
+        selectedLockSku: 'mp',
+        selectedHandleSku: 'std', // no surcharge
+      }),
+    });
+    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT, [product]);
+    const optionLines = items.filter((i) => i.labelKey === 'quote.line.gateOption');
+    expect(optionLines).toHaveLength(2);
+    const totals = optionLines.map((i) => i.total).sort((a, b) => a - b);
+    expect(totals).toEqual([50, 125]);
+  });
+
+  it('applies motor surcharge only when meta.motorized==="optional" AND gate.motorized=true', () => {
+    const product = makeGateProduct({
+      meta: { motorized: 'optional', motorizedSurchargeCents: 85000 } as GateMeta,
+    });
+    const motorized = makePoort({
+      gateConfig: makeGate({ supplierProductId: 'gp-1', motorized: true }),
+    });
+    const noMotor = makePoort({
+      gateConfig: makeGate({ supplierProductId: 'gp-1', motorized: false }),
+    });
+    const motorItems = gateLineItems(motorized, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT, [product]);
+    const noMotorItems = gateLineItems(noMotor, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT, [product]);
+    const motorLine = motorItems.find((i) => i.labelKey === 'quote.line.gateMotor');
+    expect(motorLine?.total).toBe(850);
+    expect(noMotorItems.some((i) => i.labelKey === 'quote.line.gateMotor')).toBe(false);
+  });
+
+  it('does NOT emit motor surcharge when meta.motorized is forced (true or false)', () => {
+    const forced = makeGateProduct({
+      meta: { motorized: true, motorizedSurchargeCents: 85000 } as GateMeta,
+    });
+    const building = makePoort({
+      gateConfig: makeGate({ supplierProductId: 'gp-1', motorized: true }),
+    });
+    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT, [forced]);
+    expect(items.some((i) => i.labelKey === 'quote.line.gateMotor')).toBe(false);
+  });
+
+  it('still emits priceBook sliding surcharge on the SKU path', () => {
+    const product = makeGateProduct();
+    const building = makePoort({
+      gateConfig: makeGate({ supplierProductId: 'gp-1', swingDirection: 'sliding' }),
+    });
+    const priceBook: PriceBook = {
+      ...DEFAULT_PRICE_BOOK,
+      poort: { motorSurcharge: 0, slidingSurcharge: 450, perLeafBase: 0 },
+    };
+    const items = gateLineItems(building, GATE_MATERIALS, priceBook, TEST_EFFECTIVE_HEIGHT, [product]);
+    const slidingLine = items.find((i) => i.labelKey === 'quote.line.gateSliding');
+    expect(slidingLine?.total).toBe(450);
+  });
+
+  it('falls back to naked-gate path when supplier product is archived', () => {
+    const product = makeGateProduct({ archivedAt: '2026-01-01T00:00:00Z' });
+    const building = makePoort({
+      gateConfig: makeGate({ supplierProductId: 'gp-1' }),
+    });
+    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT, [product]);
+    expect(items.some((i) => i.labelKey === 'quote.line.gateMaterial')).toBe(true);
+    expect(items.some((i) => i.labelKey === 'quote.line.gateSupplier')).toBe(false);
+  });
+
+  it('falls back to naked-gate path when supplier product is missing from list', () => {
+    const building = makePoort({
+      gateConfig: makeGate({ supplierProductId: 'unknown' }),
+    });
+    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT, []);
+    expect(items.some((i) => i.labelKey === 'quote.line.gateMaterial')).toBe(true);
+  });
+
+  it('silently drops a selected option SKU not present in meta', () => {
+    const product = makeGateProduct({
+      meta: {
+        availableColors: [{ sku: 'a', label: 'A', surchargeCents: 100 }],
+      } as GateMeta,
+    });
+    const building = makePoort({
+      gateConfig: makeGate({ supplierProductId: 'gp-1', selectedColorSku: 'phantom' }),
+    });
+    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT, [product]);
+    expect(items.some((i) => i.labelKey === 'quote.line.gateOption')).toBe(false);
   });
 });

@@ -1,10 +1,11 @@
 import type { BuildingEntity } from '@/domain/building';
 import { EDGE_CLEARANCE, getWallLength } from '@/domain/building';
-import type { SupplierProductRow } from './types';
+import type { GateMeta, SupplierProductRow } from './types';
 
 export interface PlacementIssue {
-  code: 'too_tall' | 'too_wide';
+  code: 'too_tall' | 'too_wide' | 'gate_too_tall' | 'gate_too_wide';
   buildingId: string;
+  /** Wall side for door/window issues; '' for gate-primitive issues. */
   wallSide: string;
   productId: string;
   details: {
@@ -35,6 +36,48 @@ export function validateSupplierPlacements(
 
   for (const building of buildings) {
     const effectiveHeight = building.heightOverride ?? defaultHeight;
+
+    // Gate-primitive supplier-product fit check (Phase 5.8.3).
+    // Gates are standalone BuildingEntities, not openings on walls. The
+    // placed gate's footprint must fit within the SKU's GateMeta.maxDimensions.
+    if (building.type === 'poort' && building.gateConfig?.supplierProductId) {
+      const product = productMap.get(building.gateConfig.supplierProductId);
+      if (product && product.archivedAt === null) {
+        const placedWidthMm = building.dimensions.width * 1000;
+        const placedHeightMm = effectiveHeight * 1000;
+        const max = (product.meta as GateMeta).maxDimensions;
+        if (max) {
+          if (placedHeightMm > max.heightMm) {
+            issues.push({
+              code: 'gate_too_tall',
+              buildingId: building.id,
+              wallSide: '',
+              productId: product.id,
+              details: {
+                width_m: placedWidthMm / 1000,
+                height_m: placedHeightMm / 1000,
+                wall_length: max.widthMm / 1000,
+                wall_height: max.heightMm / 1000,
+              },
+            });
+          }
+          if (placedWidthMm > max.widthMm) {
+            issues.push({
+              code: 'gate_too_wide',
+              buildingId: building.id,
+              wallSide: '',
+              productId: product.id,
+              details: {
+                width_m: placedWidthMm / 1000,
+                height_m: placedHeightMm / 1000,
+                wall_length: max.widthMm / 1000,
+                wall_height: max.heightMm / 1000,
+              },
+            });
+          }
+        }
+      }
+    }
 
     for (const [wallSide, wallCfg] of Object.entries(building.walls)) {
       if (!wallCfg) continue;

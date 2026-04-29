@@ -64,7 +64,7 @@ const DOOR_GLAZING = ['solid', 'glass-panel', 'half-glass'] as const;
 const WINDOW_GLAZING = ['double', 'triple', 'single'] as const;
 
 const baseSchema = z.object({
-  kind: z.enum(['door', 'window']),
+  kind: z.enum(['door', 'window', 'gate']),
   sku: z.string().min(1),
   name: z.string().min(1).max(100),
   heroImage: z.string().nullable(),

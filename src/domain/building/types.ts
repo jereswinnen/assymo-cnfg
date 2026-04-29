@@ -49,6 +49,12 @@ export interface GateConfig {
   materialId: string;
   swingDirection: GateSwingDirection;
   motorized: boolean;
+  /** When set, references a supplier product of kind='gate' (Phase 5.8.3).
+   *  null/undefined → naked gate (per-m² material pricing path). */
+  supplierProductId?: string | null;
+  selectedColorSku?: string | null;
+  selectedLockSku?: string | null;
+  selectedHandleSku?: string | null;
 }
 
 export type FloorMaterialId = 'geen' | 'tegels' | 'beton' | 'hout';
