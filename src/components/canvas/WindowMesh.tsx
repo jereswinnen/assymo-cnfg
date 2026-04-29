@@ -8,7 +8,7 @@ import { frameMat, glassMat } from './DoorMesh';
 import { WIN_DEPTH, FRAME_T, FRAME_D } from './wallGeometry';
 import type { SupplierProductRow } from '@/domain/supplier';
 import type { WallWindow } from '@/domain/building';
-import { resolveWindowControls } from '@/domain/openings';
+import { resolveWindowControls, EMPTY_WINDOW_CONTROLS } from '@/domain/openings';
 import { useUIStore } from '@/store/useUIStore';
 
 interface WindowMeshProps {
@@ -63,7 +63,7 @@ function SupplierWindowMesh({
 
   const ctrl = wallWindow
     ? resolveWindowControls(wallWindow, supplierProduct)
-    : { segments: { count: 0, surchargeCentsPerDivider: 0 }, schuifraam: { enabled: false, surchargeCents: 0 } };
+    : EMPTY_WINDOW_CONTROLS;
   const segmentCount = ctrl.segments.count;
   const isSchuifraam = ctrl.schuifraam.enabled;
   // Tap useUIStore so future schuifraam render path can read the open state.
