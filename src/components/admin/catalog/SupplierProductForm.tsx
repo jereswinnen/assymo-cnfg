@@ -36,8 +36,21 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { t } from '@/lib/i18n';
-import type { SupplierProductRow, SupplierProductKind, DoorMeta, WindowMeta } from '@/domain/supplier';
+import type {
+  SupplierProductRow,
+  SupplierProductKind,
+  DoorMeta,
+  WindowMeta,
+  GateMeta,
+  GateMetaOption,
+} from '@/domain/supplier';
 import { HeroImageUploadField } from './HeroImageUploadField';
+import {
+  GateMetaForm,
+  emptyGateFields,
+  gateFieldsSchema,
+  type GateFieldsValues,
+} from './GateMetaForm';
 
 /** Accept "1234,56" or "1234.56"; blank → 0. Returns cents. */
 function parseEuroToCents(input: string): number {
@@ -56,7 +69,7 @@ function mmToMDisplay(mm: number): string {
   return `${mm} mm = ${(mm / 1000).toFixed(3).replace(/\.?0+$/, '')} m`;
 }
 
-const KINDS: SupplierProductKind[] = ['door', 'window'];
+const KINDS: SupplierProductKind[] = ['door', 'window', 'gate'];
 
 const DOOR_SWING = ['inward', 'outward', 'none'] as const;
 const DOOR_LOCK = ['cylinder', 'multipoint', 'none'] as const;
@@ -84,13 +97,59 @@ const baseSchema = z.object({
   openable: z.boolean(),
   // Shared
   leadTimeDays: z.number().int().min(0).nullable(),
-});
+}).extend(gateFieldsSchema.shape);
 
 type FormValues = z.infer<typeof baseSchema>;
+
+function gateOptionToFormFields(
+  o: GateMetaOption,
+): GateFieldsValues['gateColors'][number] {
+  return {
+    sku: o.sku,
+    label: o.label ?? '',
+    ralCode: o.ralCode ?? null,
+    surchargeEur: centsToEuroInput(o.surchargeCents ?? 0),
+  };
+}
+
+function gateFieldsFromMeta(meta: GateMeta): GateFieldsValues {
+  const motorized: GateFieldsValues['gateMotorized'] =
+    meta.motorized === true
+      ? 'always'
+      : meta.motorized === false
+        ? 'never'
+        : meta.motorized === 'optional'
+          ? 'optional'
+          : null;
+  const partCount: GateFieldsValues['gatePartCount'] =
+    meta.partCount === 1
+      ? '1'
+      : meta.partCount === 2
+        ? '2'
+        : meta.partCount === 'configurable'
+          ? 'configurable'
+          : null;
+  return {
+    gatePartCount: partCount,
+    gateMotorized: motorized,
+    gateMotorizedSurchargeEur: centsToEuroInput(meta.motorizedSurchargeCents ?? 0),
+    gateSwingDirections: meta.swingDirections ?? [],
+    gateDefaultWidthMm: meta.defaultDimensions?.widthMm ?? null,
+    gateDefaultHeightMm: meta.defaultDimensions?.heightMm ?? null,
+    gateMaxWidthMm: meta.maxDimensions?.widthMm ?? null,
+    gateMaxHeightMm: meta.maxDimensions?.heightMm ?? null,
+    gateGlazing: meta.glazing ?? null,
+    gateColors: (meta.availableColors ?? []).map(gateOptionToFormFields),
+    gateLocks: (meta.availableLocks ?? []).map(gateOptionToFormFields),
+    gateHandles: (meta.availableHandles ?? []).map(gateOptionToFormFields),
+  };
+}
 
 function defaultsFromRow(p: SupplierProductRow): FormValues {
   const doorMeta = p.kind === 'door' ? (p.meta as DoorMeta) : ({} as DoorMeta);
   const winMeta = p.kind === 'window' ? (p.meta as WindowMeta) : ({} as WindowMeta);
+  const gateFields =
+    p.kind === 'gate' ? gateFieldsFromMeta(p.meta as GateMeta) : emptyGateFields;
   return {
     kind: p.kind,
     sku: p.sku,
@@ -109,6 +168,7 @@ function defaultsFromRow(p: SupplierProductRow): FormValues {
     frameMaterial: winMeta.frameMaterial ?? null,
     openable: winMeta.openable ?? false,
     leadTimeDays: doorMeta.leadTimeDays ?? winMeta.leadTimeDays ?? null,
+    ...gateFields,
   };
 }
 
@@ -131,6 +191,7 @@ function emptyDefaults(kind: SupplierProductKind): FormValues {
     frameMaterial: null,
     openable: false,
     leadTimeDays: null,
+    ...emptyGateFields,
   };
 }
 
@@ -167,12 +228,68 @@ export function SupplierProductForm({
       if (values.glazing) meta.glazing = values.glazing;
       if (values.rValue !== null) meta.rValue = values.rValue;
       if (values.leadTimeDays !== null) meta.leadTimeDays = values.leadTimeDays;
-    } else {
+    } else if (values.kind === 'window') {
       if (values.glazingType) meta.glazingType = values.glazingType;
       if (values.uValue !== null) meta.uValue = values.uValue;
       if (values.frameMaterial) meta.frameMaterial = values.frameMaterial;
       meta.openable = values.openable;
       if (values.leadTimeDays !== null) meta.leadTimeDays = values.leadTimeDays;
+    } else {
+      // kind === 'gate'
+      if (values.gatePartCount) {
+        meta.partCount =
+          values.gatePartCount === '1'
+            ? 1
+            : values.gatePartCount === '2'
+              ? 2
+              : 'configurable';
+      }
+      if (values.gateMotorized) {
+        meta.motorized =
+          values.gateMotorized === 'always'
+            ? true
+            : values.gateMotorized === 'never'
+              ? false
+              : 'optional';
+      }
+      if (values.gateMotorized === 'optional') {
+        const cents = parseEuroToCents(values.gateMotorizedSurchargeEur);
+        if (cents > 0) meta.motorizedSurchargeCents = cents;
+      }
+      if (values.gateSwingDirections.length > 0) {
+        meta.swingDirections = values.gateSwingDirections;
+      }
+      if (values.gateDefaultWidthMm && values.gateDefaultHeightMm) {
+        meta.defaultDimensions = {
+          widthMm: values.gateDefaultWidthMm,
+          heightMm: values.gateDefaultHeightMm,
+        };
+      }
+      if (values.gateMaxWidthMm && values.gateMaxHeightMm) {
+        meta.maxDimensions = {
+          widthMm: values.gateMaxWidthMm,
+          heightMm: values.gateMaxHeightMm,
+        };
+      }
+      if (values.gateGlazing) meta.glazing = values.gateGlazing;
+      const optionToMeta = (
+        o: GateFieldsValues['gateColors'][number],
+      ): GateMetaOption => {
+        const out: GateMetaOption = { sku: o.sku, label: o.label };
+        if (o.ralCode) out.ralCode = o.ralCode;
+        const cents = parseEuroToCents(o.surchargeEur);
+        if (cents > 0) out.surchargeCents = cents;
+        return out;
+      };
+      if (values.gateColors.length > 0) {
+        meta.availableColors = values.gateColors.map(optionToMeta);
+      }
+      if (values.gateLocks.length > 0) {
+        meta.availableLocks = values.gateLocks.map(optionToMeta);
+      }
+      if (values.gateHandles.length > 0) {
+        meta.availableHandles = values.gateHandles.map(optionToMeta);
+      }
     }
 
     const body: Record<string, unknown> = {
@@ -686,6 +803,8 @@ export function SupplierProductForm({
             </CardContent>
           </Card>
         )}
+
+        {kind === 'gate' && <GateMetaForm />}
 
         {/* Footer */}
         <div className="flex items-center gap-2">
