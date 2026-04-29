@@ -331,6 +331,54 @@ describe('addBuilding (poort)', () => {
     expect(b.gateConfig).toEqual(defaultGateConfig());
     expect(b.sourceProductId).toBe('gate-kit-2');
   });
+
+  it('pins productDefaults.dimensions.height onto heightOverride for poort (heightSource=override)', () => {
+    // Without this, the renderer's getEffectiveHeight = heightOverride ??
+    // defaultHeight would silently fall back to the scene defaultHeight, and
+    // the product's specified height would be dead code.
+    const cfg = makeInitialConfig();
+    const { cfg: next, id } = addBuilding(cfg, 'poort', [0, 0], {
+      sourceProductId: 'gate-kit-3',
+      type: 'poort',
+      dimensions: { width: 2.0, height: 1.2 },
+    });
+    const b = next.buildings.find((x) => x.id === id)!;
+    expect(b.heightOverride).toBeCloseTo(1.2, 6);
+    expect(b.dimensions.height).toBeCloseTo(1.2, 6);
+  });
+});
+
+describe('addBuilding — product height routing', () => {
+  it('updates scene defaultHeight from productDefaults for structural kinds (heightSource=default), but only on first spawn', () => {
+    const cfg = makeInitialConfig();
+    expect(cfg.defaultHeight).toBeCloseTo(2.6, 6);
+
+    const { cfg: c1 } = addBuilding(cfg, 'overkapping', [0, 0], {
+      sourceProductId: 'kit-1',
+      type: 'overkapping',
+      dimensions: { width: 4, depth: 3, height: 2.4 },
+    });
+    expect(c1.defaultHeight).toBeCloseTo(2.4, 6);
+
+    // Second spawn does NOT mutate scene defaultHeight.
+    const { cfg: c2 } = addBuilding(c1, 'overkapping', [10, 0], {
+      sourceProductId: 'kit-2',
+      type: 'overkapping',
+      dimensions: { width: 4, depth: 3, height: 3.0 },
+    });
+    expect(c2.defaultHeight).toBeCloseTo(2.4, 6);
+  });
+
+  it('does not write heightOverride for structural kinds', () => {
+    const cfg = makeInitialConfig();
+    const { cfg: next, id } = addBuilding(cfg, 'overkapping', [0, 0], {
+      sourceProductId: 'kit-1',
+      type: 'overkapping',
+      dimensions: { width: 4, depth: 3, height: 2.4 },
+    });
+    const b = next.buildings.find((x) => x.id === id)!;
+    expect(b.heightOverride).toBeNull();
+  });
 });
 
 describe('updateGateConfig', () => {

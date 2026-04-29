@@ -187,7 +187,28 @@ export function addBuilding(
     building = createBuilding(type, resolvedPos, materialDefaults);
   }
 
-  const nextCfg: ConfigData = { ...cfg, buildings: [...cfg.buildings, building] };
+  // Honour product-specified height per the kind's heightSource binding.
+  // 'override' kinds (paal/muur/poort) pin per-instance via heightOverride;
+  // 'default' kinds (overkapping/berging) update the scene-level default but
+  // only on the first product spawn — mirrors roof behaviour. The renderer
+  // uses `getEffectiveHeight = heightOverride ?? defaultHeight`, so writing
+  // through the right channel is what makes the height visible.
+  const productHeight = productDefaults?.dimensions?.height;
+  let sceneDefaultHeight = cfg.defaultHeight;
+  if (productHeight) {
+    const hSource = BUILDING_KIND_META[type].dimensions.heightSource;
+    if (hSource === 'override') {
+      building = { ...building, heightOverride: productHeight };
+    } else if (hSource === 'default' && cfg.buildings.length === 0) {
+      sceneDefaultHeight = productHeight;
+    }
+  }
+
+  const nextCfg: ConfigData = {
+    ...cfg,
+    buildings: [...cfg.buildings, building],
+    defaultHeight: sceneDefaultHeight,
+  };
 
   // Roof is scene-level. Only apply product roof defaults on the first building.
   if (productDefaults?.roof && cfg.buildings.length === 0) {
