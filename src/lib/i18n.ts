@@ -194,8 +194,6 @@ const nl: Record<string, string> = {
   "configurator.gate.parts.two": "2 delen",
   "configurator.gate.partWidth": "Breedte per deel",
   "configurator.gate.height": "Hoogte",
-  "configurator.gate.material": "Materiaal",
-  "configurator.gate.material.placeholder": "Kies materiaal",
   "configurator.gate.swing": "Beweging",
   "configurator.gate.swing.inward": "Naar binnen",
   "configurator.gate.swing.outward": "Naar buiten",
