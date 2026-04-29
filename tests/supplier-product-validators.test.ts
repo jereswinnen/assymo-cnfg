@@ -133,6 +133,61 @@ describe('validateWindowMeta', () => {
     const { errors } = validateWindowMeta({ swingDirection: 'inward' });
     expect(errors).toContain(SUPPLIER_ERROR_CODES.metaInvalid);
   });
+
+  it('accepts segments with required threshold', () => {
+    const r = validateWindowMeta({
+      segments: { enabled: true, autoThresholdMm: 1500 },
+    });
+    expect(r.errors).toEqual([]);
+    expect(r.value?.segments).toEqual({ enabled: true, autoThresholdMm: 1500 });
+  });
+
+  it('rejects segments enabled without autoThresholdMm', () => {
+    const r = validateWindowMeta({ segments: { enabled: true } });
+    expect(r.value).toBeNull();
+    expect(r.errors).toContain(SUPPLIER_ERROR_CODES.segmentsInvalid);
+  });
+
+  it('rejects negative autoThresholdMm', () => {
+    const r = validateWindowMeta({
+      segments: { enabled: true, autoThresholdMm: -1 },
+    });
+    expect(r.value).toBeNull();
+  });
+
+  it('rejects maxCount < 1', () => {
+    const r = validateWindowMeta({
+      segments: { enabled: true, autoThresholdMm: 1500, maxCount: 0 },
+    });
+    expect(r.value).toBeNull();
+  });
+
+  it('rejects negative surchargeCentsPerDivider', () => {
+    const r = validateWindowMeta({
+      segments: { enabled: true, autoThresholdMm: 1500, surchargeCentsPerDivider: -10 },
+    });
+    expect(r.value).toBeNull();
+  });
+
+  it('accepts schuifraam enabled without surcharge', () => {
+    const r = validateWindowMeta({ schuifraam: { enabled: true } });
+    expect(r.errors).toEqual([]);
+    expect(r.value?.schuifraam).toEqual({ enabled: true });
+  });
+
+  it('accepts schuifraam with surcharge', () => {
+    const r = validateWindowMeta({
+      schuifraam: { enabled: true, surchargeCents: 25000 },
+    });
+    expect(r.value?.schuifraam?.surchargeCents).toBe(25000);
+  });
+
+  it('rejects negative schuifraam surcharge', () => {
+    const r = validateWindowMeta({
+      schuifraam: { enabled: true, surchargeCents: -1 },
+    });
+    expect(r.value).toBeNull();
+  });
 });
 
 describe('validateGateMeta', () => {

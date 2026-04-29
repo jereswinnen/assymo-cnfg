@@ -5,6 +5,8 @@ import {
   type GateMetaOption,
   type SupplierProductKind,
   type WindowMeta,
+  type WindowMetaSegments,
+  type WindowMetaSchuifraam,
 } from './types';
 import { isObject, isNonNegativeInt, isPositiveInt } from './_validation';
 
@@ -43,7 +45,10 @@ const DOOR_GLAZING_VALUES = ['solid', 'glass-panel', 'half-glass'] as const;
 const WINDOW_GLAZING_VALUES = ['double', 'triple', 'single'] as const;
 
 const DOOR_META_KEYS = new Set(['swingDirection', 'lockType', 'glazing', 'rValue', 'leadTimeDays']);
-const WINDOW_META_KEYS = new Set(['glazingType', 'uValue', 'frameMaterial', 'openable', 'leadTimeDays']);
+const WINDOW_META_KEYS = new Set([
+  'glazingType', 'uValue', 'frameMaterial', 'openable', 'leadTimeDays',
+  'segments', 'schuifraam',
+]);
 
 const GATE_SWING_VALUES = ['inward', 'outward', 'sliding'] as const;
 const GATE_GLAZING_VALUES = ['none', 'partial', 'full'] as const;
@@ -350,6 +355,63 @@ export function validateWindowMeta(meta: unknown): Validated<WindowMeta> {
       errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:leadTimeDays`);
     } else {
       out.leadTimeDays = meta.leadTimeDays as number;
+    }
+  }
+
+  if ('segments' in meta) {
+    const s = meta.segments;
+    if (!isObject(s) || typeof s.enabled !== 'boolean') {
+      errors.push(SUPPLIER_ERROR_CODES.segmentsInvalid);
+    } else if (s.enabled) {
+      if (typeof s.autoThresholdMm !== 'number' || !Number.isFinite(s.autoThresholdMm) || s.autoThresholdMm < 0) {
+        errors.push(SUPPLIER_ERROR_CODES.segmentsInvalid);
+      } else {
+        const seg: WindowMetaSegments = {
+          enabled: true,
+          autoThresholdMm: s.autoThresholdMm,
+        };
+        if ('perAdditionalThresholdMm' in s) {
+          if (typeof s.perAdditionalThresholdMm !== 'number' || s.perAdditionalThresholdMm <= 0) {
+            errors.push(SUPPLIER_ERROR_CODES.segmentsInvalid);
+          } else {
+            seg.perAdditionalThresholdMm = s.perAdditionalThresholdMm;
+          }
+        }
+        if ('maxCount' in s) {
+          if (!isPositiveInt(s.maxCount, 1000)) {
+            errors.push(SUPPLIER_ERROR_CODES.segmentsInvalid);
+          } else {
+            seg.maxCount = s.maxCount;
+          }
+        }
+        if ('surchargeCentsPerDivider' in s) {
+          if (!isNonNegativeInt(s.surchargeCentsPerDivider)) {
+            errors.push(SUPPLIER_ERROR_CODES.segmentsInvalid);
+          } else {
+            seg.surchargeCentsPerDivider = s.surchargeCentsPerDivider;
+          }
+        }
+        out.segments = seg;
+      }
+    } else {
+      out.segments = { enabled: false, autoThresholdMm: 0 };
+    }
+  }
+
+  if ('schuifraam' in meta) {
+    const s = meta.schuifraam;
+    if (!isObject(s) || typeof s.enabled !== 'boolean') {
+      errors.push(SUPPLIER_ERROR_CODES.schuifraamInvalid);
+    } else {
+      const sf: WindowMetaSchuifraam = { enabled: s.enabled };
+      if ('surchargeCents' in s) {
+        if (!isNonNegativeInt(s.surchargeCents)) {
+          errors.push(SUPPLIER_ERROR_CODES.schuifraamInvalid);
+        } else {
+          sf.surchargeCents = s.surchargeCents;
+        }
+      }
+      out.schuifraam = sf;
     }
   }
 
