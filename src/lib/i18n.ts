@@ -1037,6 +1037,18 @@ const nl: Record<string, string> = {
   "admin.catalog.supplierProducts.field.uValue": "U-waarde (W/m²K)",
   "admin.catalog.supplierProducts.field.frameMaterial": "Kozijnmateriaal",
   "admin.catalog.supplierProducts.field.openable": "Te openen",
+  "admin.catalog.supplierProducts.field.segments.enabled":
+    "Segmenten ingeschakeld",
+  "admin.catalog.supplierProducts.field.segments.autoThresholdMm":
+    "Drempel (mm)",
+  "admin.catalog.supplierProducts.field.segments.perAdditionalThresholdMm":
+    "Volgende drempel (mm)",
+  "admin.catalog.supplierProducts.field.segments.maxCount": "Maximum aantal",
+  "admin.catalog.supplierProducts.field.segments.surchargeEur":
+    "Toeslag per segment (€)",
+  "admin.catalog.supplierProducts.field.schuifraam.enabled": "Schuifraam",
+  "admin.catalog.supplierProducts.field.schuifraam.surchargeEur":
+    "Toeslag schuifraam (€)",
 
   // Shared
   "admin.catalog.supplierProducts.field.leadTimeDays": "Levertijd (dagen)",
@@ -1081,6 +1093,12 @@ const nl: Record<string, string> = {
   "configurator.door.tab.catalog": "Uit catalogus",
   "configurator.window.tab.custom": "Eigen keuze",
   "configurator.window.tab.catalog": "Uit catalogus",
+  "configurator.window.controls.section": "Bedieningen",
+  "configurator.window.controls.segments": "Segmenten",
+  "configurator.window.controls.segments.auto": "Auto",
+  "configurator.window.controls.segments.autoHint": "Auto · {count} segmenten",
+  "configurator.window.controls.schuifraam.open": "Open",
+  "configurator.window.controls.schuifraam.close": "Sluit",
   "configurator.supplier.picker.empty":
     "Geen producten beschikbaar voor deze categorie",
   "configurator.supplier.picker.dimensions": "{width} × {height} mm",
@@ -1094,6 +1112,8 @@ const nl: Record<string, string> = {
   "quote.line.supplierDoor": "Deur — {name} ({sku})",
   "quote.line.supplierWindow": "Raam — {name} ({sku})",
   "quote.line.supplierMissing": "Ontbrekend product ({id})",
+  "quote.window.segmentSurcharge": "Segmenttoeslag ({count}×)",
+  "quote.window.schuifraamSurcharge": "Schuifraamtoeslag",
 
   // Quote line items for gates (poort)
   "quote.line.gateMaterial": "Poort — {materialName} ({sqm} m²)",
