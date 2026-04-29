@@ -104,7 +104,17 @@ const baseSchema = z.object({
   schuifraamSurchargeEur: z.string(),
   // Shared
   leadTimeDays: z.number().int().min(0).nullable(),
-}).extend(gateFieldsSchema.shape);
+}).extend(gateFieldsSchema.shape).superRefine((values, ctx) => {
+  if (values.kind === 'window' && values.segmentsEnabled) {
+    if (values.segmentsAutoThresholdMm == null || values.segmentsAutoThresholdMm <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['segmentsAutoThresholdMm'],
+        message: 'required when segments enabled',
+      });
+    }
+  }
+});
 
 type FormValues = z.infer<typeof baseSchema>;
 
@@ -264,7 +274,7 @@ export function SupplierProductForm({
       if (values.segmentsEnabled) {
         const seg: Record<string, unknown> = {
           enabled: true,
-          autoThresholdMm: values.segmentsAutoThresholdMm ?? 0,
+          autoThresholdMm: values.segmentsAutoThresholdMm!,
         };
         if (values.segmentsPerAdditionalThresholdMm != null) {
           seg.perAdditionalThresholdMm = values.segmentsPerAdditionalThresholdMm;
