@@ -86,4 +86,20 @@ describe('resolveWindowControls', () => {
     expect(r.segments.count).toBe(0);
     expect(r.schuifraam.enabled).toBe(false);
   });
+
+  it('floors negative override to 0', () => {
+    const product = makeProduct({
+      segments: { enabled: true, autoThresholdMm: 1500 },
+    });
+    const r = resolveWindowControls(makeWindow({ segmentCountOverride: -2 }), product);
+    expect(r.segments.count).toBe(0);
+  });
+
+  it('floors fractional override down', () => {
+    const product = makeProduct({
+      segments: { enabled: true, autoThresholdMm: 1500, maxCount: 5 },
+    });
+    const r = resolveWindowControls(makeWindow({ segmentCountOverride: 2.7 }), product);
+    expect(r.segments.count).toBe(2);
+  });
 });
