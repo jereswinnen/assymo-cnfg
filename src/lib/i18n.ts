@@ -463,6 +463,10 @@ const nl: Record<string, string> = {
     "Een geselecteerde deur of raam is te hoog voor de wand. Pas de maten aan en probeer opnieuw.",
   "configurator.submit.error.supplier_placement_too_wide":
     "Een geselecteerde deur of raam is te breed voor de wand. Pas de maten aan en probeer opnieuw.",
+  "configurator.submit.error.gate_placement_too_tall":
+    "De geplaatste poort is te hoog voor het gekozen model. Pas de hoogte aan of kies een ander model.",
+  "configurator.submit.error.gate_placement_too_wide":
+    "De geplaatste poort is te breed voor het gekozen model. Pas de breedte aan of kies een ander model.",
   // Confirmation screen
   "configurator.submit.success.title": "Bedankt voor je aanvraag!",
   "configurator.submit.success.lead":

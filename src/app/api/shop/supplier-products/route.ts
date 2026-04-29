@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const kindParam = url.searchParams.get('kind');
-  const validKinds = ['door', 'window'] as const satisfies readonly SupplierProductKind[];
+  const validKinds = ['door', 'window', 'gate'] as const satisfies readonly SupplierProductKind[];
   const kind = kindParam && (validKinds as readonly string[]).includes(kindParam)
     ? (kindParam as SupplierProductKind)
     : null;

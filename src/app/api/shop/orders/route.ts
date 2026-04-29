@@ -146,6 +146,10 @@ export async function POST(req: NextRequest) {
         if (win.supplierProductId) referencedIds.add(win.supplierProductId);
       }
     }
+    // Phase 5.8.3: gate-primitive supplier-product reference
+    if (building.type === 'poort' && building.gateConfig?.supplierProductId) {
+      referencedIds.add(building.gateConfig.supplierProductId);
+    }
   }
 
   if (referencedIds.size > 0) {
@@ -192,9 +196,14 @@ export async function POST(req: NextRequest) {
   );
   if (placementIssues.length > 0) {
     const first = placementIssues[0];
-    const errorCode = first.code === 'too_tall'
-      ? 'supplier_placement_too_tall'
-      : 'supplier_placement_too_wide';
+    const errorCode =
+      first.code === 'too_tall'
+        ? 'supplier_placement_too_tall'
+        : first.code === 'too_wide'
+          ? 'supplier_placement_too_wide'
+          : first.code === 'gate_too_tall'
+            ? 'gate_placement_too_tall'
+            : 'gate_placement_too_wide';
     return NextResponse.json(
       {
         error: errorCode,
