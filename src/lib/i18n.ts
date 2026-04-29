@@ -201,6 +201,16 @@ const nl: Record<string, string> = {
   "configurator.gate.swing.outward": "Naar buiten",
   "configurator.gate.swing.sliding": "Schuivend",
   "configurator.gate.motorized": "Gemotoriseerd",
+  "configurator.gate.supplierProduct": "Model",
+  "configurator.gate.naked": "Naakt (eigen materiaal)",
+  "configurator.gate.color": "Kleur",
+  "configurator.gate.lock": "Slot",
+  "configurator.gate.handle": "Greep",
+  "configurator.gate.option.placeholder": "Kies een optie",
+  "configurator.gate.motor.forcedOn":
+    "Dit model is altijd gemotoriseerd.",
+  "configurator.gate.motor.forcedOff":
+    "Dit model is niet beschikbaar met motor.",
 
   // Config code
   "code.title": "Configuratiecode",
