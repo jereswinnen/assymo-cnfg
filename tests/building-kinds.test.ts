@@ -15,12 +15,13 @@ describe('BUILDING_KIND_META', () => {
   });
 
   it('describes poort as a productable primitive snapping like a wall, requiring the gate material category', () => {
-    expect(getBuildingKindMeta('poort')).toEqual({
-      tray: 'primitive',
-      requiredCategories: ['gate'],
-      productable: true,
-      snapKind: 'wall',
-    });
+    const meta = getBuildingKindMeta('poort');
+    expect(meta.tray).toBe('primitive');
+    expect([...meta.requiredCategories]).toEqual(['gate']);
+    expect(meta.productable).toBe(true);
+    expect(meta.snapKind).toBe('wall');
+    expect(meta.primaryMaterial.category).toBe('gate');
+    expect(meta.primaryMaterial.binding.source).toBe('gateConfig.materialId');
   });
 
   it('describes overkapping as a productable structural with wall+roof-cover+floor categories', () => {

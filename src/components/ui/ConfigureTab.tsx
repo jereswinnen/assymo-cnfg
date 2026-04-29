@@ -22,7 +22,7 @@ type ConfigSection = 'dimensions' | 'material' | 'structure' | 'walls' | 'gate' 
 
 const SECTIONS: { id: ConfigSection; labelKey: string; icon: string; showFor?: BuildingType[] }[] = [
   { id: 'dimensions', labelKey: 'sidebar.section.dimensions', icon: '📐' },
-  { id: 'material', labelKey: 'sidebar.section.material', icon: '🎨', showFor: ['overkapping', 'berging', 'paal', 'muur'] },
+  { id: 'material', labelKey: 'sidebar.section.material', icon: '🎨' },
   { id: 'structure', labelKey: 'sidebar.section.structure', icon: '🏗', showFor: ['overkapping', 'berging', 'paal', 'muur'] },
   { id: 'walls', labelKey: 'sidebar.section.walls', icon: '🧱', showFor: ['berging', 'muur'] },
   { id: 'gate', labelKey: 'sidebar.section.gate', icon: '🚪', showFor: ['poort'] },
