@@ -1,6 +1,6 @@
 import type { WallWindow } from '@/domain/building';
 import type { SupplierProductRow, WindowMeta } from '@/domain/supplier';
-import { deriveSegmentCount } from './controls';
+import { deriveSegmentCount, DEFAULT_NAKED_WINDOW_SEGMENTS } from './controls';
 
 export interface ResolvedWindowControls {
   segments: {
@@ -24,9 +24,24 @@ export function resolveWindowControls(
   window: WallWindow,
   product: SupplierProductRow | null,
 ): ResolvedWindowControls {
-  if (!product || product.kind !== 'window') return EMPTY_WINDOW_CONTROLS;
-  const meta = product.meta as WindowMeta;
+  // Naked-window path: no product (or non-window product) → use default
+  // segments config; no schuifraam.
+  if (!product || product.kind !== 'window') {
+    const segCfg = DEFAULT_NAKED_WINDOW_SEGMENTS;
+    let segCount = 0;
+    if (window.segmentCountOverride !== undefined) {
+      segCount = Math.max(0, Math.floor(window.segmentCountOverride));
+      if (segCfg.maxCount != null) segCount = Math.min(segCount, segCfg.maxCount);
+    } else {
+      segCount = deriveSegmentCount(window.width * 1000, segCfg);
+    }
+    return {
+      segments: { count: segCount, surchargeCentsPerDivider: 0 },
+      schuifraam: { enabled: false, surchargeCents: 0 },
+    };
+  }
 
+  const meta = product.meta as WindowMeta;
   const segCfg = meta.segments;
   let segCount = 0;
   if (segCfg?.enabled) {

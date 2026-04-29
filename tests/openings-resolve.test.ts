@@ -18,10 +18,22 @@ function makeWindow(extras: Partial<WallWindow> = {}): WallWindow {
 }
 
 describe('resolveWindowControls', () => {
-  it('returns empty view when product is null', () => {
-    const r = resolveWindowControls(makeWindow(), null);
-    expect(r.segments.count).toBe(0);
+  it('naked window auto-derives segments from width', () => {
+    // Window is 2.0m wide → 2000mm → above 1500 threshold → 1 divider auto.
+    const r = resolveWindowControls(makeWindow({ width: 2.0 }), null);
+    expect(r.segments.count).toBe(1);
     expect(r.schuifraam.enabled).toBe(false);
+  });
+
+  it('naked window honours segmentCountOverride', () => {
+    const r = resolveWindowControls(makeWindow({ width: 2.0, segmentCountOverride: 3 }), null);
+    expect(r.segments.count).toBe(3);
+  });
+
+  it('naked window with width below default threshold has no segments', () => {
+    // 1.4m → 1400mm < 1500 default threshold → 0.
+    const r = resolveWindowControls(makeWindow({ width: 1.4 }), null);
+    expect(r.segments.count).toBe(0);
   });
 
   it('auto-derives count from product width when enabled', () => {
@@ -77,13 +89,14 @@ describe('resolveWindowControls', () => {
     expect(r.segments.surchargeCentsPerDivider).toBe(5000);
   });
 
-  it('returns empty view for non-window product kinds', () => {
+  it('non-window product kinds fall through to the naked path', () => {
     const product: SupplierProductRow = {
       ...makeProduct({}),
       kind: 'door',
     };
-    const r = resolveWindowControls(makeWindow(), product);
-    expect(r.segments.count).toBe(0);
+    // Naked path: width 2.0m → 1 divider via DEFAULT_NAKED_WINDOW_SEGMENTS.
+    const r = resolveWindowControls(makeWindow({ width: 2.0 }), product);
+    expect(r.segments.count).toBe(1);
     expect(r.schuifraam.enabled).toBe(false);
   });
 

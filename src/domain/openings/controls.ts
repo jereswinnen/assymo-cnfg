@@ -1,4 +1,4 @@
-import type { WindowMeta } from '@/domain/supplier';
+import type { WindowMeta, WindowMetaSegments } from '@/domain/supplier';
 
 /** Opening-side kinds the registry knows about. */
 export type OpeningKind = 'window' | 'door';
@@ -36,3 +36,12 @@ export function deriveSegmentCount(
   );
   return Math.min(raw, max);
 }
+
+/** Default segment auto-config used by naked windows (no supplier product).
+ *  Mirrors the shape a supplier product would carry. Tunable via a tenant
+ *  priceBook field later if needed. */
+export const DEFAULT_NAKED_WINDOW_SEGMENTS: WindowMetaSegments = {
+  enabled: true,
+  autoThresholdMm: 1500,
+  perAdditionalThresholdMm: 1000,
+};

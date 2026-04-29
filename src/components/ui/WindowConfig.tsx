@@ -229,7 +229,57 @@ export default function WindowConfig({ wallId, buildingId }: WindowConfigProps) 
 
                 {(() => {
                   const product = activeProduct;
-                  if (!product) return null;
+                  // Naked-window path: no product → segments-only via defaults.
+                  if (!product) {
+                    const ctrl = resolveWindowControls(win, null);
+                    const defaultMax = 8; // unbounded in defaults; cap at 8 for the UI
+                    const overrideValue = win.segmentCountOverride;
+                    const isAuto = overrideValue === undefined;
+                    const autoCount = ctrl.segments.count;
+                    const declaredMax = defaultMax;
+                    const maxOptions = Math.max(declaredMax, overrideValue ?? 0);
+
+                    return (
+                      <div className="border-t border-border/50 px-3 py-2 space-y-2">
+                        <p className="text-[11px] font-medium text-muted-foreground">
+                          {t('configurator.window.controls.section')}
+                        </p>
+                        <div className="space-y-1">
+                          <p className="text-xs">{t('configurator.window.controls.segments')}</p>
+                          <div className="flex flex-wrap gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setWallWindowSegmentOverride(buildingId, wallId, win.id, null)}
+                              className={`px-2 py-0.5 rounded text-xs border ${
+                                isAuto
+                                  ? 'bg-foreground text-background border-foreground'
+                                  : 'border-border hover:bg-muted/50'
+                              }`}
+                            >
+                              {isAuto
+                                ? t('configurator.window.controls.segments.autoHint', { count: autoCount })
+                                : t('configurator.window.controls.segments.auto')}
+                            </button>
+                            {Array.from({ length: maxOptions + 1 }, (_, n) => (
+                              <button
+                                key={n}
+                                type="button"
+                                onClick={() => setWallWindowSegmentOverride(buildingId, wallId, win.id, n)}
+                                className={`px-2 py-0.5 rounded text-xs border tabular-nums ${
+                                  !isAuto && overrideValue === n
+                                    ? 'bg-foreground text-background border-foreground'
+                                    : 'border-border hover:bg-muted/50'
+                                }`}
+                              >
+                                {n}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
                   const productMeta = product.meta as WindowMeta;
                   const segEnabled = !!productMeta.segments?.enabled;
                   const sfEnabled = !!productMeta.schuifraam?.enabled;
