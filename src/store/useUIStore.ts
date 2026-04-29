@@ -22,6 +22,10 @@ interface UIState {
    *  deleted/edited and the clipboard still pastes the original. Cleared
    *  on full reload (not persisted). */
   clipboard: BuildingEntity[] | null;
+  /** Ephemeral schuifraam open/close state. Not persisted, not undoable. */
+  windowAnimations: Record<string, { open: boolean }>;
+  toggleWindowOpen: (windowId: string) => void;
+  clearWindowAnimation: (windowId: string) => void;
 
   selectBuilding: (id: string | null) => void;
   selectBuildings: (ids: string[]) => void;
@@ -54,7 +58,8 @@ const INITIAL_UI: Omit<UIState, keyof Pick<UIState,
   'selectBuilding' | 'selectBuildings' | 'toggleBuildingSelection' |
   'selectElement' | 'clearSelection' | 'clearCameraTarget' | 'setDraggedBuildingId' |
   'setSidebarTab' | 'setSidebarCollapsed' | 'setActiveConfigSection' |
-  'setViewMode' | 'setQualityTier' | 'copySelection' | 'pasteClipboard' | 'resetUI'
+  'setViewMode' | 'setQualityTier' | 'copySelection' | 'pasteClipboard' | 'resetUI' |
+  'toggleWindowOpen' | 'clearWindowAnimation'
 >> = {
   selectedBuildingIds: [],
   selectedElement: null,
@@ -66,6 +71,7 @@ const INITIAL_UI: Omit<UIState, keyof Pick<UIState,
   viewMode: 'plan',
   qualityTier: 'high',
   clipboard: null,
+  windowAnimations: {},
 };
 
 export const useUIStore = create<UIState>()((set, get) => ({
@@ -138,6 +144,20 @@ export const useUIStore = create<UIState>()((set, get) => ({
       sidebarCollapsed: false,
     });
   },
+
+  toggleWindowOpen: (windowId) =>
+    set((state) => ({
+      windowAnimations: {
+        ...state.windowAnimations,
+        [windowId]: { open: !(state.windowAnimations[windowId]?.open ?? false) },
+      },
+    })),
+
+  clearWindowAnimation: (windowId) =>
+    set((state) => {
+      const { [windowId]: _drop, ...rest } = state.windowAnimations;
+      return { windowAnimations: rest };
+    }),
 
   resetUI: (initialSelectedId = null) =>
     set({
