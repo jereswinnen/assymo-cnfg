@@ -14,6 +14,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, X } from 'lucide-react';
 import type { WallId, WallWindow } from '@/domain/building';
+import { resolveWindowControls } from '@/domain/openings';
+import { useUIStore } from '@/store/useUIStore';
+import type { WindowMeta } from '@/domain/supplier';
 
 interface WindowConfigProps {
   wallId: WallId;
@@ -28,6 +31,9 @@ export default function WindowConfig({ wallId, buildingId }: WindowConfigProps) 
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
   const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
   const setWindowSupplierProduct = useConfigStore((s) => s.setWindowSupplierProduct);
+  const setWallWindowSegmentOverride = useConfigStore((s) => s.setWallWindowSegmentOverride);
+  const windowAnimations = useUIStore((s) => s.windowAnimations);
+  const toggleWindowOpen = useUIStore((s) => s.toggleWindowOpen);
 
   const { supplierCatalog } = useTenant();
   const supplierWindows = supplierCatalog.products.filter(
@@ -220,6 +226,76 @@ export default function WindowConfig({ wallId, buildingId }: WindowConfigProps) 
                     </TabsContent>
                   </Tabs>
                 </div>
+
+                {(() => {
+                  const product = activeProduct;
+                  if (!product) return null;
+                  const productMeta = product.meta as WindowMeta;
+                  const segEnabled = !!productMeta.segments?.enabled;
+                  const sfEnabled = !!productMeta.schuifraam?.enabled;
+                  if (!segEnabled && !sfEnabled) return null;
+
+                  const ctrl = resolveWindowControls(win, product);
+                  const maxOptions = productMeta.segments?.maxCount ?? 8;
+                  const overrideValue = win.segmentCountOverride;
+                  const isAuto = overrideValue === undefined;
+                  const autoCount = ctrl.segments.count;
+
+                  return (
+                    <div className="border-t border-border/50 px-3 py-2 space-y-2">
+                      <p className="text-[11px] font-medium text-muted-foreground">
+                        {t('configurator.window.controls.section')}
+                      </p>
+
+                      {segEnabled && (
+                        <div className="space-y-1">
+                          <p className="text-xs">{t('configurator.window.controls.segments')}</p>
+                          <div className="flex flex-wrap gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setWallWindowSegmentOverride(buildingId, wallId, win.id, null)}
+                              className={`px-2 py-0.5 rounded text-xs border ${
+                                isAuto
+                                  ? 'bg-foreground text-background border-foreground'
+                                  : 'border-border hover:bg-muted/50'
+                              }`}
+                            >
+                              {isAuto
+                                ? t('configurator.window.controls.segments.autoHint', { count: autoCount })
+                                : t('configurator.window.controls.segments.auto')}
+                            </button>
+                            {Array.from({ length: maxOptions + 1 }, (_, n) => (
+                              <button
+                                key={n}
+                                type="button"
+                                onClick={() => setWallWindowSegmentOverride(buildingId, wallId, win.id, n)}
+                                className={`px-2 py-0.5 rounded text-xs border tabular-nums ${
+                                  !isAuto && overrideValue === n
+                                    ? 'bg-foreground text-background border-foreground'
+                                    : 'border-border hover:bg-muted/50'
+                                }`}
+                              >
+                                {n}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {sfEnabled && (
+                        <button
+                          type="button"
+                          onClick={() => toggleWindowOpen(win.id)}
+                          className="text-xs px-2 py-1 rounded border border-border hover:bg-muted/50"
+                        >
+                          {windowAnimations[win.id]?.open
+                            ? t('configurator.window.controls.schuifraam.close')
+                            : t('configurator.window.controls.schuifraam.open')}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
