@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useEffect } from 'react';
-import { MeshStandardMaterial, ClampToEdgeWrapping, TextureLoader } from 'three';
-import { useLoader } from '@react-three/fiber';
+import { useMemo, useEffect, useRef } from 'react';
+import { Group, MathUtils, MeshStandardMaterial, ClampToEdgeWrapping, TextureLoader } from 'three';
+import { useFrame, useLoader } from '@react-three/fiber';
 import { WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT } from '@/domain/building';
 import { frameMat, glassMat } from './DoorMesh';
 import { WIN_DEPTH, FRAME_T, FRAME_D } from './wallGeometry';
@@ -66,9 +66,7 @@ function SupplierWindowMesh({
     : EMPTY_WINDOW_CONTROLS;
   const segmentCount = ctrl.segments.count;
   const isSchuifraam = ctrl.schuifraam.enabled;
-  // Tap useUIStore so future schuifraam render path can read the open state.
-  // Currently unused; Task 14 will consume it.
-  useUIStore((s) =>
+  const open = useUIStore((s) =>
     wallWindow ? !!s.windowAnimations[wallWindow.id]?.open : false,
   );
 
@@ -83,20 +81,30 @@ function SupplierWindowMesh({
 
   return (
     <group position={[x, winY, 0]}>
-      {heroUrl ? (
-        <SupplierWindowGlazing width={width} height={height} heroUrl={heroUrl} />
+      {!isSchuifraam ? (
+        <>
+          {heroUrl ? (
+            <SupplierWindowGlazing width={width} height={height} heroUrl={heroUrl} />
+          ) : (
+            <mesh material={glassMat}>
+              <boxGeometry args={[width, height, WIN_DEPTH]} />
+            </mesh>
+          )}
+          {mullionXs.map((mx, i) => (
+            <mesh key={`m-${i}`} position={[mx, 0, 0]} material={frameMat}>
+              <boxGeometry args={[FRAME_T * 0.7, height, FRAME_D]} />
+            </mesh>
+          ))}
+        </>
       ) : (
-        <mesh material={glassMat}>
-          <boxGeometry args={[width, height, WIN_DEPTH]} />
-        </mesh>
+        <SchuifraamPanes
+          width={width}
+          height={height}
+          segmentCount={segmentCount}
+          open={open}
+          heroUrl={heroUrl}
+        />
       )}
-
-      {/* Mullions — only when NOT schuifraam (schuifraam path lands in Task 14) */}
-      {!isSchuifraam && mullionXs.map((mx, i) => (
-        <mesh key={`m-${i}`} position={[mx, 0, 0]} material={frameMat}>
-          <boxGeometry args={[FRAME_T * 0.7, height, FRAME_D]} />
-        </mesh>
-      ))}
 
       {/* Frame: top / bottom / left / right (unchanged) */}
       <mesh position={[0, height / 2 + FRAME_T / 2, 0]} material={frameMat}>
@@ -111,6 +119,82 @@ function SupplierWindowMesh({
       <mesh position={[width / 2 + FRAME_T / 2, 0, 0]} material={frameMat}>
         <boxGeometry args={[FRAME_T, height + FRAME_T * 2, FRAME_D]} />
       </mesh>
+    </group>
+  );
+}
+
+const PANE_OVERLAP_M = 0.03; // ~30mm overlap on the rail axis
+const SLIDE_SPEED = 5; // lerp speed factor — matches DoorMesh SWING_SPEED
+
+function SchuifraamPanes({
+  width,
+  height,
+  segmentCount,
+  open,
+  heroUrl,
+}: {
+  width: number;
+  height: number;
+  segmentCount: number;
+  open: boolean;
+  heroUrl: string | null;
+}) {
+  const paneCount = segmentCount + 1;
+  const slotW = width / paneCount;
+  const paneW = slotW + PANE_OVERLAP_M;
+
+  return (
+    <>
+      {Array.from({ length: paneCount }, (_, i) => {
+        const baseX = -width / 2 + slotW / 2 + i * slotW;
+        // Pane 0 is the fixed leaf; the rest slide off to +X by their slot index when open.
+        const slideX = i === 0 ? 0 : (open ? slotW * i : 0);
+        return (
+          <SchuifraamPane
+            key={i}
+            targetX={baseX + slideX}
+            width={paneW}
+            height={height}
+            heroUrl={heroUrl}
+            zOffset={i % 2 === 0 ? 0 : WIN_DEPTH * 0.6}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+function SchuifraamPane({
+  targetX,
+  width,
+  height,
+  heroUrl,
+  zOffset,
+}: {
+  targetX: number;
+  width: number;
+  height: number;
+  heroUrl: string | null;
+  zOffset: number;
+}) {
+  const groupRef = useRef<Group>(null);
+  // Smooth lerp toward target X — matches DoorMesh useFrame pattern.
+  useFrame((_, delta) => {
+    const t = Math.min(1, delta * SLIDE_SPEED);
+    if (groupRef.current) {
+      groupRef.current.position.x = MathUtils.lerp(groupRef.current.position.x, targetX, t);
+    }
+  });
+
+  return (
+    <group ref={groupRef} position={[targetX, 0, zOffset]}>
+      {heroUrl ? (
+        <SupplierWindowGlazing width={width} height={height} heroUrl={heroUrl} />
+      ) : (
+        <mesh material={glassMat}>
+          <boxGeometry args={[width, height, WIN_DEPTH]} />
+        </mesh>
+      )}
     </group>
   );
 }
