@@ -5,16 +5,17 @@ export type OpeningKind = 'window' | 'door';
 
 /** Auto-derive-from-dimension control. Today's only entry: `segments`. */
 export interface OpeningAutoControl {
-  id: 'segments';
+  /** Stable string id. Today's only entry: `'segments'`. */
+  id: string;
   /** Which opening kinds this control can apply to. */
   applicableKinds: readonly OpeningKind[];
   /** Which dimension drives the auto count. */
   axis: 'width' | 'height';
 }
 
-export const OPENING_AUTO_CONTROLS: readonly OpeningAutoControl[] = [
+export const OPENING_AUTO_CONTROLS = [
   { id: 'segments', applicableKinds: ['window', 'door'], axis: 'width' },
-] as const;
+] as const satisfies readonly OpeningAutoControl[];
 
 /** Pure: compute the auto-derived segment count for a window width.
  *  Caller passes `widthMm` (millimetres) and the product's `segments` config.
@@ -28,7 +29,7 @@ export function deriveSegmentCount(
   const max = cfg.maxCount ?? Infinity;
   if (max <= 0) return 0;
   if (!cfg.perAdditionalThresholdMm) {
-    return Math.min(1, max);
+    return 1;
   }
   const raw = 1 + Math.floor(
     (widthMm - cfg.autoThresholdMm) / cfg.perAdditionalThresholdMm,

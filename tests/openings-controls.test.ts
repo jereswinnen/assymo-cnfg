@@ -43,4 +43,18 @@ describe('deriveSegmentCount', () => {
   it('without perAdditional but with maxCount=0 returns 0', () => {
     expect(deriveSegmentCount(2000, { enabled: true, autoThresholdMm: 1500, maxCount: 0 })).toBe(0);
   });
+
+  it('clamps perAdditional ladder at maxCount boundary', () => {
+    const cfg = {
+      enabled: true as const,
+      autoThresholdMm: 1500,
+      perAdditionalThresholdMm: 500,
+      maxCount: 3,
+    };
+    // raw count would be 4 (1500=1, 2000=2, 2500=3, 3000=4) — capped to 3
+    expect(deriveSegmentCount(3000, cfg)).toBe(3);
+    expect(deriveSegmentCount(2999, cfg)).toBe(3);
+    expect(deriveSegmentCount(2500, cfg)).toBe(3);
+    expect(deriveSegmentCount(2499, cfg)).toBe(2);
+  });
 });
