@@ -27,22 +27,29 @@ function SupplierWindowGlazing({
   height,
   heroUrl,
   glassDepth = WIN_DEPTH,
+  noDepthWrite = false,
 }: {
   width: number;
   height: number;
   heroUrl: string;
   glassDepth?: number;
+  noDepthWrite?: boolean;
 }) {
   const texture = useLoader(TextureLoader, heroUrl);
   const glazingMat = useMemo(() => {
-    const mat = new MeshStandardMaterial({ roughness: 0.05, metalness: 0.1, color: '#ffffff' });
+    const mat = new MeshStandardMaterial({
+      roughness: 0.05,
+      metalness: 0.1,
+      color: '#ffffff',
+      depthWrite: !noDepthWrite,
+    });
     texture.wrapS = ClampToEdgeWrapping;
     texture.wrapT = ClampToEdgeWrapping;
     texture.repeat.set(1, 1);
     mat.map = texture;
     mat.needsUpdate = true;
     return mat;
-  }, [texture]);
+  }, [texture, noDepthWrite]);
 
   useEffect(() => () => glazingMat.dispose(), [glazingMat]);
 
@@ -134,12 +141,25 @@ function SupplierWindowMesh({
 }
 
 const PANE_OVERLAP_M = 0.03; // ~30mm overlap on the rail axis
-const SLIDE_SPEED = 5; // lerp speed factor — matches DoorMesh SWING_SPEED
+const SLIDE_SPEED = 2.5; // lerp speed factor — slower than door swing for smoother schuifraam glide
 
 /** Schuifraam glass thickness — far thinner than WIN_DEPTH (which is the
  *  full frame depth). Prevents interpenetration between adjacent panes
  *  on different rails when slid open. */
 const SCHUIFRAAM_GLASS_DEPTH = 0.01;
+
+/** Glass material for schuifraam panes. `depthWrite: false` so multiple
+ *  transparent panes blend without z-fighting against each other or the
+ *  opaque per-pane frames in the same volume. */
+const schuifraamGlassMat = new MeshStandardMaterial({
+  color: '#B8D4E3',
+  metalness: 0.1,
+  roughness: 0.05,
+  transparent: true,
+  opacity: 0.35,
+  envMapIntensity: 1.5,
+  depthWrite: false,
+});
 
 function SchuifraamPanes({
   width,
@@ -232,9 +252,10 @@ function SchuifraamPane({
           height={height}
           heroUrl={heroUrl}
           glassDepth={SCHUIFRAAM_GLASS_DEPTH}
+          noDepthWrite
         />
       ) : (
-        <mesh material={glassMat}>
+        <mesh material={schuifraamGlassMat}>
           <boxGeometry args={[width, height, SCHUIFRAAM_GLASS_DEPTH]} />
         </mesh>
       )}
