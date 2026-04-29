@@ -1042,7 +1042,7 @@ const nl: Record<string, string> = {
   "admin.catalog.supplierProducts.field.segments.autoThresholdMm":
     "Drempel (mm)",
   "admin.catalog.supplierProducts.field.segments.perAdditionalThresholdMm":
-    "Volgende drempel (mm)",
+    "Drempel per extra segment (mm)",
   "admin.catalog.supplierProducts.field.segments.maxCount": "Maximum aantal",
   "admin.catalog.supplierProducts.field.segments.surchargeEur":
     "Toeslag per segment (€)",
@@ -1112,8 +1112,8 @@ const nl: Record<string, string> = {
   "quote.line.supplierDoor": "Deur — {name} ({sku})",
   "quote.line.supplierWindow": "Raam — {name} ({sku})",
   "quote.line.supplierMissing": "Ontbrekend product ({id})",
-  "quote.window.segmentSurcharge": "Segmenttoeslag ({count}×)",
-  "quote.window.schuifraamSurcharge": "Schuifraamtoeslag",
+  "quote.line.windowSegmentSurcharge": "Segmenttoeslag ({count}×)",
+  "quote.line.windowSchuifraamSurcharge": "Schuifraamtoeslag",
 
   // Quote line items for gates (poort)
   "quote.line.gateMaterial": "Poort — {materialName} ({sqm} m²)",
