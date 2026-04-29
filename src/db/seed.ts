@@ -141,6 +141,38 @@ const DEMO_SUPPLIER_PRODUCTS = [
     heroImage: null,
     meta: { glazingType: 'triple', openable: false, uValue: 0.8 },
   },
+  // Gate products (Phase 5.8.3)
+  {
+    sku: 'DEMO-GT-01',
+    name: 'Vleugelpoort Standaard 3m',
+    kind: 'gate' as const,
+    widthMm: 3000,
+    heightMm: 2000,
+    priceCents: 145000,
+    sortOrder: 0,
+    heroImage: null,
+    meta: {
+      partCount: 'configurable',
+      motorized: 'optional',
+      motorizedSurchargeCents: 85000,
+      swingDirections: ['inward', 'outward', 'sliding'],
+      defaultDimensions: { widthMm: 3000, heightMm: 2000 },
+      maxDimensions: { widthMm: 4000, heightMm: 2500 },
+      glazing: 'none',
+      availableColors: [
+        { sku: 'ral-7016', label: 'Antraciet', ralCode: 'RAL 7016' },
+        { sku: 'ral-9005', label: 'Zwart', ralCode: 'RAL 9005', surchargeCents: 5000 },
+      ],
+      availableLocks: [
+        { sku: 'cyl', label: 'Cilinderslot' },
+        { sku: 'mp', label: 'Meerpuntsslot', surchargeCents: 12500 },
+      ],
+      availableHandles: [
+        { sku: 'standard', label: 'Standaard' },
+        { sku: 'designer', label: 'Designer', surchargeCents: 8000 },
+      ],
+    },
+  },
 ];
 
 const ASSYMO_SEED_PRODUCTS: ReadonlyArray<{

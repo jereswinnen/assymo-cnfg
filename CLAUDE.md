@@ -45,7 +45,7 @@ Pure TypeScript. No React, no three.js, no zustand. Safe to import from API rout
 - `materials/` — per-category view types (`WallCatalogEntry` etc.), row→view converters (`buildWallCatalog` …), `getAtom`, `getAtomColor`, `getEffectiveWallMaterial`, `getEffectiveDoorMaterial`. All helpers take `MaterialRow[]` — framework-free, zero global state. Hardcoded material registry removed in Phase 5.5.1; DB-backed catalog is the single source of truth.
 - `tenant/` — `TenantContext` with `priceBook` + `branding` + `invoicing` + `catalog: { materials: MaterialRow[], products: ProductRow[] }` + `supplierCatalog: { suppliers: SupplierRow[], products: SupplierProductRow[] }`; host-based resolver; `brandingToCssVars` + `cssVarsToInlineBlock` for the branded shell; `validateBrandingPatch`, `validateInvoicingPatch` for admin PATCH validation. Phase 4.5's `enabledMaterials` allow-list was absorbed by row ownership in the `materials` table.
 - `invoicing/` — pure numbering (`formatInvoiceNumber`), VAT math (`computeInvoiceAmounts`), payment-status derivation (`derivePaymentStatus`), supplier-snapshot builder, and patch validators (`validateIssueInvoiceInput`, `validatePaymentInput`). Also exports `VAT_RATES` (canonical Belgian set `[0, 0.06, 0.12, 0.21]`) — consumed by both the tenant invoicing form and the issue-invoice dialog's VAT picker. All framework-free.
-- `supplier/` — per-tenant supplier catalog. Types (`SupplierRow`, `SupplierProductRow`), validators (`validateSupplierCreate/Patch`, `validateSupplierProductCreate/Patch`, `validateDoorMeta`, `validateWindowMeta`), quote line-item helpers, snapshot builder, and geometry placement validator (`validateSupplierPlacements`). `SupplierProductRow.kind` is `'door' | 'window'` — extensible to more kinds (shutter/skylight/etc.) by adding an enum value + meta validator, no schema migration needed.
+- `supplier/` — per-tenant supplier catalog. Types (`SupplierRow`, `SupplierProductRow`), validators (`validateSupplierCreate/Patch`, `validateSupplierProductCreate/Patch`, `validateDoorMeta`, `validateWindowMeta`, `validateGateMeta`), quote line-item helpers, snapshot builder, and geometry placement validator (`validateSupplierPlacements`). `SupplierProductRow.kind` is `'door' | 'window' | 'gate'` — extensible to more kinds (shutter/skylight/etc.) by adding an enum value + meta validator, no schema migration needed. Phase 5.8.3 added the `'gate'` kind with `GateMeta` (parts/motorized tri-state/swingDirections/defaultDimensions/maxDimensions/glazing + `availableColors`/`availableLocks`/`availableHandles` option arrays). Gate placement uses a separate poort-buildings branch in `validateSupplierPlacements`: the placed gate's footprint must fit `meta.maxDimensions` (codes `gate_too_tall` / `gate_too_wide`).
 
 ### `src/lib/` — browser-coupled
 
@@ -186,7 +186,7 @@ React contexts, three.js textures, client-only hooks, i18n. Keep framework-coupl
     and "not yours".
   - `GET /api/shop/products` — unauthenticated, host-scoped list of non-archived products (feeds the `/` landing grid).
   - `GET /api/shop/products/[slug]` — unauthenticated detail-by-slug (for deep-linking into the configurator).
-  - `GET /api/shop/supplier-products?kind=door|window` — public, host-scoped list of active (non-archived) supplier products. Excludes products whose supplier is archived.
+  - `GET /api/shop/supplier-products?kind=door|window|gate` — public, host-scoped list of active (non-archived) supplier products. Excludes products whose supplier is archived.
 - `src/app/api/invoices/[id]/pdf/` — `GET` streams `application/pdf`.
   Session-scoped: business-side requires `super_admin` OR `tenant_admin`
   with matching `invoice.tenantId`; client-side requires
@@ -282,12 +282,16 @@ chains two POSTs:
    user, and fires the magic-link email.
 
 Supplier refs + geometry validated at submit: non-existent or archived
-`doorSupplierProductId` / window `supplierProductId` reject with 422
+`doorSupplierProductId` / window `supplierProductId` / gate
+`gateConfig.supplierProductId` reject with 422
 (`supplier_product_not_found` / `supplier_product_archived`); oversized
-placements reject as `supplier_placement_too_tall` /
-`supplier_placement_too_wide`. Orders freeze the full supplier product
-row inside `quoteSnapshot.items[].lineItems[i].supplierProduct` so
-historical orders are stable against catalog drift.
+opening placements reject as `supplier_placement_too_tall` /
+`supplier_placement_too_wide`; oversized gate footprints reject as
+`gate_placement_too_tall` / `gate_placement_too_wide`. Orders freeze
+the full supplier product row inside
+`quoteSnapshot.items[].lineItems[i].supplierProduct` so historical
+orders are stable against catalog drift (kind-agnostic — covers gate
+SKUs whose pricing source is `kind: 'supplierProduct'`).
 
 On 201, the dialog swaps to a confirmation view showing the order ID,
 estimated total, and "we reach out within 1 werkdag" copy. Server
