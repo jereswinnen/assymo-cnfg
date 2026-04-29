@@ -15,7 +15,7 @@ export interface ResolvedWindowControls {
   };
 }
 
-const EMPTY: ResolvedWindowControls = {
+export const EMPTY_WINDOW_CONTROLS: ResolvedWindowControls = {
   segments: { count: 0, surchargeCentsPerDivider: 0 },
   schuifraam: { enabled: false, surchargeCents: 0 },
 };
@@ -24,7 +24,7 @@ export function resolveWindowControls(
   window: WallWindow,
   product: SupplierProductRow | null,
 ): ResolvedWindowControls {
-  if (!product || product.kind !== 'window') return EMPTY;
+  if (!product || product.kind !== 'window') return EMPTY_WINDOW_CONTROLS;
   const meta = product.meta as WindowMeta;
 
   const segCfg = meta.segments;

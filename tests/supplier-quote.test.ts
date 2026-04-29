@@ -1,12 +1,7 @@
 import { describe, it, expect } from 'vite-plus/test';
 import { getSupplierDoorLineItem, getSupplierWindowLineItem } from '@/domain/supplier';
 import type { SupplierProductRow } from '@/domain/supplier';
-import type { ResolvedWindowControls } from '@/domain/openings';
-
-const EMPTY_CONTROLS: ResolvedWindowControls = {
-  segments: { count: 0, surchargeCentsPerDivider: 0 },
-  schuifraam: { enabled: false, surchargeCents: 0 },
-};
+import { EMPTY_WINDOW_CONTROLS } from '@/domain/openings';
 
 function makeProduct(overrides: Partial<SupplierProductRow> = {}): SupplierProductRow {
   return {
@@ -61,14 +56,14 @@ describe('getSupplierDoorLineItem', () => {
 describe('getSupplierWindowLineItem', () => {
   it('returns a window line item for a present non-archived product', () => {
     const products = [makeProduct({ id: 'win-1', kind: 'window', sku: 'WIN-001', name: 'Triple Glazed Window', priceCents: 45000 })];
-    const item = getSupplierWindowLineItem('win-1', products, EMPTY_CONTROLS);
+    const item = getSupplierWindowLineItem('win-1', products, EMPTY_WINDOW_CONTROLS);
     expect(item?.labelKey).toBe('quote.line.supplierWindow');
     expect(item?.labelParams.name).toBe('Triple Glazed Window');
     expect(item?.total).toBe(450);
   });
 
   it('returns a stub when the product is missing', () => {
-    const item = getSupplierWindowLineItem('ghost-id', [], EMPTY_CONTROLS);
+    const item = getSupplierWindowLineItem('ghost-id', [], EMPTY_WINDOW_CONTROLS);
     expect(item?.labelKey).toBe('quote.line.supplierMissing');
     expect(item?.labelParams.kind).toBe('window');
     expect(item?.total).toBe(0);
