@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
 import { useUIStore, selectSingleBuildingId } from '@/store/useUIStore';
 import { useTenantCatalogs, useTenantSupplierProducts } from '@/lib/useTenantCatalogs';
@@ -40,6 +41,21 @@ export default function GateConfigPanel() {
     { gate: selectedBuilding?.gateConfig?.materialId ?? null },
   );
   const gateSupplierProducts = useTenantSupplierProducts('gate');
+
+  // Auto-select the first gate material when a freshly-spawned gate has no
+  // material yet. The pure factory can't read from the tenant catalog, so we
+  // do the bind here once the catalog is in scope.
+  const currentMaterialId = selectedBuilding?.gateConfig?.materialId ?? '';
+  useEffect(() => {
+    if (
+      selectedBuildingId &&
+      selectedBuilding?.type === 'poort' &&
+      currentMaterialId === '' &&
+      gateCatalog.length > 0
+    ) {
+      updateGateConfig(selectedBuildingId, { materialId: gateCatalog[0].atomId });
+    }
+  }, [selectedBuildingId, selectedBuilding?.type, currentMaterialId, gateCatalog, updateGateConfig]);
 
   if (
     !selectedBuildingId ||
