@@ -308,6 +308,7 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg, effec
             height={win?.height}
             sillHeight={win?.sillHeight}
             supplierProduct={windowSupplierProduct}
+            wallWindow={win}
           />
         );
       })}
