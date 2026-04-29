@@ -153,6 +153,23 @@ describe('validateWindowMeta', () => {
       segments: { enabled: true, autoThresholdMm: -1 },
     });
     expect(r.value).toBeNull();
+    expect(r.errors).toContain(SUPPLIER_ERROR_CODES.segmentsInvalid);
+  });
+
+  it('rejects autoThresholdMm === 0 when enabled', () => {
+    const r = validateWindowMeta({
+      segments: { enabled: true, autoThresholdMm: 0 },
+    });
+    expect(r.value).toBeNull();
+    expect(r.errors).toContain(SUPPLIER_ERROR_CODES.segmentsInvalid);
+  });
+
+  it('rejects perAdditionalThresholdMm === 0', () => {
+    const r = validateWindowMeta({
+      segments: { enabled: true, autoThresholdMm: 1500, perAdditionalThresholdMm: 0 },
+    });
+    expect(r.value).toBeNull();
+    expect(r.errors).toContain(SUPPLIER_ERROR_CODES.segmentsInvalid);
   });
 
   it('rejects maxCount < 1', () => {
@@ -160,6 +177,7 @@ describe('validateWindowMeta', () => {
       segments: { enabled: true, autoThresholdMm: 1500, maxCount: 0 },
     });
     expect(r.value).toBeNull();
+    expect(r.errors).toContain(SUPPLIER_ERROR_CODES.segmentsInvalid);
   });
 
   it('rejects negative surchargeCentsPerDivider', () => {
@@ -167,6 +185,7 @@ describe('validateWindowMeta', () => {
       segments: { enabled: true, autoThresholdMm: 1500, surchargeCentsPerDivider: -10 },
     });
     expect(r.value).toBeNull();
+    expect(r.errors).toContain(SUPPLIER_ERROR_CODES.segmentsInvalid);
   });
 
   it('accepts schuifraam enabled without surcharge', () => {
@@ -187,6 +206,7 @@ describe('validateWindowMeta', () => {
       schuifraam: { enabled: true, surchargeCents: -1 },
     });
     expect(r.value).toBeNull();
+    expect(r.errors).toContain(SUPPLIER_ERROR_CODES.schuifraamInvalid);
   });
 });
 

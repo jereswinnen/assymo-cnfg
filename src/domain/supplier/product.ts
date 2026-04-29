@@ -363,7 +363,7 @@ export function validateWindowMeta(meta: unknown): Validated<WindowMeta> {
     if (!isObject(s) || typeof s.enabled !== 'boolean') {
       errors.push(SUPPLIER_ERROR_CODES.segmentsInvalid);
     } else if (s.enabled) {
-      if (typeof s.autoThresholdMm !== 'number' || !Number.isFinite(s.autoThresholdMm) || s.autoThresholdMm < 0) {
+      if (!isPositiveInt(s.autoThresholdMm, DIM_MAX_MM)) {
         errors.push(SUPPLIER_ERROR_CODES.segmentsInvalid);
       } else {
         const seg: WindowMetaSegments = {
@@ -371,7 +371,7 @@ export function validateWindowMeta(meta: unknown): Validated<WindowMeta> {
           autoThresholdMm: s.autoThresholdMm,
         };
         if ('perAdditionalThresholdMm' in s) {
-          if (typeof s.perAdditionalThresholdMm !== 'number' || s.perAdditionalThresholdMm <= 0) {
+          if (!isPositiveInt(s.perAdditionalThresholdMm, DIM_MAX_MM)) {
             errors.push(SUPPLIER_ERROR_CODES.segmentsInvalid);
           } else {
             seg.perAdditionalThresholdMm = s.perAdditionalThresholdMm;
