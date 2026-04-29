@@ -1099,6 +1099,7 @@ const nl: Record<string, string> = {
   "configurator.window.controls.segments.autoHint": "Auto · {count} segmenten",
   "configurator.window.controls.schuifraam.open": "Open",
   "configurator.window.controls.schuifraam.close": "Sluit",
+  "configurator.window.controls.schuifraam.toggle": "Schuifraam",
   "configurator.supplier.picker.empty":
     "Geen producten beschikbaar voor deze categorie",
   "configurator.supplier.picker.dimensions": "{width} × {height} mm",

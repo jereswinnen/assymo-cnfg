@@ -36,6 +36,11 @@ describe('resolveWindowControls', () => {
     expect(r.segments.count).toBe(0);
   });
 
+  it('naked window honours wallWindow.schuifraam flag', () => {
+    const r = resolveWindowControls(makeWindow({ width: 2.0, schuifraam: true }), null);
+    expect(r.schuifraam.enabled).toBe(true);
+  });
+
   it('auto-derives count from product width when enabled', () => {
     const product = makeProduct({
       segments: { enabled: true, autoThresholdMm: 1500 },

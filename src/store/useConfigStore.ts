@@ -31,6 +31,7 @@ import {
   setWallDoorSupplierProduct as mSetWallDoorSupplierProduct,
   setWallWindowSupplierProduct as mSetWallWindowSupplierProduct,
   setWallWindowSegmentOverride as mSetWallWindowSegmentOverride,
+  setWallWindowSchuifraam as mSetWallWindowSchuifraam,
   setConnections as mSetConnections,
   setDefaultHeight as mSetDefaultHeight,
   setHeightOverride as mSetHeightOverride,
@@ -96,6 +97,12 @@ interface ConfigStore extends ConfigData {
     wallSide: WallSide,
     windowId: string,
     count: number | null,
+  ) => void;
+  setWallWindowSchuifraam: (
+    buildingId: string,
+    wallSide: WallSide,
+    windowId: string,
+    value: boolean,
   ) => void;
 
   setConnections: (conns: SnapConnection[]) => void;
@@ -192,6 +199,8 @@ export const useConfigStore = create<ConfigStore>()(
         set(mSetWallWindowSupplierProduct(get(), buildingId, wallSide, windowId, id)),
       setWallWindowSegmentOverride: (buildingId, wallSide, windowId, count) =>
         set(mSetWallWindowSegmentOverride(get(), buildingId, wallSide, windowId, count)),
+      setWallWindowSchuifraam: (buildingId, wallSide, windowId, value) =>
+        set(mSetWallWindowSchuifraam(get(), buildingId, wallSide, windowId, value)),
 
       setConnections: (conns) => set(mSetConnections(get(), conns)),
       toggleConnectionOpen: (aId, sideA, bId, sideB) =>

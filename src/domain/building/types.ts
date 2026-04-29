@@ -27,6 +27,10 @@ export interface WallWindow {
    *  `0` → explicitly no segments. Ignored when the resolved supplier
    *  product has no `segments.enabled`. */
   segmentCountOverride?: number;
+  /** Per-instance schuifraam (sliding) toggle for naked windows.
+   *  Ignored when a supplier product is bound (product meta wins).
+   *  Defaults to undefined → false. */
+  schuifraam?: boolean;
 }
 
 export interface WallConfig {

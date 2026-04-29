@@ -37,7 +37,7 @@ export function resolveWindowControls(
     }
     return {
       segments: { count: segCount, surchargeCentsPerDivider: 0 },
-      schuifraam: { enabled: false, surchargeCents: 0 },
+      schuifraam: { enabled: !!window.schuifraam, surchargeCents: 0 },
     };
   }
 
