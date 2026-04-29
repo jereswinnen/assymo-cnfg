@@ -20,6 +20,7 @@ import {
   filterMaterialsForProduct,
   type ProductRow,
 } from '@/domain/catalog';
+import type { SupplierProductKind, SupplierProductRow } from '@/domain/supplier';
 
 interface CurrentSelections {
   /** Currently selected wall/primary material — kept visible even if
@@ -105,4 +106,21 @@ export function useTenantCatalogs(
       sourceProduct,
     };
   }, [materials, sourceProduct, current.wall, current.roofTrim, current.roofCover, current.floor, current.door, current.gate]);
+}
+
+/** Memoised list of active (non-archived) supplier products of a given
+ *  kind for the current tenant. Used by the configurator's gate panel to
+ *  populate the SKU picker. Returns a stable empty array when the tenant
+ *  has no products of that kind. */
+export function useTenantSupplierProducts(
+  kind: SupplierProductKind,
+): SupplierProductRow[] {
+  const { supplierCatalog } = useTenant();
+  return useMemo(
+    () =>
+      supplierCatalog.products.filter(
+        (p) => p.kind === kind && p.archivedAt === null,
+      ),
+    [supplierCatalog.products, kind],
+  );
 }

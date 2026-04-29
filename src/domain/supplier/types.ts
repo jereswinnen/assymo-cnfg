@@ -1,4 +1,6 @@
-export type SupplierProductKind = 'door' | 'window';
+import type { GateSwingDirection } from '@/domain/building';
+
+export type SupplierProductKind = 'door' | 'window' | 'gate';
 
 export interface SupplierRow {
   id: string;
@@ -35,6 +37,39 @@ export interface WindowMeta {
   leadTimeDays?: number;
 }
 
+export interface GateMetaOption {
+  /** Stable id within this product, referenced by GateConfig.selected*Sku */
+  sku: string;
+  /** Optional i18n key; falls back to `label` when absent */
+  labelKey?: string;
+  /** Free-form display name; required when `labelKey` not set */
+  label?: string;
+  /** Color options only — e.g. "RAL 7016". Free-form display string. */
+  ralCode?: string;
+  /** Additive on the supplier-base price when this option is selected */
+  surchargeCents?: number;
+}
+
+export type GatePartCount = 1 | 2 | 'configurable';
+export type GateMotorized = boolean | 'optional';
+export type GateGlazing = 'none' | 'partial' | 'full';
+
+export interface GateMeta {
+  partCount?: GatePartCount;
+  motorized?: GateMotorized;
+  /** Surcharge applied when motorized==='optional' AND customer ticks the toggle */
+  motorizedSurchargeCents?: number;
+  swingDirections?: GateSwingDirection[];
+  defaultDimensions?: { widthMm: number; heightMm: number };
+  maxDimensions?: { widthMm: number; heightMm: number };
+  glazing?: GateGlazing;
+  availableColors?: GateMetaOption[];
+  availableLocks?: GateMetaOption[];
+  availableHandles?: GateMetaOption[];
+  rValue?: number;
+  leadTimeDays?: number;
+}
+
 export interface SupplierProductRow {
   id: string;
   tenantId: string;
@@ -46,7 +81,7 @@ export interface SupplierProductRow {
   widthMm: number;
   heightMm: number;
   priceCents: number;
-  meta: DoorMeta | WindowMeta;
+  meta: DoorMeta | WindowMeta | GateMeta;
   sortOrder: number;
   archivedAt: string | null;
   createdAt: string;

@@ -64,6 +64,10 @@ const ERROR_CODE_KEYS: Record<string, string> = {
     'configurator.submit.error.supplier_placement_too_tall',
   supplier_placement_too_wide:
     'configurator.submit.error.supplier_placement_too_wide',
+  gate_placement_too_tall:
+    'configurator.submit.error.gate_placement_too_tall',
+  gate_placement_too_wide:
+    'configurator.submit.error.gate_placement_too_wide',
 };
 
 /** Map a single `details[]` entry from the shop-orders validation

@@ -201,6 +201,16 @@ const nl: Record<string, string> = {
   "configurator.gate.swing.outward": "Naar buiten",
   "configurator.gate.swing.sliding": "Schuivend",
   "configurator.gate.motorized": "Gemotoriseerd",
+  "configurator.gate.supplierProduct": "Model",
+  "configurator.gate.naked": "Naakt (eigen materiaal)",
+  "configurator.gate.color": "Kleur",
+  "configurator.gate.lock": "Slot",
+  "configurator.gate.handle": "Greep",
+  "configurator.gate.option.placeholder": "Kies een optie",
+  "configurator.gate.motor.forcedOn":
+    "Dit model is altijd gemotoriseerd.",
+  "configurator.gate.motor.forcedOff":
+    "Dit model is niet beschikbaar met motor.",
 
   // Config code
   "code.title": "Configuratiecode",
@@ -463,6 +473,10 @@ const nl: Record<string, string> = {
     "Een geselecteerde deur of raam is te hoog voor de wand. Pas de maten aan en probeer opnieuw.",
   "configurator.submit.error.supplier_placement_too_wide":
     "Een geselecteerde deur of raam is te breed voor de wand. Pas de maten aan en probeer opnieuw.",
+  "configurator.submit.error.gate_placement_too_tall":
+    "De geplaatste poort is te hoog voor het gekozen model. Pas de hoogte aan of kies een ander model.",
+  "configurator.submit.error.gate_placement_too_wide":
+    "De geplaatste poort is te breed voor het gekozen model. Pas de breedte aan of kies een ander model.",
   // Confirmation screen
   "configurator.submit.success.title": "Bedankt voor je aanvraag!",
   "configurator.submit.success.lead":
@@ -960,6 +974,34 @@ const nl: Record<string, string> = {
 
   "admin.catalog.supplierProducts.kind.door": "Deur",
   "admin.catalog.supplierProducts.kind.window": "Raam",
+  "admin.catalog.supplierProducts.kind.gate": "Poort",
+
+  // Gate-specific admin fields (Phase 5.8.3)
+  "admin.catalog.supplierProducts.gate.partCount": "Aantal delen",
+  "admin.catalog.supplierProducts.gate.partCount.configurable": "Vrij",
+  "admin.catalog.supplierProducts.gate.motorized": "Motorisering",
+  "admin.catalog.supplierProducts.gate.motorized.always": "Altijd",
+  "admin.catalog.supplierProducts.gate.motorized.never": "Nooit",
+  "admin.catalog.supplierProducts.gate.motorized.optional": "Optioneel",
+  "admin.catalog.supplierProducts.gate.motorSurcharge": "Motor-toeslag (€)",
+  "admin.catalog.supplierProducts.gate.swings": "Bewegingsmogelijkheden",
+  "admin.catalog.supplierProducts.gate.defaultDims": "Standaardafmetingen",
+  "admin.catalog.supplierProducts.gate.maxDims": "Maximale afmetingen",
+  "admin.catalog.supplierProducts.gate.glazing": "Beglazing",
+  "admin.catalog.supplierProducts.gate.glazing.none": "Geen",
+  "admin.catalog.supplierProducts.gate.glazing.partial": "Gedeeltelijk",
+  "admin.catalog.supplierProducts.gate.glazing.full": "Volledig",
+  "admin.catalog.supplierProducts.gate.colors": "Beschikbare kleuren",
+  "admin.catalog.supplierProducts.gate.locks": "Beschikbare sloten",
+  "admin.catalog.supplierProducts.gate.handles": "Beschikbare grepen",
+  "admin.catalog.supplierProducts.gate.option.add": "+ Optie toevoegen",
+  "admin.catalog.supplierProducts.gate.option.remove": "Verwijder optie",
+  "admin.catalog.supplierProducts.gate.option.empty":
+    "Nog geen opties toegevoegd.",
+  "admin.catalog.supplierProducts.gate.option.sku": "SKU",
+  "admin.catalog.supplierProducts.gate.option.label": "Label",
+  "admin.catalog.supplierProducts.gate.option.ral": "RAL-code",
+  "admin.catalog.supplierProducts.gate.option.surcharge": "Toeslag (€)",
 
   "admin.catalog.supplierProducts.field.kind": "Type",
   "admin.catalog.supplierProducts.field.sku": "SKU",

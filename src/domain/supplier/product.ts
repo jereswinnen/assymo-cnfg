@@ -1,12 +1,14 @@
 import {
   SUPPLIER_ERROR_CODES,
   type DoorMeta,
+  type GateMeta,
+  type GateMetaOption,
   type SupplierProductKind,
   type WindowMeta,
 } from './types';
 import { isObject, isNonNegativeInt, isPositiveInt } from './_validation';
 
-const SUPPLIER_PRODUCT_KINDS: readonly SupplierProductKind[] = ['door', 'window'];
+const SUPPLIER_PRODUCT_KINDS: readonly SupplierProductKind[] = ['door', 'window', 'gate'];
 const DIM_MAX_MM = 10_000;
 
 interface Validated<T> {
@@ -23,11 +25,13 @@ export interface SupplierProductCreateInput {
   widthMm: number;
   heightMm: number;
   priceCents: number;
-  meta: DoorMeta | WindowMeta;
+  meta: DoorMeta | WindowMeta | GateMeta;
   sortOrder: number;
 }
 
-export type SupplierProductPatchInput = Partial<Omit<SupplierProductCreateInput, 'supplierId' | 'kind'>>;
+export type SupplierProductPatchInput = Partial<Omit<SupplierProductCreateInput, 'supplierId' | 'kind'>> & {
+  meta?: DoorMeta | WindowMeta | GateMeta;
+};
 
 function isKind(v: unknown): v is SupplierProductKind {
   return typeof v === 'string' && (SUPPLIER_PRODUCT_KINDS as readonly string[]).includes(v);
@@ -40,6 +44,214 @@ const WINDOW_GLAZING_VALUES = ['double', 'triple', 'single'] as const;
 
 const DOOR_META_KEYS = new Set(['swingDirection', 'lockType', 'glazing', 'rValue', 'leadTimeDays']);
 const WINDOW_META_KEYS = new Set(['glazingType', 'uValue', 'frameMaterial', 'openable', 'leadTimeDays']);
+
+const GATE_SWING_VALUES = ['inward', 'outward', 'sliding'] as const;
+const GATE_GLAZING_VALUES = ['none', 'partial', 'full'] as const;
+const GATE_PART_COUNT_VALUES = [1, 2, 'configurable'] as const;
+const GATE_META_KEYS = new Set([
+  'partCount',
+  'motorized',
+  'motorizedSurchargeCents',
+  'swingDirections',
+  'defaultDimensions',
+  'maxDimensions',
+  'glazing',
+  'availableColors',
+  'availableLocks',
+  'availableHandles',
+  'rValue',
+  'leadTimeDays',
+]);
+const GATE_OPTION_KEYS = new Set(['sku', 'labelKey', 'label', 'ralCode', 'surchargeCents']);
+
+function validateGateOptionList(
+  list: unknown,
+  fieldName: string,
+  errors: string[],
+): GateMetaOption[] | null {
+  if (!Array.isArray(list)) {
+    errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:${fieldName}`);
+    return null;
+  }
+  const out: GateMetaOption[] = [];
+  const seenSkus = new Set<string>();
+  for (let i = 0; i < list.length; i++) {
+    const opt = list[i];
+    if (!isObject(opt)) {
+      errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:${fieldName}[${i}]`);
+      return null;
+    }
+    for (const k of Object.keys(opt)) {
+      if (!GATE_OPTION_KEYS.has(k)) {
+        errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:${fieldName}[${i}]`);
+        return null;
+      }
+    }
+    if (typeof opt.sku !== 'string' || opt.sku.trim().length === 0) {
+      errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:${fieldName}[${i}].sku`);
+      return null;
+    }
+    if (seenSkus.has(opt.sku)) {
+      errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:${fieldName}[${i}].sku`);
+      return null;
+    }
+    seenSkus.add(opt.sku);
+    const o: GateMetaOption = { sku: opt.sku };
+    if ('labelKey' in opt) {
+      if (typeof opt.labelKey !== 'string') {
+        errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:${fieldName}[${i}].labelKey`);
+        return null;
+      }
+      o.labelKey = opt.labelKey;
+    }
+    if ('label' in opt) {
+      if (typeof opt.label !== 'string') {
+        errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:${fieldName}[${i}].label`);
+        return null;
+      }
+      o.label = opt.label;
+    }
+    if (!o.labelKey && !o.label) {
+      errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:${fieldName}[${i}].label`);
+      return null;
+    }
+    if ('ralCode' in opt) {
+      if (typeof opt.ralCode !== 'string') {
+        errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:${fieldName}[${i}].ralCode`);
+        return null;
+      }
+      o.ralCode = opt.ralCode;
+    }
+    if ('surchargeCents' in opt) {
+      if (!isNonNegativeInt(opt.surchargeCents)) {
+        errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:${fieldName}[${i}].surchargeCents`);
+        return null;
+      }
+      o.surchargeCents = opt.surchargeCents as number;
+    }
+    out.push(o);
+  }
+  return out;
+}
+
+function validateGateDimsObject(
+  v: unknown,
+  fieldName: string,
+  errors: string[],
+): { widthMm: number; heightMm: number } | null {
+  if (!isObject(v)) {
+    errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:${fieldName}`);
+    return null;
+  }
+  const allowedKeys = new Set(['widthMm', 'heightMm']);
+  for (const k of Object.keys(v)) {
+    if (!allowedKeys.has(k)) {
+      errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:${fieldName}`);
+      return null;
+    }
+  }
+  if (!isPositiveInt(v.widthMm, DIM_MAX_MM) || !isPositiveInt(v.heightMm, DIM_MAX_MM)) {
+    errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:${fieldName}`);
+    return null;
+  }
+  return { widthMm: v.widthMm as number, heightMm: v.heightMm as number };
+}
+
+export function validateGateMeta(meta: unknown): Validated<GateMeta> {
+  if (!isObject(meta)) return { value: null, errors: [SUPPLIER_ERROR_CODES.metaInvalid] };
+  const errors: string[] = [];
+  const out: GateMeta = {};
+
+  for (const key of Object.keys(meta)) {
+    if (!GATE_META_KEYS.has(key)) {
+      errors.push(SUPPLIER_ERROR_CODES.metaInvalid);
+      return { value: null, errors };
+    }
+  }
+
+  if ('partCount' in meta) {
+    if (!(GATE_PART_COUNT_VALUES as readonly unknown[]).includes(meta.partCount)) {
+      errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:partCount`);
+    } else {
+      out.partCount = meta.partCount as GateMeta['partCount'];
+    }
+  }
+  if ('motorized' in meta) {
+    if (meta.motorized !== true && meta.motorized !== false && meta.motorized !== 'optional') {
+      errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:motorized`);
+    } else {
+      out.motorized = meta.motorized as GateMeta['motorized'];
+    }
+  }
+  if ('motorizedSurchargeCents' in meta) {
+    if (!isNonNegativeInt(meta.motorizedSurchargeCents)) {
+      errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:motorizedSurchargeCents`);
+    } else {
+      out.motorizedSurchargeCents = meta.motorizedSurchargeCents as number;
+    }
+  }
+  if ('swingDirections' in meta) {
+    if (!Array.isArray(meta.swingDirections)) {
+      errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:swingDirections`);
+    } else {
+      const dirs: GateMeta['swingDirections'] = [];
+      let bad = false;
+      for (const d of meta.swingDirections) {
+        if (!(GATE_SWING_VALUES as readonly unknown[]).includes(d)) {
+          bad = true;
+          break;
+        }
+        dirs!.push(d as 'inward' | 'outward' | 'sliding');
+      }
+      if (bad) errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:swingDirections`);
+      else out.swingDirections = dirs;
+    }
+  }
+  if ('defaultDimensions' in meta) {
+    const r = validateGateDimsObject(meta.defaultDimensions, 'defaultDimensions', errors);
+    if (r) out.defaultDimensions = r;
+  }
+  if ('maxDimensions' in meta) {
+    const r = validateGateDimsObject(meta.maxDimensions, 'maxDimensions', errors);
+    if (r) out.maxDimensions = r;
+  }
+  if ('glazing' in meta) {
+    if (!(GATE_GLAZING_VALUES as readonly unknown[]).includes(meta.glazing)) {
+      errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:glazing`);
+    } else {
+      out.glazing = meta.glazing as GateMeta['glazing'];
+    }
+  }
+  if ('availableColors' in meta) {
+    const r = validateGateOptionList(meta.availableColors, 'availableColors', errors);
+    if (r) out.availableColors = r;
+  }
+  if ('availableLocks' in meta) {
+    const r = validateGateOptionList(meta.availableLocks, 'availableLocks', errors);
+    if (r) out.availableLocks = r;
+  }
+  if ('availableHandles' in meta) {
+    const r = validateGateOptionList(meta.availableHandles, 'availableHandles', errors);
+    if (r) out.availableHandles = r;
+  }
+  if ('rValue' in meta) {
+    if (typeof meta.rValue !== 'number' || !Number.isFinite(meta.rValue) || meta.rValue < 0) {
+      errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:rValue`);
+    } else {
+      out.rValue = meta.rValue;
+    }
+  }
+  if ('leadTimeDays' in meta) {
+    if (!isNonNegativeInt(meta.leadTimeDays)) {
+      errors.push(`${SUPPLIER_ERROR_CODES.metaInvalid}:leadTimeDays`);
+    } else {
+      out.leadTimeDays = meta.leadTimeDays as number;
+    }
+  }
+
+  if (errors.length > 0) return { value: null, errors };
+  return { value: out, errors: [] };
+}
 
 export function validateDoorMeta(meta: unknown): Validated<DoorMeta> {
   if (!isObject(meta)) return { value: null, errors: [SUPPLIER_ERROR_CODES.metaInvalid] };
@@ -179,7 +391,7 @@ export function validateSupplierProductCreate(
     errors.push(SUPPLIER_ERROR_CODES.priceInvalid);
   }
 
-  let metaOut: DoorMeta | WindowMeta | undefined;
+  let metaOut: DoorMeta | WindowMeta | GateMeta | undefined;
   if (isKind(kind)) {
     const metaInput = meta ?? {};
     if (kind === 'door') {
@@ -189,8 +401,15 @@ export function validateSupplierProductCreate(
       } else {
         metaOut = r.value;
       }
-    } else {
+    } else if (kind === 'window') {
       const r = validateWindowMeta(metaInput);
+      if (r.value === null) {
+        errors.push(...r.errors);
+      } else {
+        metaOut = r.value;
+      }
+    } else {
+      const r = validateGateMeta(metaInput);
       if (r.value === null) {
         errors.push(...r.errors);
       } else {
@@ -285,12 +504,12 @@ export function validateSupplierProductPatch(
     if (!isObject(input.meta)) {
       errors.push(SUPPLIER_ERROR_CODES.metaInvalid);
     } else {
-      const allMetaKeys = new Set([...DOOR_META_KEYS, ...WINDOW_META_KEYS]);
+      const allMetaKeys = new Set([...DOOR_META_KEYS, ...WINDOW_META_KEYS, ...GATE_META_KEYS]);
       const unknownKey = Object.keys(input.meta).find((k) => !allMetaKeys.has(k));
       if (unknownKey !== undefined) {
         errors.push(SUPPLIER_ERROR_CODES.metaInvalid);
       } else {
-        out.meta = input.meta as DoorMeta | WindowMeta;
+        out.meta = input.meta as DoorMeta | WindowMeta | GateMeta;
       }
     }
   }

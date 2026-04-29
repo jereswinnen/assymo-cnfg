@@ -198,4 +198,120 @@ describe('validateSupplierPlacements', () => {
     expect(issues.some((i) => i.code === 'too_wide' && i.productId === doorProduct.id)).toBe(true);
     expect(issues.some((i) => i.code === 'too_tall' && i.productId === winProduct.id)).toBe(true);
   });
+
+  // ── Gate-primitive placement (Phase 5.8.3) ──────────────────────────
+
+  describe('gate primitive', () => {
+    function makeGateBuilding(
+      overrides: { width?: number; height?: number; supplierProductId?: string } = {},
+    ) {
+      const { width = 3, height = 2, supplierProductId = 'gate-prod' } = overrides;
+      return makeBuilding({
+        id: 'gate-1',
+        type: 'poort',
+        dimensions: { width, depth: 0.1, height },
+        heightOverride: height,
+        gateConfig: {
+          partCount: 1,
+          materialId: 'staal-antraciet',
+          swingDirection: 'inward',
+          motorized: false,
+          supplierProductId,
+        },
+      });
+    }
+
+    it('returns no issues when gate fits the SKU max dimensions', () => {
+      const product = makeProduct({
+        id: 'gate-prod',
+        kind: 'gate',
+        widthMm: 3000,
+        heightMm: 2000,
+        meta: { maxDimensions: { widthMm: 4000, heightMm: 2500 } },
+      });
+      const building = makeGateBuilding({ width: 3, height: 2 });
+      const issues = validateSupplierPlacements([building], [product], DEFAULT_HEIGHT);
+      expect(issues).toHaveLength(0);
+    });
+
+    it('returns gate_too_tall when placed gate exceeds maxDimensions.heightMm', () => {
+      const product = makeProduct({
+        id: 'gate-prod',
+        kind: 'gate',
+        widthMm: 3000,
+        heightMm: 2000,
+        meta: { maxDimensions: { widthMm: 4000, heightMm: 2200 } },
+      });
+      const building = makeGateBuilding({ width: 3, height: 2.5 });
+      const issues = validateSupplierPlacements([building], [product], DEFAULT_HEIGHT);
+      expect(issues).toHaveLength(1);
+      expect(issues[0].code).toBe('gate_too_tall');
+      expect(issues[0].buildingId).toBe('gate-1');
+    });
+
+    it('returns gate_too_wide when placed gate exceeds maxDimensions.widthMm', () => {
+      const product = makeProduct({
+        id: 'gate-prod',
+        kind: 'gate',
+        widthMm: 3000,
+        heightMm: 2000,
+        meta: { maxDimensions: { widthMm: 3500, heightMm: 2500 } },
+      });
+      const building = makeGateBuilding({ width: 4 });
+      const issues = validateSupplierPlacements([building], [product], DEFAULT_HEIGHT);
+      expect(issues).toHaveLength(1);
+      expect(issues[0].code).toBe('gate_too_wide');
+    });
+
+    it('skips check when SKU has no maxDimensions in meta', () => {
+      const product = makeProduct({
+        id: 'gate-prod',
+        kind: 'gate',
+        widthMm: 3000,
+        heightMm: 2000,
+        meta: {},
+      });
+      const building = makeGateBuilding({ width: 50, height: 50 });
+      const issues = validateSupplierPlacements([building], [product], DEFAULT_HEIGHT);
+      expect(issues).toHaveLength(0);
+    });
+
+    it('skips check when gate is naked (no supplierProductId)', () => {
+      const product = makeProduct({
+        id: 'gate-prod',
+        kind: 'gate',
+        widthMm: 3000,
+        heightMm: 2000,
+        meta: { maxDimensions: { widthMm: 1000, heightMm: 1000 } },
+      });
+      const building = makeBuilding({
+        id: 'gate-1',
+        type: 'poort',
+        dimensions: { width: 5, depth: 0.1, height: 5 },
+        heightOverride: 5,
+        gateConfig: {
+          partCount: 1,
+          materialId: 'staal-antraciet',
+          swingDirection: 'inward',
+          motorized: false,
+        },
+      });
+      const issues = validateSupplierPlacements([building], [product], DEFAULT_HEIGHT);
+      expect(issues).toHaveLength(0);
+    });
+
+    it('silently skips when SKU is archived', () => {
+      const product = makeProduct({
+        id: 'gate-prod',
+        kind: 'gate',
+        widthMm: 3000,
+        heightMm: 2000,
+        meta: { maxDimensions: { widthMm: 1000, heightMm: 1000 } },
+        archivedAt: '2026-01-01T00:00:00Z',
+      });
+      const building = makeGateBuilding({ width: 5, height: 5 });
+      const issues = validateSupplierPlacements([building], [product], DEFAULT_HEIGHT);
+      expect(issues).toHaveLength(0);
+    });
+  });
 });
