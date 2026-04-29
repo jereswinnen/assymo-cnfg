@@ -18,8 +18,10 @@ import {
 } from '@/domain/materials';
 import {
   filterMaterialsForProduct,
+  type MaterialCategory,
   type ProductRow,
 } from '@/domain/catalog';
+import type { MaterialDefaults } from '@/domain/config';
 import type { SupplierProductKind, SupplierProductRow } from '@/domain/supplier';
 
 interface CurrentSelections {
@@ -123,4 +125,33 @@ export function useTenantSupplierProducts(
       ),
     [supplierCatalog.products, kind],
   );
+}
+
+/** Memoised "first available material per category" map for the current
+ *  tenant. Threaded into spawn calls so freshly-created entities have a
+ *  valid material from frame 1 — no useEffect race, no empty trigger. The
+ *  selection is stable per render: first non-archived row whose `categories`
+ *  array contains the key. Categories without any matching row are omitted
+ *  (caller falls back to the kind's hardcoded default). */
+export function useFirstAvailableMaterials(): MaterialDefaults {
+  const { catalog } = useTenant();
+  const materials = catalog.materials;
+  return useMemo(() => {
+    const out: MaterialDefaults = {};
+    const categories: MaterialCategory[] = [
+      'wall',
+      'roof-cover',
+      'roof-trim',
+      'floor',
+      'door',
+      'gate',
+    ];
+    for (const cat of categories) {
+      const first = materials.find(
+        (m) => m.archivedAt === null && m.categories.includes(cat),
+      );
+      if (first) out[cat] = first.slug;
+    }
+    return out;
+  }, [materials]);
 }

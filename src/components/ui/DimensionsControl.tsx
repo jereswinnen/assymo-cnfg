@@ -5,7 +5,7 @@ import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import { useTenant } from '@/lib/TenantProvider';
 import { t } from '@/lib/i18n';
-import { getConstraints } from '@/domain/building';
+import { BUILDING_KIND_META, getConstraints } from '@/domain/building';
 import { clampDimensions } from '@/domain/catalog';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
@@ -133,11 +133,11 @@ export default function DimensionsControl() {
   }
 
   const { dimensions } = building;
-  const isPole = building.type === 'paal';
-  const isMuur = building.type === 'muur';
-  const isPoort = building.type === 'poort';
-  const isWallLike = isMuur || isPoort;
-  const isStructural = !isPole && !isWallLike;
+  const meta = BUILDING_KIND_META[building.type];
+  const dim = meta.dimensions;
+  // Roof-pitch slider only applies to kinds that share the scene-level height
+  // (the same kinds that own the roof). Today: 'overkapping' + 'berging'.
+  const showRoofPitch = dim.heightSource === 'default';
   const effectiveHeight = getEffectiveHeight(building, defaultHeight);
   const hasHeightOverride = building.heightOverride !== null;
   const constraints = getConstraints(building.type);
@@ -157,7 +157,7 @@ export default function DimensionsControl() {
 
   return (
     <div className="space-y-4">
-      {(isStructural || isWallLike) && (
+      {dim.width && (
         <SliderRow
           label={t('dim.width')}
           value={dimensions.width}
@@ -172,7 +172,7 @@ export default function DimensionsControl() {
         />
       )}
 
-      {isStructural && (
+      {dim.depth && (
         <SliderRow
           label={t('dim.depth')}
           value={dimensions.depth}
@@ -187,40 +187,42 @@ export default function DimensionsControl() {
         />
       )}
 
-      {/* Height is scene-level today (setDefaultHeight). With multiple structural
-          buildings, tweaking one affects all — acceptable while single-product
-          scenes are the common case. */}
-      {isStructural ? (
-        <SliderRow
-          label={t('dim.height')}
-          value={effectiveHeight}
-          min={heightMin}
-          max={heightMax}
-          step={constraints.height.step}
-          unit="m"
-          onChange={(v) => {
-            const { height } = clampDimensions({ height: v }, product);
-            setDefaultHeight(height ?? v);
-          }}
-        />
-      ) : (
-        <SliderRow
-          label={t('dim.height')}
-          value={effectiveHeight}
-          min={heightMin}
-          max={heightMax}
-          step={constraints.height.step}
-          unit="m"
-          onChange={(v) => {
-            const { height } = clampDimensions({ height: v }, product);
-            setHeightOverride(selectedBuildingId, height ?? v);
-          }}
-          badge={hasHeightOverride ? t('dim.height.override') : t('dim.height.default')}
-          onReset={hasHeightOverride ? () => setHeightOverride(selectedBuildingId, null) : undefined}
-        />
+      {dim.height && (
+        dim.heightSource === 'default' ? (
+          // Scene-level: tweaking one structural building affects all sharing
+          // the same defaultHeight. Acceptable while single-product scenes are
+          // the common case.
+          <SliderRow
+            label={t('dim.height')}
+            value={effectiveHeight}
+            min={heightMin}
+            max={heightMax}
+            step={constraints.height.step}
+            unit="m"
+            onChange={(v) => {
+              const { height } = clampDimensions({ height: v }, product);
+              setDefaultHeight(height ?? v);
+            }}
+          />
+        ) : (
+          <SliderRow
+            label={t('dim.height')}
+            value={effectiveHeight}
+            min={heightMin}
+            max={heightMax}
+            step={constraints.height.step}
+            unit="m"
+            onChange={(v) => {
+              const { height } = clampDimensions({ height: v }, product);
+              setHeightOverride(selectedBuildingId, height ?? v);
+            }}
+            badge={hasHeightOverride ? t('dim.height.override') : t('dim.height.default')}
+            onReset={hasHeightOverride ? () => setHeightOverride(selectedBuildingId, null) : undefined}
+          />
+        )
       )}
 
-      {isWallLike && (
+      {dim.orientation && (
         <div className="space-y-2">
           <Label>{t('dim.orientation')}</Label>
           <ToggleGroup
@@ -241,7 +243,7 @@ export default function DimensionsControl() {
         </div>
       )}
 
-      {isStructural && roofType === 'pitched' && (
+      {showRoofPitch && roofType === 'pitched' && (
         <SliderRow
           label={t('dim.roofPitch')}
           value={roofPitch}

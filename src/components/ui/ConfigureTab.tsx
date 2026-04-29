@@ -16,18 +16,19 @@ import WallSelector from './WallSelector';
 import SurfaceProperties from './SurfaceProperties';
 import QuoteSummary from './QuoteSummary';
 import GateConfigPanel from './GateConfigPanel';
-import type { BuildingType } from '@/domain/building';
+import { BUILDING_KIND_META, type BuildingType, type ConfigSection } from '@/domain/building';
 
-type ConfigSection = 'dimensions' | 'material' | 'structure' | 'walls' | 'gate' | 'quote';
-
-const SECTIONS: { id: ConfigSection; labelKey: string; icon: string; showFor?: BuildingType[] }[] = [
-  { id: 'dimensions', labelKey: 'sidebar.section.dimensions', icon: '📐' },
-  { id: 'material', labelKey: 'sidebar.section.material', icon: '🎨' },
-  { id: 'structure', labelKey: 'sidebar.section.structure', icon: '🏗', showFor: ['overkapping', 'berging', 'paal', 'muur'] },
-  { id: 'walls', labelKey: 'sidebar.section.walls', icon: '🧱', showFor: ['berging', 'muur'] },
-  { id: 'gate', labelKey: 'sidebar.section.gate', icon: '🚪', showFor: ['poort'] },
-  { id: 'quote', labelKey: 'sidebar.section.quote', icon: '💰' },
-];
+/** Presentation metadata per section, keyed by id. The set of sections a
+ *  given building shows lives in `BUILDING_KIND_META[type].sections` —
+ *  this object only tells the UI how to render each one. */
+const SECTION_DEFS: Record<ConfigSection, { labelKey: string; icon: string }> = {
+  dimensions: { labelKey: 'sidebar.section.dimensions', icon: '📐' },
+  material:   { labelKey: 'sidebar.section.material',   icon: '🎨' },
+  structure:  { labelKey: 'sidebar.section.structure',  icon: '🏗' },
+  walls:      { labelKey: 'sidebar.section.walls',      icon: '🧱' },
+  gate:       { labelKey: 'sidebar.section.gate',       icon: '🚪' },
+  quote:      { labelKey: 'sidebar.section.quote',      icon: '💰' },
+};
 
 function MuurWallAutoSelect({ buildingId }: { buildingId: string }) {
   const selectElement = useUIStore((s) => s.selectElement);
@@ -176,9 +177,7 @@ export default function ConfigureTab() {
   const typeLabel = t(`building.name.${selectedBuilding.type}`);
   const typeIndex = buildings.filter(x => x.type === selectedBuilding.type).findIndex(x => x.id === selectedBuilding.id) + 1;
 
-  const visibleSections = SECTIONS.filter(
-    s => !s.showFor || s.showFor.includes(selectedBuilding.type),
-  );
+  const visibleSections = BUILDING_KIND_META[selectedBuilding.type].sections;
 
   const toggleSection = (id: ConfigSection) => {
     setActiveSection(activeSection === id ? null : id);
@@ -224,8 +223,10 @@ export default function ConfigureTab() {
         </div>
       )}
 
-      {/* Accordion sections */}
-      {visibleSections.map(({ id, labelKey, icon }) => {
+      {/* Accordion sections — visibility comes from
+          BUILDING_KIND_META[type].sections; presentation from SECTION_DEFS. */}
+      {visibleSections.map((id) => {
+        const { labelKey, icon } = SECTION_DEFS[id];
         const isOpen = activeSection === id;
         return (
           <div key={id} className="rounded-lg border border-border overflow-hidden">

@@ -15,6 +15,7 @@ import type {
   WallSide,
 } from '@/domain/building';
 import {
+  BUILDING_KIND_META,
   createGateBuildingEntity,
   DEFAULT_DIMENSIONS,
   DEFAULT_FLOOR,
@@ -22,10 +23,17 @@ import {
   POLE_DIMENSIONS,
   WALL_DIMENSIONS,
 } from '@/domain/building';
-import type { ProductBuildingDefaults } from '@/domain/catalog';
+import type { MaterialCategory, ProductBuildingDefaults } from '@/domain/catalog';
 import { randomId } from '@/domain/random';
 import type { ConfigData } from './types';
 import { CONFIG_VERSION } from './types';
+
+/** Tenant-level "first available material per category" map. Threaded into
+ *  spawn so freshly-created entities have valid material IDs from frame 1
+ *  (no useEffect race, no empty-trigger flash, pricing resolves correctly).
+ *  Pure-domain consumers don't need to populate every category — only the
+ *  ones their kinds actually bind to (per `BUILDING_KIND_META[type].material.category`). */
+export type MaterialDefaults = Partial<Record<MaterialCategory, string>>;
 
 const BLANK_WALL: WallConfig = {
   hasDoor: false,
@@ -61,9 +69,24 @@ function wallsForType(type: BuildingType): Record<string, WallConfig> {
 
 export const INITIAL_DEFAULT_HEIGHT = 2.6;
 
-export function createBuilding(type: BuildingType, position: [number, number]): BuildingEntity {
+export function createBuilding(
+  type: BuildingType,
+  position: [number, number],
+  materialDefaults?: MaterialDefaults,
+): BuildingEntity {
+  // The kind's material binding (registry-driven) decides which slug we seed
+  // and where it lands on the entity. Falls back to category-agnostic
+  // defaults (DEFAULT_PRIMARY_MATERIAL for the building binding, '' for the
+  // gate binding) when the caller doesn't pass a map — preserves legacy
+  // behaviour for tests and any pure-domain caller without catalog access.
+  const meta = BUILDING_KIND_META[type];
+  const seededMaterial = materialDefaults?.[meta.material.category];
+
   if (type === 'poort') {
-    return createGateBuildingEntity({ position });
+    return createGateBuildingEntity({
+      position,
+      gateConfig: seededMaterial ? { materialId: seededMaterial } : {},
+    });
   }
 
   const dimensions = type === 'paal'
@@ -77,7 +100,7 @@ export function createBuilding(type: BuildingType, position: [number, number]): 
     type,
     position,
     dimensions,
-    primaryMaterialId: DEFAULT_PRIMARY_MATERIAL,
+    primaryMaterialId: seededMaterial ?? DEFAULT_PRIMARY_MATERIAL,
     walls: wallsForType(type),
     hasCornerBraces: false,
     floor: (type === 'berging' || type === 'overkapping')
@@ -111,6 +134,7 @@ export function addBuilding(
   type: BuildingType,
   position?: [number, number],
   productDefaults?: ProductBuildingDefaults,
+  materialDefaults?: MaterialDefaults,
 ): { cfg: ConfigData; id: string } {
   let resolvedPos: [number, number] = position ?? [0, 0];
   if (!position && cfg.buildings.length > 0) {
@@ -160,7 +184,7 @@ export function addBuilding(
       sourceProductId: productDefaults.sourceProductId,
     };
   } else {
-    building = createBuilding(type, resolvedPos);
+    building = createBuilding(type, resolvedPos, materialDefaults);
   }
 
   const nextCfg: ConfigData = { ...cfg, buildings: [...cfg.buildings, building] };

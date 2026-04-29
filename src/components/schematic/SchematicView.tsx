@@ -15,6 +15,7 @@ import {
   type DimLine,
 } from '@/domain/schematic';
 import { useTenant } from '@/lib/TenantProvider';
+import { useFirstAvailableMaterials } from '@/lib/useTenantCatalogs';
 import { t } from '@/lib/i18n';
 import SchematicPosts from './SchematicPosts';
 import SchematicWalls, { getWallGeometries } from './SchematicWalls';
@@ -226,6 +227,7 @@ export default function SchematicView() {
   const setDraggedBuildingId = useUIStore((s) => s.setDraggedBuildingId);
   const setOrientation = useConfigStore((s) => s.setOrientation);
   const addBuilding = useConfigStore((s) => s.addBuilding);
+  const materialDefaults = useFirstAvailableMaterials();
   const updateBuildingDimensions = useConfigStore((s) => s.updateBuildingDimensions);
   const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
 
@@ -1114,7 +1116,7 @@ export default function SchematicView() {
     if (!svg) return;
 
     const [wx, wz] = clientToWorld(svg, e.clientX, e.clientY);
-    const newId = addBuilding(type, [wx, wz]);
+    const newId = addBuilding(type, [wx, wz], undefined, materialDefaults);
 
     // Run snap detection on the newly placed building
     const allBuildings = useConfigStore.getState().buildings;
@@ -1148,7 +1150,7 @@ export default function SchematicView() {
     }
 
     selectBuilding(newId);
-  }, [addBuilding, updateBuildingPosition, setPoleAttachment, setConnections, selectBuilding]);
+  }, [addBuilding, materialDefaults, updateBuildingPosition, setPoleAttachment, setConnections, selectBuilding]);
 
   const onWallClick = useCallback((wallId: WallId, buildingId: string) => {
     if (!wallElevationEnabled) return;

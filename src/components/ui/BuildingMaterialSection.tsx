@@ -1,42 +1,31 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
 import { useUIStore, selectSingleBuildingId } from '@/store/useUIStore';
 import { useTenantCatalogs } from '@/lib/useTenantCatalogs';
 import { t } from '@/lib/i18n';
 import SectionLabel from '@/components/ui/SectionLabel';
 import MaterialSelect from '@/components/ui/MaterialSelect';
-import {
-  BUILDING_KIND_META,
-  type PrimaryMaterialBinding,
-} from '@/domain/building';
+import { BUILDING_KIND_META, getEntityMaterial } from '@/domain/building';
 import type { MaterialCategory } from '@/domain/catalog';
-import type { BuildingEntity } from '@/domain/building';
 
-/** Maps a domain `MaterialCategory` to the field name on the
- *  `useTenantCatalogs` return type. The hook's keys use camelCase
- *  (`roofCover` / `roofTrim`); the rest match category 1:1. */
-const CATALOG_KEY: Record<MaterialCategory, 'wall' | 'roofCover' | 'roofTrim' | 'floor' | 'door' | 'gate'> = {
+/** Maps `MaterialCategory` to the field name on the `useTenantCatalogs`
+ *  return type. The hook camel-cases the multi-word keys (`roofCover` /
+ *  `roofTrim`); the rest match category 1:1. */
+const CATALOG_KEY = {
   wall: 'wall',
   'roof-cover': 'roofCover',
   'roof-trim': 'roofTrim',
   floor: 'floor',
   door: 'door',
   gate: 'gate',
-};
+} as const satisfies Record<MaterialCategory, string>;
 
-function getMaterialId(building: BuildingEntity, binding: PrimaryMaterialBinding): string {
-  if (binding.source === 'primaryMaterialId') {
-    return building.primaryMaterialId ?? '';
-  }
-  return building.gateConfig?.materialId ?? '';
-}
-
-/** Universal "Materiaal" picker — reads `BUILDING_KIND_META[type].primaryMaterial`
- *  to know which catalog to show and which entity field to read/write. New
- *  kinds declare a binding in the registry; this component does not branch on
- *  type. */
+/** Universal "Materiaal" picker — fully registry-driven. Reads
+ *  `BUILDING_KIND_META[type].material.category` to choose the catalog and
+ *  delegates writes to `setEntityMaterial`, which dispatches by binding kind.
+ *  No per-type branches in this component. New kinds plug in by declaring
+ *  their material descriptor in the registry; this file does not change. */
 export default function BuildingMaterialSection() {
   const selectedBuildingId = useUIStore(selectSingleBuildingId);
   const selectedBuilding = useConfigStore((s) =>
@@ -44,44 +33,24 @@ export default function BuildingMaterialSection() {
       ? s.buildings.find((b) => b.id === selectedBuildingId) ?? null
       : null,
   );
-  const setBuildingPrimaryMaterial = useConfigStore((s) => s.setBuildingPrimaryMaterial);
-  const updateGateConfig = useConfigStore((s) => s.updateGateConfig);
+  const setEntityMaterial = useConfigStore((s) => s.setEntityMaterial);
 
   const meta = selectedBuilding ? BUILDING_KIND_META[selectedBuilding.type] : null;
-  const binding = meta?.primaryMaterial.binding ?? null;
-  const category = meta?.primaryMaterial.category ?? null;
-  const value = selectedBuilding && binding ? getMaterialId(selectedBuilding, binding) : '';
+  const value = selectedBuilding ? getEntityMaterial(selectedBuilding) : '';
 
+  // The current selection is fed to useTenantCatalogs so an archived material
+  // stays visible in the trigger (existing scenes keep working). The hook
+  // accepts the value under the wall/gate/floor/etc. key — same name as the
+  // category, except for the two camelCased ones.
   const catalogs = useTenantCatalogs(
-    category && value
-      ? ({ [CATALOG_KEY[category]]: value } as Parameters<typeof useTenantCatalogs>[0])
+    meta && value
+      ? ({ [CATALOG_KEY[meta.material.category]]: value } as Parameters<typeof useTenantCatalogs>[0])
       : {},
     selectedBuilding?.sourceProductId,
   );
-  const catalog = category ? catalogs[CATALOG_KEY[category]] : null;
+  const catalog = meta ? catalogs[CATALOG_KEY[meta.material.category]] : null;
 
-  // Bind a default when the entity has no material yet (e.g. freshly-spawned
-  // poort whose factory writes `materialId: ''`). Picks the first catalog
-  // entry so the trigger and pricing both resolve immediately.
-  useEffect(() => {
-    if (!selectedBuildingId || !binding || !catalog) return;
-    if (value !== '' || catalog.length === 0) return;
-    const first = catalog[0].atomId;
-    if (binding.source === 'primaryMaterialId') {
-      setBuildingPrimaryMaterial(selectedBuildingId, first);
-    } else {
-      updateGateConfig(selectedBuildingId, { materialId: first });
-    }
-  }, [
-    selectedBuildingId,
-    binding,
-    catalog,
-    value,
-    setBuildingPrimaryMaterial,
-    updateGateConfig,
-  ]);
-
-  if (!selectedBuildingId || !selectedBuilding || !meta || !binding || !category || !catalog) {
+  if (!selectedBuildingId || !selectedBuilding || !meta || !catalog) {
     return (
       <div className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
         {t('sidebar.emptyState')}
@@ -89,20 +58,13 @@ export default function BuildingMaterialSection() {
     );
   }
 
-  const onChange = (id: string) => {
-    if (binding.source === 'primaryMaterialId') {
-      setBuildingPrimaryMaterial(selectedBuildingId, id);
-    } else {
-      updateGateConfig(selectedBuildingId, { materialId: id });
-    }
-  };
-
-  // Source-product allow-list hint only applies to the wall slot today. Gates
-  // don't carry product-level material allow-lists (yet); when they do, the
-  // hint can read from `meta.primaryMaterial.category`-driven slot.
+  // Source-product allow-list hint only applies to the wall slot today.
+  // Gates don't carry product-level material allow-lists (yet); when they
+  // do, the constraint shape grows a sibling slot and this conditional
+  // can dispatch through it the same way.
   const showKitHint =
-    catalogs.sourceProduct?.constraints.allowedMaterialsBySlot?.wallCladding?.length &&
-    binding.source === 'primaryMaterialId';
+    meta.material.kind === 'building' &&
+    !!catalogs.sourceProduct?.constraints.allowedMaterialsBySlot?.wallCladding?.length;
 
   return (
     <div className="space-y-2">
@@ -110,8 +72,8 @@ export default function BuildingMaterialSection() {
       <MaterialSelect
         catalog={catalog}
         value={value}
-        onChange={onChange}
-        category={category}
+        onChange={(id) => setEntityMaterial(selectedBuildingId, id)}
+        category={meta.material.category}
         showPrice
         ariaLabel={t('material.primary')}
       />

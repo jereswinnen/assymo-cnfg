@@ -5,6 +5,7 @@ import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import { t } from '@/lib/i18n';
 import { useTenant } from '@/lib/TenantProvider';
+import { useFirstAvailableMaterials } from '@/lib/useTenantCatalogs';
 import { applyProductDefaults, type MaterialCategory } from '@/domain/catalog';
 import type { BuildingType } from '@/domain/building';
 import { BUILDING_KIND_META } from '@/domain/building/kinds';
@@ -27,6 +28,7 @@ export default function ObjectsTab() {
   const selectBuilding = useUIStore((s) => s.selectBuilding);
   const viewMode = useUIStore((s) => s.viewMode);
   const { catalog } = useTenant();
+  const materialDefaults = useFirstAvailableMaterials();
   const hasProducts = catalog.products.length > 0;
 
   const availableCategories = useMemo<ReadonlySet<MaterialCategory>>(() => {
@@ -112,7 +114,7 @@ export default function ObjectsTab() {
                 draggable={canAdd}
                 onDragStart={(e) => handleDragStart(e, type)}
                 onClick={() => {
-                  if (canAdd) addBuilding(type);
+                  if (canAdd) addBuilding(type, undefined, undefined, materialDefaults);
                 }}
                 className={`flex flex-col items-center gap-1 rounded-lg border border-border p-3 select-none transition-all ${
                   canAdd
@@ -132,7 +134,7 @@ export default function ObjectsTab() {
                 draggable={canAdd}
                 onDragStart={(e) => handleDragStart(e, type)}
                 onClick={() => {
-                  if (canAdd) addBuilding(type);
+                  if (canAdd) addBuilding(type, undefined, undefined, materialDefaults);
                 }}
                 className={`flex flex-col items-center gap-1 rounded-lg border border-border p-3 select-none transition-all ${
                   canAdd

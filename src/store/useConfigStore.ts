@@ -15,7 +15,9 @@ import type {
   WallId,
   WallSide,
 } from '@/domain/building';
+import { BUILDING_KIND_META } from '@/domain/building';
 import type { ProductBuildingDefaults } from '@/domain/catalog';
+import type { MaterialDefaults } from '@/domain/config';
 import {
   addBuilding as mAddBuilding,
   isWallHiddenByConnection as mIsWallHiddenByConnection,
@@ -54,7 +56,12 @@ export function getEffectiveHeight(building: BuildingEntity, defaultHeight: numb
 }
 
 interface ConfigStore extends ConfigData {
-  addBuilding: (type: BuildingType, position?: [number, number], productDefaults?: ProductBuildingDefaults) => string;
+  addBuilding: (
+    type: BuildingType,
+    position?: [number, number],
+    productDefaults?: ProductBuildingDefaults,
+    materialDefaults?: MaterialDefaults,
+  ) => string;
   /** Atomically clear the default initial scene and spawn a single product-
    *  backed building at the origin. Intended for the ?product= hydration
    *  path only — not for general use. */
@@ -71,6 +78,11 @@ interface ConfigStore extends ConfigData {
   updateBuildingFloor: (id: string, patch: Partial<FloorConfig>) => void;
   updateGateConfig: (id: string, patch: Partial<GateConfig>) => void;
   setBuildingPrimaryMaterial: (id: string, materialId: string) => void;
+  /** Universal material setter — dispatches by `BUILDING_KIND_META[type].material.kind`.
+   *  UI components call this; never the underlying `setBuildingPrimaryMaterial` /
+   *  `updateGateConfig({ materialId })` directly. Adding a future binding kind
+   *  is one switch case here, not a per-component refactor. */
+  setEntityMaterial: (id: string, materialId: string) => void;
   toggleBuildingBraces: (id: string) => void;
   updateBuildingPoles: (id: string, poles: PolesConfig) => void;
   resetBuildingPoles: (id: string) => void;
@@ -102,8 +114,8 @@ export const useConfigStore = create<ConfigStore>()(
     (set, get) => ({
       ...initialConfig,
 
-      addBuilding: (type, position, productDefaults) => {
-        const { cfg, id } = mAddBuilding(get(), type, position, productDefaults);
+      addBuilding: (type, position, productDefaults, materialDefaults) => {
+        const { cfg, id } = mAddBuilding(get(), type, position, productDefaults, materialDefaults);
         set(cfg);
         useUIStore.getState().selectBuilding(id);
         return id;
@@ -149,6 +161,19 @@ export const useConfigStore = create<ConfigStore>()(
       updateBuildingFloor: (id, patch) => set(mUpdateBuildingFloor(get(), id, patch)),
       updateGateConfig: (id, patch) => set(mUpdateGateConfig(get(), id, patch)),
       setBuildingPrimaryMaterial: (id, materialId) => set(mSetBuildingPrimaryMaterial(get(), id, materialId)),
+      setEntityMaterial: (id, materialId) => {
+        const building = get().buildings.find((b) => b.id === id);
+        if (!building) return;
+        const meta = BUILDING_KIND_META[building.type];
+        switch (meta.material.kind) {
+          case 'building':
+            set(mSetBuildingPrimaryMaterial(get(), id, materialId));
+            return;
+          case 'gate':
+            set(mUpdateGateConfig(get(), id, { materialId }));
+            return;
+        }
+      },
       toggleBuildingBraces: (id) => set(mToggleBuildingBraces(get(), id)),
       updateBuildingPoles: (id, poles) => set(mUpdateBuildingPoles(get(), id, poles)),
       resetBuildingPoles: (id) => set(mResetBuildingPoles(get(), id)),
