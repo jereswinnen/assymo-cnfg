@@ -216,6 +216,8 @@ const nl: Record<string, string> = {
   "code.copy": "Kopieer",
   "code.copied": "Gekopieerd!",
   "code.save": "Code opslaan",
+  "code.generating": "Code wordt gegenereerd…",
+  "code.retry": "Opnieuw proberen",
   "code.saveHint":
     "Klik opslaan om deze configuratie een korte deelcode te geven.",
   "code.shareHint":

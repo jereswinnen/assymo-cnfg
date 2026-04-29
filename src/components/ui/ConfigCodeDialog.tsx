@@ -149,11 +149,32 @@ export default function ConfigCodeDialog({
             </div>
           ) : controlled ? (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {t('code.saveHint')}
-              </div>
-              {error && <p className="text-xs text-destructive">{error}</p>}
+              {busy ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t('code.generating')}
+                </div>
+              ) : error ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-destructive">{error}</p>
+                  <button
+                    onClick={handleSave}
+                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  >
+                    {t('code.retry')}
+                  </button>
+                </div>
+              ) : (
+                // Should not be reached — the auto-mint useEffect fires
+                // immediately on open. Keep a fallback Save button so the
+                // dialog is never stuck.
+                <button
+                  onClick={handleSave}
+                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  {t('code.save')}
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
