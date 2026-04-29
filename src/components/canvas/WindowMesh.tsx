@@ -246,9 +246,15 @@ function StandardWindowMesh({
     ? resolveWindowControls(wallWindow, null)
     : EMPTY_WINDOW_CONTROLS;
   const segmentCount = ctrl.segments.count;
+  const isSchuifraam = ctrl.schuifraam.enabled;
+
+  // For schuifraam, the open state drives the slide animation.
+  const open = useUIStore((s) =>
+    wallWindow ? !!s.windowAnimations[wallWindow.id]?.open : false,
+  );
 
   const mullionXs: number[] = [];
-  if (segmentCount > 0) {
+  if (!isSchuifraam && segmentCount > 0) {
     const step = width / (segmentCount + 1);
     for (let i = 1; i <= segmentCount; i++) {
       mullionXs.push(-width / 2 + step * i);
@@ -257,10 +263,29 @@ function StandardWindowMesh({
 
   return (
     <group position={[x, winY, 0]}>
-      {/* Glass pane */}
-      <mesh material={glassMat}>
-        <boxGeometry args={[width, height, WIN_DEPTH]} />
-      </mesh>
+      {!isSchuifraam ? (
+        <>
+          {/* Glass pane */}
+          <mesh material={glassMat}>
+            <boxGeometry args={[width, height, WIN_DEPTH]} />
+          </mesh>
+          {/* Vertical mullion dividers */}
+          {mullionXs.map((mx, i) => (
+            <mesh key={`m-${i}`} position={[mx, 0, 0]} material={frameMat}>
+              <boxGeometry args={[FRAME_T * 0.7, height, FRAME_D]} />
+            </mesh>
+          ))}
+        </>
+      ) : (
+        <SchuifraamPanes
+          width={width}
+          height={height}
+          segmentCount={segmentCount}
+          open={open}
+          heroUrl={null}
+        />
+      )}
+
       {/* Top */}
       <mesh position={[0, height / 2 + FRAME_T / 2, 0]} material={frameMat}>
         <boxGeometry args={[width + FRAME_T * 2, FRAME_T, FRAME_D]} />
@@ -277,12 +302,6 @@ function StandardWindowMesh({
       <mesh position={[width / 2 + FRAME_T / 2, 0, 0]} material={frameMat}>
         <boxGeometry args={[FRAME_T, height + FRAME_T * 2, FRAME_D]} />
       </mesh>
-      {/* Vertical mullion dividers */}
-      {mullionXs.map((mx, i) => (
-        <mesh key={`m-${i}`} position={[mx, 0, 0]} material={frameMat}>
-          <boxGeometry args={[FRAME_T * 0.7, height, FRAME_D]} />
-        </mesh>
-      ))}
     </group>
   );
 }

@@ -32,6 +32,7 @@ export default function WindowConfig({ wallId, buildingId }: WindowConfigProps) 
   const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
   const setWindowSupplierProduct = useConfigStore((s) => s.setWindowSupplierProduct);
   const setWallWindowSegmentOverride = useConfigStore((s) => s.setWallWindowSegmentOverride);
+  const setWallWindowSchuifraam = useConfigStore((s) => s.setWallWindowSchuifraam);
   const windowAnimations = useUIStore((s) => s.windowAnimations);
   const toggleWindowOpen = useUIStore((s) => s.toggleWindowOpen);
 
@@ -238,6 +239,7 @@ export default function WindowConfig({ wallId, buildingId }: WindowConfigProps) 
                     const autoCount = ctrl.segments.count;
                     const declaredMax = defaultMax;
                     const maxOptions = Math.max(declaredMax, overrideValue ?? 0);
+                    const schuifraamOn = !!win.schuifraam;
 
                     return (
                       <div className="border-t border-border/50 px-3 py-2 space-y-2">
@@ -275,6 +277,30 @@ export default function WindowConfig({ wallId, buildingId }: WindowConfigProps) 
                               </button>
                             ))}
                           </div>
+                        </div>
+                        <div className="flex flex-wrap gap-1 items-center">
+                          <button
+                            type="button"
+                            onClick={() => setWallWindowSchuifraam(buildingId, wallId, win.id, !schuifraamOn)}
+                            className={`text-xs px-2 py-1 rounded border ${
+                              schuifraamOn
+                                ? 'bg-foreground text-background border-foreground'
+                                : 'border-border hover:bg-muted/50'
+                            }`}
+                          >
+                            {t('configurator.window.controls.schuifraam.toggle')}
+                          </button>
+                          {schuifraamOn && (
+                            <button
+                              type="button"
+                              onClick={() => toggleWindowOpen(win.id)}
+                              className="text-xs px-2 py-1 rounded border border-border hover:bg-muted/50"
+                            >
+                              {windowAnimations[win.id]?.open
+                                ? t('configurator.window.controls.schuifraam.close')
+                                : t('configurator.window.controls.schuifraam.open')}
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
