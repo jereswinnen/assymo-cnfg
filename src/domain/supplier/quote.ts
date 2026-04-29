@@ -1,3 +1,4 @@
+import type { ResolvedWindowControls } from '@/domain/openings';
 import type { SupplierProductRow } from './types';
 
 export interface SupplierLineItem {
@@ -39,10 +40,19 @@ export function getSupplierDoorLineItem(
   };
 }
 
+export interface SupplierWindowLineItem extends SupplierLineItem {
+  surcharges: Array<{
+    labelKey: string;
+    labelParams: Record<string, string | number>;
+    cents: number;
+  }>;
+}
+
 export function getSupplierWindowLineItem(
   productId: string,
   products: readonly SupplierProductRow[],
-): SupplierLineItem | null {
+  controls: ResolvedWindowControls,
+): SupplierWindowLineItem | null {
   const product = findActive(productId, products);
   if (!product) {
     return {
@@ -50,12 +60,33 @@ export function getSupplierWindowLineItem(
       labelParams: { id: productId, kind: 'window' },
       total: 0,
       source: { kind: 'supplierProduct', productId, sku: '' },
+      surcharges: [],
     };
+  }
+  const surcharges: SupplierWindowLineItem['surcharges'] = [];
+  let totalCents = product.priceCents;
+  if (controls.segments.count > 0 && controls.segments.surchargeCentsPerDivider > 0) {
+    const cents = controls.segments.count * controls.segments.surchargeCentsPerDivider;
+    surcharges.push({
+      labelKey: 'quote.window.segmentSurcharge',
+      labelParams: { count: controls.segments.count },
+      cents,
+    });
+    totalCents += cents;
+  }
+  if (controls.schuifraam.enabled && controls.schuifraam.surchargeCents > 0) {
+    surcharges.push({
+      labelKey: 'quote.window.schuifraamSurcharge',
+      labelParams: {},
+      cents: controls.schuifraam.surchargeCents,
+    });
+    totalCents += controls.schuifraam.surchargeCents;
   }
   return {
     labelKey: 'quote.line.supplierWindow',
     labelParams: { name: product.name, sku: product.sku },
-    total: product.priceCents / 100,
+    total: totalCents / 100,
     source: { kind: 'supplierProduct', productId, sku: product.sku },
+    surcharges,
   };
 }

@@ -26,6 +26,7 @@ import {
   getSupplierDoorLineItem,
   getSupplierWindowLineItem,
 } from '@/domain/supplier';
+import { resolveWindowControls } from '@/domain/openings';
 import type { SupplierProductSnapshot } from '@/domain/supplier/snapshot';
 import { buildSupplierProductSnapshot } from '@/domain/supplier/snapshot';
 import type { PriceBook } from './priceBook';
@@ -186,7 +187,9 @@ function wallLineItem(
   // Windows: per-window, supplier path vs. windowFee path
   for (const win of wallCfg.windows ?? []) {
     if (win.supplierProductId) {
-      const winItem = getSupplierWindowLineItem(win.supplierProductId, supplierProducts);
+      const product = supplierProducts.find((p) => p.id === win.supplierProductId) ?? null;
+      const controls = resolveWindowControls(win, product);
+      const winItem = getSupplierWindowLineItem(win.supplierProductId, supplierProducts, controls);
       if (winItem) {
         lineItems.push({
           labelKey: winItem.labelKey,

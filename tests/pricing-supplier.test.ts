@@ -216,6 +216,160 @@ describe('pricing — supplier product branches', () => {
     }).not.toThrow();
   });
 
+  it('window with segments enabled and segmentCountOverride applies per-divider surcharge', () => {
+    const winProduct = makeSupplierProduct({
+      id: 'win-seg',
+      kind: 'window',
+      priceCents: 30000,
+      meta: {
+        segments: {
+          enabled: true,
+          autoThresholdMm: 1500,
+          surchargeCentsPerDivider: 5000,
+        },
+      },
+    });
+    const cfg = makeConfig({
+      buildings: [
+        makeBuilding({
+          id: 'b1',
+          type: 'berging',
+          walls: {
+            front: {
+              hasDoor: false,
+              doorSize: 'enkel' as const,
+              doorHasWindow: false,
+              doorPosition: 0.5,
+              doorSwing: 'naar_buiten' as const,
+              windows: [
+                {
+                  id: 'w1',
+                  position: 0.5,
+                  width: 1.0,
+                  height: 1.0,
+                  sillHeight: 1.0,
+                  supplierProductId: winProduct.id,
+                  segmentCountOverride: 2,
+                },
+              ],
+            },
+          },
+        }),
+      ],
+    });
+    const { lineItems } = calculateTotalQuote(
+      cfg.buildings,
+      cfg.roof,
+      DEFAULT_PRICE_BOOK,
+      FIXTURE_MATERIALS,
+      [winProduct],
+      cfg.defaultHeight,
+    );
+    const winItem = lineItems.find((i) => i.source?.kind === 'supplierProduct');
+    expect(winItem).toBeDefined();
+    // 30000 + 2 × 5000 = 40000 cents → 400
+    expect(winItem?.total).toBe((winProduct.priceCents + 2 * 5000) / 100);
+  });
+
+  it('window with schuifraam enabled applies flat surcharge', () => {
+    const winProduct = makeSupplierProduct({
+      id: 'win-schuif',
+      kind: 'window',
+      priceCents: 30000,
+      meta: {
+        schuifraam: {
+          enabled: true,
+          surchargeCents: 25000,
+        },
+      },
+    });
+    const cfg = makeConfig({
+      buildings: [
+        makeBuilding({
+          id: 'b1',
+          type: 'berging',
+          walls: {
+            front: {
+              hasDoor: false,
+              doorSize: 'enkel' as const,
+              doorHasWindow: false,
+              doorPosition: 0.5,
+              doorSwing: 'naar_buiten' as const,
+              windows: [
+                {
+                  id: 'w1',
+                  position: 0.5,
+                  width: 1.0,
+                  height: 1.0,
+                  sillHeight: 1.0,
+                  supplierProductId: winProduct.id,
+                },
+              ],
+            },
+          },
+        }),
+      ],
+    });
+    const { lineItems } = calculateTotalQuote(
+      cfg.buildings,
+      cfg.roof,
+      DEFAULT_PRICE_BOOK,
+      FIXTURE_MATERIALS,
+      [winProduct],
+      cfg.defaultHeight,
+    );
+    const winItem = lineItems.find((i) => i.source?.kind === 'supplierProduct');
+    expect(winItem).toBeDefined();
+    expect(winItem?.total).toBe((winProduct.priceCents + 25000) / 100);
+  });
+
+  it('window with naked meta has no surcharges', () => {
+    const winProduct = makeSupplierProduct({
+      id: 'win-bare',
+      kind: 'window',
+      priceCents: 30000,
+      meta: {},
+    });
+    const cfg = makeConfig({
+      buildings: [
+        makeBuilding({
+          id: 'b1',
+          type: 'berging',
+          walls: {
+            front: {
+              hasDoor: false,
+              doorSize: 'enkel' as const,
+              doorHasWindow: false,
+              doorPosition: 0.5,
+              doorSwing: 'naar_buiten' as const,
+              windows: [
+                {
+                  id: 'w1',
+                  position: 0.5,
+                  width: 1.0,
+                  height: 1.0,
+                  sillHeight: 1.0,
+                  supplierProductId: winProduct.id,
+                },
+              ],
+            },
+          },
+        }),
+      ],
+    });
+    const { lineItems } = calculateTotalQuote(
+      cfg.buildings,
+      cfg.roof,
+      DEFAULT_PRICE_BOOK,
+      FIXTURE_MATERIALS,
+      [winProduct],
+      cfg.defaultHeight,
+    );
+    const winItem = lineItems.find((i) => i.source?.kind === 'supplierProduct');
+    expect(winItem).toBeDefined();
+    expect(winItem?.total).toBe(winProduct.priceCents / 100);
+  });
+
   it('archived supplier product returns supplierMissing stub with total 0', () => {
     const archived = makeSupplierProduct({
       id: 'archived-door',
