@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useLayoutEffect, useRef } from 'react';
 import { Group, MathUtils, MeshStandardMaterial, ClampToEdgeWrapping, TextureLoader } from 'three';
 import { useFrame, useLoader } from '@react-three/fiber';
 import { WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT } from '@/domain/building';
@@ -147,8 +147,8 @@ function SchuifraamPanes({
     <>
       {Array.from({ length: paneCount }, (_, i) => {
         const baseX = -width / 2 + slotW / 2 + i * slotW;
-        // Pane 0 is the fixed leaf; the rest slide off to +X by their slot index when open.
-        const slideX = i === 0 ? 0 : (open ? slotW * i : 0);
+        // Pane 0 is the fixed leaf; the rest slide BEHIND it (toward pane 0) when open.
+        const slideX = i === 0 ? 0 : (open ? -slotW * i : 0);
         return (
           <SchuifraamPane
             key={i}
@@ -178,16 +178,35 @@ function SchuifraamPane({
   zOffset: number;
 }) {
   const groupRef = useRef<Group>(null);
-  // Smooth lerp toward target X — matches DoorMesh useFrame pattern.
+  const targetXRef = useRef(targetX);
+
+  // Keep target in a ref so useFrame always reads the latest without React re-rendering.
+  useEffect(() => {
+    targetXRef.current = targetX;
+  }, [targetX]);
+
+  // Set initial position once on mount so the first frame doesn't snap from 0.
+  useLayoutEffect(() => {
+    if (groupRef.current) {
+      groupRef.current.position.x = targetX;
+    }
+    // intentionally only on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useFrame((_, delta) => {
     const t = Math.min(1, delta * SLIDE_SPEED);
     if (groupRef.current) {
-      groupRef.current.position.x = MathUtils.lerp(groupRef.current.position.x, targetX, t);
+      groupRef.current.position.x = MathUtils.lerp(
+        groupRef.current.position.x,
+        targetXRef.current,
+        t,
+      );
     }
   });
 
   return (
-    <group ref={groupRef} position={[targetX, 0, zOffset]}>
+    <group ref={groupRef} position={[0, 0, zOffset]}>
       {heroUrl ? (
         <SupplierWindowGlazing width={width} height={height} heroUrl={heroUrl} />
       ) : (
@@ -219,8 +238,22 @@ function StandardWindowMesh({
   width = WIN_W_DEFAULT,
   height = WIN_H_DEFAULT,
   sillHeight = WIN_SILL_DEFAULT,
+  wallWindow,
 }: WindowMeshProps) {
   const winY = sillHeight + height / 2;
+
+  const ctrl = wallWindow
+    ? resolveWindowControls(wallWindow, null)
+    : EMPTY_WINDOW_CONTROLS;
+  const segmentCount = ctrl.segments.count;
+
+  const mullionXs: number[] = [];
+  if (segmentCount > 0) {
+    const step = width / (segmentCount + 1);
+    for (let i = 1; i <= segmentCount; i++) {
+      mullionXs.push(-width / 2 + step * i);
+    }
+  }
 
   return (
     <group position={[x, winY, 0]}>
@@ -244,14 +277,12 @@ function StandardWindowMesh({
       <mesh position={[width / 2 + FRAME_T / 2, 0, 0]} material={frameMat}>
         <boxGeometry args={[FRAME_T, height + FRAME_T * 2, FRAME_D]} />
       </mesh>
-      {/* Cross dividers - vertical */}
-      <mesh material={frameMat}>
-        <boxGeometry args={[FRAME_T * 0.7, height, FRAME_D]} />
-      </mesh>
-      {/* Cross dividers - horizontal */}
-      <mesh material={frameMat}>
-        <boxGeometry args={[width, FRAME_T * 0.7, FRAME_D]} />
-      </mesh>
+      {/* Vertical mullion dividers */}
+      {mullionXs.map((mx, i) => (
+        <mesh key={`m-${i}`} position={[mx, 0, 0]} material={frameMat}>
+          <boxGeometry args={[FRAME_T * 0.7, height, FRAME_D]} />
+        </mesh>
+      ))}
     </group>
   );
 }
