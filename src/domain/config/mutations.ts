@@ -570,6 +570,38 @@ export function setWallWindowSupplierProduct(
   });
 }
 
+/** Set or clear the segment-count override on a specific window.
+ *  `count = null` clears the override (returns to auto-derive). */
+export function setWindowSegmentOverride(
+  state: ConfigData,
+  buildingId: string,
+  wallSide: WallSide,
+  windowId: string,
+  count: number | null,
+): ConfigData {
+  return mapBuilding(state, buildingId, (b) => {
+    const wall = b.walls[wallSide];
+    if (!wall) return b;
+    return {
+      ...b,
+      walls: {
+        ...b.walls,
+        [wallSide]: {
+          ...wall,
+          windows: (wall.windows ?? []).map((w) => {
+            if (w.id !== windowId) return w;
+            if (count == null) {
+              const { segmentCountOverride: _drop, ...rest } = w;
+              return rest;
+            }
+            return { ...w, segmentCountOverride: Math.max(0, Math.floor(count)) };
+          }),
+        },
+      },
+    };
+  });
+}
+
 /** True iff the wall is opened-up by a snap connection (no wall drawn). */
 export function isWallHiddenByConnection(
   cfg: ConfigData,
