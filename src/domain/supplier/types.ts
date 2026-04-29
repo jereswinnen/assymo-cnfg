@@ -29,12 +29,33 @@ export interface DoorMeta {
   leadTimeDays?: number;
 }
 
+export interface WindowMetaSegments {
+  enabled: boolean;
+  /** Width (mm) at which the FIRST divider appears. Required when enabled. */
+  autoThresholdMm: number;
+  /** When set, every additional `perAdditionalThresholdMm` mm of width adds
+   *  one more divider. Absent → at most 1 divider. */
+  perAdditionalThresholdMm?: number;
+  /** Hard cap on divider count. Absent → unbounded. */
+  maxCount?: number;
+  /** Optional pricing hook — added per-divider when count > 0. */
+  surchargeCentsPerDivider?: number;
+}
+
+export interface WindowMetaSchuifraam {
+  enabled: boolean;
+  /** Optional flat surcharge applied when this product is selected. */
+  surchargeCents?: number;
+}
+
 export interface WindowMeta {
   glazingType?: 'double' | 'triple' | 'single';
   uValue?: number;
   frameMaterial?: string;
   openable?: boolean;
   leadTimeDays?: number;
+  segments?: WindowMetaSegments;
+  schuifraam?: WindowMetaSchuifraam;
 }
 
 export interface GateMetaOption {
@@ -106,4 +127,6 @@ export const SUPPLIER_ERROR_CODES = {
   heroImageInvalid: 'hero_image_invalid',
   sortOrderInvalid: 'sort_order_invalid',
   supplierIdRequired: 'supplier_id_required',
+  segmentsInvalid: 'segments_invalid',
+  schuifraamInvalid: 'schuifraam_invalid',
 } as const;
