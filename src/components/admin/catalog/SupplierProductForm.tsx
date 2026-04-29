@@ -95,6 +95,13 @@ const baseSchema = z.object({
   uValue: z.number().min(0).nullable(),
   frameMaterial: z.string().nullable(),
   openable: z.boolean(),
+  segmentsEnabled: z.boolean(),
+  segmentsAutoThresholdMm: z.number().int().nonnegative().nullable(),
+  segmentsPerAdditionalThresholdMm: z.number().int().positive().nullable(),
+  segmentsMaxCount: z.number().int().positive().nullable(),
+  segmentsSurchargeEur: z.string(),
+  schuifraamEnabled: z.boolean(),
+  schuifraamSurchargeEur: z.string(),
   // Shared
   leadTimeDays: z.number().int().min(0).nullable(),
 }).extend(gateFieldsSchema.shape);
@@ -167,6 +174,19 @@ function defaultsFromRow(p: SupplierProductRow): FormValues {
     uValue: winMeta.uValue ?? null,
     frameMaterial: winMeta.frameMaterial ?? null,
     openable: winMeta.openable ?? false,
+    segmentsEnabled: !!winMeta.segments?.enabled,
+    segmentsAutoThresholdMm: winMeta.segments?.autoThresholdMm ?? null,
+    segmentsPerAdditionalThresholdMm: winMeta.segments?.perAdditionalThresholdMm ?? null,
+    segmentsMaxCount: winMeta.segments?.maxCount ?? null,
+    segmentsSurchargeEur:
+      winMeta.segments?.surchargeCentsPerDivider != null
+        ? centsToEuroInput(winMeta.segments.surchargeCentsPerDivider)
+        : '',
+    schuifraamEnabled: !!winMeta.schuifraam?.enabled,
+    schuifraamSurchargeEur:
+      winMeta.schuifraam?.surchargeCents != null
+        ? centsToEuroInput(winMeta.schuifraam.surchargeCents)
+        : '',
     leadTimeDays: doorMeta.leadTimeDays ?? winMeta.leadTimeDays ?? null,
     ...gateFields,
   };
@@ -190,6 +210,13 @@ function emptyDefaults(kind: SupplierProductKind): FormValues {
     uValue: null,
     frameMaterial: null,
     openable: false,
+    segmentsEnabled: false,
+    segmentsAutoThresholdMm: null,
+    segmentsPerAdditionalThresholdMm: null,
+    segmentsMaxCount: null,
+    segmentsSurchargeEur: '',
+    schuifraamEnabled: false,
+    schuifraamSurchargeEur: '',
     leadTimeDays: null,
     ...emptyGateFields,
   };
@@ -234,6 +261,27 @@ export function SupplierProductForm({
       if (values.frameMaterial) meta.frameMaterial = values.frameMaterial;
       meta.openable = values.openable;
       if (values.leadTimeDays !== null) meta.leadTimeDays = values.leadTimeDays;
+      if (values.segmentsEnabled) {
+        const seg: Record<string, unknown> = {
+          enabled: true,
+          autoThresholdMm: values.segmentsAutoThresholdMm ?? 0,
+        };
+        if (values.segmentsPerAdditionalThresholdMm != null) {
+          seg.perAdditionalThresholdMm = values.segmentsPerAdditionalThresholdMm;
+        }
+        if (values.segmentsMaxCount != null) {
+          seg.maxCount = values.segmentsMaxCount;
+        }
+        const segCents = parseEuroToCents(values.segmentsSurchargeEur);
+        if (segCents > 0) seg.surchargeCentsPerDivider = segCents;
+        meta.segments = seg;
+      }
+      if (values.schuifraamEnabled) {
+        const sf: Record<string, unknown> = { enabled: true };
+        const sfCents = parseEuroToCents(values.schuifraamSurchargeEur);
+        if (sfCents > 0) sf.surchargeCents = sfCents;
+        meta.schuifraam = sf;
+      }
     } else {
       // kind === 'gate'
       if (values.gatePartCount) {
@@ -800,6 +848,137 @@ export function SupplierProductForm({
                   </FormItem>
                 )}
               />
+
+              <hr className="border-border" />
+
+              <FormField
+                control={form.control}
+                name="segmentsEnabled"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-2 space-y-0">
+                    <FormControl>
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <FormLabel className="cursor-pointer">
+                      {t('admin.catalog.supplierProducts.field.segments.enabled')}
+                    </FormLabel>
+                  </FormItem>
+                )}
+              />
+              {form.watch('segmentsEnabled') && (
+                <div className="grid grid-cols-2 gap-4 pl-6">
+                  <FormField
+                    control={form.control}
+                    name="segmentsAutoThresholdMm"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('admin.catalog.supplierProducts.field.segments.autoThresholdMm')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="1"
+                            min={0}
+                            value={field.value ?? ''}
+                            onChange={(e) =>
+                              field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="segmentsPerAdditionalThresholdMm"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('admin.catalog.supplierProducts.field.segments.perAdditionalThresholdMm')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="1"
+                            min={1}
+                            value={field.value ?? ''}
+                            onChange={(e) =>
+                              field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="segmentsMaxCount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('admin.catalog.supplierProducts.field.segments.maxCount')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="1"
+                            min={1}
+                            value={field.value ?? ''}
+                            onChange={(e) =>
+                              field.onChange(e.target.value === '' ? null : Number(e.target.value))
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="segmentsSurchargeEur"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('admin.catalog.supplierProducts.field.segments.surchargeEur')}</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+
+              <hr className="border-border" />
+
+              <FormField
+                control={form.control}
+                name="schuifraamEnabled"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-2 space-y-0">
+                    <FormControl>
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <FormLabel className="cursor-pointer">
+                      {t('admin.catalog.supplierProducts.field.schuifraam.enabled')}
+                    </FormLabel>
+                  </FormItem>
+                )}
+              />
+              {form.watch('schuifraamEnabled') && (
+                <div className="pl-6">
+                  <FormField
+                    control={form.control}
+                    name="schuifraamSurchargeEur"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('admin.catalog.supplierProducts.field.schuifraam.surchargeEur')}</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
