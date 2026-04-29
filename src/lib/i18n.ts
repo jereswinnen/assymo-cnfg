@@ -796,6 +796,7 @@ const nl: Record<string, string> = {
   "admin.catalog.products.field.poort.partCount": "Aantal delen",
   "admin.catalog.products.field.poort.partWidthMm": "Breedte per deel (mm)",
   "admin.catalog.products.field.poort.heightMm": "Hoogte (mm)",
+  "admin.catalog.products.field.poort.partGapMm": "Spleet tussen delen (mm)",
   "admin.catalog.products.field.poort.swingDirection": "Standaard beweging",
   "admin.catalog.products.field.poort.motorized": "Gemotoriseerd",
   "admin.catalog.products.field.poort.material": "Standaard materiaal",

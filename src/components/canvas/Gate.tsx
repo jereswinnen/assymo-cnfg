@@ -5,12 +5,12 @@ import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore } from '@/store/useUIStore';
 import { useTenant } from '@/lib/TenantProvider';
+import { DEFAULT_PART_GAP_MM } from '@/domain/building';
 import { getAtomColor } from '@/domain/materials';
 import { useGateTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
 
 const GATE_THICKNESS = 0.04;
-const GATE_SEAM = 0.01;
 const GATE_FALLBACK_COLOR = '#888888';
 
 export default function Gate() {
@@ -28,7 +28,14 @@ export default function Gate() {
   const { gateConfig } = building;
   const totalWidth = building.dimensions.width;
   const height = getEffectiveHeight(building, defaultHeight);
-  const partWidth = totalWidth / gateConfig.partCount;
+  // Per-leaf gap (m). Only applied for 2-part gates; the entity carries it
+  // via gateConfig.partGapMm (pinned at spawn from the product). Falls back
+  // to DEFAULT_PART_GAP_MM for legacy scenes that pre-date the field.
+  const gap =
+    gateConfig.partCount === 2
+      ? (gateConfig.partGapMm ?? DEFAULT_PART_GAP_MM) / 1000
+      : 0;
+  const leafWidth = (totalWidth - gap) / gateConfig.partCount;
   const materialId = gateConfig.materialId;
 
   const color = materialId
@@ -50,18 +57,18 @@ export default function Gate() {
       ) : (
         <>
           <GatePanel
-            width={partWidth - GATE_SEAM / 2}
+            width={leafWidth}
             height={height}
-            x={-totalWidth / 4 - GATE_SEAM / 4}
+            x={-(leafWidth + gap) / 2}
             materialId={materialId}
             color={color}
             hovered={hovered}
             pointerHandlers={pointerHandlers}
           />
           <GatePanel
-            width={partWidth - GATE_SEAM / 2}
+            width={leafWidth}
             height={height}
-            x={totalWidth / 4 + GATE_SEAM / 4}
+            x={(leafWidth + gap) / 2}
             materialId={materialId}
             color={color}
             hovered={hovered}

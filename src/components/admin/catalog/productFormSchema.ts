@@ -32,6 +32,7 @@ export const productFormSchema = z.object({
   poortPartCount: z.union([z.literal(1), z.literal(2)]).optional(),
   poortPartWidthMm: z.number().int().optional(),
   poortHeightMm: z.number().int().optional(),
+  poortPartGapMm: z.number().int().min(0).max(500).optional(),
   poortSwingDirection: z.enum(['inward', 'outward', 'sliding']).optional(),
   poortMotorized: z.boolean().optional(),
   poortMaterialSlug: z.string().nullable(),

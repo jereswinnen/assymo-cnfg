@@ -89,6 +89,7 @@ export function ProductForm({
           poortPartCount: initial.defaults.poort?.partCount,
           poortPartWidthMm: initial.defaults.poort?.partWidthMm,
           poortHeightMm: initial.defaults.poort?.heightMm,
+          poortPartGapMm: initial.defaults.poort?.partGapMm,
           poortSwingDirection: initial.defaults.poort?.swingDirection,
           poortMotorized: initial.defaults.poort?.motorized,
           poortMaterialSlug: initial.defaults.poort?.materialId ?? null,
@@ -131,6 +132,7 @@ export function ProductForm({
           poortPartCount: undefined,
           poortPartWidthMm: undefined,
           poortHeightMm: undefined,
+          poortPartGapMm: undefined,
           poortSwingDirection: undefined,
           poortMotorized: undefined,
           poortMaterialSlug: null,
@@ -170,6 +172,7 @@ export function ProductForm({
       if (values.poortPartCount !== undefined) poortDefaults.partCount = values.poortPartCount;
       if (values.poortPartWidthMm !== undefined) poortDefaults.partWidthMm = values.poortPartWidthMm;
       if (values.poortHeightMm !== undefined) poortDefaults.heightMm = values.poortHeightMm;
+      if (values.poortPartGapMm !== undefined) poortDefaults.partGapMm = values.poortPartGapMm;
       if (values.poortSwingDirection !== undefined)
         poortDefaults.swingDirection = values.poortSwingDirection;
       if (values.poortMotorized !== undefined) poortDefaults.motorized = values.poortMotorized;

@@ -136,6 +136,29 @@ export function GateProductDefaults({ control, gateMaterials }: Props) {
 
           <FormField
             control={control}
+            name="poortPartGapMm"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  {t('admin.catalog.products.field.poort.partGapMm')}
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="1"
+                    inputMode="numeric"
+                    value={field.value ?? ''}
+                    onChange={(e) => field.onChange(parseIntOrUndef(e.target.value))}
+                  />
+                </FormControl>
+                <MmHint mm={field.value} />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={control}
             name="poortSwingDirection"
             render={({ field }) => (
               <FormItem>

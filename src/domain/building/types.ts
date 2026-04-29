@@ -49,6 +49,13 @@ export interface GateConfig {
   materialId: string;
   swingDirection: GateSwingDirection;
   motorized: boolean;
+  /** Visible gap (mm) between the two leaves of a `partCount === 2` gate.
+   *  Only consulted when `partCount === 2`. Subtracted from the gate's
+   *  material area in pricing so the quote reflects actual leaf coverage,
+   *  not the bounding-box width. Falls back to `DEFAULT_PART_GAP_MM` when
+   *  unset (legacy scenes); product-driven gates pin a per-product value
+   *  via `defaults.poort.partGapMm`. */
+  partGapMm?: number;
   /** When set, references a supplier product of kind='gate' (Phase 5.8.3).
    *  null/undefined → naked gate (per-m² material pricing path). */
   supplierProductId?: string | null;

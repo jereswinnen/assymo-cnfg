@@ -94,9 +94,9 @@ describe('gateLineItems', () => {
     expect(mat.source).toEqual({ kind: 'gate', buildingId: 'g1', materialSlug: 'staal' });
   });
 
-  it('scales with the gate footprint (3m wide × 2m tall = 6 m²)', () => {
+  it('scales with the gate footprint (1-part gate, 3m wide × 2m tall = 6 m², no gap subtraction)', () => {
     const building = makePoort({
-      gateConfig: makeGate({ partCount: 2 }),
+      gateConfig: makeGate({ partCount: 1 }),
       dimensions: { width: 3.0 },
     });
     const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT, []);
@@ -174,6 +174,39 @@ describe('gateLineItems', () => {
     const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, TEST_EFFECTIVE_HEIGHT, []);
     expect(items).toHaveLength(1);
     expect(items[0].labelKey).toBe('quote.line.gateMaterial');
+  });
+
+  it('subtracts partGapMm from material area when partCount=2', () => {
+    // 2.0m wide × 2.0m tall gate, 50mm gap → leaf coverage 1.95m × 2.0m = 3.9 m²
+    const building = makePoort({
+      gateConfig: makeGate({ partCount: 2, partGapMm: 50 }),
+      dimensions: { width: 2.0, height: 2.0 },
+    });
+    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, 2.0, []);
+    const matLine = items.find((i) => i.labelKey === 'quote.line.gateMaterial')!;
+    expect(matLine.area).toBeCloseTo(1.95 * 2.0, 6);
+    expect(matLine.total).toBeCloseTo(1.95 * 2.0 * STAAL_PER_SQM, 4);
+  });
+
+  it('does NOT subtract any gap when partCount=1', () => {
+    const building = makePoort({
+      gateConfig: makeGate({ partCount: 1, partGapMm: 200 }),
+      dimensions: { width: 2.0, height: 2.0 },
+    });
+    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, 2.0, []);
+    const matLine = items.find((i) => i.labelKey === 'quote.line.gateMaterial')!;
+    expect(matLine.area).toBeCloseTo(4.0, 6);
+  });
+
+  it('falls back to DEFAULT_PART_GAP_MM when gateConfig.partGapMm is unset (legacy scenes)', () => {
+    // Default 10mm gap → leaf coverage 1.99m × 2.0m
+    const building = makePoort({
+      gateConfig: makeGate({ partCount: 2 }),
+      dimensions: { width: 2.0, height: 2.0 },
+    });
+    const items = gateLineItems(building, GATE_MATERIALS, DEFAULT_PRICE_BOOK, 2.0, []);
+    const matLine = items.find((i) => i.labelKey === 'quote.line.gateMaterial')!;
+    expect(matLine.area).toBeCloseTo(1.99 * 2.0, 6);
   });
 });
 

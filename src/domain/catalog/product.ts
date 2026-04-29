@@ -29,6 +29,11 @@ const POORT_PART_WIDTH_MIN_MM = 100;
 const POORT_PART_WIDTH_MAX_MM = 6000;
 const POORT_HEIGHT_MIN_MM = 100;
 const POORT_HEIGHT_MAX_MM = 3500;
+/** Visible centre seam between the two leaves of a 2-part gate. Zero is
+ *  legal (touching leaves); upper bound a generous 500mm covers everything
+ *  from a flush steel gate to a deliberately wide picket-style spacing. */
+const POORT_PART_GAP_MIN_MM = 0;
+const POORT_PART_GAP_MAX_MM = 500;
 const POORT_SWING_DIRECTIONS = ['inward', 'outward', 'sliding'] as const;
 type PoortSwing = (typeof POORT_SWING_DIRECTIONS)[number];
 
@@ -126,6 +131,19 @@ function validateDefaults(
         return undefined;
       }
       poort.heightMm = n;
+    }
+    if ('partGapMm' in p) {
+      const n = p.partGapMm;
+      if (
+        typeof n !== 'number' ||
+        !Number.isInteger(n) ||
+        n < POORT_PART_GAP_MIN_MM ||
+        n > POORT_PART_GAP_MAX_MM
+      ) {
+        errors.push({ field: 'defaults.poort.partGapMm', code: 'poort_part_gap_invalid' });
+        return undefined;
+      }
+      poort.partGapMm = n;
     }
     if ('swingDirection' in p) {
       if (!isPoortSwing(p.swingDirection)) {
@@ -560,6 +578,10 @@ export interface ProductBuildingDefaults {
     materialId?: string;
     swingDirection?: 'inward' | 'outward' | 'sliding';
     motorized?: boolean;
+    /** Pinned onto the building's `gateConfig.partGapMm` at spawn so the
+     *  rendered seam + pricing area subtraction reflect this product's
+     *  spec. Only consulted when the hydrated `partCount === 2`. */
+    partGapMm?: number;
   };
 }
 
@@ -589,6 +611,7 @@ export function applyProductDefaults(product: ProductRow): ProductBuildingDefaul
       if (p.swingDirection !== undefined) gateConfig.swingDirection = p.swingDirection;
       if (p.motorized !== undefined) gateConfig.motorized = p.motorized;
       if (p.materialId !== undefined) gateConfig.materialId = p.materialId;
+      if (p.partGapMm !== undefined) gateConfig.partGapMm = p.partGapMm;
       if (Object.keys(gateConfig).length > 0) out.gateConfig = gateConfig;
     }
     return out;

@@ -7,6 +7,14 @@ export const GATE_DEFAULT_DIMENSIONS: BuildingDimensions = {
   height: 2.0,
 };
 
+/** Fallback gap (mm) between the two leaves of a 2-part gate when neither
+ *  the building's `gateConfig.partGapMm` nor a product default specifies
+ *  one. Used by the renderer + pricing helpers via
+ *  `gateConfig.partGapMm ?? DEFAULT_PART_GAP_MM`. Sensible centre-seam
+ *  width — matches the legacy `GATE_SEAM` constant scaled to mm so older
+ *  scenes look identical pre- and post-upgrade. */
+export const DEFAULT_PART_GAP_MM = 10;
+
 export function defaultGateConfig(): GateConfig {
   return {
     partCount: 1,

@@ -1,4 +1,5 @@
 import type { BuildingEntity } from '@/domain/building';
+import { DEFAULT_PART_GAP_MM } from '@/domain/building';
 import type { MaterialRow } from '@/domain/catalog';
 import type { GateMeta, GateMetaOption, SupplierProductRow } from '@/domain/supplier';
 import type { LineItem } from './calculate';
@@ -35,7 +36,13 @@ export function gateLineItems(
   const items: LineItem[] = [];
 
   const partCount = gate.partCount;
-  const areaSqm = building.dimensions.width * effectiveHeight;
+  // Material area excludes the visible gap between the two leaves (only
+  // applies when partCount===2). The gate's bounding-box width is the
+  // outer footprint used by snap; the actual leaf coverage is narrower.
+  const gapM =
+    partCount === 2 ? (gate.partGapMm ?? DEFAULT_PART_GAP_MM) / 1000 : 0;
+  const leafCoverageM = Math.max(0, building.dimensions.width - gapM);
+  const areaSqm = leafCoverageM * effectiveHeight;
 
   // Resolve supplier product (active only — archived/missing falls through to
   // the naked-gate path; submit-time existence checks handle the error case).

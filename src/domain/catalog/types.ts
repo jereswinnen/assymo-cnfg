@@ -196,6 +196,11 @@ export interface ProductDefaults {
     partCount?: 1 | 2;
     partWidthMm?: number;
     heightMm?: number;
+    /** Visible gap (mm) between the two leaves on a `partCount === 2` gate.
+     *  Only consulted when the product's hydrated `partCount` is 2. Pinned
+     *  onto the building's `gateConfig.partGapMm` at spawn so pricing +
+     *  rendering use the per-product value. */
+    partGapMm?: number;
     swingDirection?: 'inward' | 'outward' | 'sliding';
     motorized?: boolean;
     materialId?: string;
@@ -286,6 +291,7 @@ export type ProductValidationError =
   | 'poort_part_count_invalid'
   | 'poort_part_width_invalid'
   | 'poort_height_invalid'
+  | 'poort_part_gap_invalid'
   | 'poort_swing_invalid'
   | 'poort_motorized_invalid'
   | 'poort_material_invalid';
