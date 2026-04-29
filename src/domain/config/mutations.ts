@@ -572,7 +572,7 @@ export function setWallWindowSupplierProduct(
 
 /** Set or clear the segment-count override on a specific window.
  *  `count = null` clears the override (returns to auto-derive). */
-export function setWindowSegmentOverride(
+export function setWallWindowSegmentOverride(
   state: ConfigData,
   buildingId: string,
   wallSide: WallSide,
