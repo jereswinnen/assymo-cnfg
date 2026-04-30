@@ -101,6 +101,10 @@ export interface PolesConfig {
 export interface BuildingEntity {
   id: string;
   type: BuildingType;
+  /** User-editable display name shown on the plattegrond, the floor-plan PDF,
+   *  and the order detail. When undefined or blank, falls back to the
+   *  type-default i18n label. Trimmed to at most 64 chars. */
+  name?: string;
   /** Top-left corner in world coords [x, z] — left edge, front edge (min X, min Z) */
   position: [number, number];
   dimensions: BuildingDimensions;

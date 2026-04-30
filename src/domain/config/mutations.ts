@@ -336,6 +336,24 @@ export function setPoleAttachment(
   });
 }
 
+/** Set or clear the user-editable display name on a building.
+ *  `null` or empty after trimming → drop the override (revert to type label).
+ *  Trimmed names are capped to 64 chars. */
+export function setBuildingName(
+  cfg: ConfigData,
+  id: string,
+  name: string | null,
+): ConfigData {
+  const cleaned = name == null ? null : name.trim().slice(0, 64);
+  return mapBuilding(cfg, id, (b) => {
+    if (cleaned == null || cleaned.length === 0) {
+      const { name: _drop, ...rest } = b;
+      return rest as BuildingEntity;
+    }
+    return { ...b, name: cleaned };
+  });
+}
+
 export function updateBuildingWall(
   cfg: ConfigData,
   id: string,

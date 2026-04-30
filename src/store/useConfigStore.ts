@@ -27,6 +27,7 @@ import {
   removeBuilding as mRemoveBuilding,
   resetBuildingPoles as mResetBuildingPoles,
   resetBuildingToDefaults as mResetBuildingToDefaults,
+  setBuildingName as mSetBuildingName,
   setBuildingPrimaryMaterial as mSetBuildingPrimaryMaterial,
   setWallDoorSupplierProduct as mSetWallDoorSupplierProduct,
   setWallWindowSupplierProduct as mSetWallWindowSupplierProduct,
@@ -76,6 +77,7 @@ interface ConfigStore extends ConfigData {
   updateBuildingDimensions: (id: string, dims: Partial<BuildingDimensions>) => void;
   updateBuildingPosition: (id: string, pos: [number, number]) => void;
   setPoleAttachment: (id: string, attachedTo: string | null) => void;
+  setBuildingName: (id: string, name: string | null) => void;
   updateBuildingWall: (id: string, wallId: WallId, patch: Partial<WallConfig>) => void;
   updateBuildingFloor: (id: string, patch: Partial<FloorConfig>) => void;
   updateGateConfig: (id: string, patch: Partial<GateConfig>) => void;
@@ -171,6 +173,7 @@ export const useConfigStore = create<ConfigStore>()(
       updateBuildingDimensions: (id, dims) => set(mUpdateBuildingDimensions(get(), id, dims)),
       updateBuildingPosition: (id, pos) => set(mUpdateBuildingPosition(get(), id, pos)),
       setPoleAttachment: (id, attachedTo) => set(mSetPoleAttachment(get(), id, attachedTo)),
+      setBuildingName: (id, name) => set(mSetBuildingName(get(), id, name)),
       updateBuildingWall: (id, wallId, patch) => set(mUpdateBuildingWall(get(), id, wallId, patch)),
       updateBuildingFloor: (id, patch) => set(mUpdateBuildingFloor(get(), id, patch)),
       updateGateConfig: (id, patch) => set(mUpdateGateConfig(get(), id, patch)),
