@@ -303,12 +303,20 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
   const wallHeight = getEffectiveHeight(building, defaultHeight);
   const wallColor = getAtomColor(materials, getEffectiveWallMaterial(wallCfg, building, buildings), 'wall');
 
-  // Opening-gap chain — single source of truth via the dimension registry.
-  // Generator emits 1D segments with y = 0; we pin them to y = wallHeight
-  // (the ground line) so the offset places the chain below the wall.
-  const openingGapLines = computeElevationDimensions({
+  // Opening dimensions — single source of truth via the dimension registry.
+  // Horizontal gap chain: generator emits 1D segments with y = 0; we pin
+  // them to y = wallHeight (the ground line) so the offset places the
+  // chain below the wall. Vertical opening-height segments already encode
+  // their y in [0, wallHeight] — pass through unchanged.
+  const allElevationLines = computeElevationDimensions({
     building, wallId, defaultHeight,
-  }).map((d) => ({ ...d, y1: wallHeight, y2: wallHeight }));
+  });
+  const openingGapLines = allElevationLines
+    .filter((d) => d.id === 'wall.openingGaps.elevation')
+    .map((d) => ({ ...d, y1: wallHeight, y2: wallHeight }));
+  const openingHeightLines = allElevationLines.filter(
+    (d) => d.id === 'wall.openingHeights.elevation',
+  );
 
   const windows = wallCfg.windows ?? [];
 
@@ -567,6 +575,15 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
         {openingGapLines.map((d) => (
           <DimensionLine
             key={`${d.id}|${d.x1.toFixed(3)}-${d.x2.toFixed(3)}`}
+            x1={d.x1} y1={d.y1} x2={d.x2} y2={d.y2}
+            offset={d.offset}
+            label={d.label}
+            compact
+          />
+        ))}
+        {openingHeightLines.map((d) => (
+          <DimensionLine
+            key={d.groupKey ?? `${d.id}|${d.x1.toFixed(3)}-${d.y1.toFixed(3)}`}
             x1={d.x1} y1={d.y1} x2={d.x2} y2={d.y2}
             offset={d.offset}
             label={d.label}

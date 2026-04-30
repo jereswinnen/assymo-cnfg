@@ -5,6 +5,7 @@ import type {
 } from '@/domain/building';
 import {
   WIN_W_DEFAULT,
+  WIN_H_DEFAULT,
   DOOR_W,
   DOUBLE_DOOR_W,
   resolveOpeningPositions,
@@ -22,7 +23,8 @@ export type DimensionId =
   | 'total.depth'
   | 'muur.length'
   | 'wall.openingGaps.plan'
-  | 'wall.openingGaps.elevation';
+  | 'wall.openingGaps.elevation'
+  | 'wall.openingHeights.elevation';
 
 export interface DimensionConfig {
   building: { width: boolean; depth: boolean };
@@ -30,6 +32,7 @@ export interface DimensionConfig {
   muur:     { length: boolean };
   wall:     {
     openingGaps: { plan: boolean; elevation: boolean };
+    openingHeights: { elevation: boolean };
   };
 }
 
@@ -41,7 +44,10 @@ export const DIMENSION_CONFIG: DimensionConfig = {
   building: { width: true, depth: true },
   total:    { width: true, depth: true },
   muur:     { length: true },
-  wall:     { openingGaps: { plan: true, elevation: true } },
+  wall:     {
+    openingGaps: { plan: true, elevation: true },
+    openingHeights: { elevation: true },
+  },
 };
 
 export type DimSurface = 'plan' | 'elevation';
@@ -86,6 +92,7 @@ export interface ElevationInputs {
 // per-building arc clearance on top of the building tier.
 const OFFSET_OPENING_GAP_PLAN = 0.5;
 const OFFSET_OPENING_GAP_ELEVATION = 0.4;
+const OFFSET_OPENING_HEIGHT_ELEVATION = 0.4;
 const OFFSET_BUILDING = 1.0;
 const OFFSET_TOTAL = 2.0;
 const OFFSET_MUUR_LENGTH = 0.5;
@@ -96,6 +103,10 @@ const MIN_SEGMENT_LENGTH = 0.05;
 
 function isStructural(b: BuildingEntity): boolean {
   return b.type !== 'paal' && b.type !== 'muur' && b.type !== 'poort';
+}
+
+function effectiveHeight(b: BuildingEntity, defaultHeight: number): number {
+  return b.heightOverride ?? defaultHeight;
 }
 
 function fmt1(value: number): string {
@@ -411,8 +422,7 @@ export function computePlanDimensions(input: PlanInputs): DimLine[] {
  *  the elevation surface. Wall length / height labels stay in
  *  WallElevation's own render code. */
 export function computeElevationDimensions(input: ElevationInputs): DimLine[] {
-  const { building, wallId, config = DIMENSION_CONFIG } = input;
-  if (!config.wall.openingGaps.elevation) return [];
+  const { building, wallId, defaultHeight, config = DIMENSION_CONFIG } = input;
 
   const wallCfg = building.walls[wallId];
   if (!wallCfg) return [];
@@ -423,24 +433,97 @@ export function computeElevationDimensions(input: ElevationInputs): DimLine[] {
     ? building.dimensions.width
     : getWallLength(wallId, building.dimensions);
 
-  const segments = computeWallGapSegments1D(
-    wallLength,
-    wallCfg.hasDoor ? (wallCfg.doorPosition ?? 0.5) : null,
-    wallCfg.doorSize ?? 'enkel',
-    wallCfg.windows ?? [],
-  );
+  const horizontalLines: DimLine[] = [];
+  if (config.wall.openingGaps.elevation) {
+    const segments = computeWallGapSegments1D(
+      wallLength,
+      wallCfg.hasDoor ? (wallCfg.doorPosition ?? 0.5) : null,
+      wallCfg.doorSize ?? 'enkel',
+      wallCfg.windows ?? [],
+    );
 
-  const halfL = wallLength / 2;
-  return segments.map((seg) => {
-    const x1 = seg.start + halfL;
-    const x2 = seg.end + halfL;
-    return {
-      id: 'wall.openingGaps.elevation',
-      surface: 'elevation' as const,
-      x1, y1: 0, x2, y2: 0,
-      offset: OFFSET_OPENING_GAP_ELEVATION,
-      label: fmt2(seg.end - seg.start),
-      groupKey: `wall:${building.id}:${wallId}`,
-    };
-  });
+    const halfL = wallLength / 2;
+    for (const seg of segments) {
+      const x1 = seg.start + halfL;
+      const x2 = seg.end + halfL;
+      horizontalLines.push({
+        id: 'wall.openingGaps.elevation',
+        surface: 'elevation' as const,
+        x1, y1: 0, x2, y2: 0,
+        offset: OFFSET_OPENING_GAP_ELEVATION,
+        label: fmt2(seg.end - seg.start),
+        groupKey: `wall:${building.id}:${wallId}`,
+      });
+    }
+  }
+
+  const verticalLines: DimLine[] = [];
+  if (config.wall.openingHeights.elevation) {
+    const wallHeight = effectiveHeight(building, defaultHeight);
+    const halfL = wallLength / 2;
+
+    const { doorX, windowXs } = resolveOpeningPositions(
+      wallLength,
+      wallCfg.hasDoor ? (wallCfg.doorPosition ?? 0.5) : null,
+      wallCfg.windows ?? [],
+    );
+
+    if (wallCfg.hasDoor && doorX !== null) {
+      const doorH = Math.min(2.1, wallHeight - 0.05);
+      const doorW = wallCfg.doorSize === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W;
+      const doorLeftEdge = doorX + halfL - doorW / 2;
+      const lineX = Math.max(0.05, doorLeftEdge - 0.15);
+      // Door bottom is the baseline — only the "above" segment exists.
+      const aboveLen = wallHeight - doorH;
+      if (aboveLen >= MIN_SEGMENT_LENGTH) {
+        verticalLines.push({
+          id: 'wall.openingHeights.elevation',
+          surface: 'elevation',
+          x1: lineX, y1: 0,
+          x2: lineX, y2: aboveLen,
+          offset: -OFFSET_OPENING_HEIGHT_ELEVATION,
+          label: fmt2(aboveLen),
+          groupKey: `wall:${building.id}:${wallId}:door:above`,
+        });
+      }
+    }
+
+    const windows = wallCfg.windows ?? [];
+    windows.forEach((win, i) => {
+      const winXFromCentre = windowXs[i];
+      if (winXFromCentre === undefined) return;
+      const winW = win.width ?? WIN_W_DEFAULT;
+      const winH = win.height ?? WIN_H_DEFAULT;
+      const sill = win.sillHeight ?? 0;
+      const winLeftEdge = winXFromCentre + halfL - winW / 2;
+      const lineX = Math.max(0.05, winLeftEdge - 0.15);
+
+      if (sill >= MIN_SEGMENT_LENGTH) {
+        verticalLines.push({
+          id: 'wall.openingHeights.elevation',
+          surface: 'elevation',
+          x1: lineX, y1: wallHeight - sill,
+          x2: lineX, y2: wallHeight,
+          offset: -OFFSET_OPENING_HEIGHT_ELEVATION,
+          label: fmt2(sill),
+          groupKey: `wall:${building.id}:${wallId}:win:${win.id}:below`,
+        });
+      }
+
+      const aboveLen = wallHeight - sill - winH;
+      if (aboveLen >= MIN_SEGMENT_LENGTH) {
+        verticalLines.push({
+          id: 'wall.openingHeights.elevation',
+          surface: 'elevation',
+          x1: lineX, y1: 0,
+          x2: lineX, y2: aboveLen,
+          offset: -OFFSET_OPENING_HEIGHT_ELEVATION,
+          label: fmt2(aboveLen),
+          groupKey: `wall:${building.id}:${wallId}:win:${win.id}:above`,
+        });
+      }
+    });
+  }
+
+  return [...horizontalLines, ...verticalLines];
 }

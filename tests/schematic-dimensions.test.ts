@@ -115,7 +115,16 @@ describe('computePlanDimensions — config gates', () => {
   const a = makeBuilding({ id: 'a', type: 'berging', position: [0, 0], dimensions: { width: 3, depth: 2, height: 2.6 } });
   const b = makeBuilding({ id: 'b', type: 'berging', position: [5, 5], dimensions: { width: 4, depth: 3, height: 2.6 } });
 
-  function override(patch: Partial<DimensionConfig>): DimensionConfig {
+  type Patch = {
+    building?: Partial<DimensionConfig['building']>;
+    total?: Partial<DimensionConfig['total']>;
+    muur?: Partial<DimensionConfig['muur']>;
+    wall?: {
+      openingGaps?: Partial<DimensionConfig['wall']['openingGaps']>;
+      openingHeights?: Partial<DimensionConfig['wall']['openingHeights']>;
+    };
+  };
+  function override(patch: Patch): DimensionConfig {
     return {
       building: { ...DIMENSION_CONFIG.building, ...(patch.building ?? {}) },
       total:    { ...DIMENSION_CONFIG.total,    ...(patch.total    ?? {}) },
@@ -124,6 +133,10 @@ describe('computePlanDimensions — config gates', () => {
         openingGaps: {
           ...DIMENSION_CONFIG.wall.openingGaps,
           ...(patch.wall?.openingGaps ?? {}),
+        },
+        openingHeights: {
+          ...DIMENSION_CONFIG.wall.openingHeights,
+          ...(patch.wall?.openingHeights ?? {}),
         },
       },
     };
@@ -350,14 +363,14 @@ describe('computeElevationDimensions', () => {
     expect(computeElevationDimensions({ building: c, wallId: 'front', defaultHeight: 2.6 })).toEqual([]);
   });
 
-  it('returns 3 segments for a wall with 1 door + 1 window', () => {
+  it('returns 3 gap segments for a wall with 1 door + 1 window', () => {
     const c = makeBuilding({
       id: 'c', type: 'berging', position: [0, 0],
       dimensions: { width: 6, depth: 4, height: 2.6 },
       walls: { front: wallWithWindowAndDoor, back: { ...BLANK_WALL }, left: { ...BLANK_WALL }, right: { ...BLANK_WALL } },
     });
     const lines = computeElevationDimensions({ building: c, wallId: 'front', defaultHeight: 2.6 });
-    expect(lines).toHaveLength(3);
+    expect(lines.filter(l => l.id === 'wall.openingGaps.elevation')).toHaveLength(3);
   });
 
   it('respects config.wall.openingGaps.elevation = false', () => {
@@ -368,26 +381,30 @@ describe('computeElevationDimensions', () => {
     });
     const cfg: DimensionConfig = {
       ...DIMENSION_CONFIG,
-      wall: { openingGaps: { plan: true, elevation: false } },
+      wall: {
+        openingGaps: { plan: true, elevation: false },
+        openingHeights: { elevation: false },
+      },
     };
     expect(computeElevationDimensions({ building: c, wallId: 'front', defaultHeight: 2.6, config: cfg })).toEqual([]);
   });
 
-  it('elevation segments are 1D (y1=y2=0) and ordered start→end', () => {
+  it('elevation gap segments are 1D (y1=y2=0) and ordered start→end', () => {
     const c = makeBuilding({
       id: 'c', type: 'berging', position: [0, 0],
       dimensions: { width: 6, depth: 4, height: 2.6 },
       walls: { front: wallWithDoor, back: { ...BLANK_WALL }, left: { ...BLANK_WALL }, right: { ...BLANK_WALL } },
     });
     const lines = computeElevationDimensions({ building: c, wallId: 'front', defaultHeight: 2.6 });
-    for (const l of lines) {
+    const gaps = lines.filter(l => l.id === 'wall.openingGaps.elevation');
+    for (const l of gaps) {
       expect(l.y1).toBe(0);
       expect(l.y2).toBe(0);
       expect(l.x1).toBeLessThan(l.x2);
     }
     // Wall length 6m; chain spans 0..6.
-    expect(lines[0].x1).toBeCloseTo(0, 6);
-    expect(lines[lines.length - 1].x2).toBeCloseTo(6, 6);
+    expect(gaps[0].x1).toBeCloseTo(0, 6);
+    expect(gaps[gaps.length - 1].x2).toBeCloseTo(6, 6);
   });
 
   it('handles a vertical muur (wallLength comes from dimensions.width)', () => {
@@ -398,7 +415,61 @@ describe('computeElevationDimensions', () => {
       walls: { front: wallWithDoor },
     });
     const lines = computeElevationDimensions({ building: muur, wallId: 'front', defaultHeight: 2.6 });
-    expect(lines.length).toBeGreaterThan(0);
-    expect(lines[lines.length - 1].x2).toBeCloseTo(3, 6);
+    const gaps = lines.filter(l => l.id === 'wall.openingGaps.elevation');
+    expect(gaps.length).toBeGreaterThan(0);
+    expect(gaps[gaps.length - 1].x2).toBeCloseTo(3, 6);
+  });
+
+  it('emits opening-height segments for a window with non-zero sill', () => {
+    const c = makeBuilding({
+      id: 'c', type: 'berging', position: [0, 0],
+      dimensions: { width: 6, depth: 4, height: 2.6 },
+      walls: {
+        front: {
+          ...BLANK_WALL,
+          windows: [{ id: 'w1', position: 0.5, width: 1.2, height: 1.2, sillHeight: 0.9 }],
+        },
+        back: { ...BLANK_WALL },
+        left: { ...BLANK_WALL },
+        right: { ...BLANK_WALL },
+      },
+    });
+    const lines = computeElevationDimensions({ building: c, wallId: 'front', defaultHeight: 2.6 });
+    const heights = lines.filter(l => l.id === 'wall.openingHeights.elevation');
+    // below segment (sill 0.9) + above segment (2.6 - 0.9 - 1.2 = 0.5)
+    expect(heights).toHaveLength(2);
+    const labels = heights.map(h => h.label).sort();
+    expect(labels).toEqual(['0.50m', '0.90m']);
+  });
+
+  it('emits only the above-segment for a door (door bottom is the baseline)', () => {
+    const c = makeBuilding({
+      id: 'c', type: 'berging', position: [0, 0],
+      dimensions: { width: 6, depth: 4, height: 2.6 },
+      walls: { front: wallWithDoor, back: { ...BLANK_WALL }, left: { ...BLANK_WALL }, right: { ...BLANK_WALL } },
+    });
+    const lines = computeElevationDimensions({ building: c, wallId: 'front', defaultHeight: 2.6 });
+    const heights = lines.filter(l => l.id === 'wall.openingHeights.elevation');
+    expect(heights).toHaveLength(1);
+    expect(heights[0].groupKey).toBe('wall:c:front:door:above');
+    // Door height = min(2.1, 2.6 - 0.05) = 2.1 → above = 0.5
+    expect(heights[0].label).toBe('0.50m');
+  });
+
+  it('respects config.wall.openingHeights.elevation = false', () => {
+    const c = makeBuilding({
+      id: 'c', type: 'berging', position: [0, 0],
+      dimensions: { width: 6, depth: 4, height: 2.6 },
+      walls: { front: wallWithWindowAndDoor, back: { ...BLANK_WALL }, left: { ...BLANK_WALL }, right: { ...BLANK_WALL } },
+    });
+    const cfg: DimensionConfig = {
+      ...DIMENSION_CONFIG,
+      wall: {
+        openingGaps: { plan: true, elevation: true },
+        openingHeights: { elevation: false },
+      },
+    };
+    const lines = computeElevationDimensions({ building: c, wallId: 'front', defaultHeight: 2.6, config: cfg });
+    expect(lines.filter(l => l.id === 'wall.openingHeights.elevation')).toHaveLength(0);
   });
 });
