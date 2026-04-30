@@ -175,7 +175,7 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
       newWidth = Math.max(WIN_MIN_SIZE, newWidth);
       const startCenterX = wallLength / 2 + fractionToX(wallLength, r.startPosition);
       const leftEdge = startCenterX - r.startWidth / 2;
-      newWidth = Math.min(newWidth, wallLength - leftEdge);
+      newWidth = Math.min(newWidth, wallLength - EDGE_CLEARANCE - leftEdge);
       newWidth = Math.max(WIN_MIN_SIZE, newWidth);
       const newCenterX = leftEdge + newWidth / 2;
       newPosition = xToFraction(wallLength, newCenterX - wallLength / 2);
@@ -186,7 +186,7 @@ export default function WallElevation({ buildingId, wallId }: WallElevationProps
       newWidth = Math.max(WIN_MIN_SIZE, newWidth);
       const startCenterX = wallLength / 2 + fractionToX(wallLength, r.startPosition);
       const rightEdge = startCenterX + r.startWidth / 2;
-      newWidth = Math.min(newWidth, rightEdge);
+      newWidth = Math.min(newWidth, rightEdge - EDGE_CLEARANCE);
       newWidth = Math.max(WIN_MIN_SIZE, newWidth);
       const newCenterX = rightEdge - newWidth / 2;
       newPosition = xToFraction(wallLength, newCenterX - wallLength / 2);
