@@ -5,6 +5,7 @@ import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/domain/building';
 import { getConstraints, DOOR_W, DOUBLE_DOOR_W, WIN_W, xToFraction, clampOpeningPosition, fractionToX, getWallLength, autoPoleLayout } from '@/domain/building';
+import { getBuildingDisplayName } from '@/domain/building';
 import { getEffectivePrimaryMaterial, getAtomColor } from '@/domain/materials';
 import {
   computePlanDimensions,
@@ -230,6 +231,17 @@ export default function SchematicView() {
   const materialDefaults = useFirstAvailableMaterials();
   const updateBuildingDimensions = useConfigStore((s) => s.updateBuildingDimensions);
   const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
+  const setBuildingName = useConfigStore((s) => s.setBuildingName);
+
+  // Inline rename state — one ID covers all building variants (structurals,
+  // muurs, gates) since only one label can be edited at a time.
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState<string>('');
+  const commitRename = useCallback((id: string) => {
+    const trimmed = renameDraft.trim();
+    setBuildingName(id, trimmed.length === 0 ? null : trimmed);
+    setRenamingId(null);
+  }, [renameDraft, setBuildingName]);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
@@ -1551,20 +1563,68 @@ export default function SchematicView() {
                   />
                 </g>
 
-                {/* Building type label */}
-                <text
-                  x={ox + width / 2}
-                  y={oz + depth / 2}
-                  fontSize={0.24}
-                  fontWeight={500}
-                  fontFamily="system-ui, sans-serif"
-                  fill={b.type === 'berging' ? '#888' : '#aaa'}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  pointerEvents="none"
-                >
-                  {t(`building.name.${b.type}`)}
-                </text>
+                {/* Building name label — double-click to rename inline */}
+                {renamingId === b.id ? (
+                  <foreignObject
+                    x={ox + width / 2 - 1.0}
+                    y={oz + depth / 2 - 0.2}
+                    width={2.0}
+                    height={0.4}
+                  >
+                    <input
+                      type="text"
+                      autoFocus
+                      value={renameDraft}
+                      onChange={(e) => setRenameDraft(e.target.value)}
+                      onBlur={() => commitRename(b.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          commitRename(b.id);
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault();
+                          setRenamingId(null);
+                        }
+                      }}
+                      maxLength={64}
+                      placeholder={t(`building.name.${b.type}`)}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        textAlign: 'center',
+                        fontSize: '0.8em',
+                        border: '1px solid #3b82f6',
+                        borderRadius: '4px',
+                        padding: '2px 4px',
+                        background: 'white',
+                        font: 'inherit',
+                        boxSizing: 'border-box',
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    />
+                  </foreignObject>
+                ) : (
+                  <text
+                    x={ox + width / 2}
+                    y={oz + depth / 2}
+                    fontSize={0.24}
+                    fontWeight={500}
+                    fontFamily="system-ui, sans-serif"
+                    fill={b.type === 'berging' ? '#888' : '#aaa'}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      setRenamingId(b.id);
+                      setRenameDraft(b.name ?? '');
+                    }}
+                  >
+                    {getBuildingDisplayName(b)}
+                  </text>
+                )}
 
                 {/* Wall labels — only for buildings with walls, skip connected sides */}
                 {hasWalls && (
@@ -1702,20 +1762,68 @@ export default function SchematicView() {
                   />
                 </g>
 
-                {/* Wall type label */}
-                <text
-                  x={ox + wallW / 2}
-                  y={isHorizontal ? oz + wallD / 2 - 0.25 : oz + wallD / 2}
-                  fontSize={0.18}
-                  fontWeight={500}
-                  fontFamily="system-ui, sans-serif"
-                  fill="#999"
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  pointerEvents="none"
-                >
-                  {t(`building.name.${w.type}`)}
-                </text>
+                {/* Wall name label — double-click to rename inline */}
+                {renamingId === w.id ? (
+                  <foreignObject
+                    x={ox + wallW / 2 - 1.0}
+                    y={(isHorizontal ? oz + wallD / 2 - 0.25 : oz + wallD / 2) - 0.2}
+                    width={2.0}
+                    height={0.4}
+                  >
+                    <input
+                      type="text"
+                      autoFocus
+                      value={renameDraft}
+                      onChange={(e) => setRenameDraft(e.target.value)}
+                      onBlur={() => commitRename(w.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          commitRename(w.id);
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault();
+                          setRenamingId(null);
+                        }
+                      }}
+                      maxLength={64}
+                      placeholder={t(`building.name.${w.type}`)}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        textAlign: 'center',
+                        fontSize: '0.7em',
+                        border: '1px solid #3b82f6',
+                        borderRadius: '4px',
+                        padding: '2px 4px',
+                        background: 'white',
+                        font: 'inherit',
+                        boxSizing: 'border-box',
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    />
+                  </foreignObject>
+                ) : (
+                  <text
+                    x={ox + wallW / 2}
+                    y={isHorizontal ? oz + wallD / 2 - 0.25 : oz + wallD / 2}
+                    fontSize={0.18}
+                    fontWeight={500}
+                    fontFamily="system-ui, sans-serif"
+                    fill="#999"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      setRenamingId(w.id);
+                      setRenameDraft(w.name ?? '');
+                    }}
+                  >
+                    {getBuildingDisplayName(w)}
+                  </text>
+                )}
               </g>
             );
           })}
@@ -1825,20 +1933,68 @@ export default function SchematicView() {
                   );
                 })()}
 
-                {/* Type label */}
-                <text
-                  x={fp.x + fp.width / 2}
-                  y={fp.y + fp.depth / 2}
-                  fontSize={0.16}
-                  fontWeight={500}
-                  fontFamily="system-ui, sans-serif"
-                  fill="#fff"
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  pointerEvents="none"
-                >
-                  {t(`building.name.${g.type}`)}
-                </text>
+                {/* Gate name label — double-click to rename inline */}
+                {renamingId === g.id ? (
+                  <foreignObject
+                    x={fp.x + fp.width / 2 - 1.0}
+                    y={fp.y + fp.depth / 2 - 0.2}
+                    width={2.0}
+                    height={0.4}
+                  >
+                    <input
+                      type="text"
+                      autoFocus
+                      value={renameDraft}
+                      onChange={(e) => setRenameDraft(e.target.value)}
+                      onBlur={() => commitRename(g.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          commitRename(g.id);
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault();
+                          setRenamingId(null);
+                        }
+                      }}
+                      maxLength={64}
+                      placeholder={t(`building.name.${g.type}`)}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        textAlign: 'center',
+                        fontSize: '0.65em',
+                        border: '1px solid #3b82f6',
+                        borderRadius: '4px',
+                        padding: '2px 4px',
+                        background: 'white',
+                        font: 'inherit',
+                        boxSizing: 'border-box',
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    />
+                  </foreignObject>
+                ) : (
+                  <text
+                    x={fp.x + fp.width / 2}
+                    y={fp.y + fp.depth / 2}
+                    fontSize={0.16}
+                    fontWeight={500}
+                    fontFamily="system-ui, sans-serif"
+                    fill="#fff"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      setRenamingId(g.id);
+                      setRenameDraft(g.name ?? '');
+                    }}
+                  >
+                    {getBuildingDisplayName(g)}
+                  </text>
+                )}
               </g>
             );
           })}

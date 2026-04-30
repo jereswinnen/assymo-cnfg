@@ -3,6 +3,7 @@ import { t } from '@/lib/i18n';
 import type { SnapConnection } from '@/domain/building';
 import {
   getAvailableWallIds,
+  getBuildingDisplayName,
 } from '@/domain/building';
 import { getAtom } from '@/domain/materials';
 import { calculateTotalQuote } from '@/domain/pricing';
@@ -57,7 +58,7 @@ function buildSpecRows(
   for (let i = 0; i < buildings.length; i++) {
     const b = buildings[i];
     const effectiveH = b.heightOverride ?? defaultHeight;
-    const typeName = t(`building.name.${b.type}`);
+    const typeName = getBuildingDisplayName(b);
     rows.push(`<tr><td colspan="2" style="padding:12px 0 6px;font-weight:600;font-size:14px;border-bottom:1px solid #eee">${typeName} ${i + 1}</td></tr>`);
 
     if (b.type === 'paal') {
