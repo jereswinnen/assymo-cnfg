@@ -81,13 +81,13 @@ describe('validateSupplierPlacements', () => {
     expect(issues[0].productId).toBe(product.id);
   });
 
-  it('returns too_wide when door product width + 2×EDGE_CLEARANCE exceeds wall length', () => {
-    // EDGE_CLEARANCE = 0.1m; wall = 1.1m; product = 1.0m wide → 1.0 + 2*0.1 = 1.2 > 1.1
-    const product = makeProduct({ id: 'door-wide', kind: 'door', widthMm: 1000, heightMm: 2100 });
+  it('returns too_wide when door product width exceeds wall length', () => {
+    // EDGE_CLEARANCE = 0; wall = 1.0m; product = 1.2m wide → 1.2 > 1.0
+    const product = makeProduct({ id: 'door-wide', kind: 'door', widthMm: 1200, heightMm: 2100 });
     const building = makeBuilding({
       id: 'b1',
       type: 'berging',
-      dimensions: { width: 1.1, depth: 3, height: 2.6 },
+      dimensions: { width: 1.0, depth: 3, height: 2.6 },
       walls: {
         front: {
           hasDoor: true,
@@ -164,9 +164,9 @@ describe('validateSupplierPlacements', () => {
   });
 
   it('a wall with both a door and a window supplier product reports issues for each', () => {
-    // Door: 3.9m wide → too_wide on a 4m wall (3.9 + 2*0.1 = 4.1 > 4)
+    // Door: 4.1m wide → too_wide on a 4m wall (no edge clearance now)
     // Window: 3.1m tall → too_tall (3.1 > 2.6)
-    const doorProduct = makeProduct({ id: 'dp', kind: 'door', widthMm: 3900, heightMm: 2100 });
+    const doorProduct = makeProduct({ id: 'dp', kind: 'door', widthMm: 4100, heightMm: 2100 });
     const winProduct = makeProduct({ id: 'wp', kind: 'window', widthMm: 500, heightMm: 3100 });
     const building = makeBuilding({
       id: 'b1',

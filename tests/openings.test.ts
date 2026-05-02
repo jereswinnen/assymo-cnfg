@@ -26,9 +26,9 @@ describe('fractionToX / xToFraction', () => {
     expect(xToFraction(length, 100)).toBeLessThanOrEqual(1);
   });
 
-  it('returns 0.5 from xToFraction when the wall is too short to have a usable region', () => {
-    // Wall length 0.1m with 0.1m clearance either side → no usable space.
-    expect(xToFraction(0.1, 0)).toBe(0.5);
+  it('returns 0.5 from xToFraction when the wall has no usable region', () => {
+    // Zero-length wall → no usable space.
+    expect(xToFraction(0, 0)).toBe(0.5);
   });
 });
 
@@ -52,8 +52,8 @@ describe('clampOpeningPosition', () => {
   });
 
   it('falls back to 0.5 for a wall with no usable region', () => {
-    // Wall length 0.1m, 2 * EDGE_CLEARANCE (0.2m) exceeds total — no usable space.
-    expect(clampOpeningPosition(0.1, 0.9, 0.2, [])).toBe(0.5);
+    // Zero-length wall — no usable space.
+    expect(clampOpeningPosition(0, 0.9, 0.2, [])).toBe(0.5);
   });
 });
 
