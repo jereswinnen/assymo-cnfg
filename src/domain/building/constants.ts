@@ -99,7 +99,7 @@ export const WINDOW_PRESETS: WindowPreset[] = [
 ];
 
 // Clearance constants
-export const EDGE_CLEARANCE = 0.5;
+export const EDGE_CLEARANCE = 0.1;
 export const OPENING_GAP = 0.3;
 
 // Pole dimensions (single post)
