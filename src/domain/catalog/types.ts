@@ -28,6 +28,9 @@ export interface WallPricing {
 export interface RoofCoverPricing {
   perSqm: number;
 }
+export interface RoofTrimPricing {
+  perSqm: number;
+}
 export interface FloorPricing {
   perSqm: number;
 }
@@ -44,6 +47,7 @@ export interface GatePricing {
 export interface MaterialPricing {
   wall?: WallPricing;
   'roof-cover'?: RoofCoverPricing;
+  'roof-trim'?: RoofTrimPricing;
   floor?: FloorPricing;
   door?: DoorPricing;
   gate?: GatePricing;
