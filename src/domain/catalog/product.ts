@@ -712,6 +712,28 @@ export interface ProductBuildingDefaults {
   };
 }
 
+/** Effective dakbak range = global constants narrowed by the product
+ *  (when present). Used by the configurator slider UI to bound the
+ *  control and by the admin product form's client-side validation. */
+export function dakbakRange(
+  product: ProductRow | null,
+): {
+  height: { min: number; max: number };
+  overhang: { min: number; max: number };
+} {
+  const c = product?.constraints.dakbak;
+  return {
+    height: {
+      min: c?.fasciaHeightMin ?? MIN_FASCIA_HEIGHT,
+      max: c?.fasciaHeightMax ?? MAX_FASCIA_HEIGHT,
+    },
+    overhang: {
+      min: c?.fasciaOverhangMin ?? MIN_FASCIA_OVERHANG,
+      max: c?.fasciaOverhangMax ?? MAX_FASCIA_OVERHANG,
+    },
+  };
+}
+
 /** Build a partial BuildingEntity defaults payload from a product. */
 export function applyProductDefaults(product: ProductRow): ProductBuildingDefaults {
   const out: ProductBuildingDefaults = {
