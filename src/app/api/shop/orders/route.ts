@@ -223,6 +223,7 @@ export async function POST(req: NextRequest) {
     code,
     buildings: migrated.buildings,
     roof: migrated.roof,
+    connections: migrated.connections,
     priceBook: tenant.priceBook,
     defaultHeight: migrated.defaultHeight,
     currency: tenant.currency,

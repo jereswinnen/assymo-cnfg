@@ -3,6 +3,7 @@ import type {
   WallId,
   WallConfig,
   RoofConfig,
+  SnapConnection,
 } from '@/domain/building';
 import {
   DOUBLE_DOOR_W,
@@ -221,13 +222,48 @@ function wallLineItem(
   return lineItems;
 }
 
+interface ConnectedSides {
+  front: boolean; back: boolean; left: boolean; right: boolean;
+}
+
+function buildingConnectedSides(
+  buildingId: string,
+  connections: readonly SnapConnection[],
+): ConnectedSides {
+  const sides: ConnectedSides = { front: false, back: false, left: false, right: false };
+  for (const c of connections) {
+    if (c.buildingAId === buildingId) sides[c.sideA as keyof ConnectedSides] = true;
+    if (c.buildingBId === buildingId) sides[c.sideB as keyof ConnectedSides] = true;
+  }
+  return sides;
+}
+
+/** Roof footprint extended outward by `fasciaOverhang` on non-connected
+ *  sides only. Connected sides stay flush — no overhang there. */
+export function effectiveRoofFootprint(
+  building: BuildingEntity,
+  roof: RoofConfig,
+  connectedSides: ConnectedSides,
+): { width: number; depth: number } {
+  const o = roof.fasciaOverhang;
+  return {
+    width: building.dimensions.width
+      + (connectedSides.left  ? 0 : o)
+      + (connectedSides.right ? 0 : o),
+    depth: building.dimensions.depth
+      + (connectedSides.front ? 0 : o)
+      + (connectedSides.back  ? 0 : o),
+  };
+}
+
 function roofLineItem(
   building: BuildingEntity,
   roof: RoofConfig,
+  connectedSides: ConnectedSides,
   priceBook: PriceBook,
   roofCoverCatalog: readonly { atomId: string; pricePerSqm: number }[],
 ): LineItem {
-  const { width, depth } = building.dimensions;
+  const { width, depth } = effectiveRoofFootprint(building, roof, connectedSides);
   const area = roofTotalArea(width, depth, roof.pitch, roof.type);
   const materialCost = area * findPrice(roofCoverCatalog, roof.coveringId);
   const insulationCost = roof.insulation
@@ -299,6 +335,7 @@ function floorLineItem(
 export function calculateBuildingQuote(
   building: BuildingEntity,
   roof: RoofConfig,
+  connections: readonly SnapConnection[],
   defaultHeight: number,
   priceBook: PriceBook,
   materials: MaterialRow[],
@@ -370,7 +407,8 @@ export function calculateBuildingQuote(
   const floor = floorLineItem(building, floorCatalog);
   if (floor) lineItems.push(floor);
 
-  lineItems.push(roofLineItem(building, roof, priceBook, roofCoverCatalog));
+  const connectedSides = buildingConnectedSides(building.id, connections);
+  lineItems.push(roofLineItem(building, roof, connectedSides, priceBook, roofCoverCatalog));
 
   const total = lineItems.reduce((sum, item) => sum + item.total, 0);
   return { lineItems, total };
@@ -379,6 +417,7 @@ export function calculateBuildingQuote(
 export function calculateTotalQuote(
   buildings: BuildingEntity[],
   roof: RoofConfig,
+  connections: readonly SnapConnection[],
   priceBook: PriceBook,
   materials: MaterialRow[],
   supplierProducts: SupplierProductRow[],
@@ -389,7 +428,7 @@ export function calculateTotalQuote(
 } {
   const lineItems: LineItem[] = [];
   for (const building of buildings) {
-    const { lineItems: items } = calculateBuildingQuote(building, roof, defaultHeight, priceBook, materials, supplierProducts, buildings);
+    const { lineItems: items } = calculateBuildingQuote(building, roof, connections, defaultHeight, priceBook, materials, supplierProducts, buildings);
     lineItems.push(...items);
   }
   const total = lineItems.reduce((sum, item) => sum + item.total, 0);

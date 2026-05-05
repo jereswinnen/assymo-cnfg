@@ -43,6 +43,7 @@ function supplierProductLabel(
 
 function buildSpecRows(
   buildings: BuildingEntity[],
+  connections: SnapConnection[],
   roof: RoofConfig,
   defaultHeight: number,
   priceBook: PriceBook,
@@ -121,7 +122,7 @@ function buildSpecRows(
   }
 
   // Quote
-  const { lineItems, total } = calculateTotalQuote(buildings, roof, priceBook, materials, supplierProducts, defaultHeight);
+  const { lineItems, total } = calculateTotalQuote(buildings, roof, connections, priceBook, materials, supplierProducts, defaultHeight);
   rows.push(`<tr><td colspan="2" style="padding:12px 0 6px;font-weight:600;font-size:14px;border-bottom:1px solid #eee">${t('section.6')}</td></tr>`);
   for (const item of lineItems) {
     rows.push(row(t(item.labelKey, item.labelParams), `€${item.total.toFixed(0)}`));
@@ -141,12 +142,11 @@ export function exportFloorPlan(
   shareCode: string,
   defaultHeight: number = 3,
 ) {
-  void connections;
   const svgEl = document.querySelector('.schematic-svg');
   if (!svgEl) return;
   const svgMarkup = svgEl.outerHTML;
 
-  const specRows = buildSpecRows(buildings, roof, defaultHeight, priceBook, materials, supplierProducts);
+  const specRows = buildSpecRows(buildings, connections, roof, defaultHeight, priceBook, materials, supplierProducts);
   const configCode = shareCode;
   const title = `${t('app.title')} — ${t('schematic.title')}`;
   const date = new Date().toLocaleDateString('nl-NL', {

@@ -1,4 +1,4 @@
-import type { BuildingEntity, RoofConfig } from '@/domain/building';
+import type { BuildingEntity, RoofConfig, SnapConnection } from '@/domain/building';
 import { calculateTotalQuote, type PriceBook } from '@/domain/pricing';
 import type { ConfigData } from '@/domain/config';
 import type { Currency } from '@/domain/tenant';
@@ -14,6 +14,7 @@ interface BuildQuoteSnapshotInput {
   code: string;
   buildings: BuildingEntity[];
   roof: RoofConfig;
+  connections: readonly SnapConnection[];
   priceBook: PriceBook;
   defaultHeight: number;
   currency: Currency;
@@ -37,6 +38,7 @@ export function buildQuoteSnapshot(input: BuildQuoteSnapshotInput): OrderQuoteSn
   const { lineItems, total } = calculateTotalQuote(
     input.buildings,
     input.roof,
+    input.connections,
     input.priceBook,
     input.materials,
     supplierProducts,

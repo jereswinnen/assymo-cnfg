@@ -7,6 +7,7 @@ import {
   wallNetArea,
 } from '@/domain/pricing';
 import type { MaterialRow } from '@/domain/catalog';
+import type { SnapConnection } from '@/domain/building';
 import { makeBuilding, makeConfig, makeRoof } from './fixtures';
 
 const BLANK_WALL = {
@@ -53,6 +54,7 @@ describe('calculateTotalQuote', () => {
     const { total, lineItems } = calculateTotalQuote(
       cfg.buildings,
       cfg.roof,
+      cfg.connections,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
       [],
@@ -67,6 +69,7 @@ describe('calculateTotalQuote', () => {
     const { lineItems } = calculateTotalQuote(
       cfg.buildings,
       cfg.roof,
+      cfg.connections,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
       [],
@@ -85,6 +88,7 @@ describe('calculateTotalQuote', () => {
     const { total, lineItems } = calculateTotalQuote(
       cfg.buildings,
       cfg.roof,
+      cfg.connections,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
       [],
@@ -110,8 +114,8 @@ describe('calculateTotalQuote', () => {
         }),
       ],
     });
-    const a = calculateTotalQuote(withoutDoor.buildings, withoutDoor.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], withoutDoor.defaultHeight).total;
-    const b = calculateTotalQuote(withDoor.buildings, withDoor.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], withDoor.defaultHeight).total;
+    const a = calculateTotalQuote(withoutDoor.buildings, withoutDoor.roof, withoutDoor.connections, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], withoutDoor.defaultHeight).total;
+    const b = calculateTotalQuote(withDoor.buildings, withDoor.roof, withDoor.connections, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], withDoor.defaultHeight).total;
     expect(b).toBeGreaterThan(a);
     expect(b - a).toBeLessThan(DEFAULT_PRICE_BOOK.doorBase.enkel);
   });
@@ -119,8 +123,8 @@ describe('calculateTotalQuote', () => {
   it('adds skylight flat fee when roof has skylight', () => {
     const base = makeConfig();
     const withSkylight = makeConfig({ roof: makeRoof({ hasSkylight: true }) });
-    const a = calculateTotalQuote(base.buildings, base.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], base.defaultHeight).total;
-    const b = calculateTotalQuote(withSkylight.buildings, withSkylight.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], withSkylight.defaultHeight).total;
+    const a = calculateTotalQuote(base.buildings, base.roof, base.connections, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], base.defaultHeight).total;
+    const b = calculateTotalQuote(withSkylight.buildings, withSkylight.roof, withSkylight.connections, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], withSkylight.defaultHeight).total;
     expect(b - a).toBe(DEFAULT_PRICE_BOOK.skylightFee);
   });
 
@@ -131,8 +135,8 @@ describe('calculateTotalQuote', () => {
     const thick = makeConfig({
       roof: makeRoof({ insulation: true, insulationThickness: 200 }),
     });
-    const a = calculateTotalQuote(thin.buildings, thin.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], thin.defaultHeight).total;
-    const b = calculateTotalQuote(thick.buildings, thick.roof, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], thick.defaultHeight).total;
+    const a = calculateTotalQuote(thin.buildings, thin.roof, thin.connections, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], thin.defaultHeight).total;
+    const b = calculateTotalQuote(thick.buildings, thick.roof, thick.connections, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], thick.defaultHeight).total;
     expect(b).toBeGreaterThan(a);
   });
 
@@ -143,6 +147,7 @@ describe('calculateTotalQuote', () => {
     const { lineItems } = calculateTotalQuote(
       cfg.buildings,
       cfg.roof,
+      cfg.connections,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
       [],
@@ -151,6 +156,45 @@ describe('calculateTotalQuote', () => {
     const posts = lineItems.find((i) => i.labelKey === 'quote.posts');
     expect(posts).toBeDefined();
     expect(posts?.labelParams?.count).toBeGreaterThan(0);
+  });
+});
+
+describe('roof pricing — overhang footprint', () => {
+  it('grows roof area linearly with overhang on isolated buildings', () => {
+    const baseRoof = makeRoof({ fasciaOverhang: 0 });
+    const fatRoof  = makeRoof({ fasciaOverhang: 0.5 });
+    const cfg0 = makeConfig({ roof: baseRoof });
+    const cfg1 = makeConfig({ roof: fatRoof });
+
+    const q0 = calculateTotalQuote(cfg0.buildings, cfg0.roof, [], DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], cfg0.defaultHeight);
+    const q1 = calculateTotalQuote(cfg1.buildings, cfg1.roof, [], DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], cfg1.defaultHeight);
+
+    const roofItem0 = q0.lineItems.find(i => i.labelKey === 'quote.roof');
+    const roofItem1 = q1.lineItems.find(i => i.labelKey === 'quote.roof');
+    expect(roofItem0!.area).toBe(4 * 4);     // 16
+    expect(roofItem1!.area).toBe(5 * 5);     // 25 (each side +0.5)
+  });
+
+  it('does not grow roof footprint on connected sides', () => {
+    const cfg = makeConfig({
+      buildings: [
+        makeBuilding({ id: 'a', type: 'overkapping', dimensions: { width: 4, depth: 4, height: 2.6 }, position: [0, 0],
+          walls: { front: BLANK_WALL, back: BLANK_WALL, left: BLANK_WALL, right: BLANK_WALL } }),
+        makeBuilding({ id: 'b', type: 'overkapping', dimensions: { width: 4, depth: 4, height: 2.6 }, position: [4, 0],
+          walls: { front: BLANK_WALL, back: BLANK_WALL, left: BLANK_WALL, right: BLANK_WALL } }),
+      ],
+      connections: [
+        { buildingAId: 'a', sideA: 'right', buildingBId: 'b', sideB: 'left' } as SnapConnection,
+      ],
+      roof: makeRoof({ fasciaOverhang: 0.5 }),
+    });
+    const q = calculateTotalQuote(cfg.buildings, cfg.roof, cfg.connections, DEFAULT_PRICE_BOOK, FIXTURE_MATERIALS, [], cfg.defaultHeight);
+    const roofItems = q.lineItems.filter(i => i.labelKey === 'quote.roof');
+    // Each building has overhang on 3 sides only (right of A and left of B are connected).
+    // Building A: width = 4 + 0.5 (left) + 0 (right) = 4.5; depth = 4 + 0.5 + 0.5 = 5 → 22.5
+    // Building B: width = 4 + 0 + 0.5 = 4.5; depth = 5 → 22.5
+    expect(roofItems[0].area).toBeCloseTo(22.5, 5);
+    expect(roofItems[1].area).toBeCloseTo(22.5, 5);
   });
 });
 
