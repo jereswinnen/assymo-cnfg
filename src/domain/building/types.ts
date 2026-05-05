@@ -86,6 +86,13 @@ export interface RoofConfig {
   insulation: boolean;
   insulationThickness: number; // mm
   hasSkylight: boolean;
+  /** Fascia (dakbak) board height — meters. Default 0.36. Applied only on
+   *  flat roofs; pitched-roof rendering ignores it. */
+  fasciaHeight: number;
+  /** Outward extension of the roof past the wall on non-connected sides —
+   *  meters. 0 = flush. Connected sides always stay flush. Pitched-roof
+   *  rendering ignores it. */
+  fasciaOverhang: number;
 }
 
 /** Per-side intermediate post fractions (0–1 along the edge, corners excluded).
