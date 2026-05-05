@@ -5,7 +5,11 @@ import {
   migrateConfig,
   type LegacyBuilding,
 } from '@/domain/config';
-import { DEFAULT_PRIMARY_MATERIAL } from '@/domain/building';
+import {
+  DEFAULT_PRIMARY_MATERIAL,
+  DEFAULT_FASCIA_HEIGHT,
+  DEFAULT_FASCIA_OVERHANG,
+} from '@/domain/building';
 
 const BASE_ROOF = {
   type: 'flat' as const,
@@ -98,11 +102,10 @@ describe('migrateConfig', () => {
     const out = migrateConfig({
       buildings: [legacyBuilding],
       connections: [],
-      // Cast: simulate legacy DB row that pre-dates these fields.
       roof: { ...BASE_ROOF } as never,
     });
-    expect(out.roof.fasciaHeight).toBe(0.36);
-    expect(out.roof.fasciaOverhang).toBe(0);
+    expect(out.roof.fasciaHeight).toBe(DEFAULT_FASCIA_HEIGHT);
+    expect(out.roof.fasciaOverhang).toBe(DEFAULT_FASCIA_OVERHANG);
   });
 
   it('preserves fasciaHeight and fasciaOverhang when already present', () => {
