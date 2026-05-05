@@ -122,6 +122,10 @@ const nl: Record<string, string> = {
   "roof.insulation": "Dakisolatie",
   "roof.thickness": "Dikte",
   "roof.skylight": "Dakraam",
+  "roof.fasciaHeight": "Dakbakhoogte",
+  "roof.fasciaOverhang": "Dakbak oversteek",
+  "roof.fasciaLocked": "Vastgezet op {value}",
+  "roof.fasciaPitchedNotice": "Dakbakopties zijn alleen beschikbaar voor platte daken.",
 
   // Structure
   "structure.cornerBraces": "Schoren",

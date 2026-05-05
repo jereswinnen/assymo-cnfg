@@ -5,18 +5,20 @@ import { useTenantCatalogs } from '@/lib/useTenantCatalogs';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import SectionLabel from '@/components/ui/SectionLabel';
 import MaterialSelect from '@/components/ui/MaterialSelect';
+import { dakbakRange } from '@/domain/catalog';
 import type { RoofCoveringId } from '@/domain/building';
+
+function cm(meters: number): string {
+  return `${Math.round(meters * 100)} cm`;
+}
 
 export default function RoofConfigSection() {
   const roof = useConfigStore((s) => s.roof);
   const updateRoof = useConfigStore((s) => s.updateRoof);
   const buildings = useConfigStore((s) => s.buildings);
-  // Roof is scene-level, but products can each carry their own roofCovering /
-  // roofTrim allow-list. With multiple product-sourced buildings we apply the
-  // first one's constraints — expected usage today is one structural product
-  // per scene. Revisit when multi-product scenes become common.
   const productBuilding = buildings.find((b) => b.sourceProductId);
   const { roofTrim, roofCover, sourceProduct } = useTenantCatalogs(
     {
@@ -25,6 +27,11 @@ export default function RoofConfigSection() {
     },
     productBuilding?.sourceProductId,
   );
+
+  const range = dakbakRange(sourceProduct ?? null);
+  const heightLocked   = range.height.min === range.height.max;
+  const overhangLocked = range.overhang.min === range.overhang.max;
+  const isFlat = roof.type === 'flat';
 
   return (
     <div className="space-y-5">
@@ -60,6 +67,59 @@ export default function RoofConfigSection() {
           </p>
         ) : null}
       </div>
+
+      {isFlat && (
+        <>
+          <div className="space-y-2">
+            <SectionLabel>{t('roof.fasciaHeight')}</SectionLabel>
+            {heightLocked ? (
+              <p className="text-sm text-muted-foreground">
+                {t('roof.fasciaLocked', { value: cm(range.height.min) })}
+              </p>
+            ) : (
+              <>
+                <Slider
+                  min={range.height.min}
+                  max={range.height.max}
+                  step={0.01}
+                  value={[roof.fasciaHeight]}
+                  onValueChange={([v]) => updateRoof({ fasciaHeight: v })}
+                />
+                <p className="text-xs text-muted-foreground">{cm(roof.fasciaHeight)}</p>
+              </>
+            )}
+            {sourceProduct?.constraints.dakbak ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t('configurator.picker.kitRestricted')}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="space-y-2">
+            <SectionLabel>{t('roof.fasciaOverhang')}</SectionLabel>
+            {overhangLocked ? (
+              <p className="text-sm text-muted-foreground">
+                {t('roof.fasciaLocked', { value: cm(range.overhang.min) })}
+              </p>
+            ) : (
+              <>
+                <Slider
+                  min={range.overhang.min}
+                  max={range.overhang.max}
+                  step={0.01}
+                  value={[roof.fasciaOverhang]}
+                  onValueChange={([v]) => updateRoof({ fasciaOverhang: v })}
+                />
+                <p className="text-xs text-muted-foreground">{cm(roof.fasciaOverhang)}</p>
+              </>
+            )}
+          </div>
+        </>
+      )}
+
+      {!isFlat && (
+        <p className="text-xs text-muted-foreground">{t('roof.fasciaPitchedNotice')}</p>
+      )}
 
       <div className="flex items-center gap-2">
         <Checkbox
