@@ -38,7 +38,7 @@ const POORT_SWING_DIRECTIONS = ['inward', 'outward', 'sliding'] as const;
 
 // Dakbak (fascia ring) bounds — meters. Inlined to avoid the same
 // circular import that the poort constants above sidestep.
-const MIN_FASCIA_HEIGHT = 0.10;
+const MIN_FASCIA_HEIGHT = 0.36;
 const MAX_FASCIA_HEIGHT = 0.60;
 const MIN_FASCIA_OVERHANG = 0;
 const MAX_FASCIA_OVERHANG = 0.80;

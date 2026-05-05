@@ -311,7 +311,7 @@ describe('validateProductCreate — dakbak', () => {
         defaults: { width: 4, depth: 3, height: 2.6, dakbak: { fasciaHeight: 0.4, fasciaOverhang: 0.2 } },
         constraints: {
           dakbak: {
-            fasciaHeightMin: 0.3,
+            fasciaHeightMin: 0.36,
             fasciaHeightMax: 0.5,
             fasciaOverhangMin: 0.1,
             fasciaOverhangMax: 0.3,
@@ -353,7 +353,7 @@ describe('validateProductCreate — dakbak', () => {
 
   it('rejects min > max', () => {
     const r = validateProductCreate(
-      base({ constraints: { dakbak: { fasciaHeightMin: 0.5, fasciaHeightMax: 0.3 } } }),
+      base({ constraints: { dakbak: { fasciaHeightMin: 0.55, fasciaHeightMax: 0.40 } } }),
       [],
     );
     expect(r.ok).toBe(false);
@@ -468,14 +468,14 @@ describe('dakbakRange', () => {
 
   it('returns global range for null product', () => {
     expect(dakbakRange(null)).toEqual({
-      height:   { min: 0.10, max: 0.60 },
+      height:   { min: 0.36, max: 0.60 },
       overhang: { min: 0,    max: 0.80 },
     });
   });
 
   it('returns global range for product with no dakbak constraints', () => {
     expect(dakbakRange(productRow({}))).toEqual({
-      height:   { min: 0.10, max: 0.60 },
+      height:   { min: 0.36, max: 0.60 },
       overhang: { min: 0,    max: 0.80 },
     });
   });
