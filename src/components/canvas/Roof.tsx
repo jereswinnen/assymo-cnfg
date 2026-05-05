@@ -103,15 +103,15 @@ interface FlatRoofProps {
 interface FasciaBoard {
   pos: [number, number, number];
   size: [number, number, number];
-  /** Long-axis length in meters, for texture tiling */
+  /** Wall length in meters — used to compute texture `repeat`. Matches
+   *  the wall beneath so plank density per meter is identical and the
+   *  textures align without any UV offset. */
   length: number;
-  /** Wall-aligning U-offset (meters). Cancels three sources of drift
-   *  between the fascia's texture and the wall texture beneath:
-   *  (1) corner-mitre overlap that extends the fascia past the wall edge,
-   *  (2) overhang outward extension on non-connected sides, and
-   *  (3) the 0.01 m wall inset baked into Wall.tsx geometry.
-   *  Sign and term selection differ per face since three.js BoxGeometry
-   *  maps UVs differently on +X / −X / +Z / −Z. */
+  /** Wall-aligning U-offset (meters). Always 0 in the current
+   *  implementation: each fascia board has the same geometry size and
+   *  center as the wall beneath it, so the texture aligns automatically.
+   *  Kept on the interface in case a future variant (e.g. corner-mitre
+   *  pieces) needs UV correction. */
   offsetX: number;
 }
 
@@ -137,7 +137,6 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
   const fasciaCenterY = fasciaBottomY + roof.fasciaHeight / 2;
 
   const innerInset    = FASCIA_THICKNESS / 2;     // 0.075
-  const cornerOverlap = FASCIA_THICKNESS / 2;     // 0.075
 
   // EPDM membrane spans the effective footprint, inset on sides that have fascia.
   const epdmInsetFront = hasFront ? innerInset : 0;
@@ -150,69 +149,53 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
   const epdmCenterZ = (minZ + maxZ) / 2 + (epdmInsetBack - epdmInsetFront) / 2;
   const epdmY = fasciaTopY - EPDM_THICKNESS / 2 - 0.02;
 
-  // Each fascia board lies along the corresponding edge of the effective
-  // footprint. Front/back boards span the full width and extend over corners
-  // by `cornerOverlap` on adjacent fascia sides; left/right boards fit between.
+  // Each fascia board has the same length and X/Z center as the wall beneath
+  // it (walls are inset 0.01 m on each end — see Wall.tsx). Position shifts
+  // outward by `oh` on free sides, but the long-axis length matches the wall
+  // exactly, so the wall-texture sampling rate is identical and textures
+  // align without any UV correction. Tradeoff: small visible seam at corners
+  // where the four boards butt against each other.
   const fasciaBoards = useMemo<FasciaBoard[]>(() => {
     const boards: FasciaBoard[] = [];
-    const fpWidth = maxX - minX;
-    const fpDepth = maxZ - minZ;
-    const fpCenterX = (minX + maxX) / 2;
-    const fpCenterZ = (minZ + maxZ) / 2;
 
     if (hasFront) {
-      const extLeft  = hasLeft  ? cornerOverlap : 0;
-      const extRight = hasRight ? cornerOverlap : 0;
-      const len = fpWidth + extLeft + extRight;
-      const centerX = fpCenterX + (extRight - extLeft) / 2;
       boards.push({
-        pos: [centerX, fasciaCenterY, maxZ],
-        size: [len, roof.fasciaHeight, FASCIA_THICKNESS],
-        length: len,
-        offsetX: -extLeft - (hasLeft ? oh : 0) - 0.01,
+        pos: [0, fasciaCenterY, maxZ],
+        size: [width - 0.02, roof.fasciaHeight, FASCIA_THICKNESS],
+        length: width,
+        offsetX: 0,
       });
     }
     if (hasBack) {
-      const extLeft  = hasLeft  ? cornerOverlap : 0;
-      const extRight = hasRight ? cornerOverlap : 0;
-      const len = fpWidth + extLeft + extRight;
-      const centerX = fpCenterX + (extRight - extLeft) / 2;
       boards.push({
-        pos: [centerX, fasciaCenterY, minZ],
-        size: [len, roof.fasciaHeight, FASCIA_THICKNESS],
-        length: len,
-        offsetX: -extRight - (hasRight ? oh : 0) - 0.01,
+        pos: [0, fasciaCenterY, minZ],
+        size: [width - 0.02, roof.fasciaHeight, FASCIA_THICKNESS],
+        length: width,
+        offsetX: 0,
       });
     }
     if (hasLeft) {
-      const trimBack  = hasBack  ? cornerOverlap : 0;
-      const trimFront = hasFront ? cornerOverlap : 0;
-      const len = Math.max(0.01, fpDepth - trimBack - trimFront);
-      const centerZ = fpCenterZ + (trimBack - trimFront) / 2;
       boards.push({
-        pos: [minX, fasciaCenterY, centerZ],
-        size: [FASCIA_THICKNESS, roof.fasciaHeight, len],
-        length: len,
-        offsetX: trimBack - (hasBack ? oh : 0) - 0.01,
+        pos: [minX, fasciaCenterY, 0],
+        size: [FASCIA_THICKNESS, roof.fasciaHeight, depth - 0.02],
+        length: depth,
+        offsetX: 0,
       });
     }
     if (hasRight) {
-      const trimBack  = hasBack  ? cornerOverlap : 0;
-      const trimFront = hasFront ? cornerOverlap : 0;
-      const len = Math.max(0.01, fpDepth - trimBack - trimFront);
-      const centerZ = fpCenterZ + (trimBack - trimFront) / 2;
       boards.push({
-        pos: [maxX, fasciaCenterY, centerZ],
-        size: [FASCIA_THICKNESS, roof.fasciaHeight, len],
-        length: len,
-        offsetX: trimFront - (hasFront ? oh : 0) - 0.01,
+        pos: [maxX, fasciaCenterY, 0],
+        size: [FASCIA_THICKNESS, roof.fasciaHeight, depth - 0.02],
+        length: depth,
+        offsetX: 0,
       });
     }
     return boards;
   }, [
+    width, depth,
     minX, maxX, minZ, maxZ,
     fasciaCenterY, roof.fasciaHeight,
-    hasFront, hasBack, hasLeft, hasRight, cornerOverlap, oh,
+    hasFront, hasBack, hasLeft, hasRight,
   ]);
 
   return (
