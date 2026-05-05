@@ -103,15 +103,14 @@ interface FlatRoofProps {
 interface FasciaBoard {
   pos: [number, number, number];
   size: [number, number, number];
-  /** Wall length in meters — used to compute texture `repeat`. Matches
-   *  the wall beneath so plank density per meter is identical and the
-   *  textures align without any UV offset. */
+  /** Geometry's long-axis length in meters — used to compute texture
+   *  `repeat` so per-meter sampling rate matches the geometry. */
   length: number;
-  /** Wall-aligning U-offset (meters). Always 0 in the current
-   *  implementation: each fascia board has the same geometry size and
-   *  center as the wall beneath it, so the texture aligns automatically.
-   *  Kept on the interface in case a future variant (e.g. corner-mitre
-   *  pieces) needs UV correction. */
+  /** Wall-aligning U-offset (meters). Front/back boards extend past the
+   *  wall by FASCIA_THICKNESS/2 on each side to cover the corners, so
+   *  their texture origin sits to the LEFT of the wall's; offsetX shifts
+   *  it back. Side boards (left/right) sit fully inside the wall extent
+   *  and need no shift (offsetX = 0). */
   offsetX: number;
 }
 
@@ -149,29 +148,29 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
   const epdmCenterZ = (minZ + maxZ) / 2 + (epdmInsetBack - epdmInsetFront) / 2;
   const epdmY = fasciaTopY - EPDM_THICKNESS / 2 - 0.02;
 
-  // Each fascia board has the same length and X/Z center as the wall beneath
-  // it (walls are inset 0.01 m on each end — see Wall.tsx). Position shifts
-  // outward by `oh` on free sides, but the long-axis length matches the wall
-  // exactly, so the wall-texture sampling rate is identical and textures
-  // align without any UV correction. Tradeoff: small visible seam at corners
-  // where the four boards butt against each other.
+  // Front/back fascia extend past the wall ends by FASCIA_THICKNESS/2 on
+  // each side so they fully cover the building's corners (no gap visible
+  // through the structure). Side fascia stay shrunk by FASCIA_THICKNESS
+  // along Z so they sit BETWEEN the front/back boards — the four boards
+  // share only edges, not volume, so there's no z-fighting. Texture seam
+  // is corrected via offsetX so the planks line up with the wall beneath.
   const fasciaBoards = useMemo<FasciaBoard[]>(() => {
     const boards: FasciaBoard[] = [];
 
     if (hasFront) {
       boards.push({
         pos: [0, fasciaCenterY, maxZ],
-        size: [width - 0.02, roof.fasciaHeight, FASCIA_THICKNESS],
-        length: width,
-        offsetX: 0,
+        size: [width + FASCIA_THICKNESS, roof.fasciaHeight, FASCIA_THICKNESS],
+        length: width + FASCIA_THICKNESS,
+        offsetX: -FASCIA_THICKNESS / 2 - 0.01,
       });
     }
     if (hasBack) {
       boards.push({
         pos: [0, fasciaCenterY, minZ],
-        size: [width - 0.02, roof.fasciaHeight, FASCIA_THICKNESS],
-        length: width,
-        offsetX: 0,
+        size: [width + FASCIA_THICKNESS, roof.fasciaHeight, FASCIA_THICKNESS],
+        length: width + FASCIA_THICKNESS,
+        offsetX: -FASCIA_THICKNESS / 2 - 0.01,
       });
     }
     // Side fascia shrinks by FASCIA_THICKNESS along its long axis so it
