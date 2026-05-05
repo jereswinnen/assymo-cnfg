@@ -224,6 +224,12 @@ export function addBuilding(
       ...(productDefaults.roof.trimMaterialId
         ? { trimMaterialId: productDefaults.roof.trimMaterialId }
         : {}),
+      ...(productDefaults.roof.fasciaHeight !== undefined
+        ? { fasciaHeight: productDefaults.roof.fasciaHeight }
+        : {}),
+      ...(productDefaults.roof.fasciaOverhang !== undefined
+        ? { fasciaOverhang: productDefaults.roof.fasciaOverhang }
+        : {}),
     };
   }
 
