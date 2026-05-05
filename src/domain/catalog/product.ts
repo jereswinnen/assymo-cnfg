@@ -35,6 +35,13 @@ const POORT_HEIGHT_MAX_MM = 3500;
 const POORT_PART_GAP_MIN_MM = 0;
 const POORT_PART_GAP_MAX_MM = 500;
 const POORT_SWING_DIRECTIONS = ['inward', 'outward', 'sliding'] as const;
+
+// Dakbak (fascia ring) bounds — meters. Inlined to avoid the same
+// circular import that the poort constants above sidestep.
+const MIN_FASCIA_HEIGHT = 0.10;
+const MAX_FASCIA_HEIGHT = 0.60;
+const MIN_FASCIA_OVERHANG = 0;
+const MAX_FASCIA_OVERHANG = 0.80;
 type PoortSwing = (typeof POORT_SWING_DIRECTIONS)[number];
 
 function isPoortSwing(v: unknown): v is PoortSwing {
@@ -172,6 +179,86 @@ function validateDefaults(
     out.poort = poort;
   }
   return out;
+}
+
+function validateDakbakConstraints(
+  raw: unknown,
+  errors: ProductValidationFieldError[],
+): ProductConstraints['dakbak'] | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (!isObject(raw)) {
+    errors.push({ field: 'constraints.dakbak', code: 'constraints_invalid' });
+    return undefined;
+  }
+  const out: NonNullable<ProductConstraints['dakbak']> = {};
+  const checkBound = (
+    key: 'fasciaHeightMin' | 'fasciaHeightMax' | 'fasciaOverhangMin' | 'fasciaOverhangMax',
+    min: number,
+    max: number,
+  ) => {
+    if (!(key in raw)) return;
+    const v = (raw as Record<string, unknown>)[key];
+    if (!isFiniteNumber(v) || v < min || v > max) {
+      errors.push({ field: `constraints.dakbak.${key}`, code: 'constraints_invalid' });
+      return;
+    }
+    out[key] = v;
+  };
+  checkBound('fasciaHeightMin', MIN_FASCIA_HEIGHT, MAX_FASCIA_HEIGHT);
+  checkBound('fasciaHeightMax', MIN_FASCIA_HEIGHT, MAX_FASCIA_HEIGHT);
+  checkBound('fasciaOverhangMin', MIN_FASCIA_OVERHANG, MAX_FASCIA_OVERHANG);
+  checkBound('fasciaOverhangMax', MIN_FASCIA_OVERHANG, MAX_FASCIA_OVERHANG);
+
+  if (
+    out.fasciaHeightMin !== undefined &&
+    out.fasciaHeightMax !== undefined &&
+    out.fasciaHeightMin > out.fasciaHeightMax
+  ) {
+    errors.push({ field: 'constraints.dakbak.fasciaHeightMin', code: 'constraints_invalid' });
+  }
+  if (
+    out.fasciaOverhangMin !== undefined &&
+    out.fasciaOverhangMax !== undefined &&
+    out.fasciaOverhangMin > out.fasciaOverhangMax
+  ) {
+    errors.push({ field: 'constraints.dakbak.fasciaOverhangMin', code: 'constraints_invalid' });
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+function validateDakbakDefaults(
+  raw: unknown,
+  constraints: ProductConstraints['dakbak'] | undefined,
+  errors: ProductValidationFieldError[],
+): ProductDefaults['dakbak'] | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (!isObject(raw)) {
+    errors.push({ field: 'defaults.dakbak', code: 'constraints_invalid' });
+    return undefined;
+  }
+  const out: NonNullable<ProductDefaults['dakbak']> = {};
+
+  if ('fasciaHeight' in raw) {
+    const v = (raw as Record<string, unknown>).fasciaHeight;
+    const lo = constraints?.fasciaHeightMin ?? MIN_FASCIA_HEIGHT;
+    const hi = constraints?.fasciaHeightMax ?? MAX_FASCIA_HEIGHT;
+    if (!isFiniteNumber(v) || v < lo || v > hi) {
+      errors.push({ field: 'defaults.dakbak.fasciaHeight', code: 'constraints_invalid' });
+    } else {
+      out.fasciaHeight = v;
+    }
+  }
+  if ('fasciaOverhang' in raw) {
+    const v = (raw as Record<string, unknown>).fasciaOverhang;
+    const lo = constraints?.fasciaOverhangMin ?? MIN_FASCIA_OVERHANG;
+    const hi = constraints?.fasciaOverhangMax ?? MAX_FASCIA_OVERHANG;
+    if (!isFiniteNumber(v) || v < lo || v > hi) {
+      errors.push({ field: 'defaults.dakbak.fasciaOverhang', code: 'constraints_invalid' });
+    } else {
+      out.fasciaOverhang = v;
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 // Product constraint dimensions (`minWidth` etc.) are bounded to [0, 40] —
@@ -385,6 +472,22 @@ export function validateProductCreate(
   const defaultsOut = validateDefaults(defaults, errors);
   const constraintsOut = validateConstraints(constraints, errors);
 
+  // Dakbak — must run AFTER constraints so defaults can validate against
+  // any narrowing the same product authored. Operates on the raw `dakbak`
+  // subobjects (validateDefaults/Constraints don't see siblings).
+  const dakbakConstraintsOut = isObject(constraints)
+    ? validateDakbakConstraints((constraints as Record<string, unknown>).dakbak, errors)
+    : undefined;
+  const dakbakDefaultsOut = isObject(defaults)
+    ? validateDakbakDefaults((defaults as Record<string, unknown>).dakbak, dakbakConstraintsOut, errors)
+    : undefined;
+  if (defaultsOut !== undefined && dakbakDefaultsOut !== undefined) {
+    defaultsOut.dakbak = dakbakDefaultsOut;
+  }
+  if (constraintsOut !== undefined && dakbakConstraintsOut !== undefined) {
+    constraintsOut.dakbak = dakbakConstraintsOut;
+  }
+
   let basePriceOut = 0;
   if (basePriceCents !== undefined) {
     if (!isFiniteNumber(basePriceCents) || basePriceCents < 0 || !Number.isInteger(basePriceCents)) {
@@ -531,6 +634,23 @@ export function validateProductPatch(
   if ('constraints' in input) {
     const c = validateConstraints((input as { constraints: unknown }).constraints, errors);
     if (c !== undefined) out.constraints = c;
+  }
+  // Dakbak — wire after constraints so defaults see any narrowing.
+  const rawConstraints = (input as { constraints?: unknown }).constraints;
+  const rawDefaults = (input as { defaults?: unknown }).defaults;
+  const dakbakConstraintsOut = isObject(rawConstraints)
+    ? validateDakbakConstraints((rawConstraints as Record<string, unknown>).dakbak, errors)
+    : undefined;
+  const dakbakDefaultsOut = isObject(rawDefaults)
+    ? validateDakbakDefaults((rawDefaults as Record<string, unknown>).dakbak, dakbakConstraintsOut, errors)
+    : undefined;
+  if (dakbakDefaultsOut !== undefined) {
+    if (out.defaults === undefined) out.defaults = {};
+    out.defaults.dakbak = dakbakDefaultsOut;
+  }
+  if (dakbakConstraintsOut !== undefined) {
+    if (out.constraints === undefined) out.constraints = {};
+    out.constraints.dakbak = dakbakConstraintsOut;
   }
   if ('basePriceCents' in input) {
     const n = (input as { basePriceCents: unknown }).basePriceCents;

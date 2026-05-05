@@ -301,3 +301,77 @@ describe('validateProductPatch', () => {
     if (!r.ok) expect(r.errors).toContainEqual({ field: 'slug', code: 'slug_invalid' });
   });
 });
+
+describe('validateProductCreate — dakbak', () => {
+  it('accepts in-range defaults and constraints', () => {
+    const r = validateProductCreate(
+      base({
+        defaults: { width: 4, depth: 3, height: 2.6, dakbak: { fasciaHeight: 0.4, fasciaOverhang: 0.2 } },
+        constraints: {
+          dakbak: {
+            fasciaHeightMin: 0.3,
+            fasciaHeightMax: 0.5,
+            fasciaOverhangMin: 0.1,
+            fasciaOverhangMax: 0.3,
+          },
+        },
+      }),
+      [],
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  it('rejects fasciaHeightMin below global MIN', () => {
+    const r = validateProductCreate(
+      base({ constraints: { dakbak: { fasciaHeightMin: 0.05 } } }),
+      [],
+    );
+    expect(r.ok).toBe(false);
+  });
+
+  it('rejects fasciaHeightMax above global MAX', () => {
+    const r = validateProductCreate(
+      base({ constraints: { dakbak: { fasciaHeightMax: 0.9 } } }),
+      [],
+    );
+    expect(r.ok).toBe(false);
+  });
+
+  it('rejects min > max', () => {
+    const r = validateProductCreate(
+      base({ constraints: { dakbak: { fasciaHeightMin: 0.5, fasciaHeightMax: 0.3 } } }),
+      [],
+    );
+    expect(r.ok).toBe(false);
+  });
+
+  it('accepts min === max (locked)', () => {
+    const r = validateProductCreate(
+      base({
+        defaults: { width: 4, depth: 3, height: 2.6, dakbak: { fasciaHeight: 0.4 } },
+        constraints: { dakbak: { fasciaHeightMin: 0.4, fasciaHeightMax: 0.4 } },
+      }),
+      [],
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  it('rejects default outside the product-narrowed range', () => {
+    const r = validateProductCreate(
+      base({
+        defaults: { width: 4, depth: 3, height: 2.6, dakbak: { fasciaHeight: 0.55 } },
+        constraints: { dakbak: { fasciaHeightMin: 0.3, fasciaHeightMax: 0.5 } },
+      }),
+      [],
+    );
+    expect(r.ok).toBe(false);
+  });
+
+  it('rejects fasciaOverhang default below global MIN', () => {
+    const r = validateProductCreate(
+      base({ defaults: { width: 4, depth: 3, height: 2.6, dakbak: { fasciaOverhang: -0.05 } } }),
+      [],
+    );
+    expect(r.ok).toBe(false);
+  });
+});
