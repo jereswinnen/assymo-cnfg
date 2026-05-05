@@ -12,8 +12,8 @@ export interface WallCatalogEntry extends BaseCatalogEntry {
 }
 
 export interface RoofTrimCatalogEntry extends BaseCatalogEntry {
-  // No price or flags today — trim is visual-only in the pricing model.
-  // Kept as a distinct type so admin/catalog can evolve independently.
+  /** Per-m² price. 0 = no fascia line item is emitted. */
+  pricePerSqm: number;
 }
 
 export interface RoofCoveringCatalogEntry extends BaseCatalogEntry {

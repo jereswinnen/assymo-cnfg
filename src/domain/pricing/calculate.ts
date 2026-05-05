@@ -17,6 +17,7 @@ import type { MaterialRow } from '@/domain/catalog';
 import {
   buildWallCatalog,
   buildRoofCoverCatalog,
+  buildRoofTrimCatalog,
   buildFloorCatalog,
   buildDoorCatalog,
   getEffectiveWallMaterial,
@@ -282,6 +283,40 @@ function roofLineItem(
   };
 }
 
+function fasciaLineItem(
+  building: BuildingEntity,
+  roof: RoofConfig,
+  connectedSides: ConnectedSides,
+  trimCatalog: readonly { atomId: string; pricePerSqm: number }[],
+): LineItem | null {
+  const fp = effectiveRoofFootprint(building, roof, connectedSides);
+  const perimeter =
+    (connectedSides.front ? 0 : fp.width) +
+    (connectedSides.back  ? 0 : fp.width) +
+    (connectedSides.left  ? 0 : fp.depth) +
+    (connectedSides.right ? 0 : fp.depth);
+  if (perimeter === 0) return null;
+
+  const area = perimeter * roof.fasciaHeight;
+  const perSqm = findPrice(trimCatalog, roof.trimMaterialId);
+  if (perSqm === 0) return null;
+
+  const total = area * perSqm;
+  return {
+    labelKey: 'pricing.lineItems.fascia',
+    labelParams: {
+      area: Number(area.toFixed(2)),
+      height: roof.fasciaHeight,
+      overhang: roof.fasciaOverhang,
+    },
+    area,
+    materialCost: total,
+    insulationCost: 0,
+    extrasCost: 0,
+    total,
+  };
+}
+
 function postLineItem(building: BuildingEntity, priceBook: PriceBook): LineItem | null {
   if (building.type === 'berging' || building.type === 'paal') return null;
   const { width, depth } = building.dimensions;
@@ -347,6 +382,7 @@ export function calculateBuildingQuote(
 } {
   const wallCatalog = buildWallCatalog(materials);
   const roofCoverCatalog = buildRoofCoverCatalog(materials);
+  const trimCatalog = buildRoofTrimCatalog(materials);
   const floorCatalog = buildFloorCatalog(materials);
   const doorCatalog = buildDoorCatalog(materials);
 
@@ -409,6 +445,9 @@ export function calculateBuildingQuote(
 
   const connectedSides = buildingConnectedSides(building.id, connections);
   lineItems.push(roofLineItem(building, roof, connectedSides, priceBook, roofCoverCatalog));
+
+  const fascia = fasciaLineItem(building, roof, connectedSides, trimCatalog);
+  if (fascia) lineItems.push(fascia);
 
   const total = lineItems.reduce((sum, item) => sum + item.total, 0);
   return { lineItems, total };

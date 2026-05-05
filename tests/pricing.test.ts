@@ -232,6 +232,62 @@ describe('postCount', () => {
   });
 });
 
+describe('fasciaLineItem', () => {
+  // Add an aluminium-trim row to the fixture set with optional pricing.
+  const matsWithTrim = (perSqm: number | undefined): MaterialRow[] => [
+    ...FIXTURE_MATERIALS,
+    row({
+      categories: ['roof-trim'],
+      slug: 'alu-trim',
+      pricing: perSqm !== undefined ? { 'roof-trim': { perSqm } } : {},
+    }),
+  ];
+
+  it('emits no fascia line when trim has no roof-trim pricing', () => {
+    const cfg = makeConfig({ roof: makeRoof({ trimMaterialId: 'alu-trim' }) });
+    const q = calculateTotalQuote(cfg.buildings, cfg.roof, cfg.connections,
+      DEFAULT_PRICE_BOOK, matsWithTrim(undefined), [], cfg.defaultHeight);
+    expect(q.lineItems.find(i => i.labelKey === 'pricing.lineItems.fascia')).toBeUndefined();
+  });
+
+  it('emits a fascia line equal to perimeter * fasciaHeight * perSqm', () => {
+    const cfg = makeConfig({ roof: makeRoof({ trimMaterialId: 'alu-trim', fasciaHeight: 0.4, fasciaOverhang: 0 }) });
+    // 4×4 building, isolated → perimeter = 4*4 = 16, area = 16 * 0.4 = 6.4, cost = 6.4 * 25 = 160
+    const q = calculateTotalQuote(cfg.buildings, cfg.roof, cfg.connections,
+      DEFAULT_PRICE_BOOK, matsWithTrim(25), [], cfg.defaultHeight);
+    const f = q.lineItems.find(i => i.labelKey === 'pricing.lineItems.fascia');
+    expect(f).toBeDefined();
+    expect(f!.area).toBeCloseTo(6.4, 5);
+    expect(f!.total).toBeCloseTo(160, 5);
+  });
+
+  it('emits 2 fascia lines on connected pair, each only counting non-connected sides', () => {
+    const cfg = makeConfig({
+      buildings: [
+        makeBuilding({ id: 'a', type: 'overkapping',
+          dimensions: { width: 4, depth: 4, height: 2.6 }, position: [0, 0],
+          walls: { front: BLANK_WALL, back: BLANK_WALL, left: BLANK_WALL, right: BLANK_WALL } }),
+        makeBuilding({ id: 'b', type: 'overkapping',
+          dimensions: { width: 4, depth: 4, height: 2.6 }, position: [4, 0],
+          walls: { front: BLANK_WALL, back: BLANK_WALL, left: BLANK_WALL, right: BLANK_WALL } }),
+      ],
+      connections: [
+        { buildingAId: 'a', sideA: 'right', buildingBId: 'b', sideB: 'left', isOpen: false } as SnapConnection,
+      ],
+      roof: makeRoof({ trimMaterialId: 'alu-trim', fasciaHeight: 0.4 }),
+    });
+    const q = calculateTotalQuote(cfg.buildings, cfg.roof, cfg.connections,
+      DEFAULT_PRICE_BOOK, matsWithTrim(25), [], cfg.defaultHeight);
+    const fascias = q.lineItems.filter(i => i.labelKey === 'pricing.lineItems.fascia');
+    expect(fascias.length).toBe(2);
+    // Each building has 3 free sides (front, back, plus one of left/right):
+    //   building a: free = front (4) + back (4) + left (4) = 12 → area = 4.8 → 120
+    //   building b: free = front (4) + back (4) + right (4) = 12 → 120
+    expect(fascias[0].total).toBeCloseTo(120, 5);
+    expect(fascias[1].total).toBeCloseTo(120, 5);
+  });
+});
+
 describe('wallNetArea', () => {
   const building = makeBuilding({
     id: 'b1',

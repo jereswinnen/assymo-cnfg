@@ -26,7 +26,7 @@ function rowToWall(m: MaterialRow): WallCatalogEntry {
 }
 
 function rowToRoofTrim(m: MaterialRow): RoofTrimCatalogEntry {
-  return { atomId: m.slug };
+  return { atomId: m.slug, pricePerSqm: m.pricing['roof-trim']?.perSqm ?? 0 };
 }
 
 function rowToRoofCover(m: MaterialRow): RoofCoveringCatalogEntry {

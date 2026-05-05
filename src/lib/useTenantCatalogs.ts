@@ -83,7 +83,7 @@ export function useTenantCatalogs(
       ),
       roofTrim: filterCatalogAllowing(
         roofTrim, current.roofTrim ?? null, materials, 'roof-trim',
-        (m) => ({ atomId: m.slug }),
+        (m) => ({ atomId: m.slug, pricePerSqm: m.pricing['roof-trim']?.perSqm ?? 0 }),
       ),
       roofCover: filterCatalogAllowing(
         roofCover, current.roofCover ?? null, materials, 'roof-cover',
