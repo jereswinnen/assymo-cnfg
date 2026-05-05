@@ -195,33 +195,34 @@ function validateDakbakConstraints(
     key: 'fasciaHeightMin' | 'fasciaHeightMax' | 'fasciaOverhangMin' | 'fasciaOverhangMax',
     min: number,
     max: number,
+    code: 'fascia_height_invalid' | 'fascia_overhang_invalid',
   ) => {
     if (!(key in raw)) return;
     const v = (raw as Record<string, unknown>)[key];
     if (!isFiniteNumber(v) || v < min || v > max) {
-      errors.push({ field: `constraints.dakbak.${key}`, code: 'constraints_invalid' });
+      errors.push({ field: `constraints.dakbak.${key}`, code });
       return;
     }
     out[key] = v;
   };
-  checkBound('fasciaHeightMin', MIN_FASCIA_HEIGHT, MAX_FASCIA_HEIGHT);
-  checkBound('fasciaHeightMax', MIN_FASCIA_HEIGHT, MAX_FASCIA_HEIGHT);
-  checkBound('fasciaOverhangMin', MIN_FASCIA_OVERHANG, MAX_FASCIA_OVERHANG);
-  checkBound('fasciaOverhangMax', MIN_FASCIA_OVERHANG, MAX_FASCIA_OVERHANG);
+  checkBound('fasciaHeightMin', MIN_FASCIA_HEIGHT, MAX_FASCIA_HEIGHT, 'fascia_height_invalid');
+  checkBound('fasciaHeightMax', MIN_FASCIA_HEIGHT, MAX_FASCIA_HEIGHT, 'fascia_height_invalid');
+  checkBound('fasciaOverhangMin', MIN_FASCIA_OVERHANG, MAX_FASCIA_OVERHANG, 'fascia_overhang_invalid');
+  checkBound('fasciaOverhangMax', MIN_FASCIA_OVERHANG, MAX_FASCIA_OVERHANG, 'fascia_overhang_invalid');
 
   if (
     out.fasciaHeightMin !== undefined &&
     out.fasciaHeightMax !== undefined &&
     out.fasciaHeightMin > out.fasciaHeightMax
   ) {
-    errors.push({ field: 'constraints.dakbak.fasciaHeightMin', code: 'constraints_invalid' });
+    errors.push({ field: 'constraints.dakbak.fasciaHeightMin', code: 'fascia_height_range_invalid' });
   }
   if (
     out.fasciaOverhangMin !== undefined &&
     out.fasciaOverhangMax !== undefined &&
     out.fasciaOverhangMin > out.fasciaOverhangMax
   ) {
-    errors.push({ field: 'constraints.dakbak.fasciaOverhangMin', code: 'constraints_invalid' });
+    errors.push({ field: 'constraints.dakbak.fasciaOverhangMin', code: 'fascia_overhang_range_invalid' });
   }
   return Object.keys(out).length > 0 ? out : undefined;
 }
@@ -243,7 +244,7 @@ function validateDakbakDefaults(
     const lo = constraints?.fasciaHeightMin ?? MIN_FASCIA_HEIGHT;
     const hi = constraints?.fasciaHeightMax ?? MAX_FASCIA_HEIGHT;
     if (!isFiniteNumber(v) || v < lo || v > hi) {
-      errors.push({ field: 'defaults.dakbak.fasciaHeight', code: 'constraints_invalid' });
+      errors.push({ field: 'defaults.dakbak.fasciaHeight', code: 'fascia_default_invalid' });
     } else {
       out.fasciaHeight = v;
     }
@@ -253,7 +254,7 @@ function validateDakbakDefaults(
     const lo = constraints?.fasciaOverhangMin ?? MIN_FASCIA_OVERHANG;
     const hi = constraints?.fasciaOverhangMax ?? MAX_FASCIA_OVERHANG;
     if (!isFiniteNumber(v) || v < lo || v > hi) {
-      errors.push({ field: 'defaults.dakbak.fasciaOverhang', code: 'constraints_invalid' });
+      errors.push({ field: 'defaults.dakbak.fasciaOverhang', code: 'fascia_default_invalid' });
     } else {
       out.fasciaOverhang = v;
     }
@@ -519,6 +520,9 @@ export function validateProductCreate(
       if (defaultsOut.materials !== undefined) {
         errors.push({ field: 'defaults.materials', code: 'kind_field_mismatch' });
       }
+      if (defaultsOut.dakbak !== undefined) {
+        errors.push({ field: 'defaults.dakbak', code: 'kind_field_mismatch' });
+      }
       if (
         constraintsOut.minWidth !== undefined ||
         constraintsOut.maxWidth !== undefined ||
@@ -529,6 +533,9 @@ export function validateProductCreate(
         constraintsOut.allowedMaterialsBySlot !== undefined
       ) {
         errors.push({ field: 'constraints', code: 'kind_field_mismatch' });
+      }
+      if (constraintsOut.dakbak !== undefined) {
+        errors.push({ field: 'constraints.dakbak', code: 'kind_field_mismatch' });
       }
       // Tenant feature-flag: at least one non-archived gate material.
       const gateMaterials = materials.filter(

@@ -317,7 +317,12 @@ export type ProductValidationError =
   | 'poort_part_gap_invalid'
   | 'poort_swing_invalid'
   | 'poort_motorized_invalid'
-  | 'poort_material_invalid';
+  | 'poort_material_invalid'
+  | 'fascia_height_invalid'
+  | 'fascia_overhang_invalid'
+  | 'fascia_height_range_invalid'
+  | 'fascia_overhang_range_invalid'
+  | 'fascia_default_invalid';
 
 export interface ProductValidationFieldError {
   field: string;

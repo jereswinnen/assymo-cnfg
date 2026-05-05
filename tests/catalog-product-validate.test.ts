@@ -327,6 +327,12 @@ describe('validateProductCreate — dakbak', () => {
       [],
     );
     expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors).toContainEqual({
+        field: 'constraints.dakbak.fasciaHeightMin',
+        code: 'fascia_height_invalid',
+      });
+    }
   });
 
   it('rejects fasciaHeightMax above global MAX', () => {
@@ -335,6 +341,12 @@ describe('validateProductCreate — dakbak', () => {
       [],
     );
     expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors).toContainEqual({
+        field: 'constraints.dakbak.fasciaHeightMax',
+        code: 'fascia_height_invalid',
+      });
+    }
   });
 
   it('rejects min > max', () => {
@@ -343,6 +355,12 @@ describe('validateProductCreate — dakbak', () => {
       [],
     );
     expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors).toContainEqual({
+        field: 'constraints.dakbak.fasciaHeightMin',
+        code: 'fascia_height_range_invalid',
+      });
+    }
   });
 
   it('accepts min === max (locked)', () => {
@@ -365,6 +383,12 @@ describe('validateProductCreate — dakbak', () => {
       [],
     );
     expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors).toContainEqual({
+        field: 'defaults.dakbak.fasciaHeight',
+        code: 'fascia_default_invalid',
+      });
+    }
   });
 
   it('rejects fasciaOverhang default below global MIN', () => {
@@ -373,5 +397,59 @@ describe('validateProductCreate — dakbak', () => {
       [],
     );
     expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors).toContainEqual({
+        field: 'defaults.dakbak.fasciaOverhang',
+        code: 'fascia_default_invalid',
+      });
+    }
+  });
+
+  it('rejects defaults.dakbak on poort products', () => {
+    const r = validateProductCreate(
+      {
+        kind: 'poort',
+        slug: 'g1',
+        name: 'Gate',
+        description: null,
+        heroImage: null,
+        defaults: { dakbak: { fasciaHeight: 0.4 } },
+        constraints: {},
+        basePriceCents: 0,
+        sortOrder: 0,
+      },
+      [gateMaterial()],
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors).toContainEqual({
+        field: 'defaults.dakbak',
+        code: 'kind_field_mismatch',
+      });
+    }
+  });
+
+  it('rejects constraints.dakbak on poort products', () => {
+    const r = validateProductCreate(
+      {
+        kind: 'poort',
+        slug: 'g2',
+        name: 'Gate',
+        description: null,
+        heroImage: null,
+        defaults: {},
+        constraints: { dakbak: { fasciaHeightMin: 0.3, fasciaHeightMax: 0.5 } },
+        basePriceCents: 0,
+        sortOrder: 0,
+      },
+      [gateMaterial()],
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors).toContainEqual({
+        field: 'constraints.dakbak',
+        code: 'kind_field_mismatch',
+      });
+    }
   });
 });
