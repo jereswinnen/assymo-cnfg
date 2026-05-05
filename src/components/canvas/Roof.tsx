@@ -125,11 +125,14 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
   const hasRight = !connectedSides.has('right');
 
   const oh = roof.fasciaOverhang;
-  // Effective footprint extents — extends outward by `oh` on non-connected sides only.
-  const minX = -hw - (hasLeft  ? oh : 0);
-  const maxX =  hw + (hasRight ? oh : 0);
-  const minZ = -hd - (hasBack  ? oh : 0);
-  const maxZ =  hd + (hasFront ? oh : 0);
+  // Effective footprint extents — on FREE sides, sit at the wall outer face
+  // (which is 0.01 m inset from the building's nominal edge per Wall.tsx)
+  // and extend further outward by `oh`. On CONNECTED sides, sit at the
+  // nominal edge so the EPDM meets the neighbor's membrane cleanly.
+  const minX = hasLeft  ? (-hw + 0.01 - oh) : -hw;
+  const maxX = hasRight ? ( hw - 0.01 + oh) :  hw;
+  const minZ = hasBack  ? (-hd + 0.01 - oh) : -hd;
+  const maxZ = hasFront ? ( hd - 0.01 + oh) :  hd;
 
   const fasciaBottomY = height;
   const fasciaTopY    = fasciaBottomY + roof.fasciaHeight;
@@ -163,7 +166,7 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
         pos: [(minX + maxX) / 2, fasciaCenterY, maxZ],
         size: [fpWidth + FASCIA_THICKNESS, roof.fasciaHeight, FASCIA_THICKNESS],
         length: fpWidth + FASCIA_THICKNESS,
-        offsetX: -FASCIA_THICKNESS / 2 - 0.01 - (hasLeft ? oh : 0),
+        offsetX: -FASCIA_THICKNESS / 2 - (hasLeft ? oh : 0),
       });
     }
     if (hasBack) {
@@ -172,7 +175,7 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
         pos: [(minX + maxX) / 2, fasciaCenterY, minZ],
         size: [fpWidth + FASCIA_THICKNESS, roof.fasciaHeight, FASCIA_THICKNESS],
         length: fpWidth + FASCIA_THICKNESS,
-        offsetX: -FASCIA_THICKNESS / 2 - 0.01 - (hasLeft ? oh : 0),
+        offsetX: -FASCIA_THICKNESS / 2 - (hasLeft ? oh : 0),
       });
     }
     // Side fascia shrinks by FASCIA_THICKNESS along its long axis so it
