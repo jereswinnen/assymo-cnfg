@@ -174,19 +174,27 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
         offsetX: 0,
       });
     }
+    // Side fascia shrinks by FASCIA_THICKNESS along its long axis so it
+    // sits BETWEEN the front/back boards on Z and doesn't share a corner
+    // volume with them (eliminates z-fighting at the corners). The short
+    // length is passed straight to `useWallTexture` so the texture repeat
+    // matches the geometry — accept a small per-meter rate mismatch with
+    // the side wall in exchange for clean corners.
+    const sideLen = (maxZ - minZ) - FASCIA_THICKNESS;
+    const sideCenterZ = (minZ + maxZ) / 2;
     if (hasLeft) {
       boards.push({
-        pos: [minX, fasciaCenterY, 0],
-        size: [FASCIA_THICKNESS, roof.fasciaHeight, depth - 0.02],
-        length: depth,
+        pos: [minX, fasciaCenterY, sideCenterZ],
+        size: [FASCIA_THICKNESS, roof.fasciaHeight, sideLen],
+        length: sideLen,
         offsetX: 0,
       });
     }
     if (hasRight) {
       boards.push({
-        pos: [maxX, fasciaCenterY, 0],
-        size: [FASCIA_THICKNESS, roof.fasciaHeight, depth - 0.02],
-        length: depth,
+        pos: [maxX, fasciaCenterY, sideCenterZ],
+        size: [FASCIA_THICKNESS, roof.fasciaHeight, sideLen],
+        length: sideLen,
         offsetX: 0,
       });
     }
