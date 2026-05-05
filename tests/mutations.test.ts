@@ -439,16 +439,29 @@ describe('addBuilding — product dakbak hydration', () => {
     expect(next.roof.fasciaOverhang).toBe(0.4);
   });
 
-  it('does not overwrite fasciaHeight on subsequent product builds', () => {
+  it('preserves an explicit zero overhang from product defaults', () => {
+    const cfg = makeInitialConfig();
+    const productDefaults: ProductBuildingDefaults = {
+      sourceProductId: 'pp',
+      type: 'overkapping',
+      dimensions: {},
+      roof: { fasciaOverhang: 0 },
+    };
+    const { cfg: next } = addBuilding(cfg, 'overkapping', [0, 0], productDefaults);
+    expect(next.roof.fasciaOverhang).toBe(0);
+  });
+
+  it('does not overwrite fascia fields on subsequent product builds', () => {
     let cfg = makeInitialConfig();
     cfg = addBuilding(cfg, 'overkapping', [0, 0], {
       sourceProductId: 'a', type: 'overkapping', dimensions: {},
-      roof: { fasciaHeight: 0.5 },
+      roof: { fasciaHeight: 0.5, fasciaOverhang: 0.4 },
     }).cfg;
     cfg = addBuilding(cfg, 'berging', [10, 0], {
       sourceProductId: 'b', type: 'berging', dimensions: {},
-      roof: { fasciaHeight: 0.3 },
+      roof: { fasciaHeight: 0.3, fasciaOverhang: 0.1 },
     }).cfg;
     expect(cfg.roof.fasciaHeight).toBe(0.5);
+    expect(cfg.roof.fasciaOverhang).toBe(0.4);
   });
 });
