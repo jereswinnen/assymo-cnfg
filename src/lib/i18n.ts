@@ -827,6 +827,16 @@ const nl: Record<string, string> = {
   "admin.catalog.products.field.poort.mmHint": "{mm} mm = {m} m",
   "admin.catalog.products.field.poort.material.placeholder": "Geen standaard",
 
+  "admin.catalog.products.field.dakbak.section": "Dakbak",
+  "admin.catalog.products.field.dakbak.help":
+    "Laat leeg om de globale grenzen te gebruiken (10–60 cm hoogte, 0–80 cm oversteek).",
+  "admin.catalog.products.field.dakbak.fasciaHeight": "Standaard dakbakhoogte (cm)",
+  "admin.catalog.products.field.dakbak.fasciaOverhang": "Standaard oversteek (cm)",
+  "admin.catalog.products.field.dakbak.fasciaHeightMin": "Min. hoogte (cm)",
+  "admin.catalog.products.field.dakbak.fasciaHeightMax": "Max. hoogte (cm)",
+  "admin.catalog.products.field.dakbak.fasciaOverhangMin": "Min. oversteek (cm)",
+  "admin.catalog.products.field.dakbak.fasciaOverhangMax": "Max. oversteek (cm)",
+
   // Admin — catalog / form sections + actions
   "admin.catalog.form.section.basics": "Basis",
   "admin.catalog.form.section.options": "Opties",
