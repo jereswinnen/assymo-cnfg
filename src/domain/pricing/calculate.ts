@@ -305,7 +305,7 @@ function fasciaLineItem(
   return {
     labelKey: 'pricing.lineItems.fascia',
     labelParams: {
-      area: Number(area.toFixed(2)),
+      area,
       height: roof.fasciaHeight,
       overhang: roof.fasciaOverhang,
     },

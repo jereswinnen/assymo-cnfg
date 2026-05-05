@@ -136,6 +136,7 @@ const nl: Record<string, string> = {
   "quote.pole": "Paal",
   "quote.wall": "Muur",
   "quote.roof": "Dak",
+  "pricing.lineItems.fascia": "Dakbak ({height} m × {area} m²)",
 
   // Floor
   "floor.label": "Vloer",
