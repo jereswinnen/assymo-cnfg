@@ -308,3 +308,12 @@ export function findBestNewPosition(
 
   return Math.max(minFrac, Math.min(maxFrac, bestCenter));
 }
+
+// Dakbak (fascia ring) bounds — meters.
+export const DEFAULT_FASCIA_HEIGHT = 0.36;
+export const MIN_FASCIA_HEIGHT = 0.10;
+export const MAX_FASCIA_HEIGHT = 0.60;
+
+export const DEFAULT_FASCIA_OVERHANG = 0;
+export const MIN_FASCIA_OVERHANG = 0;
+export const MAX_FASCIA_OVERHANG = 0.80;
