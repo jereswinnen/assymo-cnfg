@@ -182,6 +182,7 @@ const nl: Record<string, string> = {
   "sidebar.emptyState": "Selecteer een object om te configureren",
   "sidebar.section.dimensions": "Afmetingen",
   "sidebar.section.material": "Materiaal",
+  "sidebar.section.dak": "Dak",
   "sidebar.section.structure": "Structuur",
   "material.primary": "Hoofdmateriaal",
   "material.primary.help":

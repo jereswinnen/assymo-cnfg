@@ -10,6 +10,7 @@ export type SnapKind = 'pole' | 'wall' | 'structural';
 export type ConfigSection =
   | 'dimensions'
   | 'material'
+  | 'dak'
   | 'structure'
   | 'walls'
   | 'gate'
@@ -63,7 +64,7 @@ export const BUILDING_KIND_META = {
     requiredCategories: ['wall', 'roof-cover', 'floor'],
     material: { category: 'wall', kind: 'building' },
     dimensions: { width: true, depth: true, height: true, heightSource: 'default', orientation: false },
-    sections: ['dimensions', 'material', 'structure', 'quote'],
+    sections: ['dimensions', 'material', 'dak', 'structure', 'quote'],
   },
   berging: {
     tray: 'structural',
@@ -72,7 +73,7 @@ export const BUILDING_KIND_META = {
     requiredCategories: ['wall', 'roof-cover', 'floor', 'door'],
     material: { category: 'wall', kind: 'building' },
     dimensions: { width: true, depth: true, height: true, heightSource: 'default', orientation: false },
-    sections: ['dimensions', 'material', 'structure', 'walls', 'quote'],
+    sections: ['dimensions', 'material', 'dak', 'structure', 'walls', 'quote'],
   },
   paal: {
     tray: 'primitive',
