@@ -12,6 +12,10 @@ import {
   EDGE_CLEARANCE,
   OPENING_GAP,
   WIN_MIN_SIZE,
+  MIN_FASCIA_HEIGHT,
+  MAX_FASCIA_HEIGHT,
+  MIN_FASCIA_OVERHANG,
+  MAX_FASCIA_OVERHANG,
   getAvailableWallIds,
   getConstraints,
   getWallLength,
@@ -33,7 +37,9 @@ export type ValidationCode =
   | 'duplicate_building_id'
   | 'no_structural_building'
   | 'pitch_out_of_range'
-  | 'insulation_out_of_range';
+  | 'insulation_out_of_range'
+  | 'fascia_height_out_of_range'
+  | 'fascia_overhang_out_of_range';
 
 export interface ValidationError {
   /** JSON-pointer-ish path into the config (e.g. "buildings[1].walls.front.windows[0]"). */
@@ -205,6 +211,20 @@ function validateRoof(roof: RoofConfig, errors: ValidationError[], materials: Ma
       path: 'roof.insulationThickness',
       code: 'insulation_out_of_range',
       message: `Insulation thickness ${roof.insulationThickness}mm outside [${MIN_INSULATION_MM}, ${MAX_INSULATION_MM}]`,
+    });
+  }
+  if (roof.fasciaHeight < MIN_FASCIA_HEIGHT || roof.fasciaHeight > MAX_FASCIA_HEIGHT) {
+    errors.push({
+      path: 'roof.fasciaHeight',
+      code: 'fascia_height_out_of_range',
+      message: `Fascia height ${roof.fasciaHeight}m outside [${MIN_FASCIA_HEIGHT}, ${MAX_FASCIA_HEIGHT}]`,
+    });
+  }
+  if (roof.fasciaOverhang < MIN_FASCIA_OVERHANG || roof.fasciaOverhang > MAX_FASCIA_OVERHANG) {
+    errors.push({
+      path: 'roof.fasciaOverhang',
+      code: 'fascia_overhang_out_of_range',
+      message: `Fascia overhang ${roof.fasciaOverhang}m outside [${MIN_FASCIA_OVERHANG}, ${MAX_FASCIA_OVERHANG}]`,
     });
   }
 }

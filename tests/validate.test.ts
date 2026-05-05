@@ -116,3 +116,35 @@ describe('validateConfig', () => {
     expect(errors.some((e) => e.code === 'no_structural_building')).toBe(true);
   });
 });
+
+describe('validateRoof — fascia bounds', () => {
+  it('rejects fasciaHeight below MIN', () => {
+    const cfg = makeConfig({ roof: makeRoof({ fasciaHeight: 0.05 }) });
+    const errors = validateConfig(cfg);
+    expect(errors.some(e => e.code === 'fascia_height_out_of_range')).toBe(true);
+  });
+
+  it('rejects fasciaHeight above MAX', () => {
+    const cfg = makeConfig({ roof: makeRoof({ fasciaHeight: 0.7 }) });
+    const errors = validateConfig(cfg);
+    expect(errors.some(e => e.code === 'fascia_height_out_of_range')).toBe(true);
+  });
+
+  it('rejects fasciaOverhang below MIN', () => {
+    const cfg = makeConfig({ roof: makeRoof({ fasciaOverhang: -0.1 }) });
+    const errors = validateConfig(cfg);
+    expect(errors.some(e => e.code === 'fascia_overhang_out_of_range')).toBe(true);
+  });
+
+  it('rejects fasciaOverhang above MAX', () => {
+    const cfg = makeConfig({ roof: makeRoof({ fasciaOverhang: 1.0 }) });
+    const errors = validateConfig(cfg);
+    expect(errors.some(e => e.code === 'fascia_overhang_out_of_range')).toBe(true);
+  });
+
+  it('accepts in-range values', () => {
+    const cfg = makeConfig({ roof: makeRoof({ fasciaHeight: 0.4, fasciaOverhang: 0.3 }) });
+    const errors = validateConfig(cfg);
+    expect(errors.filter(e => e.code === 'fascia_height_out_of_range' || e.code === 'fascia_overhang_out_of_range')).toEqual([]);
+  });
+});
