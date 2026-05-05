@@ -209,6 +209,15 @@ export interface ProductDefaults {
     motorized?: boolean;
     materialId?: string;
   };
+  /** Optional scene-roof scalars hydrated when the first product-sourced
+   *  building of `kind ∈ ['overkapping', 'berging']` is added. Each field
+   *  is independent: provide one without the other. Ignored on
+   *  `kind === 'poort'`. Values in meters; clamped to the global range
+   *  (and any `constraints.dakbak.*` narrowing) at hydration time. */
+  dakbak?: {
+    fasciaHeight?: number;
+    fasciaOverhang?: number;
+  };
 }
 
 /** Per-product constraints. Empty/missing = "no constraint". */
@@ -240,6 +249,16 @@ export interface ProductConstraints {
     swingsAllowed?: ('inward' | 'outward' | 'sliding')[];
     motorizedAllowed?: boolean;
     allowedMaterialSlugs?: string[];
+  };
+  /** Optional narrowing of the global fascia-height / fascia-overhang
+   *  ranges. Empty/missing = "no narrowing". `min === max` = "locked".
+   *  All bounds in meters. Each provided bound must sit inside the
+   *  global range; `min ≤ max` enforced by the validator. */
+  dakbak?: {
+    fasciaHeightMin?: number;
+    fasciaHeightMax?: number;
+    fasciaOverhangMin?: number;
+    fasciaOverhangMax?: number;
   };
 }
 
