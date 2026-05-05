@@ -105,10 +105,13 @@ interface FasciaBoard {
   size: [number, number, number];
   /** Long-axis length in meters, for texture tiling */
   length: number;
-  /** Wall-aligning U-offset (meters). Cancels both the corner-overlap
-   *  mitre and the overhang outward shift so the fascia texture seam
-   *  aligns with the wall texture beneath. Zero when the adjacent side
-   *  is connected (no fascia, no overhang there). */
+  /** Wall-aligning U-offset (meters). Cancels three sources of drift
+   *  between the fascia's texture and the wall texture beneath:
+   *  (1) corner-mitre overlap that extends the fascia past the wall edge,
+   *  (2) overhang outward extension on non-connected sides, and
+   *  (3) the 0.01 m wall inset baked into Wall.tsx geometry.
+   *  Sign and term selection differ per face since three.js BoxGeometry
+   *  maps UVs differently on +X / −X / +Z / −Z. */
   offsetX: number;
 }
 
@@ -166,7 +169,7 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
         pos: [centerX, fasciaCenterY, maxZ],
         size: [len, roof.fasciaHeight, FASCIA_THICKNESS],
         length: len,
-        offsetX: -extLeft - (hasLeft ? oh : 0),
+        offsetX: -extLeft - (hasLeft ? oh : 0) - 0.01,
       });
     }
     if (hasBack) {
@@ -178,7 +181,7 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
         pos: [centerX, fasciaCenterY, minZ],
         size: [len, roof.fasciaHeight, FASCIA_THICKNESS],
         length: len,
-        offsetX: -extLeft - (hasLeft ? oh : 0),
+        offsetX: -extRight - (hasRight ? oh : 0) - 0.01,
       });
     }
     if (hasLeft) {
@@ -190,7 +193,7 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
         pos: [minX, fasciaCenterY, centerZ],
         size: [FASCIA_THICKNESS, roof.fasciaHeight, len],
         length: len,
-        offsetX: -trimBack - (hasBack ? oh : 0),
+        offsetX: trimBack - (hasBack ? oh : 0) - 0.01,
       });
     }
     if (hasRight) {
@@ -202,7 +205,7 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
         pos: [maxX, fasciaCenterY, centerZ],
         size: [FASCIA_THICKNESS, roof.fasciaHeight, len],
         length: len,
-        offsetX: -trimBack - (hasBack ? oh : 0),
+        offsetX: trimFront - (hasFront ? oh : 0) - 0.01,
       });
     }
     return boards;
