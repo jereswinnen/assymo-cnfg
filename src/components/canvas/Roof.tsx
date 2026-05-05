@@ -5,7 +5,7 @@ import { Mesh } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore } from "@/store/useUIStore";
-import { BEAM_H, WALL_THICKNESS } from '@/domain/building';
+import { WALL_THICKNESS } from '@/domain/building';
 import { getAtomColor } from '@/domain/materials';
 import { useTenant } from '@/lib/TenantProvider';
 import { useRoofTexture, useWallTexture } from '@/lib/textures';
