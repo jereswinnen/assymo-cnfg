@@ -105,8 +105,10 @@ interface FasciaBoard {
   size: [number, number, number];
   /** Long-axis length in meters, for texture tiling */
   length: number;
-  /** Wall-aligning U-offset (meters). Cancels the corner-overlap shift so
-   *  the fascia texture seam aligns with the wall texture beneath. */
+  /** Wall-aligning U-offset (meters). Cancels both the corner-overlap
+   *  mitre and the overhang outward shift so the fascia texture seam
+   *  aligns with the wall texture beneath. Zero when the adjacent side
+   *  is connected (no fascia, no overhang there). */
   offsetX: number;
 }
 
@@ -164,7 +166,7 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
         pos: [centerX, fasciaCenterY, maxZ],
         size: [len, roof.fasciaHeight, FASCIA_THICKNESS],
         length: len,
-        offsetX: -extLeft,
+        offsetX: -extLeft - (hasLeft ? oh : 0),
       });
     }
     if (hasBack) {
@@ -176,7 +178,7 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
         pos: [centerX, fasciaCenterY, minZ],
         size: [len, roof.fasciaHeight, FASCIA_THICKNESS],
         length: len,
-        offsetX: -extLeft,
+        offsetX: -extLeft - (hasLeft ? oh : 0),
       });
     }
     if (hasLeft) {
@@ -188,7 +190,7 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
         pos: [minX, fasciaCenterY, centerZ],
         size: [FASCIA_THICKNESS, roof.fasciaHeight, len],
         length: len,
-        offsetX: -trimBack,
+        offsetX: -trimBack - (hasBack ? oh : 0),
       });
     }
     if (hasRight) {
@@ -200,14 +202,14 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
         pos: [maxX, fasciaCenterY, centerZ],
         size: [FASCIA_THICKNESS, roof.fasciaHeight, len],
         length: len,
-        offsetX: -trimBack,
+        offsetX: -trimBack - (hasBack ? oh : 0),
       });
     }
     return boards;
   }, [
     minX, maxX, minZ, maxZ,
     fasciaCenterY, roof.fasciaHeight,
-    hasFront, hasBack, hasLeft, hasRight, cornerOverlap,
+    hasFront, hasBack, hasLeft, hasRight, cornerOverlap, oh,
   ]);
 
   return (
