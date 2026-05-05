@@ -108,3 +108,31 @@ describe('applyProductDefaults', () => {
     });
   });
 });
+
+describe('applyProductDefaults — dakbak', () => {
+  it('surfaces fasciaHeight + fasciaOverhang under roof when set', () => {
+    const out = applyProductDefaults(mk({
+      kind: 'overkapping',
+      defaults: { dakbak: { fasciaHeight: 0.4, fasciaOverhang: 0.2 } },
+    }));
+    expect(out.roof?.fasciaHeight).toBe(0.4);
+    expect(out.roof?.fasciaOverhang).toBe(0.2);
+  });
+
+  it('omits roof.fasciaHeight when only one of the two is set', () => {
+    const out = applyProductDefaults(mk({
+      kind: 'berging',
+      defaults: { dakbak: { fasciaOverhang: 0.3 } },
+    }));
+    expect(out.roof?.fasciaHeight).toBeUndefined();
+    expect(out.roof?.fasciaOverhang).toBe(0.3);
+  });
+
+  it('does not surface dakbak for poort products', () => {
+    const out = applyProductDefaults(mk({
+      kind: 'poort',
+      defaults: { dakbak: { fasciaHeight: 0.4 } } as never,
+    }));
+    expect(out.roof).toBeUndefined();
+  });
+});

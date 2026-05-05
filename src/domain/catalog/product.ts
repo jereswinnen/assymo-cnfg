@@ -691,7 +691,12 @@ export interface ProductBuildingDefaults {
   dimensions: { width?: number; depth?: number; height?: number };
   primaryMaterialId?: string;
   floor?: { materialId: string };
-  roof?: { coveringId?: string; trimMaterialId?: string };
+  roof?: {
+    coveringId?: string;
+    trimMaterialId?: string;
+    fasciaHeight?: number;
+    fasciaOverhang?: number;
+  };
   door?: { doorMaterialId?: string };
   /** Only populated when `type === 'poort'`. Mirrors `Partial<GateConfig>`
    *  from `@/domain/building`; declared inline to keep `catalog` free of
@@ -780,6 +785,13 @@ export function applyProductDefaults(product: ProductRow): ProductBuildingDefaul
       if (mats.roofTrim) out.roof.trimMaterialId = mats.roofTrim;
     }
     if (mats.door) out.door = { doorMaterialId: mats.door };
+  }
+
+  const db = product.defaults.dakbak;
+  if (db && (db.fasciaHeight !== undefined || db.fasciaOverhang !== undefined)) {
+    out.roof = out.roof ?? {};
+    if (db.fasciaHeight   !== undefined) out.roof.fasciaHeight   = db.fasciaHeight;
+    if (db.fasciaOverhang !== undefined) out.roof.fasciaOverhang = db.fasciaOverhang;
   }
   return out;
 }
