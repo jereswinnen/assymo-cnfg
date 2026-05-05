@@ -107,10 +107,10 @@ interface FasciaBoard {
    *  `repeat` so per-meter sampling rate matches the geometry. */
   length: number;
   /** Wall-aligning U-offset (meters). Front/back boards extend past the
-   *  wall by FASCIA_THICKNESS/2 on each side to cover the corners, so
-   *  their texture origin sits to the LEFT of the wall's; offsetX shifts
-   *  it back. Side boards (left/right) sit fully inside the wall extent
-   *  and need no shift (offsetX = 0). */
+   *  wall by FASCIA_THICKNESS/2 on each side AND by `fasciaOverhang` on
+   *  any non-connected adjacent side, so their texture origin sits to
+   *  the LEFT of the wall's; offsetX shifts it back. Side boards stay
+   *  inside the wall extent and use 0. */
   offsetX: number;
 }
 
@@ -158,19 +158,21 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
     const boards: FasciaBoard[] = [];
 
     if (hasFront) {
+      const fpWidth = maxX - minX;
       boards.push({
-        pos: [0, fasciaCenterY, maxZ],
-        size: [width + FASCIA_THICKNESS, roof.fasciaHeight, FASCIA_THICKNESS],
-        length: width + FASCIA_THICKNESS,
-        offsetX: -FASCIA_THICKNESS / 2 - 0.01,
+        pos: [(minX + maxX) / 2, fasciaCenterY, maxZ],
+        size: [fpWidth + FASCIA_THICKNESS, roof.fasciaHeight, FASCIA_THICKNESS],
+        length: fpWidth + FASCIA_THICKNESS,
+        offsetX: -FASCIA_THICKNESS / 2 - 0.01 - (hasLeft ? oh : 0),
       });
     }
     if (hasBack) {
+      const fpWidth = maxX - minX;
       boards.push({
-        pos: [0, fasciaCenterY, minZ],
-        size: [width + FASCIA_THICKNESS, roof.fasciaHeight, FASCIA_THICKNESS],
-        length: width + FASCIA_THICKNESS,
-        offsetX: -FASCIA_THICKNESS / 2 - 0.01,
+        pos: [(minX + maxX) / 2, fasciaCenterY, minZ],
+        size: [fpWidth + FASCIA_THICKNESS, roof.fasciaHeight, FASCIA_THICKNESS],
+        length: fpWidth + FASCIA_THICKNESS,
+        offsetX: -FASCIA_THICKNESS / 2 - 0.01 - (hasLeft ? oh : 0),
       });
     }
     // Side fascia shrinks by FASCIA_THICKNESS along its long axis so it
@@ -199,7 +201,7 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
     }
     return boards;
   }, [
-    width, depth,
+    width, depth, oh,
     minX, maxX, minZ, maxZ,
     fasciaCenterY, roof.fasciaHeight,
     hasFront, hasBack, hasLeft, hasRight,
