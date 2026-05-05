@@ -93,4 +93,25 @@ describe('migrateConfig', () => {
     });
     expect(out.defaultHeight).toBe(2.5);
   });
+
+  it('backfills fasciaHeight and fasciaOverhang to defaults when missing', () => {
+    const out = migrateConfig({
+      buildings: [legacyBuilding],
+      connections: [],
+      // Cast: simulate legacy DB row that pre-dates these fields.
+      roof: { ...BASE_ROOF } as never,
+    });
+    expect(out.roof.fasciaHeight).toBe(0.36);
+    expect(out.roof.fasciaOverhang).toBe(0);
+  });
+
+  it('preserves fasciaHeight and fasciaOverhang when already present', () => {
+    const out = migrateConfig({
+      buildings: [legacyBuilding],
+      connections: [],
+      roof: { ...BASE_ROOF, fasciaHeight: 0.5, fasciaOverhang: 0.3 },
+    });
+    expect(out.roof.fasciaHeight).toBe(0.5);
+    expect(out.roof.fasciaOverhang).toBe(0.3);
+  });
 });
