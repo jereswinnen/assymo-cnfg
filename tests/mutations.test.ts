@@ -168,6 +168,8 @@ describe('setRoofType', () => {
         insulation: true,
         insulationThickness: 150,
         hasSkylight: false,
+        fasciaHeight: 0.36,
+        fasciaOverhang: 0,
       },
     });
     const next = setRoofType(cfg, 'flat');

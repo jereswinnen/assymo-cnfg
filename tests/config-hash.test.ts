@@ -9,7 +9,7 @@ describe('canonicalizeConfig', () => {
       defaultHeight: 2.6,
       connections: [],
       buildings: [makeBuilding({ id: 'b1', type: 'berging' })],
-      roof: { type: 'flat', pitch: 0, coveringId: 'epdm', trimMaterialId: 'wood', insulation: false, insulationThickness: 150, hasSkylight: false },
+      roof: { type: 'flat', pitch: 0, coveringId: 'epdm', trimMaterialId: 'wood', insulation: false, insulationThickness: 150, hasSkylight: false, fasciaHeight: 0.36, fasciaOverhang: 0 },
     });
     // Top-level keys appear in alphabetical order.
     const topLevel = Object.keys(JSON.parse(out));
