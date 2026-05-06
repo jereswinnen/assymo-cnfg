@@ -28,6 +28,9 @@ export interface WallPricing {
 export interface RoofCoverPricing {
   perSqm: number;
 }
+export interface RoofTrimPricing {
+  perSqm: number;
+}
 export interface FloorPricing {
   perSqm: number;
 }
@@ -44,6 +47,7 @@ export interface GatePricing {
 export interface MaterialPricing {
   wall?: WallPricing;
   'roof-cover'?: RoofCoverPricing;
+  'roof-trim'?: RoofTrimPricing;
   floor?: FloorPricing;
   door?: DoorPricing;
   gate?: GatePricing;
@@ -205,6 +209,15 @@ export interface ProductDefaults {
     motorized?: boolean;
     materialId?: string;
   };
+  /** Optional scene-roof scalars hydrated when the first product-sourced
+   *  building of `kind ∈ ['overkapping', 'berging']` is added. Each field
+   *  is independent: provide one without the other. Ignored on
+   *  `kind === 'poort'`. Values in meters; clamped to the global range
+   *  (and any `constraints.dakbak.*` narrowing) at hydration time. */
+  dakbak?: {
+    fasciaHeight?: number;
+    fasciaOverhang?: number;
+  };
 }
 
 /** Per-product constraints. Empty/missing = "no constraint". */
@@ -236,6 +249,16 @@ export interface ProductConstraints {
     swingsAllowed?: ('inward' | 'outward' | 'sliding')[];
     motorizedAllowed?: boolean;
     allowedMaterialSlugs?: string[];
+  };
+  /** Optional narrowing of the global fascia-height / fascia-overhang
+   *  ranges. Empty/missing = "no narrowing". `min === max` = "locked".
+   *  All bounds in meters. Each provided bound must sit inside the
+   *  global range; `min ≤ max` enforced by the validator. */
+  dakbak?: {
+    fasciaHeightMin?: number;
+    fasciaHeightMax?: number;
+    fasciaOverhangMin?: number;
+    fasciaOverhangMax?: number;
   };
 }
 
@@ -294,7 +317,12 @@ export type ProductValidationError =
   | 'poort_part_gap_invalid'
   | 'poort_swing_invalid'
   | 'poort_motorized_invalid'
-  | 'poort_material_invalid';
+  | 'poort_material_invalid'
+  | 'fascia_height_invalid'
+  | 'fascia_overhang_invalid'
+  | 'fascia_height_range_invalid'
+  | 'fascia_overhang_range_invalid'
+  | 'fascia_default_invalid';
 
 export interface ProductValidationFieldError {
   field: string;

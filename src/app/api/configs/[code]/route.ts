@@ -47,6 +47,7 @@ export async function GET(
   const { lineItems, total } = calculateTotalQuote(
     migrated.buildings,
     migrated.roof,
+    migrated.connections,
     tenant.priceBook,
     materials,
     supplierProducts,

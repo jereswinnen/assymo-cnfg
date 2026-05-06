@@ -4,7 +4,11 @@ import type {
   RoofConfig,
   SnapConnection,
 } from '@/domain/building';
-import { DEFAULT_PRIMARY_MATERIAL } from '@/domain/building';
+import {
+  DEFAULT_PRIMARY_MATERIAL,
+  DEFAULT_FASCIA_HEIGHT,
+  DEFAULT_FASCIA_OVERHANG,
+} from '@/domain/building';
 import type { ConfigData } from './types';
 import { CONFIG_VERSION } from './types';
 
@@ -14,12 +18,18 @@ export type LegacyBuilding =
   Omit<BuildingEntity, 'primaryMaterialId' | 'orientation' | 'heightOverride'>
   & Partial<Pick<BuildingEntity, 'primaryMaterialId' | 'orientation' | 'heightOverride'>>;
 
+/** Roof shape as it may arrive from older codes — fields added by later
+ *  schema revisions are optional and get backfilled. */
+export type LegacyRoof =
+  Omit<RoofConfig, 'fasciaHeight' | 'fasciaOverhang'>
+  & Partial<Pick<RoofConfig, 'fasciaHeight' | 'fasciaOverhang'>>;
+
 /** Top-level shape accepted by the migrator: later fields are optional. */
 export interface LegacyConfig {
   version?: number;
   buildings: LegacyBuilding[];
   connections: SnapConnection[];
-  roof: RoofConfig;
+  roof: LegacyRoof;
   defaultHeight?: number;
 }
 
@@ -29,6 +39,14 @@ export function migrateBuilding(b: LegacyBuilding): BuildingEntity {
     primaryMaterialId: b.primaryMaterialId ?? DEFAULT_PRIMARY_MATERIAL,
     orientation: b.orientation ?? ('horizontal' satisfies Orientation),
     heightOverride: b.heightOverride ?? null,
+  };
+}
+
+function migrateRoof(roof: LegacyRoof): RoofConfig {
+  return {
+    ...roof,
+    fasciaHeight: roof.fasciaHeight ?? DEFAULT_FASCIA_HEIGHT,
+    fasciaOverhang: roof.fasciaOverhang ?? DEFAULT_FASCIA_OVERHANG,
   };
 }
 
@@ -44,7 +62,7 @@ export function migrateConfig(raw: LegacyConfig): ConfigData {
     version: CONFIG_VERSION,
     buildings,
     connections: raw.connections,
-    roof: raw.roof,
+    roof: migrateRoof(raw.roof),
     defaultHeight,
   };
 }

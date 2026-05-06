@@ -5,7 +5,7 @@ import { Mesh } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore } from "@/store/useUIStore";
-import { BEAM_H, WALL_THICKNESS } from '@/domain/building';
+import { WALL_THICKNESS } from '@/domain/building';
 import { getAtomColor } from '@/domain/materials';
 import { useTenant } from '@/lib/TenantProvider';
 import { useRoofTexture, useWallTexture } from '@/lib/textures';
@@ -81,9 +81,7 @@ export default function Roof() {
 
 // Fascia ("dakbak") — solid board wrapping the roof edge, flush with the
 // building's outer perimeter (same plane as the top-plate beams). Thickness
-// matches WALL_THICKNESS. Fixed for now; lift to RoofConfig / API when we want
-// it user-controlled.
-const FASCIA_HEIGHT = 0.36;
+// matches WALL_THICKNESS. Height + overhang now come from RoofConfig.
 const FASCIA_THICKNESS = WALL_THICKNESS;
 
 interface PointerHandlers {
@@ -105,104 +103,116 @@ interface FlatRoofProps {
 interface FasciaBoard {
   pos: [number, number, number];
   size: [number, number, number];
-  /** Long-axis length in meters, for texture tiling */
+  /** Geometry's long-axis length in meters — used to compute texture
+   *  `repeat` so per-meter sampling rate matches the geometry. */
   length: number;
+  /** Wall-aligning U-offset (meters). Front/back boards extend past the
+   *  wall by FASCIA_THICKNESS/2 on each side AND by `fasciaOverhang` on
+   *  any non-connected adjacent side, so their texture origin sits to
+   *  the LEFT of the wall's; offsetX shifts it back. Side boards stay
+   *  inside the wall extent and use 0. */
+  offsetX: number;
 }
 
 function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materialProps, meshRef, pointerHandlers }: FlatRoofProps) {
-  const hw = width / 2;
+  const roof = useConfigStore((s) => s.roof);
   const hd = depth / 2;
+  const hw = width / 2;
 
   const hasFront = !connectedSides.has('front');
-  const hasBack = !connectedSides.has('back');
-  const hasLeft = !connectedSides.has('left');
+  const hasBack  = !connectedSides.has('back');
+  const hasLeft  = !connectedSides.has('left');
   const hasRight = !connectedSides.has('right');
 
-  // Fascia ("dakbak") sits directly on top of the wall (no overlap with the
-  // wall) and rises above the roof membrane — the EPDM lives INSIDE the bak.
+  const oh = roof.fasciaOverhang;
+  // Effective footprint extents — extends outward by `oh` on non-connected sides only.
+  const minX = -hw - (hasLeft  ? oh : 0);
+  const maxX =  hw + (hasRight ? oh : 0);
+  const minZ = -hd - (hasBack  ? oh : 0);
+  const maxZ =  hd + (hasFront ? oh : 0);
+
   const fasciaBottomY = height;
-  const fasciaTopY = fasciaBottomY + FASCIA_HEIGHT;
-  const fasciaCenterY = fasciaBottomY + FASCIA_HEIGHT / 2;
+  const fasciaTopY    = fasciaBottomY + roof.fasciaHeight;
+  const fasciaCenterY = fasciaBottomY + roof.fasciaHeight / 2;
 
-  // Fascia sits centred on the building's nominal edge (±hd / ±hw), matching
-  // the top-plate beams in TimberFrame. Its inner face is inset by half its
-  // thickness from the edge; front/back extend by the same amount past the
-  // corners to meet the outer faces of the side boards.
-  const innerInset = FASCIA_THICKNESS / 2;     // 0.075
-  const cornerOverlap = FASCIA_THICKNESS / 2;  // 0.075
+  const innerInset    = FASCIA_THICKNESS / 2;     // 0.075
 
-  // EPDM fits snug inside the fascia ring. On connected sides (no fascia) it
-  // extends to the building edge so it can meet the neighbour's membrane.
+  // EPDM membrane spans the effective footprint, inset on sides that have fascia.
   const epdmInsetFront = hasFront ? innerInset : 0;
-  const epdmInsetBack = hasBack ? innerInset : 0;
-  const epdmInsetLeft = hasLeft ? innerInset : 0;
+  const epdmInsetBack  = hasBack  ? innerInset : 0;
+  const epdmInsetLeft  = hasLeft  ? innerInset : 0;
   const epdmInsetRight = hasRight ? innerInset : 0;
-  const epdmWidth = Math.max(0.01, width - epdmInsetLeft - epdmInsetRight);
-  const epdmDepth = Math.max(0.01, depth - epdmInsetFront - epdmInsetBack);
-  const epdmOffsetX = (epdmInsetLeft - epdmInsetRight) / 2;
-  const epdmOffsetZ = (epdmInsetBack - epdmInsetFront) / 2;
-  // Membrane sits just below the fascia top so the bak rim is visible.
+  const epdmWidth  = Math.max(0.01, (maxX - minX) - epdmInsetLeft - epdmInsetRight);
+  const epdmDepth  = Math.max(0.01, (maxZ - minZ) - epdmInsetFront - epdmInsetBack);
+  const epdmCenterX = (minX + maxX) / 2 + (epdmInsetLeft - epdmInsetRight) / 2;
+  const epdmCenterZ = (minZ + maxZ) / 2 + (epdmInsetBack - epdmInsetFront) / 2;
   const epdmY = fasciaTopY - EPDM_THICKNESS / 2 - 0.02;
 
-  // Front/back fascia spans the full width (covers the corners). Left/right
-  // fascia fits exactly between the inner faces of the front/back boards; when
-  // those don't exist the side fascia extends to the wall's full length.
+  // Front/back fascia extend past the wall ends by FASCIA_THICKNESS/2 on
+  // each side so they fully cover the building's corners (no gap visible
+  // through the structure). Side fascia stay shrunk by FASCIA_THICKNESS
+  // along Z so they sit BETWEEN the front/back boards — the four boards
+  // share only edges, not volume, so there's no z-fighting. Texture seam
+  // is corrected via offsetX so the planks line up with the wall beneath.
   const fasciaBoards = useMemo<FasciaBoard[]>(() => {
     const boards: FasciaBoard[] = [];
 
     if (hasFront) {
-      const extLeft = hasLeft ? cornerOverlap : 0;
-      const extRight = hasRight ? cornerOverlap : 0;
-      const len = width + extLeft + extRight;
-      const centerX = (extRight - extLeft) / 2;
+      const fpWidth = maxX - minX;
       boards.push({
-        pos: [centerX, fasciaCenterY, hd],
-        size: [len, FASCIA_HEIGHT, FASCIA_THICKNESS],
-        length: len,
+        pos: [(minX + maxX) / 2, fasciaCenterY, maxZ],
+        size: [fpWidth + FASCIA_THICKNESS, roof.fasciaHeight, FASCIA_THICKNESS],
+        length: fpWidth + FASCIA_THICKNESS,
+        offsetX: -FASCIA_THICKNESS / 2 - 0.01 - (hasLeft ? oh : 0),
       });
     }
     if (hasBack) {
-      const extLeft = hasLeft ? cornerOverlap : 0;
-      const extRight = hasRight ? cornerOverlap : 0;
-      const len = width + extLeft + extRight;
-      const centerX = (extRight - extLeft) / 2;
+      const fpWidth = maxX - minX;
       boards.push({
-        pos: [centerX, fasciaCenterY, -hd],
-        size: [len, FASCIA_HEIGHT, FASCIA_THICKNESS],
-        length: len,
+        pos: [(minX + maxX) / 2, fasciaCenterY, minZ],
+        size: [fpWidth + FASCIA_THICKNESS, roof.fasciaHeight, FASCIA_THICKNESS],
+        length: fpWidth + FASCIA_THICKNESS,
+        offsetX: -FASCIA_THICKNESS / 2 - 0.01 - (hasLeft ? oh : 0),
       });
     }
+    // Side fascia shrinks by FASCIA_THICKNESS along its long axis so it
+    // sits BETWEEN the front/back boards on Z and doesn't share a corner
+    // volume with them (eliminates z-fighting at the corners). The short
+    // length is passed straight to `useWallTexture` so the texture repeat
+    // matches the geometry — accept a small per-meter rate mismatch with
+    // the side wall in exchange for clean corners.
+    const sideLen = (maxZ - minZ) - FASCIA_THICKNESS;
+    const sideCenterZ = (minZ + maxZ) / 2;
     if (hasLeft) {
-      const trimBack = hasBack ? cornerOverlap : 0;
-      const trimFront = hasFront ? cornerOverlap : 0;
-      const len = Math.max(0.01, depth - trimBack - trimFront);
-      const centerZ = (trimBack - trimFront) / 2;
       boards.push({
-        pos: [-hw, fasciaCenterY, centerZ],
-        size: [FASCIA_THICKNESS, FASCIA_HEIGHT, len],
-        length: len,
+        pos: [minX, fasciaCenterY, sideCenterZ],
+        size: [FASCIA_THICKNESS, roof.fasciaHeight, sideLen],
+        length: sideLen,
+        offsetX: 0,
       });
     }
     if (hasRight) {
-      const trimBack = hasBack ? cornerOverlap : 0;
-      const trimFront = hasFront ? cornerOverlap : 0;
-      const len = Math.max(0.01, depth - trimBack - trimFront);
-      const centerZ = (trimBack - trimFront) / 2;
       boards.push({
-        pos: [hw, fasciaCenterY, centerZ],
-        size: [FASCIA_THICKNESS, FASCIA_HEIGHT, len],
-        length: len,
+        pos: [maxX, fasciaCenterY, sideCenterZ],
+        size: [FASCIA_THICKNESS, roof.fasciaHeight, sideLen],
+        length: sideLen,
+        offsetX: 0,
       });
     }
     return boards;
-  }, [width, depth, hw, hd, fasciaCenterY, hasFront, hasBack, hasLeft, hasRight, cornerOverlap]);
+  }, [
+    width, depth, oh,
+    minX, maxX, minZ, maxZ,
+    fasciaCenterY, roof.fasciaHeight,
+    hasFront, hasBack, hasLeft, hasRight,
+  ]);
 
   return (
     <group>
       {/* EPDM membrane — caps the fascia tops */}
       <mesh
         ref={meshRef}
-        position={[epdmOffsetX, epdmY, epdmOffsetZ]}
+        position={[epdmCenterX, epdmY, epdmCenterZ]}
         castShadow
         {...pointerHandlers}
       >
@@ -212,7 +222,7 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
 
       {/* Fascia boards ("dakbak") on exposed edges — textured like the walls */}
       {fasciaBoards.map((b, i) => (
-        <FasciaBoardMesh key={i} board={b} materialId={trimMaterialId} />
+        <FasciaBoardMesh key={i} board={b} materialId={trimMaterialId} fasciaHeight={roof.fasciaHeight} />
       ))}
     </group>
   );
@@ -222,9 +232,17 @@ const FASCIA_TEXTURE_TINT: Record<string, string> = {
   wood: '#C4955A',
 };
 
-function FasciaBoardMesh({ board, materialId }: { board: FasciaBoard; materialId: string }) {
+function FasciaBoardMesh({
+  board,
+  materialId,
+  fasciaHeight,
+}: {
+  board: FasciaBoard;
+  materialId: string;
+  fasciaHeight: number;
+}) {
   const { catalog: { materials } } = useTenant();
-  const texture = useWallTexture(materialId, board.length, FASCIA_HEIGHT);
+  const texture = useWallTexture(materialId, board.length, fasciaHeight, board.offsetX);
   const isGlass = materialId === 'glass';
   const tint = FASCIA_TEXTURE_TINT[materialId] ?? '#ffffff';
 

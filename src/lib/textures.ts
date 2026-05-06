@@ -33,6 +33,7 @@ export function useWallTexture(
   materialId: string,
   wallWidth: number,
   wallHeight: number,
+  offsetX = 0,
 ): PBRTextures | null {
   const { catalog: { materials } } = useTenant();
   const atom = getAtom(materials, materialId, 'wall');
@@ -52,11 +53,15 @@ export function useWallTexture(
     if (textures && tileSize) {
       const rx = wallWidth / tileSize[0];
       const ry = wallHeight / tileSize[1];
+      const ox = offsetX / tileSize[0];
       textures.map.repeat.set(rx, ry);
       textures.normalMap.repeat.set(rx, ry);
       textures.roughnessMap.repeat.set(rx, ry);
+      textures.map.offset.set(ox, 0);
+      textures.normalMap.offset.set(ox, 0);
+      textures.roughnessMap.offset.set(ox, 0);
     }
-  }, [textures, tileSize, wallWidth, wallHeight]);
+  }, [textures, tileSize, wallWidth, wallHeight, offsetX]);
 
   useEffect(() => {
     if (!textures) return;

@@ -46,7 +46,7 @@ describe('BUILDING_KIND_META', () => {
       heightSource: 'default',
       orientation: false,
     });
-    expect([...meta.sections]).toEqual(['dimensions', 'material', 'structure', 'quote']);
+    expect([...meta.sections]).toEqual(['dimensions', 'material', 'dak', 'structure', 'quote']);
   });
 
   it('every kind declares a material descriptor + dimensions + sections', () => {

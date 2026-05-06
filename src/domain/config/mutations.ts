@@ -18,6 +18,8 @@ import {
   BUILDING_KIND_META,
   createGateBuildingEntity,
   DEFAULT_DIMENSIONS,
+  DEFAULT_FASCIA_HEIGHT,
+  DEFAULT_FASCIA_OVERHANG,
   DEFAULT_FLOOR,
   DEFAULT_PRIMARY_MATERIAL,
   POLE_DIMENSIONS,
@@ -124,6 +126,8 @@ export function makeInitialConfig(): ConfigData {
       insulation: true,
       insulationThickness: 150,
       hasSkylight: false,
+      fasciaHeight: DEFAULT_FASCIA_HEIGHT,
+      fasciaOverhang: DEFAULT_FASCIA_OVERHANG,
     },
     defaultHeight: INITIAL_DEFAULT_HEIGHT,
   };
@@ -219,6 +223,12 @@ export function addBuilding(
         : {}),
       ...(productDefaults.roof.trimMaterialId
         ? { trimMaterialId: productDefaults.roof.trimMaterialId }
+        : {}),
+      ...(productDefaults.roof.fasciaHeight !== undefined
+        ? { fasciaHeight: productDefaults.roof.fasciaHeight }
+        : {}),
+      ...(productDefaults.roof.fasciaOverhang !== undefined
+        ? { fasciaOverhang: productDefaults.roof.fasciaOverhang }
         : {}),
     };
   }

@@ -233,6 +233,7 @@ describe('calculateTotalQuote — mixed scene with poort', () => {
     const { lineItems, total } = calculateTotalQuote(
       cfg.buildings,
       cfg.roof,
+      cfg.connections,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS_FOR_MIXED,
       [],

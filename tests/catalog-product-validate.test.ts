@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vite-plus/test';
 import {
+  dakbakRange,
   validateProductCreate,
   validateProductPatch,
   type MaterialRow,
   type ProductCreateInput,
+  type ProductRow,
 } from '@/domain/catalog';
 
 function base(overrides: Partial<ProductCreateInput> = {}): ProductCreateInput {
@@ -299,5 +301,209 @@ describe('validateProductPatch', () => {
     const r = validateProductPatch({ slug: 'Bad!' });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.errors).toContainEqual({ field: 'slug', code: 'slug_invalid' });
+  });
+});
+
+describe('validateProductCreate — dakbak', () => {
+  it('accepts in-range defaults and constraints', () => {
+    const r = validateProductCreate(
+      base({
+        defaults: { width: 4, depth: 3, height: 2.6, dakbak: { fasciaHeight: 0.4, fasciaOverhang: 0.2 } },
+        constraints: {
+          dakbak: {
+            fasciaHeightMin: 0.36,
+            fasciaHeightMax: 0.5,
+            fasciaOverhangMin: 0.1,
+            fasciaOverhangMax: 0.3,
+          },
+        },
+      }),
+      [],
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  it('rejects fasciaHeightMin below global MIN', () => {
+    const r = validateProductCreate(
+      base({ constraints: { dakbak: { fasciaHeightMin: 0.05 } } }),
+      [],
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors).toContainEqual({
+        field: 'constraints.dakbak.fasciaHeightMin',
+        code: 'fascia_height_invalid',
+      });
+    }
+  });
+
+  it('rejects fasciaHeightMax above global MAX', () => {
+    const r = validateProductCreate(
+      base({ constraints: { dakbak: { fasciaHeightMax: 0.9 } } }),
+      [],
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors).toContainEqual({
+        field: 'constraints.dakbak.fasciaHeightMax',
+        code: 'fascia_height_invalid',
+      });
+    }
+  });
+
+  it('rejects min > max', () => {
+    const r = validateProductCreate(
+      base({ constraints: { dakbak: { fasciaHeightMin: 0.55, fasciaHeightMax: 0.40 } } }),
+      [],
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors).toContainEqual({
+        field: 'constraints.dakbak.fasciaHeightMin',
+        code: 'fascia_height_range_invalid',
+      });
+    }
+  });
+
+  it('accepts min === max (locked)', () => {
+    const r = validateProductCreate(
+      base({
+        defaults: { width: 4, depth: 3, height: 2.6, dakbak: { fasciaHeight: 0.4 } },
+        constraints: { dakbak: { fasciaHeightMin: 0.4, fasciaHeightMax: 0.4 } },
+      }),
+      [],
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  it('rejects default outside the product-narrowed range', () => {
+    const r = validateProductCreate(
+      base({
+        defaults: { width: 4, depth: 3, height: 2.6, dakbak: { fasciaHeight: 0.55 } },
+        constraints: { dakbak: { fasciaHeightMin: 0.3, fasciaHeightMax: 0.5 } },
+      }),
+      [],
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors).toContainEqual({
+        field: 'defaults.dakbak.fasciaHeight',
+        code: 'fascia_default_invalid',
+      });
+    }
+  });
+
+  it('rejects fasciaOverhang default below global MIN', () => {
+    const r = validateProductCreate(
+      base({ defaults: { width: 4, depth: 3, height: 2.6, dakbak: { fasciaOverhang: -0.05 } } }),
+      [],
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors).toContainEqual({
+        field: 'defaults.dakbak.fasciaOverhang',
+        code: 'fascia_default_invalid',
+      });
+    }
+  });
+
+  it('rejects defaults.dakbak on poort products', () => {
+    const r = validateProductCreate(
+      {
+        kind: 'poort',
+        slug: 'g1',
+        name: 'Gate',
+        description: null,
+        heroImage: null,
+        defaults: { dakbak: { fasciaHeight: 0.4 } },
+        constraints: {},
+        basePriceCents: 0,
+        sortOrder: 0,
+      },
+      [gateMaterial()],
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors).toContainEqual({
+        field: 'defaults.dakbak',
+        code: 'kind_field_mismatch',
+      });
+    }
+  });
+
+  it('rejects constraints.dakbak on poort products', () => {
+    const r = validateProductCreate(
+      {
+        kind: 'poort',
+        slug: 'g2',
+        name: 'Gate',
+        description: null,
+        heroImage: null,
+        defaults: {},
+        constraints: { dakbak: { fasciaHeightMin: 0.3, fasciaHeightMax: 0.5 } },
+        basePriceCents: 0,
+        sortOrder: 0,
+      },
+      [gateMaterial()],
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.errors).toContainEqual({
+        field: 'constraints.dakbak',
+        code: 'kind_field_mismatch',
+      });
+    }
+  });
+});
+
+describe('dakbakRange', () => {
+  const productRow = (constraints: Partial<ProductRow['constraints']>): ProductRow => ({
+    id: 'p', tenantId: 't', kind: 'overkapping', slug: 's', name: 'n',
+    description: null, heroImage: null,
+    defaults: {},
+    constraints: constraints as ProductRow['constraints'],
+    basePriceCents: 0, sortOrder: 0,
+    archivedAt: null, createdAt: '', updatedAt: '',
+  });
+
+  it('returns global range for null product', () => {
+    expect(dakbakRange(null)).toEqual({
+      height:   { min: 0.36, max: 0.60 },
+      overhang: { min: 0,    max: 0.80 },
+    });
+  });
+
+  it('returns global range for product with no dakbak constraints', () => {
+    expect(dakbakRange(productRow({}))).toEqual({
+      height:   { min: 0.36, max: 0.60 },
+      overhang: { min: 0,    max: 0.80 },
+    });
+  });
+
+  it('intersects with product constraints when present', () => {
+    const r = dakbakRange(productRow({
+      dakbak: { fasciaHeightMin: 0.30, fasciaHeightMax: 0.50, fasciaOverhangMin: 0.10, fasciaOverhangMax: 0.40 },
+    }));
+    expect(r).toEqual({
+      height:   { min: 0.30, max: 0.50 },
+      overhang: { min: 0.10, max: 0.40 },
+    });
+  });
+
+  it('respects partial narrowing — only the provided bound moves', () => {
+    const r = dakbakRange(productRow({
+      dakbak: { fasciaHeightMin: 0.40 },
+    }));
+    expect(r).toEqual({
+      height:   { min: 0.40, max: 0.60 },
+      overhang: { min: 0,    max: 0.80 },
+    });
+  });
+
+  it('returns equal min and max when product locks the value', () => {
+    const r = dakbakRange(productRow({
+      dakbak: { fasciaHeightMin: 0.45, fasciaHeightMax: 0.45 },
+    }));
+    expect(r.height).toEqual({ min: 0.45, max: 0.45 });
   });
 });

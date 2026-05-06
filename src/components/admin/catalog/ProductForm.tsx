@@ -101,6 +101,12 @@ export function ProductForm({
           poortSwingsAllowed: initial.constraints.poort?.swingsAllowed ?? [],
           poortMotorizedAllowed: initial.constraints.poort?.motorizedAllowed,
           poortAllowedMaterialSlugs: initial.constraints.poort?.allowedMaterialSlugs ?? [],
+          dakbakFasciaHeight: initial.defaults.dakbak?.fasciaHeight,
+          dakbakFasciaOverhang: initial.defaults.dakbak?.fasciaOverhang,
+          dakbakFasciaHeightMin: initial.constraints.dakbak?.fasciaHeightMin,
+          dakbakFasciaHeightMax: initial.constraints.dakbak?.fasciaHeightMax,
+          dakbakFasciaOverhangMin: initial.constraints.dakbak?.fasciaOverhangMin,
+          dakbakFasciaOverhangMax: initial.constraints.dakbak?.fasciaOverhangMax,
           basePriceEur: initial.basePriceCents > 0 ? initial.basePriceCents / 100 : null,
           sortOrder: initial.sortOrder,
         }
@@ -144,6 +150,12 @@ export function ProductForm({
           poortSwingsAllowed: [],
           poortMotorizedAllowed: undefined,
           poortAllowedMaterialSlugs: [],
+          dakbakFasciaHeight: undefined,
+          dakbakFasciaOverhang: undefined,
+          dakbakFasciaHeightMin: undefined,
+          dakbakFasciaHeightMax: undefined,
+          dakbakFasciaOverhangMin: undefined,
+          dakbakFasciaOverhangMax: undefined,
           basePriceEur: null,
           sortOrder: 0,
         },
@@ -226,6 +238,25 @@ export function ProductForm({
         if (v !== null) cons[k] = v;
       }
       if (Object.keys(allow).length) cons.allowedMaterialsBySlot = allow;
+
+      // Dakbak (overkapping/berging only)
+      const dakbakDefaults: Record<string, unknown> = {};
+      if (values.dakbakFasciaHeight !== undefined)
+        dakbakDefaults.fasciaHeight = values.dakbakFasciaHeight;
+      if (values.dakbakFasciaOverhang !== undefined)
+        dakbakDefaults.fasciaOverhang = values.dakbakFasciaOverhang;
+      if (Object.keys(dakbakDefaults).length) defaults.dakbak = dakbakDefaults;
+
+      const dakbakCons: Record<string, unknown> = {};
+      if (values.dakbakFasciaHeightMin !== undefined)
+        dakbakCons.fasciaHeightMin = values.dakbakFasciaHeightMin;
+      if (values.dakbakFasciaHeightMax !== undefined)
+        dakbakCons.fasciaHeightMax = values.dakbakFasciaHeightMax;
+      if (values.dakbakFasciaOverhangMin !== undefined)
+        dakbakCons.fasciaOverhangMin = values.dakbakFasciaOverhangMin;
+      if (values.dakbakFasciaOverhangMax !== undefined)
+        dakbakCons.fasciaOverhangMax = values.dakbakFasciaOverhangMax;
+      if (Object.keys(dakbakCons).length) cons.dakbak = dakbakCons;
     }
 
     const body: Record<string, unknown> = {
@@ -537,6 +568,64 @@ export function ProductForm({
                     )}
                   />
                 ))}
+              </CardContent>
+            </Card>
+
+            {/* Dakbak */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('admin.catalog.products.field.dakbak.section')}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  {t('admin.catalog.products.field.dakbak.help')}
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  {(
+                    [
+                      ['dakbakFasciaHeight', 'fasciaHeight', 10, 60],
+                      ['dakbakFasciaOverhang', 'fasciaOverhang', 0, 80],
+                      ['dakbakFasciaHeightMin', 'fasciaHeightMin', 10, 60],
+                      ['dakbakFasciaHeightMax', 'fasciaHeightMax', 10, 60],
+                      ['dakbakFasciaOverhangMin', 'fasciaOverhangMin', 0, 80],
+                      ['dakbakFasciaOverhangMax', 'fasciaOverhangMax', 0, 80],
+                    ] as const
+                  ).map(([name, labelSuffix, min, max]) => (
+                    <FormField
+                      key={name}
+                      control={form.control}
+                      name={name}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {t(`admin.catalog.products.field.dakbak.${labelSuffix}`)}
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={min}
+                              max={max}
+                              step={1}
+                              value={
+                                field.value === undefined
+                                  ? ''
+                                  : Math.round(field.value * 100)
+                              }
+                              onChange={(e) =>
+                                field.onChange(
+                                  e.target.value === ''
+                                    ? undefined
+                                    : Number(e.target.value) / 100,
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </>

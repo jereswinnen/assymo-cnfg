@@ -35,6 +35,13 @@ const POORT_HEIGHT_MAX_MM = 3500;
 const POORT_PART_GAP_MIN_MM = 0;
 const POORT_PART_GAP_MAX_MM = 500;
 const POORT_SWING_DIRECTIONS = ['inward', 'outward', 'sliding'] as const;
+
+// Dakbak (fascia ring) bounds — meters. Inlined to avoid the same
+// circular import that the poort constants above sidestep.
+const MIN_FASCIA_HEIGHT = 0.36;
+const MAX_FASCIA_HEIGHT = 0.60;
+const MIN_FASCIA_OVERHANG = 0;
+const MAX_FASCIA_OVERHANG = 0.80;
 type PoortSwing = (typeof POORT_SWING_DIRECTIONS)[number];
 
 function isPoortSwing(v: unknown): v is PoortSwing {
@@ -172,6 +179,87 @@ function validateDefaults(
     out.poort = poort;
   }
   return out;
+}
+
+function validateDakbakConstraints(
+  raw: unknown,
+  errors: ProductValidationFieldError[],
+): ProductConstraints['dakbak'] | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (!isObject(raw)) {
+    errors.push({ field: 'constraints.dakbak', code: 'constraints_invalid' });
+    return undefined;
+  }
+  const out: NonNullable<ProductConstraints['dakbak']> = {};
+  const checkBound = (
+    key: 'fasciaHeightMin' | 'fasciaHeightMax' | 'fasciaOverhangMin' | 'fasciaOverhangMax',
+    min: number,
+    max: number,
+    code: 'fascia_height_invalid' | 'fascia_overhang_invalid',
+  ) => {
+    if (!(key in raw)) return;
+    const v = (raw as Record<string, unknown>)[key];
+    if (!isFiniteNumber(v) || v < min || v > max) {
+      errors.push({ field: `constraints.dakbak.${key}`, code });
+      return;
+    }
+    out[key] = v;
+  };
+  checkBound('fasciaHeightMin', MIN_FASCIA_HEIGHT, MAX_FASCIA_HEIGHT, 'fascia_height_invalid');
+  checkBound('fasciaHeightMax', MIN_FASCIA_HEIGHT, MAX_FASCIA_HEIGHT, 'fascia_height_invalid');
+  checkBound('fasciaOverhangMin', MIN_FASCIA_OVERHANG, MAX_FASCIA_OVERHANG, 'fascia_overhang_invalid');
+  checkBound('fasciaOverhangMax', MIN_FASCIA_OVERHANG, MAX_FASCIA_OVERHANG, 'fascia_overhang_invalid');
+
+  if (
+    out.fasciaHeightMin !== undefined &&
+    out.fasciaHeightMax !== undefined &&
+    out.fasciaHeightMin > out.fasciaHeightMax
+  ) {
+    errors.push({ field: 'constraints.dakbak.fasciaHeightMin', code: 'fascia_height_range_invalid' });
+  }
+  if (
+    out.fasciaOverhangMin !== undefined &&
+    out.fasciaOverhangMax !== undefined &&
+    out.fasciaOverhangMin > out.fasciaOverhangMax
+  ) {
+    errors.push({ field: 'constraints.dakbak.fasciaOverhangMin', code: 'fascia_overhang_range_invalid' });
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+function validateDakbakDefaults(
+  raw: unknown,
+  constraints: ProductConstraints['dakbak'] | undefined,
+  errors: ProductValidationFieldError[],
+): ProductDefaults['dakbak'] | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (!isObject(raw)) {
+    errors.push({ field: 'defaults.dakbak', code: 'constraints_invalid' });
+    return undefined;
+  }
+  const out: NonNullable<ProductDefaults['dakbak']> = {};
+
+  if ('fasciaHeight' in raw) {
+    const v = (raw as Record<string, unknown>).fasciaHeight;
+    const lo = constraints?.fasciaHeightMin ?? MIN_FASCIA_HEIGHT;
+    const hi = constraints?.fasciaHeightMax ?? MAX_FASCIA_HEIGHT;
+    if (!isFiniteNumber(v) || v < lo || v > hi) {
+      errors.push({ field: 'defaults.dakbak.fasciaHeight', code: 'fascia_default_invalid' });
+    } else {
+      out.fasciaHeight = v;
+    }
+  }
+  if ('fasciaOverhang' in raw) {
+    const v = (raw as Record<string, unknown>).fasciaOverhang;
+    const lo = constraints?.fasciaOverhangMin ?? MIN_FASCIA_OVERHANG;
+    const hi = constraints?.fasciaOverhangMax ?? MAX_FASCIA_OVERHANG;
+    if (!isFiniteNumber(v) || v < lo || v > hi) {
+      errors.push({ field: 'defaults.dakbak.fasciaOverhang', code: 'fascia_default_invalid' });
+    } else {
+      out.fasciaOverhang = v;
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 // Product constraint dimensions (`minWidth` etc.) are bounded to [0, 40] —
@@ -385,6 +473,22 @@ export function validateProductCreate(
   const defaultsOut = validateDefaults(defaults, errors);
   const constraintsOut = validateConstraints(constraints, errors);
 
+  // Dakbak — must run AFTER constraints so defaults can validate against
+  // any narrowing the same product authored. Operates on the raw `dakbak`
+  // subobjects (validateDefaults/Constraints don't see siblings).
+  const dakbakConstraintsOut = isObject(constraints)
+    ? validateDakbakConstraints((constraints as Record<string, unknown>).dakbak, errors)
+    : undefined;
+  const dakbakDefaultsOut = isObject(defaults)
+    ? validateDakbakDefaults((defaults as Record<string, unknown>).dakbak, dakbakConstraintsOut, errors)
+    : undefined;
+  if (defaultsOut !== undefined && dakbakDefaultsOut !== undefined) {
+    defaultsOut.dakbak = dakbakDefaultsOut;
+  }
+  if (constraintsOut !== undefined && dakbakConstraintsOut !== undefined) {
+    constraintsOut.dakbak = dakbakConstraintsOut;
+  }
+
   let basePriceOut = 0;
   if (basePriceCents !== undefined) {
     if (!isFiniteNumber(basePriceCents) || basePriceCents < 0 || !Number.isInteger(basePriceCents)) {
@@ -416,6 +520,9 @@ export function validateProductCreate(
       if (defaultsOut.materials !== undefined) {
         errors.push({ field: 'defaults.materials', code: 'kind_field_mismatch' });
       }
+      if (defaultsOut.dakbak !== undefined) {
+        errors.push({ field: 'defaults.dakbak', code: 'kind_field_mismatch' });
+      }
       if (
         constraintsOut.minWidth !== undefined ||
         constraintsOut.maxWidth !== undefined ||
@@ -426,6 +533,9 @@ export function validateProductCreate(
         constraintsOut.allowedMaterialsBySlot !== undefined
       ) {
         errors.push({ field: 'constraints', code: 'kind_field_mismatch' });
+      }
+      if (constraintsOut.dakbak !== undefined) {
+        errors.push({ field: 'constraints.dakbak', code: 'kind_field_mismatch' });
       }
       // Tenant feature-flag: at least one non-archived gate material.
       const gateMaterials = materials.filter(
@@ -532,6 +642,23 @@ export function validateProductPatch(
     const c = validateConstraints((input as { constraints: unknown }).constraints, errors);
     if (c !== undefined) out.constraints = c;
   }
+  // Dakbak — wire after constraints so defaults see any narrowing.
+  const rawConstraints = (input as { constraints?: unknown }).constraints;
+  const rawDefaults = (input as { defaults?: unknown }).defaults;
+  const dakbakConstraintsOut = isObject(rawConstraints)
+    ? validateDakbakConstraints((rawConstraints as Record<string, unknown>).dakbak, errors)
+    : undefined;
+  const dakbakDefaultsOut = isObject(rawDefaults)
+    ? validateDakbakDefaults((rawDefaults as Record<string, unknown>).dakbak, dakbakConstraintsOut, errors)
+    : undefined;
+  if (dakbakDefaultsOut !== undefined) {
+    if (out.defaults === undefined) out.defaults = {};
+    out.defaults.dakbak = dakbakDefaultsOut;
+  }
+  if (dakbakConstraintsOut !== undefined) {
+    if (out.constraints === undefined) out.constraints = {};
+    out.constraints.dakbak = dakbakConstraintsOut;
+  }
   if ('basePriceCents' in input) {
     const n = (input as { basePriceCents: unknown }).basePriceCents;
     if (!isFiniteNumber(n) || n < 0 || !Number.isInteger(n)) {
@@ -564,7 +691,12 @@ export interface ProductBuildingDefaults {
   dimensions: { width?: number; depth?: number; height?: number };
   primaryMaterialId?: string;
   floor?: { materialId: string };
-  roof?: { coveringId?: string; trimMaterialId?: string };
+  roof?: {
+    coveringId?: string;
+    trimMaterialId?: string;
+    fasciaHeight?: number;
+    fasciaOverhang?: number;
+  };
   door?: { doorMaterialId?: string };
   /** Only populated when `type === 'poort'`. Mirrors `Partial<GateConfig>`
    *  from `@/domain/building`; declared inline to keep `catalog` free of
@@ -582,6 +714,28 @@ export interface ProductBuildingDefaults {
      *  rendered seam + pricing area subtraction reflect this product's
      *  spec. Only consulted when the hydrated `partCount === 2`. */
     partGapMm?: number;
+  };
+}
+
+/** Effective dakbak range = global constants narrowed by the product
+ *  (when present). Used by the configurator slider UI to bound the
+ *  control and by the admin product form's client-side validation. */
+export function dakbakRange(
+  product: ProductRow | null,
+): {
+  height: { min: number; max: number };
+  overhang: { min: number; max: number };
+} {
+  const c = product?.constraints.dakbak;
+  return {
+    height: {
+      min: c?.fasciaHeightMin ?? MIN_FASCIA_HEIGHT,
+      max: c?.fasciaHeightMax ?? MAX_FASCIA_HEIGHT,
+    },
+    overhang: {
+      min: c?.fasciaOverhangMin ?? MIN_FASCIA_OVERHANG,
+      max: c?.fasciaOverhangMax ?? MAX_FASCIA_OVERHANG,
+    },
   };
 }
 
@@ -631,6 +785,13 @@ export function applyProductDefaults(product: ProductRow): ProductBuildingDefaul
       if (mats.roofTrim) out.roof.trimMaterialId = mats.roofTrim;
     }
     if (mats.door) out.door = { doorMaterialId: mats.door };
+  }
+
+  const db = product.defaults.dakbak;
+  if (db && (db.fasciaHeight !== undefined || db.fasciaOverhang !== undefined)) {
+    out.roof = out.roof ?? {};
+    if (db.fasciaHeight   !== undefined) out.roof.fasciaHeight   = db.fasciaHeight;
+    if (db.fasciaOverhang !== undefined) out.roof.fasciaOverhang = db.fasciaOverhang;
   }
   return out;
 }

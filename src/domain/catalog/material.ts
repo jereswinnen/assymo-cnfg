@@ -93,9 +93,9 @@ function validateTileSize(
 }
 
 /** Validate the `pricing` map against the categories the material claims.
- *  A material only prices the categories it's sold under. `roof-trim` is
- *  valid as a category but carries no pricing, so it must not appear in
- *  the map. */
+ *  A material only prices the categories it's sold under. `roof-trim`
+ *  pricing is optional — empty/missing means the fascia uses no
+ *  per-m² cost. */
 function validatePricing(
   categories: readonly MaterialCategory[],
   value: unknown,
@@ -113,10 +113,6 @@ function validatePricing(
     }
     if (!categories.includes(key)) {
       errors.push({ field: `pricing.${key}`, code: 'pricing_category_mismatch' });
-      return undefined;
-    }
-    if (key === 'roof-trim') {
-      errors.push({ field: `pricing.${key}`, code: 'pricing_invalid' });
       return undefined;
     }
     if (!isObject(entry)) {
@@ -141,8 +137,8 @@ function validatePricing(
     }
     (out as Record<string, unknown>)[key] = { perSqm: p };
   }
-  // Every pricing-bearing category in `categories` must have an entry
-  // (roof-trim excluded — it has no pricing).
+  // Every pricing-bearing category in `categories` must have an entry —
+  // except roof-trim, which has optional pricing (empty → free fascia).
   for (const c of categories) {
     if (c === 'roof-trim') continue;
     if (!(c in out)) {

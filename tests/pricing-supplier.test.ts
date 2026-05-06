@@ -79,6 +79,7 @@ describe('pricing — supplier product branches', () => {
     const { lineItems } = calculateTotalQuote(
       cfg.buildings,
       cfg.roof,
+      cfg.connections,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
       [DOOR_PRODUCT],
@@ -120,6 +121,7 @@ describe('pricing — supplier product branches', () => {
     const withDoor = calculateTotalQuote(
       cfg.buildings,
       cfg.roof,
+      cfg.connections,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
       [],
@@ -163,6 +165,7 @@ describe('pricing — supplier product branches', () => {
     const { lineItems } = calculateTotalQuote(
       cfg.buildings,
       cfg.roof,
+      cfg.connections,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
       [WINDOW_PRODUCT],
@@ -205,6 +208,7 @@ describe('pricing — supplier product branches', () => {
       const { lineItems } = calculateTotalQuote(
         cfg.buildings,
         cfg.roof,
+        cfg.connections,
         DEFAULT_PRICE_BOOK,
         FIXTURE_MATERIALS,
         [],
@@ -260,6 +264,7 @@ describe('pricing — supplier product branches', () => {
     const { lineItems } = calculateTotalQuote(
       cfg.buildings,
       cfg.roof,
+      cfg.connections,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
       [winProduct],
@@ -313,6 +318,7 @@ describe('pricing — supplier product branches', () => {
     const { lineItems } = calculateTotalQuote(
       cfg.buildings,
       cfg.roof,
+      cfg.connections,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
       [winProduct],
@@ -360,6 +366,7 @@ describe('pricing — supplier product branches', () => {
     const { lineItems } = calculateTotalQuote(
       cfg.buildings,
       cfg.roof,
+      cfg.connections,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
       [winProduct],
@@ -398,6 +405,7 @@ describe('pricing — supplier product branches', () => {
     const { lineItems } = calculateTotalQuote(
       cfg.buildings,
       cfg.roof,
+      cfg.connections,
       DEFAULT_PRICE_BOOK,
       FIXTURE_MATERIALS,
       [archived],

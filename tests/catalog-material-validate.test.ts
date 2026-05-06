@@ -269,3 +269,41 @@ describe('validateMaterialPatch', () => {
     expect(r.ok).toBe(true);
   });
 });
+
+describe('validateMaterialCreate — roof-trim pricing', () => {
+  it('accepts roof-trim with perSqm pricing', () => {
+    const result = validateMaterialCreate({
+      categories: ['roof-trim'],
+      slug: 'aluminium-trim',
+      name: 'Aluminium dakbaktrim',
+      color: '#888888',
+      pricing: { 'roof-trim': { perSqm: 25 } },
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.pricing['roof-trim']).toEqual({ perSqm: 25 });
+    }
+  });
+
+  it('accepts roof-trim without pricing (free fascia, backwards-compat)', () => {
+    const result = validateMaterialCreate({
+      categories: ['roof-trim'],
+      slug: 'gratis-trim',
+      name: 'Gratis trim',
+      color: '#888888',
+      pricing: {},
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects negative perSqm on roof-trim', () => {
+    const result = validateMaterialCreate({
+      categories: ['roof-trim'],
+      slug: 'bad-trim',
+      name: 'Bad trim',
+      color: '#888888',
+      pricing: { 'roof-trim': { perSqm: -5 } },
+    });
+    expect(result.ok).toBe(false);
+  });
+});

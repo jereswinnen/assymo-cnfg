@@ -122,6 +122,10 @@ const nl: Record<string, string> = {
   "roof.insulation": "Dakisolatie",
   "roof.thickness": "Dikte",
   "roof.skylight": "Dakraam",
+  "roof.fasciaHeight": "Dakbakhoogte",
+  "roof.fasciaOverhang": "Dakbak oversteek",
+  "roof.fasciaLocked": "Vastgezet op {value}",
+  "roof.fasciaPitchedNotice": "Dakbakopties zijn alleen beschikbaar voor platte daken.",
 
   // Structure
   "structure.cornerBraces": "Schoren",
@@ -136,6 +140,7 @@ const nl: Record<string, string> = {
   "quote.pole": "Paal",
   "quote.wall": "Muur",
   "quote.roof": "Dak",
+  "pricing.lineItems.fascia": "Dakbak ({height} m × {area} m²)",
 
   // Floor
   "floor.label": "Vloer",
@@ -177,6 +182,7 @@ const nl: Record<string, string> = {
   "sidebar.emptyState": "Selecteer een object om te configureren",
   "sidebar.section.dimensions": "Afmetingen",
   "sidebar.section.material": "Materiaal",
+  "sidebar.section.dak": "Dak",
   "sidebar.section.structure": "Structuur",
   "material.primary": "Hoofdmateriaal",
   "material.primary.help":
@@ -821,6 +827,16 @@ const nl: Record<string, string> = {
     "Leeg = alle poort-materialen toegestaan.",
   "admin.catalog.products.field.poort.mmHint": "{mm} mm = {m} m",
   "admin.catalog.products.field.poort.material.placeholder": "Geen standaard",
+
+  "admin.catalog.products.field.dakbak.section": "Dakbak",
+  "admin.catalog.products.field.dakbak.help":
+    "Laat leeg om de globale grenzen te gebruiken (10–60 cm hoogte, 0–80 cm oversteek).",
+  "admin.catalog.products.field.dakbak.fasciaHeight": "Standaard dakbakhoogte (cm)",
+  "admin.catalog.products.field.dakbak.fasciaOverhang": "Standaard oversteek (cm)",
+  "admin.catalog.products.field.dakbak.fasciaHeightMin": "Min. hoogte (cm)",
+  "admin.catalog.products.field.dakbak.fasciaHeightMax": "Max. hoogte (cm)",
+  "admin.catalog.products.field.dakbak.fasciaOverhangMin": "Min. oversteek (cm)",
+  "admin.catalog.products.field.dakbak.fasciaOverhangMax": "Max. oversteek (cm)",
 
   // Admin — catalog / form sections + actions
   "admin.catalog.form.section.basics": "Basis",

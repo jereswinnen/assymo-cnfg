@@ -14,6 +14,8 @@ const DEFAULT_FIXTURE_ROOF: RoofConfig = {
   insulation: true,
   insulationThickness: 150,
   hasSkylight: false,
+  fasciaHeight: 0.36,
+  fasciaOverhang: 0,
 };
 
 /** Deterministic test fixtures — avoid crypto.randomUUID() so snapshots

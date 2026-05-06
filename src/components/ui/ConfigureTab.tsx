@@ -24,6 +24,7 @@ import { BUILDING_KIND_META, type BuildingType, type ConfigSection } from '@/dom
 const SECTION_DEFS: Record<ConfigSection, { labelKey: string; icon: string }> = {
   dimensions: { labelKey: 'sidebar.section.dimensions', icon: '📐' },
   material:   { labelKey: 'sidebar.section.material',   icon: '🎨' },
+  dak:        { labelKey: 'sidebar.section.dak',        icon: '🏠' },
   structure:  { labelKey: 'sidebar.section.structure',  icon: '🏗' },
   walls:      { labelKey: 'sidebar.section.walls',      icon: '🧱' },
   gate:       { labelKey: 'sidebar.section.gate',       icon: '🚪' },
@@ -246,9 +247,9 @@ export default function ConfigureTab() {
               <div className="px-3 py-3 border-t border-border space-y-4">
                 {id === 'dimensions' && <DimensionsControl />}
                 {id === 'material' && <BuildingMaterialSection />}
+                {id === 'dak' && <RoofConfigSection />}
                 {id === 'structure' && (
                   <>
-                    <RoofConfigSection />
                     {(selectedBuilding.type === 'berging' || selectedBuilding.type === 'overkapping') && (
                       <FloorConfigSection />
                     )}
