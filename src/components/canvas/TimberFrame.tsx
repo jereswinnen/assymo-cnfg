@@ -106,10 +106,15 @@ export default function TimberFrame() {
     }
 
     if (isFlat) {
-      // Tall deck = visible wood edge of the roof
-      const ROOF_EDGE = 0.12;
-      const deckY = height + BEAM_H + ROOF_EDGE / 2;
-      boxes.push({ pos: [0, deckY, 0], size: [width, ROOF_EDGE, depth] });
+      // Roof deck atop the top-plate beams. Capped so it never pokes above
+      // the fascia ring (would otherwise show through the EPDM when the
+      // user lowers fasciaHeight below BEAM_H + nominal deck).
+      const NOMINAL_DECK = 0.12;
+      const deckThickness = Math.max(0, Math.min(NOMINAL_DECK, roof.fasciaHeight - BEAM_H));
+      if (deckThickness > 0) {
+        const deckY = height + BEAM_H + deckThickness / 2;
+        boxes.push({ pos: [0, deckY, 0], size: [width, deckThickness, depth] });
+      }
     } else {
       const pitchRad = (roofPitch * Math.PI) / 180;
       const roofRise = Math.tan(pitchRad) * hw;
@@ -117,7 +122,7 @@ export default function TimberFrame() {
     }
 
     return boxes;
-  }, [width, depth, height, isFlat, roofPitch, hasBraces, suppressedSides, poles]);
+  }, [width, depth, height, isFlat, roofPitch, hasBraces, suppressedSides, poles, roof.fasciaHeight]);
 
   return (
     <group>

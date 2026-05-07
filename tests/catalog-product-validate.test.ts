@@ -468,14 +468,14 @@ describe('dakbakRange', () => {
 
   it('returns global range for null product', () => {
     expect(dakbakRange(null)).toEqual({
-      height:   { min: 0.36, max: 0.60 },
+      height:   { min: 0.22, max: 0.60 },
       overhang: { min: 0,    max: 0.80 },
     });
   });
 
   it('returns global range for product with no dakbak constraints', () => {
     expect(dakbakRange(productRow({}))).toEqual({
-      height:   { min: 0.36, max: 0.60 },
+      height:   { min: 0.22, max: 0.60 },
       overhang: { min: 0,    max: 0.80 },
     });
   });

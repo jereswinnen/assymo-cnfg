@@ -135,18 +135,21 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
   const fasciaTopY    = fasciaBottomY + roof.fasciaHeight;
   const fasciaCenterY = fasciaBottomY + roof.fasciaHeight / 2;
 
-  const innerInset    = FASCIA_THICKNESS / 2;     // 0.075
+  const fasciaOverhangOut = FASCIA_THICKNESS / 2;  // 0.075
 
-  // EPDM membrane spans the effective footprint, inset on sides that have fascia.
-  const epdmInsetFront = hasFront ? innerInset : 0;
-  const epdmInsetBack  = hasBack  ? innerInset : 0;
-  const epdmInsetLeft  = hasLeft  ? innerInset : 0;
-  const epdmInsetRight = hasRight ? innerInset : 0;
-  const epdmWidth  = Math.max(0.01, (maxX - minX) - epdmInsetLeft - epdmInsetRight);
-  const epdmDepth  = Math.max(0.01, (maxZ - minZ) - epdmInsetFront - epdmInsetBack);
-  const epdmCenterX = (minX + maxX) / 2 + (epdmInsetLeft - epdmInsetRight) / 2;
-  const epdmCenterZ = (minZ + maxZ) / 2 + (epdmInsetBack - epdmInsetFront) / 2;
-  const epdmY = fasciaTopY - EPDM_THICKNESS / 2 - 0.02;
+  // EPDM membrane caps the fascia: extends OVER the fascia top to its outer
+  // face on sides that have fascia, and rests directly on top so the rim
+  // disappears under the membrane.
+  const epdmOutFront = hasFront ? fasciaOverhangOut : 0;
+  const epdmOutBack  = hasBack  ? fasciaOverhangOut : 0;
+  const epdmOutLeft  = hasLeft  ? fasciaOverhangOut : 0;
+  const epdmOutRight = hasRight ? fasciaOverhangOut : 0;
+  const epdmWidth  = Math.max(0.01, (maxX - minX) + epdmOutLeft + epdmOutRight);
+  const epdmDepth  = Math.max(0.01, (maxZ - minZ) + epdmOutFront + epdmOutBack);
+  const epdmCenterX = (minX + maxX) / 2 + (epdmOutRight - epdmOutLeft) / 2;
+  const epdmCenterZ = (minZ + maxZ) / 2 + (epdmOutFront - epdmOutBack) / 2;
+  // 1mm lift above fascia/deck top to avoid coplanar z-fighting at min fascia.
+  const epdmY = fasciaTopY + EPDM_THICKNESS / 2 + 0.001;
 
   // Front/back fascia extend past the wall ends by FASCIA_THICKNESS/2 on
   // each side so they fully cover the building's corners (no gap visible
