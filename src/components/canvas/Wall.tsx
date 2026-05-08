@@ -261,11 +261,11 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg, effec
       break;
     case 'left':
       groupPos = [wallPosition[0] - outOffset, 0, wallPosition[2]];
-      groupRot = [0, Math.PI / 2, 0];
+      groupRot = [0, -Math.PI / 2, 0];
       break;
     case 'right':
       groupPos = [wallPosition[0] + outOffset, 0, wallPosition[2]];
-      groupRot = [0, -Math.PI / 2, 0];
+      groupRot = [0, Math.PI / 2, 0];
       break;
   }
 

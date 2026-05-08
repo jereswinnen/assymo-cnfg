@@ -103,10 +103,10 @@ export function createWallWithOpeningsGeo(
       geo.rotateY(Math.PI);
       break;
     case 'left':
-      geo.rotateY(Math.PI / 2);
+      geo.rotateY(-Math.PI / 2);
       break;
     case 'right':
-      geo.rotateY(-Math.PI / 2);
+      geo.rotateY(Math.PI / 2);
       break;
   }
 
