@@ -440,6 +440,84 @@ export function detectWallSnap(
   return { position: [snapX, snapZ], attachedTo };
 }
 
+/** Snap a wall-resize endpoint along the wall's long axis to nearby pole
+ *  positions on structural buildings — both manually-placed poles
+ *  (`b.poles`) and the auto-derived layout fallback (`autoPoleLayout`).
+ *
+ *  Companion to `detectResizeSnap`: that function only knows about a
+ *  building's own edges and centerlines, which means manual poles at
+ *  fractional positions never attract a resizing wall. Callers should
+ *  invoke both and pick whichever candidate sits closer to the raw pointer
+ *  value, so adding pole snap is purely additive.
+ *
+ *  A pole only counts when its perpendicular world coordinate is within
+ *  `POLE_DETENT_THRESHOLD` of the wall's midline on the perpendicular axis,
+ *  so a pole on the far side of an overkapping doesn't yank the wall over.
+ *
+ *  @param edgeValue Current world coord of the dragged endpoint along the long axis.
+ *  @param longAxis  'x' for a horizontal wall, 'z' for a vertical wall.
+ *  @param wallPerp  Wall's midline coord on the perpendicular axis (constant during resize).
+ *  @param buildings All other buildings; structural entities are scanned, walls/paals are skipped.
+ */
+export function detectWallPoleSnap(
+  edgeValue: number,
+  longAxis: 'x' | 'z',
+  wallPerp: number,
+  buildings: BuildingEntity[],
+): number {
+  let bestDist = SNAP_THRESHOLD;
+  let snapped = edgeValue;
+
+  for (const b of buildings) {
+    if (b.type === 'paal' || b.type === 'muur' || b.type === 'poort') continue;
+
+    const [lx, tz] = b.position;
+    const w = b.dimensions.width;
+    const d = b.dimensions.depth;
+    const poles = b.poles ?? autoPoleLayout(w, d);
+
+    const points: [number, number][] = [];
+    for (const f of poles.front) points.push([lx + f * w, tz]);
+    for (const f of poles.back)  points.push([lx + f * w, tz + d]);
+    for (const f of poles.left)  points.push([lx,         tz + f * d]);
+    for (const f of poles.right) points.push([lx + w,     tz + f * d]);
+
+    for (const [px, pz] of points) {
+      const along = longAxis === 'x' ? px : pz;
+      const perp = longAxis === 'x' ? pz : px;
+      if (Math.abs(perp - wallPerp) > POLE_DETENT_THRESHOLD) continue;
+      const dist = Math.abs(edgeValue - along);
+      if (dist < bestDist) {
+        bestDist = dist;
+        snapped = along;
+      }
+    }
+  }
+
+  return snapped;
+}
+
+/** Wall-resize endpoint snap that combines `detectResizeSnap` (structural
+ *  edges + centerlines) with `detectWallPoleSnap` (pole positions, including
+ *  manually-placed ones). Picks whichever snapped candidate sits closer to
+ *  the raw pointer value, treating the input value as the "no snap" sentinel
+ *  both helpers return when nothing is in range. */
+export function detectWallResizeSnap(
+  rawValue: number,
+  axis: 'x' | 'z',
+  edgeSide: WallSide,
+  perpStart: number,
+  perpEnd: number,
+  wallPerp: number,
+  buildings: BuildingEntity[],
+): number {
+  const edgeSnap = detectResizeSnap(rawValue, axis, edgeSide, perpStart, perpEnd, buildings);
+  const poleSnap = detectWallPoleSnap(rawValue, axis, wallPerp, buildings);
+  if (edgeSnap === rawValue) return poleSnap;
+  if (poleSnap === rawValue) return edgeSnap;
+  return Math.abs(poleSnap - rawValue) < Math.abs(edgeSnap - rawValue) ? poleSnap : edgeSnap;
+}
+
 /** Snap a single dragged edge to opposing edges of other buildings */
 export function detectResizeSnap(
   edgeValue: number,

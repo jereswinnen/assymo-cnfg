@@ -4,6 +4,8 @@ import {
   detectResizeSnap,
   detectSnap,
   detectWallSnap,
+  detectWallPoleSnap,
+  detectWallResizeSnap,
 } from '@/domain/building';
 import { makeBuilding } from './fixtures';
 
@@ -196,5 +198,134 @@ describe('detectResizeSnap', () => {
     const other = makeBuilding({ id: 'b', type: 'berging', position: [0, 0] });
     const snapped = detectResizeSnap(2.05, 'x', 'right', 0, 4, [other]);
     expect(snapped).toBeCloseTo(2, 3);
+  });
+});
+
+describe('detectWallPoleSnap', () => {
+  it('returns the edge value unchanged when no buildings are in range', () => {
+    const snapped = detectWallPoleSnap(3, 'x', 0, []);
+    expect(snapped).toBe(3);
+  });
+
+  it('snaps a horizontal wall endpoint to a manual pole on the front edge', () => {
+    // 9m × 4m overkapping at origin, manual pole on front edge at fraction 0.4
+    // → world (3.6, 0). A horizontal wall sitting flush with the front edge
+    // (perp Z midline ≈ 0) is being resized along X; pointer near 3.55 should
+    // snap to the pole's X = 3.6.
+    const ok = makeBuilding({
+      id: 'ok',
+      type: 'overkapping',
+      position: [0, 0],
+      dimensions: { width: 9, depth: 4, height: 2.6 },
+      poles: { front: [0.4], back: [], left: [], right: [] },
+    });
+    const snapped = detectWallPoleSnap(3.55, 'x', 0, [ok]);
+    expect(snapped).toBeCloseTo(3.6, 3);
+  });
+
+  it('snaps a vertical wall endpoint to a manual pole on the left edge', () => {
+    // 6m × 9m overkapping; manual pole on left edge at fraction 1/3 → world (0, 3).
+    // Vertical wall on left edge (perp X midline ≈ 0); endpoint Z near 2.95 → 3.
+    const ok = makeBuilding({
+      id: 'ok',
+      type: 'overkapping',
+      position: [0, 0],
+      dimensions: { width: 6, depth: 9, height: 2.6 },
+      poles: { front: [], back: [], left: [1 / 3], right: [] },
+    });
+    const snapped = detectWallPoleSnap(2.95, 'z', 0, [ok]);
+    expect(snapped).toBeCloseTo(3, 3);
+  });
+
+  it('snaps to an auto pole when no manual override is set', () => {
+    // 9m wide overkapping, no manual poles → autoPoleLayout puts intermediates
+    // at front fractions [1/3, 2/3] → world X = 3, 6. Wall at perp Z=0
+    // resizing toward the second auto pole at X=6.
+    const ok = makeBuilding({
+      id: 'ok',
+      type: 'overkapping',
+      position: [0, 0],
+      dimensions: { width: 9, depth: 4, height: 2.6 },
+    });
+    const snapped = detectWallPoleSnap(5.95, 'x', 0, [ok]);
+    expect(snapped).toBeCloseTo(6, 3);
+  });
+
+  it('does not snap to a pole on the opposite edge of the building', () => {
+    // Wall sits on the front edge (perp Z=0). A manual pole on the BACK edge
+    // (z=4) at fraction 0.4 must not yank the wall — the perpendicular
+    // distance is 4m, far above the threshold.
+    const ok = makeBuilding({
+      id: 'ok',
+      type: 'overkapping',
+      position: [0, 0],
+      dimensions: { width: 9, depth: 4, height: 2.6 },
+      poles: { front: [], back: [0.4], left: [], right: [] },
+    });
+    const snapped = detectWallPoleSnap(3.55, 'x', 0, [ok]);
+    expect(snapped).toBe(3.55);
+  });
+
+  it('ignores muur, poort, and paal entities', () => {
+    const m = makeBuilding({ id: 'm', type: 'muur', position: [0, 0], dimensions: { width: 4, depth: 0.15, height: 2.6 } });
+    const p = makeBuilding({ id: 'p', type: 'paal', position: [3, 0], dimensions: { width: 0.15, depth: 0.15, height: 2.6 } });
+    const snapped = detectWallPoleSnap(3.55, 'x', 0, [m, p]);
+    expect(snapped).toBe(3.55);
+  });
+});
+
+describe('detectWallResizeSnap', () => {
+  it('snaps to a manual pole even when no structural edge is in range', () => {
+    // Regression for the original failing UI scenario: the pole sits 0.05m
+    // away while the nearest structural edge is 0.95m away. detectResizeSnap
+    // returns the raw value (no snap), and a naive "closer to raw wins"
+    // composer would mistake that as a perfect match — this composer must
+    // recognize "raw === no snap" and pick the pole.
+    const ok = makeBuilding({
+      id: 'ok',
+      type: 'overkapping',
+      position: [0, 0],
+      dimensions: { width: 9, depth: 4, height: 2.6 },
+      poles: { front: [0.4], back: [], left: [], right: [] },
+    });
+    const snapped = detectWallResizeSnap(3.55, 'x', 'right', -0.075, 0.075, 0, [ok]);
+    expect(snapped).toBeCloseTo(3.6, 3);
+  });
+
+  it('snaps to a structural edge when no pole is in range', () => {
+    const ok = makeBuilding({
+      id: 'ok',
+      type: 'overkapping',
+      position: [0, 0],
+      dimensions: { width: 9, depth: 4, height: 2.6 },
+    });
+    // Wall right edge at 8.95, near building's right edge at 9.
+    const snapped = detectWallResizeSnap(8.95, 'x', 'right', -0.075, 0.075, 0, [ok]);
+    expect(snapped).toBeCloseTo(9, 3);
+  });
+
+  it('picks the closer of pole and structural edge when both are in range', () => {
+    // Pole at fraction 8.7/9 → world X = 8.7. Structural right edge at 9.
+    // Raw 8.78 → pole dist 0.08, edge dist 0.22 → pick pole.
+    const ok = makeBuilding({
+      id: 'ok',
+      type: 'overkapping',
+      position: [0, 0],
+      dimensions: { width: 9, depth: 4, height: 2.6 },
+      poles: { front: [8.7 / 9], back: [], left: [], right: [] },
+    });
+    const snapped = detectWallResizeSnap(8.78, 'x', 'right', -0.075, 0.075, 0, [ok]);
+    expect(snapped).toBeCloseTo(8.7, 3);
+  });
+
+  it('returns the raw value when nothing is in range', () => {
+    const ok = makeBuilding({
+      id: 'ok',
+      type: 'overkapping',
+      position: [20, 20],
+      dimensions: { width: 4, depth: 4, height: 2.6 },
+    });
+    const snapped = detectWallResizeSnap(0, 'x', 'right', -0.075, 0.075, 0, [ok]);
+    expect(snapped).toBe(0);
   });
 });

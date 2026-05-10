@@ -4,7 +4,7 @@ import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
-import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap } from '@/domain/building';
+import { detectSnap, detectPoleSnap, detectWallSnap, detectResizeSnap, detectWallResizeSnap } from '@/domain/building';
 import { getConstraints, DOOR_W, DOUBLE_DOOR_W, WIN_W, xToFraction, clampOpeningPosition, fractionToX, getWallLength, autoPoleLayout } from '@/domain/building';
 import { getBuildingDisplayName } from '@/domain/building';
 import { getEffectivePrimaryMaterial, getAtomColor } from '@/domain/materials';
@@ -598,15 +598,21 @@ export default function SchematicView() {
       const isVertWallLike = isWallLike && building.orientation === 'vertical';
       const others = allBuildings.filter(b => b.id !== buildingId && b.type !== 'paal' && b.type !== 'muur' && b.type !== 'poort');
 
+      // For wall-like resizes the dragged endpoint also considers pole
+      // positions on neighbouring structural buildings (auto + manual),
+      // matching the placement-time behaviour.
+      const wallPerpX = startPos[0] + startDims.depth / 2;
+      const wallPerpZ = startPos[1] + startDims.depth / 2;
+
       // For vertical muur or poort, top/bottom edges control width (wall length), not depth
       if (isVertWallLike) {
         if (edge === 'bottom') {
-          const candidateBottom = detectResizeSnap(wz, 'z', 'back', startPos[0], startPos[0] + startDims.depth, others);
+          const candidateBottom = detectWallResizeSnap(wz, 'z', 'back', startPos[0], startPos[0] + startDims.depth, wallPerpX, others);
           const newLen = Math.max(constraints.width.min, Math.min(constraints.width.max, candidateBottom - startPos[1]));
           updateBuildingDimensions(buildingId, { width: newLen });
           return;
         } else if (edge === 'top') {
-          const candidateTop = detectResizeSnap(wz, 'z', 'front', startPos[0], startPos[0] + startDims.depth, others);
+          const candidateTop = detectWallResizeSnap(wz, 'z', 'front', startPos[0], startPos[0] + startDims.depth, wallPerpX, others);
           const bottomEdge = startPos[1] + startDims.width;
           const newLen = Math.max(constraints.width.min, Math.min(constraints.width.max, bottomEdge - candidateTop));
           updateBuildingDimensions(buildingId, { width: newLen });
@@ -621,10 +627,14 @@ export default function SchematicView() {
       let newPosZ = startPos[1];
 
       if (edge === 'right') {
-        const candidateRight = detectResizeSnap(wx, 'x', 'right', startPos[1], startPos[1] + startDims.depth, others);
+        const candidateRight = isWallLike
+          ? detectWallResizeSnap(wx, 'x', 'right', startPos[1], startPos[1] + startDims.depth, wallPerpZ, others)
+          : detectResizeSnap(wx, 'x', 'right', startPos[1], startPos[1] + startDims.depth, others);
         newWidth = Math.max(constraints.width.min, Math.min(constraints.width.max, candidateRight - startPos[0]));
       } else if (edge === 'left') {
-        const candidateLeft = detectResizeSnap(wx, 'x', 'left', startPos[1], startPos[1] + startDims.depth, others);
+        const candidateLeft = isWallLike
+          ? detectWallResizeSnap(wx, 'x', 'left', startPos[1], startPos[1] + startDims.depth, wallPerpZ, others)
+          : detectResizeSnap(wx, 'x', 'left', startPos[1], startPos[1] + startDims.depth, others);
         const rightEdge = startPos[0] + startDims.width;
         newWidth = Math.max(constraints.width.min, Math.min(constraints.width.max, rightEdge - candidateLeft));
         newPosX = rightEdge - newWidth;
