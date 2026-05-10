@@ -1,11 +1,10 @@
 import {
   WALL_THICKNESS,
-  DOUBLE_DOOR_W,
-  DOOR_W,
   WIN_W,
   resolveOpeningPositions,
   fractionToX,
 } from '@/domain/building';
+import { resolveDoorWidth, resolveWindowWidth } from '@/domain/openings';
 import type { WallConfig, DoorSwing, BuildingDimensions } from '@/domain/building';
 import type { SupplierProductRow } from '@/domain/supplier';
 import { getWallGeometries } from './SchematicWalls';
@@ -57,13 +56,10 @@ export default function SchematicOpenings({
 
         const ds = cfg.doorSize ?? 'enkel';
 
-        // Resolve supplier door product for dimension override
         const doorSupplierProduct = cfg.doorSupplierProductId
           ? supplierProducts.find(p => p.id === cfg.doorSupplierProductId) ?? null
           : null;
-        const dw = doorSupplierProduct
-          ? doorSupplierProduct.widthMm / 1000
-          : ds === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W;
+        const dw = resolveDoorWidth(cfg, supplierProducts);
 
         const { doorX, windowXs } = resolveOpeningPositions(
           g.length,
@@ -151,9 +147,7 @@ export default function SchematicOpenings({
               const winSupplierProduct = winData?.supplierProductId
                 ? supplierProducts.find(p => p.id === winData.supplierProductId) ?? null
                 : null;
-              const winWidth = winSupplierProduct
-                ? winSupplierProduct.widthMm / 1000
-                : winData?.width ?? WIN_W;
+              const winWidth = winData ? resolveWindowWidth(winData, supplierProducts) : WIN_W;
 
               return (
                 <g key={i}>

@@ -2,12 +2,10 @@
 
 import {
   WALL_THICKNESS,
-  DOUBLE_DOOR_W,
-  DOOR_W,
-  WIN_W,
   resolveOpeningPositions,
   getWallLength,
 } from '@/domain/building';
+import { resolveDoorWidth, resolveWindowWidth } from '@/domain/openings';
 import { getAtomColor } from '@/domain/materials';
 import { useTenant } from '@/lib/TenantProvider';
 import type {
@@ -16,6 +14,7 @@ import type {
   WallId,
   SelectedElement,
 } from '@/domain/building';
+import type { SupplierProductRow } from '@/domain/supplier';
 
 const T = WALL_THICKNESS;
 
@@ -78,6 +77,8 @@ interface SchematicWallsProps {
   buildingId: string;
   offsetX: number;
   offsetY: number;
+  /** Non-archived supplier products used for door/window width overrides. */
+  supplierProducts: SupplierProductRow[];
   onWallClick?: (wallId: WallId, buildingId: string) => void;
 }
 
@@ -89,6 +90,7 @@ export default function SchematicWalls({
   buildingId,
   offsetX,
   offsetY,
+  supplierProducts,
   onWallClick,
 }: SchematicWallsProps) {
   const geoms = getWallGeometries(dimensions, offsetX, offsetY);
@@ -111,6 +113,7 @@ export default function SchematicWalls({
             cfg={cfg}
             primaryMaterialId={primaryMaterialId}
             isSelected={isSelected}
+            supplierProducts={supplierProducts}
             onWallClick={onWallClick ? () => onWallClick(g.wallId, buildingId) : undefined}
           />
         );
@@ -124,12 +127,14 @@ function SolidWall({
   cfg,
   primaryMaterialId,
   isSelected,
+  supplierProducts,
   onWallClick,
 }: {
   geom: WallGeom;
   cfg: WallConfig;
   primaryMaterialId: string;
   isSelected: boolean;
+  supplierProducts: SupplierProductRow[];
   onWallClick?: () => void;
 }) {
   const { catalog: { materials } } = useTenant();
@@ -139,23 +144,24 @@ function SolidWall({
   const fillOpacity = isSelected ? 0.5 : 0.35;
   const strokeColor = isSelected ? '#2563eb' : '#444';
 
-  const ds = cfg.doorSize ?? 'enkel';
+  const windows = cfg.windows ?? [];
   const { doorX, windowXs } = resolveOpeningPositions(
     length,
     cfg.hasDoor ? (cfg.doorPosition ?? 0.5) : null,
-    cfg.windows ?? [],
+    windows,
   );
 
   type Opening = { localOffset: number; halfWidth: number };
   const openings: Opening[] = [];
 
   if (cfg.hasDoor) {
-    const dw = ds === 'dubbel' ? DOUBLE_DOOR_W : DOOR_W;
+    const dw = resolveDoorWidth(cfg, supplierProducts);
     openings.push({ localOffset: doorX! * flipSign, halfWidth: dw / 2 });
   }
-  for (const wx of windowXs) {
-    openings.push({ localOffset: wx * flipSign, halfWidth: WIN_W / 2 });
-  }
+  windowXs.forEach((wx, i) => {
+    const ww = resolveWindowWidth(windows[i], supplierProducts);
+    openings.push({ localOffset: wx * flipSign, halfWidth: ww / 2 });
+  });
 
   openings.sort((a, b) => a.localOffset - b.localOffset);
 

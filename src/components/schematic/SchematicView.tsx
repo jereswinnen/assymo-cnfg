@@ -1559,6 +1559,7 @@ export default function SchematicView() {
                     buildingId={b.id}
                     offsetX={ox + width / 2}
                     offsetY={oz + depth / 2}
+                    supplierProducts={supplierCatalog.products}
                     onWallClick={onWallClick}
                   />
                 </g>
@@ -1732,6 +1733,7 @@ export default function SchematicView() {
                     buildingId={w.id}
                     offsetX={wallOffsetX}
                     offsetY={wallOffsetY}
+                    supplierProducts={supplierCatalog.products}
                   />
                 </g>
 
