@@ -222,7 +222,7 @@ function wallLineItem(
   });
 
   // Inner cladding — additive line item, same net area, no extras.
-  const innerSlug = getEffectiveInnerWallMaterial(wallCfg, building, buildings);
+  const innerSlug = getEffectiveInnerWallMaterial(wallCfg);
   if (innerSlug) {
     const innerCost = area * findPrice(wallCatalog, innerSlug);
     lineItems.push({

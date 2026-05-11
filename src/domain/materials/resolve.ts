@@ -71,14 +71,9 @@ export function getEffectivePoleMaterial(
 }
 
 /** Effective inner-side wall material slug — per-wall only, no inheritance.
- *  Returns `null` when inner cladding is not enabled on this wall.
- *  `_building` and `_buildings` are kept for call-site parity with
- *  `getEffectiveWallMaterial` so consumers can swap the resolver without
- *  touching call sites. */
+ *  Returns `null` when inner cladding is not enabled on this wall. */
 export function getEffectiveInnerWallMaterial(
   wall: WallConfig,
-  _building: BuildingEntity,
-  _buildings?: BuildingEntity[],
 ): string | null {
   return wall.materialIdInner ?? null;
 }

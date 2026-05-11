@@ -17,14 +17,14 @@ function makeWall(extras: Partial<WallConfig> = {}): WallConfig {
 
 describe('getEffectiveInnerWallMaterial', () => {
   it('returns null when materialIdInner is undefined', () => {
-    expect(getEffectiveInnerWallMaterial(makeWall(), makeBuilding({ id: 'b1', type: 'berging' }))).toBeNull();
+    expect(getEffectiveInnerWallMaterial(makeWall())).toBeNull();
   });
 
   it('returns null when materialIdInner is null', () => {
-    expect(getEffectiveInnerWallMaterial(makeWall({ materialIdInner: null }), makeBuilding({ id: 'b1', type: 'berging' }))).toBeNull();
+    expect(getEffectiveInnerWallMaterial(makeWall({ materialIdInner: null }))).toBeNull();
   });
 
   it('returns the inner material id when set', () => {
-    expect(getEffectiveInnerWallMaterial(makeWall({ materialIdInner: 'osb' }), makeBuilding({ id: 'b1', type: 'berging' }))).toBe('osb');
+    expect(getEffectiveInnerWallMaterial(makeWall({ materialIdInner: 'osb' }))).toBe('osb');
   });
 });

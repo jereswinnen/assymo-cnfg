@@ -174,8 +174,8 @@ export default function Wall({ wallId }: WallProps) {
   }, [wallGeo]);
 
   // Inner cladding — resolved before the isGlass early-return so hooks run unconditionally.
-  const innerSlug = wallCfg && building
-    ? getEffectiveInnerWallMaterial(wallCfg, building, buildings)
+  const innerSlug = wallCfg
+    ? getEffectiveInnerWallMaterial(wallCfg)
     : null;
   const innerColor = innerSlug
     ? getAtomColor(materials, innerSlug, 'wall')
