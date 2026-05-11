@@ -60,6 +60,8 @@ export default function SurfaceProperties() {
   const outerActive = innerSlug != null && face === 'outer';
   const innerActive = innerSlug != null && face === 'inner';
 
+  const outerLabel = <SectionLabel>{t('wallProperties.outer')}</SectionLabel>;
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2">
@@ -71,7 +73,7 @@ export default function SurfaceProperties() {
       <div
         className={[
           'space-y-2',
-          outerActive ? 'ring-1 ring-primary/30 rounded-md p-2 -mx-2' : '',
+          outerActive ? 'ring-1 ring-primary rounded-md p-2 -mx-2' : '',
         ].join(' ')}
       >
         <div className="flex items-center justify-between">
@@ -81,11 +83,9 @@ export default function SurfaceProperties() {
               className="text-xs text-foreground hover:underline cursor-pointer"
               onClick={() => selectElement({ type: 'wall', id: wallId, buildingId, face: 'outer' })}
             >
-              <SectionLabel>{t('wallProperties.outer')}</SectionLabel>
+              {outerLabel}
             </button>
-          ) : (
-            <SectionLabel>{t('wallProperties.outer')}</SectionLabel>
-          )}
+          ) : outerLabel}
           <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer select-none">
             <Checkbox
               checked={wallCfg.materialId !== undefined}
@@ -142,7 +142,7 @@ export default function SurfaceProperties() {
         <div
           className={[
             'space-y-2',
-            innerActive ? 'ring-1 ring-primary/30 rounded-md p-2 -mx-2' : '',
+            innerActive ? 'ring-1 ring-primary rounded-md p-2 -mx-2' : '',
           ].join(' ')}
         >
           <div className="flex items-center justify-between">
