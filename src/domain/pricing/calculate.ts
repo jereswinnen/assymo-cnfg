@@ -22,6 +22,7 @@ import {
   buildDoorCatalog,
   getEffectiveWallMaterial,
   getEffectiveDoorMaterial,
+  getEffectiveInnerWallMaterial,
 } from '@/domain/materials';
 import type { SupplierProductRow } from '@/domain/supplier';
 import {
@@ -219,6 +220,20 @@ function wallLineItem(
     extrasCost,
     total: materialCost + extrasCost,
   });
+
+  // Inner cladding — additive line item, same net area, no extras.
+  const innerSlug = getEffectiveInnerWallMaterial(wallCfg, building, buildings);
+  if (innerSlug) {
+    const innerCost = area * findPrice(wallCatalog, innerSlug);
+    lineItems.push({
+      labelKey: `${WALL_LABEL_KEY[wallId] ?? wallId}.inner`,
+      area,
+      materialCost: innerCost,
+      insulationCost: 0,
+      extrasCost: 0,
+      total: innerCost,
+    });
+  }
 
   return lineItems;
 }
