@@ -158,10 +158,17 @@ export const PRODUCT_KINDS: readonly ProductKind[] = ['overkapping', 'berging', 
  *  Not every kind uses every slot (e.g. overkapping has no door on its
  *  default surfaces) but the model accepts all five and runtime code
  *  ignores slots that don't apply to the kind. */
-export type ProductSlot = 'wallCladding' | 'roofCovering' | 'roofTrim' | 'floor' | 'door';
+export type ProductSlot =
+  | 'wallCladding'
+  | 'wallCladdingInner'
+  | 'roofCovering'
+  | 'roofTrim'
+  | 'floor'
+  | 'door';
 
 export const PRODUCT_SLOTS: readonly ProductSlot[] = [
   'wallCladding',
+  'wallCladdingInner',
   'roofCovering',
   'roofTrim',
   'floor',
@@ -172,6 +179,7 @@ export const PRODUCT_SLOTS: readonly ProductSlot[] = [
  *  slug or an allow-list slug actually belongs to the right category. */
 export const PRODUCT_SLOT_TO_CATEGORY: Record<ProductSlot, MaterialCategory> = {
   wallCladding: 'wall',
+  wallCladdingInner: 'wall',
   roofCovering: 'roof-cover',
   roofTrim: 'roof-trim',
   floor: 'floor',
