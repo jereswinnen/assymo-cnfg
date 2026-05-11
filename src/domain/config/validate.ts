@@ -58,12 +58,12 @@ function doorWidthFor(size: DoorSize): number {
 }
 
 function validateMaterial(
-  slug: string | undefined,
+  slug: string | null | undefined,
   path: string,
   errors: ValidationError[],
   materials: MaterialRow[],
 ): void {
-  if (slug === undefined) return;
+  if (slug === undefined || slug === null) return;
   // When no materials are provided, skip slug validation (e.g. tests that
   // don't exercise material checking).
   if (materials.length === 0) return;
@@ -85,6 +85,7 @@ function validateWall(
   materials: MaterialRow[],
 ): void {
   validateMaterial(wall.materialId, `${basePath}.materialId`, errors, materials);
+  validateMaterial(wall.materialIdInner, `${basePath}.materialIdInner`, errors, materials);
   validateMaterial(wall.doorMaterialId, `${basePath}.doorMaterialId`, errors, materials);
 
   const wallLength = getWallLength(wallId, building.dimensions);
