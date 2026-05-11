@@ -14,6 +14,7 @@ import type { WallId } from '@/domain/building';
 
 export default function SurfaceProperties() {
   const selectedElement = useUIStore((s) => s.selectedElement);
+  const selectElement = useUIStore((s) => s.selectElement);
   const buildings = useConfigStore((s) => s.buildings);
   const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
   const selectedBuilding = selectedElement?.type === 'wall'
@@ -44,6 +45,9 @@ export default function SurfaceProperties() {
   const wallCfg = building?.walls[wallId];
   if (!wallCfg) return null;
 
+  const face: 'outer' | 'inner' = selectedElement.face ?? 'outer';
+  const innerSlug = wallCfg.materialIdInner ?? null;
+
   const label = t(`wall.${wallId}`);
   const effectiveMaterial = building ? getEffectiveWallMaterial(wallCfg, building, buildings) : 'wood';
   const currentWallEntry = wallCatalog.find(e => e.atomId === effectiveMaterial);
@@ -53,6 +57,9 @@ export default function SurfaceProperties() {
     updateBuildingWall(buildingId, wallId, { [field]: value });
   }
 
+  const outerActive = innerSlug != null && face === 'outer';
+  const innerActive = innerSlug != null && face === 'inner';
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2">
@@ -60,9 +67,25 @@ export default function SurfaceProperties() {
         <span className="text-sm font-semibold text-foreground">{label}</span>
       </div>
 
-      <div className="space-y-2">
+      {/* Outer cladding section */}
+      <div
+        className={[
+          'space-y-2',
+          outerActive ? 'ring-1 ring-primary/30 rounded-md p-2 -mx-2' : '',
+        ].join(' ')}
+      >
         <div className="flex items-center justify-between">
-          <SectionLabel>{t('surface.material')}</SectionLabel>
+          {innerSlug != null ? (
+            <button
+              type="button"
+              className="text-xs text-foreground hover:underline cursor-pointer"
+              onClick={() => selectElement({ type: 'wall', id: wallId, buildingId, face: 'outer' })}
+            >
+              <SectionLabel>{t('wallProperties.outer')}</SectionLabel>
+            </button>
+          ) : (
+            <SectionLabel>{t('wallProperties.outer')}</SectionLabel>
+          )}
           <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer select-none">
             <Checkbox
               checked={wallCfg.materialId !== undefined}
@@ -87,7 +110,7 @@ export default function SurfaceProperties() {
             }
           }}
           showPrice
-          ariaLabel={t('surface.material')}
+          ariaLabel={t('wallProperties.outer')}
         />
         {sourceProduct?.constraints.allowedMaterialsBySlot?.wallCladding?.length ? (
           <p className="mt-1 text-xs text-muted-foreground">
@@ -98,6 +121,61 @@ export default function SurfaceProperties() {
           <p className="text-[11px] text-muted-foreground italic">{t('material.inherit')}</p>
         )}
       </div>
+
+      {/* Inner cladding section */}
+      {innerSlug == null ? (
+        <button
+          type="button"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors text-left"
+          onClick={() => {
+            const seed =
+              wallCatalog.find(e => e.atomId === building?.primaryMaterialId)?.atomId
+              ?? wallCatalog[0]?.atomId;
+            if (!seed) return;
+            updateBuildingWall(buildingId, wallId, { materialIdInner: seed });
+            selectElement({ type: 'wall', id: wallId, buildingId, face: 'inner' });
+          }}
+        >
+          {t('wallProperties.addInner')}
+        </button>
+      ) : (
+        <div
+          className={[
+            'space-y-2',
+            innerActive ? 'ring-1 ring-primary/30 rounded-md p-2 -mx-2' : '',
+          ].join(' ')}
+        >
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              className="text-xs text-foreground hover:underline cursor-pointer"
+              onClick={() => selectElement({ type: 'wall', id: wallId, buildingId, face: 'inner' })}
+            >
+              <SectionLabel>{t('wallProperties.inner')}</SectionLabel>
+            </button>
+            <button
+              type="button"
+              className="text-[11px] text-muted-foreground hover:text-foreground transition-colors underline"
+              onClick={() => {
+                updateBuildingWall(buildingId, wallId, { materialIdInner: null });
+                selectElement({ type: 'wall', id: wallId, buildingId, face: 'outer' });
+              }}
+            >
+              {t('wallProperties.removeInner')}
+            </button>
+          </div>
+          {/* NOTE: inner picker reuses the same wallCatalog as outer (same allow-list).
+              Per-slot narrowing for wallCladdingInner is deferred to a future task. */}
+          <MaterialSelect
+            catalog={wallCatalog}
+            value={innerSlug}
+            category="wall"
+            onChange={(atomId) => updateBuildingWall(buildingId, wallId, { materialIdInner: atomId })}
+            showPrice
+            ariaLabel={t('wallProperties.inner')}
+          />
+        </div>
+      )}
 
       {isGlass && (
         <p className="text-xs text-muted-foreground italic">Glaswand van zijde tot zijde</p>
