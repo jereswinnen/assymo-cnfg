@@ -79,7 +79,7 @@ interface SchematicWallsProps {
   offsetY: number;
   /** Non-archived supplier products used for door/window width overrides. */
   supplierProducts: SupplierProductRow[];
-  onWallClick?: (wallId: WallId, buildingId: string) => void;
+  onWallClick?: (wallId: WallId, buildingId: string, face?: 'outer' | 'inner') => void;
 }
 
 export default function SchematicWalls({
@@ -106,6 +106,11 @@ export default function SchematicWalls({
           selectedElement.id === g.wallId &&
           selectedElement.buildingId === buildingId;
 
+        const selectedFace =
+          isSelected && selectedElement?.type === 'wall'
+            ? selectedElement.face
+            : undefined;
+
         return (
           <SolidWall
             key={g.wallId}
@@ -113,8 +118,9 @@ export default function SchematicWalls({
             cfg={cfg}
             primaryMaterialId={primaryMaterialId}
             isSelected={isSelected}
+            selectedFace={selectedFace}
             supplierProducts={supplierProducts}
-            onWallClick={onWallClick ? () => onWallClick(g.wallId, buildingId) : undefined}
+            onWallClick={onWallClick ? (face) => onWallClick(g.wallId, buildingId, face) : undefined}
           />
         );
       })}
@@ -127,6 +133,7 @@ function SolidWall({
   cfg,
   primaryMaterialId,
   isSelected,
+  selectedFace,
   supplierProducts,
   onWallClick,
 }: {
@@ -134,14 +141,37 @@ function SolidWall({
   cfg: WallConfig;
   primaryMaterialId: string;
   isSelected: boolean;
+  selectedFace?: 'outer' | 'inner';
   supplierProducts: SupplierProductRow[];
-  onWallClick?: () => void;
+  onWallClick?: (face?: 'outer' | 'inner') => void;
 }) {
   const { catalog: { materials } } = useTenant();
   const { cx, cy, orientation, length, flipSign } = geom;
   const isH = orientation === 'h';
-  const fillColor = isSelected ? '#3b82f6' : getAtomColor(materials, cfg.materialId ?? primaryMaterialId, 'wall');
-  const fillOpacity = isSelected ? 0.5 : 0.35;
+
+  const innerSlug = cfg.materialIdInner ?? null;
+  const hasInner = !!innerSlug;
+  const innerColor = hasInner
+    ? getAtomColor(materials, innerSlug, 'wall')
+    : null;
+  const halfT = T / 2;
+
+  // outerSign: +1 means outer strip sits at positive offset from wall midline
+  // For front: inward=[0,-1] so outward is [0,+1], perpendicular is Y → outer at +
+  // For back: inward=[0,+1] so outward is [0,-1], perpendicular is Y → outer at -
+  // For left: inward=[1,0] so outward is [-1,0], perpendicular is X → outer at -
+  // For right: inward=[-1,0] so outward is [1,0], perpendicular is X → outer at +
+  const outerSign =
+    geom.wallId === 'front' ? +1 :
+    geom.wallId === 'back'  ? -1 :
+    geom.wallId === 'left'  ? -1 :
+    /* right */               +1;
+
+  // Colors for single-strip mode (no inner material)
+  const fillColor = isSelected && (!hasInner || (selectedFace ?? 'outer') === 'outer')
+    ? '#3b82f6'
+    : getAtomColor(materials, cfg.materialId ?? primaryMaterialId, 'wall');
+  const fillOpacity = isSelected && (!hasInner || (selectedFace ?? 'outer') === 'outer') ? 0.5 : 0.35;
   const strokeColor = isSelected ? '#2563eb' : '#444';
 
   const windows = cfg.windows ?? [];
@@ -180,55 +210,90 @@ function SolidWall({
     segments.push([cursor, halfLen]);
   }
 
-  if (openings.length === 0) {
-    const x = isH ? cx - length / 2 : cx - T / 2;
-    const y = isH ? cy - T / 2 : cy - length / 2;
-    const w = isH ? length : T;
-    const h = isH ? T : length;
+  // Use a unified segment renderer for both code paths.
+  // When openings.length === 0, segments is empty — we use the full-length segment instead.
+  const renderSegments = openings.length === 0
+    ? [[-halfLen, halfLen] as [number, number]]
+    : segments;
+
+  const renderedRects = renderSegments.map(([s, e], i) => {
+    const segLen = e - s;
+    if (segLen < 0.01) return null;
+    const segCenter = (s + e) / 2;
+
+    if (!hasInner) {
+      const x = isH ? cx + segCenter - segLen / 2 : cx - T / 2;
+      const y = isH ? cy - T / 2 : cy + segCenter - segLen / 2;
+      const w = isH ? segLen : T;
+      const h = isH ? T : segLen;
+      return (
+        <rect
+          key={i}
+          x={x} y={y} width={w} height={h}
+          fill={fillColor}
+          fillOpacity={fillOpacity}
+          stroke={strokeColor}
+          strokeWidth={0.02}
+          cursor={onWallClick ? 'pointer' : undefined}
+          pointerEvents={onWallClick ? 'auto' : 'none'}
+          onClick={(ev) => { ev.stopPropagation(); onWallClick?.('outer'); }}
+        />
+      );
+    }
+
+    // Two strips, each half-thickness.
+    const outerOff = (outerSign * halfT) / 2;
+    const innerOff = (-outerSign * halfT) / 2;
+    const outerSelected = isSelected && (selectedFace ?? 'outer') === 'outer';
+    const innerSelected = isSelected && selectedFace === 'inner';
+    const outerStripFill = outerSelected ? '#3b82f6' : getAtomColor(materials, cfg.materialId ?? primaryMaterialId, 'wall');
+    const outerStripOpacity = outerSelected ? 0.5 : 0.35;
+    const innerStripFill = innerSelected ? '#3b82f6' : (innerColor ?? '#888');
+    const innerStripOpacity = innerSelected ? 0.5 : 0.35;
+
+    const outerRect = isH
+      ? { x: cx + segCenter - segLen / 2, y: cy + outerOff - halfT / 2, w: segLen, h: halfT }
+      : { x: cx + outerOff - halfT / 2, y: cy + segCenter - segLen / 2, w: halfT, h: segLen };
+    const innerRect = isH
+      ? { x: cx + segCenter - segLen / 2, y: cy + innerOff - halfT / 2, w: segLen, h: halfT }
+      : { x: cx + innerOff - halfT / 2, y: cy + segCenter - segLen / 2, w: halfT, h: segLen };
+
     return (
-      <rect
-        x={x}
-        y={y}
-        width={w}
-        height={h}
-        fill={fillColor}
-        fillOpacity={fillOpacity}
-        stroke={strokeColor}
-        strokeWidth={0.02}
-        cursor={onWallClick ? 'pointer' : undefined}
-        pointerEvents={onWallClick ? 'auto' : 'none'}
-        onClick={(e) => { e.stopPropagation(); onWallClick?.(); }}
-      />
+      <g key={i}>
+        <rect
+          x={outerRect.x} y={outerRect.y}
+          width={outerRect.w} height={outerRect.h}
+          fill={outerStripFill}
+          fillOpacity={outerStripOpacity}
+          stroke={strokeColor}
+          strokeWidth={0.02}
+          cursor={onWallClick ? 'pointer' : undefined}
+          pointerEvents={onWallClick ? 'auto' : 'none'}
+          onClick={(ev) => { ev.stopPropagation(); onWallClick?.('outer'); }}
+        />
+        <rect
+          x={innerRect.x} y={innerRect.y}
+          width={innerRect.w} height={innerRect.h}
+          fill={innerStripFill}
+          fillOpacity={innerStripOpacity}
+          stroke={strokeColor}
+          strokeWidth={0.02}
+          cursor={onWallClick ? 'pointer' : undefined}
+          pointerEvents={onWallClick ? 'auto' : 'none'}
+          onClick={(ev) => { ev.stopPropagation(); onWallClick?.('inner'); }}
+        />
+      </g>
     );
+  });
+
+  if (openings.length === 0) {
+    // Single-segment: return the rect/group directly (not wrapped in another <g>)
+    return <>{renderedRects[0]}</>;
   }
 
   return (
     <g>
-      {segments.map(([s, e], i) => {
-        const segLen = e - s;
-        if (segLen < 0.01) return null;
-        const segCenter = (s + e) / 2;
-        const x = isH ? cx + segCenter - segLen / 2 : cx - T / 2;
-        const y = isH ? cy - T / 2 : cy + segCenter - segLen / 2;
-        const w = isH ? segLen : T;
-        const h = isH ? T : segLen;
-        return (
-          <rect
-            key={i}
-            x={x}
-            y={y}
-            width={w}
-            height={h}
-            fill={fillColor}
-            fillOpacity={fillOpacity}
-            stroke={strokeColor}
-            strokeWidth={0.02}
-            cursor={onWallClick ? 'pointer' : undefined}
-            pointerEvents={onWallClick ? 'auto' : 'none'}
-            onClick={(e) => { e.stopPropagation(); onWallClick?.(); }}
-          />
-        );
-      })}
+      {renderedRects}
     </g>
   );
 }

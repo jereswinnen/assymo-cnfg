@@ -1194,9 +1194,9 @@ export default function SchematicView() {
     selectBuilding(newId);
   }, [addBuilding, materialDefaults, updateBuildingPosition, setPoleAttachment, setConnections, selectBuilding]);
 
-  const onWallClick = useCallback((wallId: WallId, buildingId: string) => {
+  const onWallClick = useCallback((wallId: WallId, buildingId: string, face?: 'outer' | 'inner') => {
     if (!wallElevationEnabled) return;
-    useUIStore.getState().selectElement({ type: 'wall', id: wallId, buildingId });
+    useUIStore.getState().selectElement({ type: 'wall', id: wallId, buildingId, face });
   }, [wallElevationEnabled]);
 
   return (
