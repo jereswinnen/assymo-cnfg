@@ -210,10 +210,17 @@ asymmetry between the two sides on a free-standing wall.
 `src/components/canvas/Wall.tsx`:
 
 - When `materialIdInner` is unset → render as today: one box, one material.
-- When set → render two thin slabs along the wall's thickness with a small
-  visible gap (≈2 cm, representing the wall cavity). Outer slab uses the
-  outer material; inner slab uses the inner material. Both slabs share the
-  same opening-cutout geometry (door/window holes punch through both).
+- When set → keep the wall as a single solid box of the existing
+  `WALL_THICKNESS`. No visible cavity. The outer large face is painted with
+  the outer material and the inner large face with the inner material; the
+  four thin edge faces (top, bottom, and the two short sides) inherit the
+  outer material so the wall continues to read as one solid object from any
+  oblique angle. Implementation: a per-face materials array on the existing
+  BoxGeometry — pick which of the `±z` (or `±x`, depending on wall side) face
+  indices map to outer vs inner using the wall's outward direction from the
+  same `inward` convention `getWallGeometries` already encodes. Opening
+  cutouts (door / window holes) still punch through the wall as today; both
+  cladding sides are visible through the same hole.
 
 The 3D view does not drive face selection. Selection dispatch from the 3D
 canvas leaves `face` at its current value when the click stays on the same
