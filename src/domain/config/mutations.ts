@@ -168,6 +168,15 @@ export function addBuilding(
         ? { materialId: 'beton' }
         : { ...DEFAULT_FLOOR };
 
+    // Build walls map with inner cladding already applied (if specified).
+    const walls = wallsForType(type);
+    if (productDefaults.materialIdInner) {
+      const inner = productDefaults.materialIdInner;
+      for (const wId of Object.keys(walls) as WallId[]) {
+        walls[wId].materialIdInner = inner;
+      }
+    }
+
     building = {
       id: randomId(),
       type,
@@ -178,7 +187,7 @@ export function addBuilding(
         height: productDefaults.dimensions.height ?? baseDims.height,
       },
       primaryMaterialId: productDefaults.primaryMaterialId ?? DEFAULT_PRIMARY_MATERIAL,
-      walls: wallsForType(type),
+      walls,
       hasCornerBraces: false,
       floor: productDefaults.floor
         ? { materialId: productDefaults.floor.materialId as FloorMaterialId }
@@ -187,19 +196,6 @@ export function addBuilding(
       heightOverride: null,
       sourceProductId: productDefaults.sourceProductId,
     };
-    // Hydrate inner cladding onto every wall when the product specifies it.
-    if (productDefaults.materialIdInner) {
-      const inner = productDefaults.materialIdInner;
-      building = {
-        ...building,
-        walls: Object.fromEntries(
-          Object.keys(building.walls).map((wId) => [
-            wId,
-            { ...building.walls[wId], materialIdInner: inner },
-          ]),
-        ) as typeof building.walls,
-      };
-    }
   } else {
     building = createBuilding(type, resolvedPos, materialDefaults);
   }
