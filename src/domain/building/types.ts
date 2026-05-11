@@ -37,6 +37,11 @@ export interface WallConfig {
   /** Override of the building's primaryMaterialId. When undefined the wall
    *  inherits from `BuildingEntity.primaryMaterialId`. */
   materialId?: string;
+  /** Optional inner-side cladding override. `undefined` / `null` = no inner
+   *  cladding on this wall. When a string, it must reference a non-archived
+   *  material in the tenant's `'wall'` category catalog. There is no
+   *  inherit-from-building fallback — inner cladding is per-wall only. */
+  materialIdInner?: string | null;
   hasDoor: boolean;
   /** Override for the door panel. When undefined the door inherits from
    *  the building's primaryMaterialId. */
@@ -149,6 +154,6 @@ export interface SnapConnection {
 }
 
 export type SelectedElement =
-  | { type: 'wall'; id: WallId; buildingId: string }
+  | { type: 'wall'; id: WallId; buildingId: string; face?: 'outer' | 'inner' }
   | { type: 'roof' }
   | null;
