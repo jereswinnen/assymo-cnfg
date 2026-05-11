@@ -1195,7 +1195,15 @@ export default function SchematicView() {
   }, [addBuilding, materialDefaults, updateBuildingPosition, setPoleAttachment, setConnections, selectBuilding]);
 
   const onWallClick = useCallback((wallId: WallId, buildingId: string, face?: 'outer' | 'inner') => {
-    if (!wallElevationEnabled) return;
+    // First-time wall selection from the plattegrond is gated by the
+    // wallElevationView feature flag — that gesture also enters elevation
+    // mode (driven by selectedElement?.type === 'wall'), which most tenants
+    // haven't opted into. Once a wall is already selected (via WallSelector
+    // or sidebar), plattegrond face-strip clicks are always allowed to
+    // update the selected wall / face — switching faces shouldn't require
+    // a feature flag.
+    const current = useUIStore.getState().selectedElement;
+    if (current?.type !== 'wall' && !wallElevationEnabled) return;
     useUIStore.getState().selectElement({ type: 'wall', id: wallId, buildingId, face });
   }, [wallElevationEnabled]);
 
