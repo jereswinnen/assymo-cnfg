@@ -156,23 +156,36 @@ function SolidWall({
     : null;
   const halfT = T / 2;
 
-  // outerSign: +1 means outer strip sits at positive offset from wall midline
-  // For front: inward=[0,-1] so outward is [0,+1], perpendicular is Y → outer at +
-  // For back: inward=[0,+1] so outward is [0,-1], perpendicular is Y → outer at -
-  // For left: inward=[1,0] so outward is [-1,0], perpendicular is X → outer at -
-  // For right: inward=[-1,0] so outward is [1,0], perpendicular is X → outer at +
+  // outerSign chooses on which side of the wall midline the OUTER strip sits.
+  // front/back walls run along X, so their offset is applied to cy (Y axis in
+  // SVG, which is y-down). left/right walls run along Z, offset applied to cx
+  // (X axis). The sign below puts the outer strip on the side matching each
+  // wall's outward normal in SVG (y-down) coordinates:
+  //   front: outward = +y → outer at +cy offset → +1
+  //   back:  outward = -y → outer at -cy offset → -1
+  //   left:  outward = -x → outer at -cx offset → -1
+  //   right: outward = +x → outer at +cx offset → +1
   const outerSign =
     geom.wallId === 'front' ? +1 :
     geom.wallId === 'back'  ? -1 :
     geom.wallId === 'left'  ? -1 :
     /* right */               +1;
 
-  // Colors for single-strip mode (no inner material)
-  const fillColor = isSelected && (!hasInner || (selectedFace ?? 'outer') === 'outer')
+  // Only used in the single-strip (no-inner) render path; the two-strip path
+  // computes its own per-strip selection state below.
+  const fillColor = isSelected
     ? '#3b82f6'
     : getAtomColor(materials, cfg.materialId ?? primaryMaterialId, 'wall');
-  const fillOpacity = isSelected && (!hasInner || (selectedFace ?? 'outer') === 'outer') ? 0.5 : 0.35;
+  const fillOpacity = isSelected ? 0.5 : 0.35;
   const strokeColor = isSelected ? '#2563eb' : '#444';
+
+  // Pre-compute two-strip colors/opacity (depend only on selection state + materials, not per-segment).
+  const outerSelected = isSelected && (selectedFace ?? 'outer') === 'outer';
+  const innerSelected = isSelected && selectedFace === 'inner';
+  const outerStripFill = outerSelected ? '#3b82f6' : getAtomColor(materials, cfg.materialId ?? primaryMaterialId, 'wall');
+  const outerStripOpacity = outerSelected ? 0.5 : 0.35;
+  const innerStripFill = innerSelected ? '#3b82f6' : (innerColor ?? '#888');
+  const innerStripOpacity = innerSelected ? 0.5 : 0.35;
 
   const windows = cfg.windows ?? [];
   const { doorX, windowXs } = resolveOpeningPositions(
@@ -244,12 +257,6 @@ function SolidWall({
     // Two strips, each half-thickness.
     const outerOff = (outerSign * halfT) / 2;
     const innerOff = (-outerSign * halfT) / 2;
-    const outerSelected = isSelected && (selectedFace ?? 'outer') === 'outer';
-    const innerSelected = isSelected && selectedFace === 'inner';
-    const outerStripFill = outerSelected ? '#3b82f6' : getAtomColor(materials, cfg.materialId ?? primaryMaterialId, 'wall');
-    const outerStripOpacity = outerSelected ? 0.5 : 0.35;
-    const innerStripFill = innerSelected ? '#3b82f6' : (innerColor ?? '#888');
-    const innerStripOpacity = innerSelected ? 0.5 : 0.35;
 
     const outerRect = isH
       ? { x: cx + segCenter - segLen / 2, y: cy + outerOff - halfT / 2, w: segLen, h: halfT }
