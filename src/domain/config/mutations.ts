@@ -187,6 +187,19 @@ export function addBuilding(
       heightOverride: null,
       sourceProductId: productDefaults.sourceProductId,
     };
+    // Hydrate inner cladding onto every wall when the product specifies it.
+    if (productDefaults.materialIdInner) {
+      const inner = productDefaults.materialIdInner;
+      building = {
+        ...building,
+        walls: Object.fromEntries(
+          Object.keys(building.walls).map((wId) => [
+            wId,
+            { ...building.walls[wId], materialIdInner: inner },
+          ]),
+        ) as typeof building.walls,
+      };
+    }
   } else {
     building = createBuilding(type, resolvedPos, materialDefaults);
   }
