@@ -1,17 +1,18 @@
 'use client';
 
 import { useRef, useMemo, useEffect, useCallback } from 'react';
+import * as THREE from 'three';
 import { Mesh } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore } from "@/store/useUIStore";
 import { WALL_THICKNESS, resolveOpeningPositions, getWallLength } from '@/domain/building';
-import { getAtomColor, getEffectiveWallMaterial, getEffectiveDoorMaterial } from '@/domain/materials';
+import { getAtomColor, getEffectiveWallMaterial, getEffectiveDoorMaterial, getEffectiveInnerWallMaterial } from '@/domain/materials';
 import { useTenant } from '@/lib/TenantProvider';
 import { useWallTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
 import { WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT } from '@/domain/building';
-import { createWallWithOpeningsGeo, doorWidth, DOOR_H, FRAME_D } from './wallGeometry';
+import { createWallWithOpeningsGeo, createInnerCladdingGeo, doorWidth, DOOR_H, FRAME_D } from './wallGeometry';
 import type { DoorHole, WindowHole } from './wallGeometry';
 import { frameMat } from './DoorMesh';
 import DoorMesh from './DoorMesh';
@@ -172,6 +173,33 @@ export default function Wall({ wallId }: WallProps) {
     return () => { wallGeo?.dispose(); };
   }, [wallGeo]);
 
+  // Inner cladding — resolved before the isGlass early-return so hooks run unconditionally.
+  const innerSlug = wallCfg && building
+    ? getEffectiveInnerWallMaterial(wallCfg, building, buildings)
+    : null;
+  const innerColor = innerSlug
+    ? getAtomColor(materials, innerSlug, 'wall')
+    : null;
+  // useWallTexture must be called unconditionally; feed the outer slug as
+  // placeholder when there's no inner slug (the result is unused in that case).
+  const innerTexture = useWallTexture(innerSlug ?? materialId, wallLength, height);
+
+  const innerGeo = useMemo(() => {
+    if (!innerSlug) return null;
+    return createInnerCladdingGeo(
+      wallLength,
+      height,
+      WALL_THICKNESS,
+      wallId,
+      doorHole,
+      windowHoles,
+    );
+  }, [innerSlug, wallLength, height, wallId, doorHole, windowHoles]);
+
+  useEffect(() => {
+    return () => { innerGeo?.dispose(); };
+  }, [innerGeo]);
+
   const isGlass = materialId === 'glass';
 
   if (isGlass) {
@@ -218,6 +246,27 @@ export default function Wall({ wallId }: WallProps) {
           emissiveIntensity={isSelected ? 0.35 : hovered ? 0.15 : 0}
         />
       </mesh>
+
+      {innerSlug && innerGeo && (
+        <mesh
+          position={position}
+          rotation={rotation}
+          castShadow
+          receiveShadow
+        >
+          <primitive object={innerGeo} attach="geometry" />
+          <meshStandardMaterial
+            color={innerTexture?.map ? (WALL_TEXTURE_TINT[innerSlug] ?? '#ffffff') : (innerColor ?? '#888')}
+            map={innerTexture?.map ?? undefined}
+            normalMap={innerTexture?.normalMap ?? undefined}
+            roughnessMap={innerTexture?.roughnessMap ?? undefined}
+            metalness={0.1}
+            roughness={innerTexture?.roughnessMap ? 1 : 0.7}
+            envMapIntensity={WALL_ENV_MAP_INTENSITY[innerSlug] ?? 0.4}
+            side={THREE.BackSide}
+          />
+        </mesh>
+      )}
 
       <WallOpenings
         wallId={wallId}
