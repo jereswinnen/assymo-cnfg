@@ -22,7 +22,9 @@ export interface MaterialTextures {
 /** Per-category pricing entries. Each category contributes its own
  *  pricing shape: `perSqm` for surface-charged slots (wall / roof-cover /
  *  floor / gate), `surcharge` for flat-added slots (door). `roof-trim` has no
- *  pricing, so it's omitted from the map rather than stored as empty. */
+ *  pricing, so it's omitted from the map rather than stored as empty. `middenlaag`
+ *  carries a discriminated union — `kind: 'panel'` with `perSqm` (like wall)
+ *  OR `kind: 'frame'` with `perBeam` (per-beam count, similar to door's flat-extra shape). */
 export interface WallPricing {
   perSqm: number;
 }
