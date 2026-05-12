@@ -86,6 +86,7 @@ function validateWall(
 ): void {
   validateMaterial(wall.materialId, `${basePath}.materialId`, errors, materials);
   validateMaterial(wall.materialIdInner, `${basePath}.materialIdInner`, errors, materials);
+  validateMaterial(wall.materialIdMiddenlaag, `${basePath}.materialIdMiddenlaag`, errors, materials);
   validateMaterial(wall.doorMaterialId, `${basePath}.doorMaterialId`, errors, materials);
 
   const wallLength = getWallLength(wallId, building.dimensions);
