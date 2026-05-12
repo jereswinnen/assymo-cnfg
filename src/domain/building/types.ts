@@ -42,6 +42,11 @@ export interface WallConfig {
    *  material in the tenant's `'wall'` category catalog. There is no
    *  inherit-from-building fallback — inner cladding is per-wall only. */
   materialIdInner?: string | null;
+  /** Optional middenlaag (middle-layer material) — references a non-archived
+   *  material row whose `categories` includes `'middenlaag'`. `undefined` /
+   *  `null` = no middenlaag on this wall. Per-wall only — no
+   *  inherit-from-building fallback. */
+  materialIdMiddenlaag?: string | null;
   hasDoor: boolean;
   /** Override for the door panel. When undefined the door inherits from
    *  the building's primaryMaterialId. */
