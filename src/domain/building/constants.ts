@@ -70,6 +70,17 @@ export function autoPoleLayout(width: number, depth: number): import('@/domain/b
 
 export const WALL_THICKNESS = 0.15;
 
+/** Proportions of `WALL_THICKNESS` allocated to each cladding layer when a
+ *  wall has middenlaag and/or inner cladding set. Sum must equal 1.0.
+ *  Outer + inner are the painted skins; middenlaag is the middle filling.
+ *  These are fixed for v1; a follow-up may derive wall thickness from the
+ *  chosen middenlaag's `thicknessMm` instead. */
+export const WALL_LAYER_PROPORTIONS = {
+  outerCladding: 0.20,
+  middenlaag:    0.60,
+  innerCladding: 0.20,
+} as const;
+
 // Timber frame geometry
 export const POST_SIZE = 0.15;
 export const BEAM_H = 0.20;
