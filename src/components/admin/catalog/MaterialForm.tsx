@@ -52,6 +52,12 @@ const schema = z.object({
   priceFloor: z.number().nullable(),
   priceDoor: z.number().nullable(),
   priceGate: z.number().nullable(),
+  middenlaagKind: z.enum(['panel', 'frame']).nullable(),
+  middenlaagThicknessMm: z.number().nullable(),
+  middenlaagPerSqm: z.number().nullable(),
+  middenlaagBeamWidthMm: z.number().nullable(),
+  middenlaagBeamSpacingMm: z.number().nullable(),
+  middenlaagPerBeam: z.number().nullable(),
   clearsOpenings: z.boolean(),
   isVoid: z.boolean(),
 });
@@ -86,6 +92,24 @@ export function MaterialForm({
           priceFloor: initial.pricing.floor?.perSqm ?? null,
           priceDoor: initial.pricing.door?.surcharge ?? null,
           priceGate: initial.pricing.gate?.perSqm ?? null,
+          middenlaagKind: initial.pricing.middenlaag?.kind ?? null,
+          middenlaagThicknessMm: initial.pricing.middenlaag?.thicknessMm ?? null,
+          middenlaagPerSqm:
+            initial.pricing.middenlaag?.kind === 'panel'
+              ? initial.pricing.middenlaag.perSqm
+              : null,
+          middenlaagBeamWidthMm:
+            initial.pricing.middenlaag?.kind === 'frame'
+              ? initial.pricing.middenlaag.beamWidthMm
+              : null,
+          middenlaagBeamSpacingMm:
+            initial.pricing.middenlaag?.kind === 'frame'
+              ? initial.pricing.middenlaag.beamSpacingMm
+              : null,
+          middenlaagPerBeam:
+            initial.pricing.middenlaag?.kind === 'frame'
+              ? initial.pricing.middenlaag.perBeam
+              : null,
           clearsOpenings: initial.flags.clearsOpenings ?? false,
           isVoid: initial.flags.isVoid ?? false,
         }
@@ -104,6 +128,12 @@ export function MaterialForm({
           priceFloor: null,
           priceDoor: null,
           priceGate: null,
+          middenlaagKind: null,
+          middenlaagThicknessMm: null,
+          middenlaagPerSqm: null,
+          middenlaagBeamWidthMm: null,
+          middenlaagBeamSpacingMm: null,
+          middenlaagPerBeam: null,
           clearsOpenings: false,
           isVoid: false,
         },
@@ -117,6 +147,8 @@ export function MaterialForm({
   const hasFloor = categories.includes('floor');
   const hasDoor = categories.includes('door');
   const hasGate = categories.includes('gate');
+  const hasMiddenlaag = categories.includes('middenlaag');
+  const middenlaagKind = form.watch('middenlaagKind');
 
   async function onSubmit(values: FormValues) {
     const pricing: MaterialPricing = {};
@@ -125,6 +157,23 @@ export function MaterialForm({
     if (values.categories.includes('floor')) pricing.floor = { perSqm: values.priceFloor ?? 0 };
     if (values.categories.includes('door')) pricing.door = { surcharge: values.priceDoor ?? 0 };
     if (values.categories.includes('gate')) pricing.gate = { perSqm: values.priceGate ?? 0 };
+    if (values.categories.includes('middenlaag')) {
+      if (values.middenlaagKind === 'panel') {
+        pricing.middenlaag = {
+          kind: 'panel',
+          thicknessMm: values.middenlaagThicknessMm ?? 0,
+          perSqm: values.middenlaagPerSqm ?? 0,
+        };
+      } else if (values.middenlaagKind === 'frame') {
+        pricing.middenlaag = {
+          kind: 'frame',
+          thicknessMm: values.middenlaagThicknessMm ?? 0,
+          beamWidthMm: values.middenlaagBeamWidthMm ?? 0,
+          beamSpacingMm: values.middenlaagBeamSpacingMm ?? 0,
+          perBeam: values.middenlaagPerBeam ?? 0,
+        };
+      }
+    }
 
     const body: Record<string, unknown> = {
       tenantId,
@@ -369,7 +418,7 @@ export function MaterialForm({
         </Card>
 
         {/* Prijs — one input per selected pricing-bearing category */}
-        {(hasWall || hasRoofCover || hasFloor || hasDoor || hasGate) && (
+        {(hasWall || hasRoofCover || hasFloor || hasDoor || hasGate || hasMiddenlaag) && (
           <Card>
             <CardHeader>
               <CardTitle>{t('admin.catalog.materials.field.pricing')}</CardTitle>
@@ -414,6 +463,84 @@ export function MaterialForm({
                   name="priceGate"
                   form={form}
                 />
+              )}
+              {hasMiddenlaag && (
+                <div className="space-y-3 rounded-md border border-border p-3">
+                  <FormField
+                    control={form.control}
+                    name="middenlaagKind"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('admin.catalog.materials.field.middenlaag.kind')}</FormLabel>
+                        <FormControl>
+                          <select
+                            className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            value={field.value ?? ''}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              field.onChange(v === '' ? null : (v as 'panel' | 'frame'));
+                            }}
+                          >
+                            <option value="">—</option>
+                            <option value="panel">
+                              {t('admin.catalog.materials.field.middenlaag.kind.panel')}
+                            </option>
+                            <option value="frame">
+                              {t('admin.catalog.materials.field.middenlaag.kind.frame')}
+                            </option>
+                          </select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {middenlaagKind === 'panel' && (
+                    <>
+                      <PriceRow
+                        label={t('admin.catalog.materials.field.middenlaag.thicknessMm')}
+                        suffix="mm"
+                        name="middenlaagThicknessMm"
+                        form={form}
+                      />
+                      <PriceRow
+                        label={t('admin.catalog.materials.field.middenlaag.perSqm')}
+                        suffix="€/m²"
+                        name="middenlaagPerSqm"
+                        form={form}
+                      />
+                    </>
+                  )}
+
+                  {middenlaagKind === 'frame' && (
+                    <>
+                      <PriceRow
+                        label={t('admin.catalog.materials.field.middenlaag.beamDepthMm')}
+                        suffix="mm"
+                        name="middenlaagThicknessMm"
+                        form={form}
+                      />
+                      <PriceRow
+                        label={t('admin.catalog.materials.field.middenlaag.beamWidthMm')}
+                        suffix="mm"
+                        name="middenlaagBeamWidthMm"
+                        form={form}
+                      />
+                      <PriceRow
+                        label={t('admin.catalog.materials.field.middenlaag.beamSpacingMm')}
+                        suffix="mm"
+                        name="middenlaagBeamSpacingMm"
+                        form={form}
+                      />
+                      <PriceRow
+                        label={t('admin.catalog.materials.field.middenlaag.perBeam')}
+                        suffix="€"
+                        name="middenlaagPerBeam"
+                        form={form}
+                      />
+                    </>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>
@@ -521,7 +648,17 @@ function PriceRow({
 }: {
   label: string;
   suffix: string;
-  name: 'priceWall' | 'priceRoofCover' | 'priceFloor' | 'priceDoor' | 'priceGate';
+  name:
+    | 'priceWall'
+    | 'priceRoofCover'
+    | 'priceFloor'
+    | 'priceDoor'
+    | 'priceGate'
+    | 'middenlaagThicknessMm'
+    | 'middenlaagPerSqm'
+    | 'middenlaagBeamWidthMm'
+    | 'middenlaagBeamSpacingMm'
+    | 'middenlaagPerBeam';
   form: ReturnType<typeof useForm<FormValues>>;
 }) {
   return (

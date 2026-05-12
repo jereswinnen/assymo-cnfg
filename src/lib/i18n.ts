@@ -657,6 +657,7 @@ const nl: Record<string, string> = {
   "admin.catalog.materials.category.floor": "Vloeren",
   "admin.catalog.materials.category.door": "Deuren",
   "admin.catalog.materials.category.gate": "Poorten",
+  "admin.catalog.materials.category.middenlaag": "Middenlaag",
 
   "admin.catalog.materials.field.name": "Naam",
   "admin.catalog.materials.field.slug": "Slug",
@@ -882,6 +883,19 @@ const nl: Record<string, string> = {
   "admin.catalog.materials.field.price.floor": "Prijs als vloer (per m²)",
   "admin.catalog.materials.field.price.door": "Toeslag als deur",
   "admin.catalog.materials.field.price.gate": "Prijs als poort (per m²)",
+
+  "admin.catalog.materials.field.middenlaag.kind": "Type middenlaag",
+  "admin.catalog.materials.field.middenlaag.kind.panel": "Paneel",
+  "admin.catalog.materials.field.middenlaag.kind.frame": "Frame",
+  "admin.catalog.materials.field.middenlaag.thicknessMm": "Dikte (mm)",
+  "admin.catalog.materials.field.middenlaag.beamWidthMm": "Breedte balk (mm)",
+  "admin.catalog.materials.field.middenlaag.beamSpacingMm": "H.o.h. (mm)",
+  "admin.catalog.materials.field.middenlaag.beamDepthMm": "Diepte balk (mm)",
+  "admin.catalog.materials.field.middenlaag.perSqm": "Prijs per m²",
+  "admin.catalog.materials.field.middenlaag.perBeam": "Prijs per balk",
+  "admin.catalog.materials.field.middenlaag.depthHint": "Typisch 35–89 mm (SLS)",
+  "admin.catalog.materials.field.middenlaag.widthHint": "Typisch 38–45 mm",
+  "admin.catalog.materials.field.middenlaag.spacingHint": "Typisch 400–600 mm",
 
   "admin.catalog.products.archive.title": "Product archiveren?",
   "admin.catalog.products.archive.description":
