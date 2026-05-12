@@ -387,11 +387,16 @@ function FramePosts({
   const beamW = beamWidthMm / 1000;
   const spacing = beamSpacingMm / 1000;
 
-  const rawCount = Math.ceil(wallLength / spacing) + 1;
+  // Inset the outer posts by half a beam width so their outer faces sit
+  // flush with the wall ends instead of protruding past them. Inner posts
+  // distribute evenly across the remaining span.
   const halfL = wallLength / 2;
-  const step = wallLength / (rawCount - 1);
+  const innerSpan = Math.max(0, wallLength - beamW);
+  const rawCount = Math.max(2, Math.ceil(innerSpan / spacing) + 1);
+  const step = innerSpan / (rawCount - 1);
+  const firstX = -halfL + beamW / 2;
 
-  const posts = Array.from({ length: rawCount }, (_, k) => -halfL + k * step)
+  const posts = Array.from({ length: rawCount }, (_, k) => firstX + k * step)
     .filter(localX => {
       if (doorHole) {
         const dHalf = doorHole.width / 2;
