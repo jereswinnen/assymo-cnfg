@@ -20,31 +20,47 @@ describe('detectPoleSnap', () => {
   });
 
   it('snaps to a building edge when within the tighter pole threshold', () => {
-    // Pole at (2, -0.1): 0.1m above the front edge (y=0) of the berging
+    // Pole at (2, -0.1): 0.1m above the front edge (y=0) of the berging.
+    // Face-flush candidates: pole outside at z = -POST_SIZE/2 = -0.075, pole
+    // inside at z = +0.075. -0.1 is closer to -0.075 → outside-flush.
     const result = detectPoleSnap([2, -0.1], [structural]);
     expect(result.attachedTo).toBe('b1');
-    expect(result.center[1]).toBeCloseTo(0, 3);
+    expect(result.center[1]).toBeCloseTo(-0.075, 3);
   });
 
-  it('does not snap a pole 0.3m away (above old 0.5m threshold, below new 0.25m)', () => {
-    // Guards the tightened threshold: at 0.3m the old behavior would snap,
-    // the new behavior should not.
-    const result = detectPoleSnap([2, -0.3], [structural]);
+  it('does not snap a pole well outside any face-flush candidate', () => {
+    // Guards the tightened threshold. With face-flush snap the outermost
+    // candidate is at z = -POST_SIZE/2 = -0.075 and the threshold is 0.25, so
+    // anything beyond ~0.325 is out of range. -0.35 is safely past that.
+    const result = detectPoleSnap([2, -0.35], [structural]);
     expect(result.attachedTo).toBeNull();
   });
 
-  it('prefers corner detents over edge slide when both are in range', () => {
-    // Pole very close to the top-left corner (0, 0)
+  it('detents to a face-flush position next to a corner post', () => {
+    // Pole near the front-left corner (corner post at (0, 0)). Pass 1
+    // catches the inside-flush front face (snapZ = 0.075). Pass 2 corner
+    // detent pulls the X to the corner post's east face (lx + POST_SIZE
+    // = 0.15) — pole sits beside the corner post on the inside-flush row.
     const result = detectPoleSnap([0.08, 0.08], [structural]);
     expect(result.attachedTo).toBe('b1');
-    expect(result.center[0]).toBeCloseTo(0, 3);
-    expect(result.center[1]).toBeCloseTo(0, 3);
+    expect(result.center[0]).toBeCloseTo(0.15, 3);
+    expect(result.center[1]).toBeCloseTo(0.075, 3);
   });
 
-  it('ignores other poles as snap targets (only structural)', () => {
-    const other = makeBuilding({ id: 'p1', type: 'paal', position: [2, 0], dimensions: { width: 0.15, depth: 0.15, height: 2.6 } });
-    const result = detectPoleSnap([2.05, 0.05], [other]);
-    expect(result.attachedTo).toBeNull();
+  it('snaps face-flush against another standalone paal', () => {
+    // Static paal at (2, 0) — centre at (2.075, 0.075). Dragged paal at
+    // (2.05, -0.05) is unambiguously above the static paal; the "north"
+    // face-flush target is (2.075, -0.075).
+    const other = makeBuilding({
+      id: 'p1',
+      type: 'paal',
+      position: [2, 0],
+      dimensions: { width: 0.15, depth: 0.15, height: 2.6 },
+    });
+    const result = detectPoleSnap([2.05, -0.05], [other]);
+    expect(result.attachedTo).toBe('p1');
+    expect(result.center[0]).toBeCloseTo(2.075, 3);
+    expect(result.center[1]).toBeCloseTo(-0.075, 3);
   });
 });
 
@@ -119,8 +135,45 @@ describe('detectWallSnap (standalone muur)', () => {
     // Wall length 4, right endpoint at x=4.05 → near the auto post at x=4.
     const res = detectWallSnap([0.05, -0.075], 4, 'horizontal', [overkapping]);
     expect(res.attachedTo).toBe('ok');
-    // Right endpoint should land on x=4, so position[0] = 4 - 4 = 0.
-    expect(res.position[0]).toBeCloseTo(0, 3);
+    // Pole at x=4 has long-axis faces at x=4 ± POST_SIZE/2 = 3.925, 4.075.
+    // Right endpoint 4.05 is closer to 4.075 → wall ends flush with pole's
+    // far face. position[0] = 4.075 - 4 = 0.075.
+    expect(res.position[0]).toBeCloseTo(0.075, 3);
+  });
+
+  it('seats a wall flush against a corner post without overlapping it', () => {
+    // 7.8m × 3m overkapping at the origin has implicit POST_SIZE-square corner
+    // posts at each corner. Drag a 3m horizontal wall near the front-left
+    // corner so its centre roughly straddles the front edge.
+    const overkapping = makeBuilding({
+      id: 'ok',
+      type: 'overkapping',
+      position: [0, 0],
+      dimensions: { width: 7.8, depth: 3, height: 2.6 },
+    });
+    const res = detectWallSnap([0, -0.075], 3, 'horizontal', [overkapping]);
+    expect(res.attachedTo).toBe('ok');
+    // Wall's left end at the corner post's right face (lx + POST_SIZE/2),
+    // wall midline straddling the front edge so it shares the post line.
+    expect(res.position[0]).toBeCloseTo(0.075, 3);
+    expect(res.position[1]).toBeCloseTo(-0.075, 3);
+  });
+
+  it('snaps a vertical wall to the corner post when approaching from the left', () => {
+    // Depth 8 keeps the wall's far endpoint clear of the left-edge midpoint
+    // detent (the test's interest is the near endpoint vs the corner post).
+    const overkapping = makeBuilding({
+      id: 'ok',
+      type: 'overkapping',
+      position: [0, 0],
+      dimensions: { width: 4, depth: 8, height: 2.6 },
+    });
+    // Vertical wall 3m long, top endpoint near front-left corner pole.
+    const res = detectWallSnap([-0.075, 0], 3, 'vertical', [overkapping]);
+    expect(res.attachedTo).toBe('ok');
+    // Wall straddles the left edge, top end seated against the corner post.
+    expect(res.position[0]).toBeCloseTo(-0.075, 3);
+    expect(res.position[1]).toBeCloseTo(0.075, 3);
   });
 
   it('honors a manually-overridden poles config when detenting endpoints', () => {
@@ -131,11 +184,13 @@ describe('detectWallSnap (standalone muur)', () => {
       dimensions: { width: 6, depth: 4, height: 2.6 },
       poles: { front: [0.25, 0.75], back: [], left: [], right: [] },
     });
-    // Manual front pole at x = 0.25 * 6 = 1.5, on z=0.
-    // Place a horizontal wall whose left endpoint is near (1.5, 0).
+    // Manual front pole at x = 0.25 * 6 = 1.5, on z=0. Pole long-axis faces
+    // at 1.425, 1.575. Wall body extends right from its left endpoint, so the
+    // endpoint at 1.55 is closer to 1.575 → wall lands inner-flush (left end
+    // touches pole's right face). position[0] = 1.575.
     const res = detectWallSnap([1.55, -0.075], 2, 'horizontal', [overkapping]);
     expect(res.attachedTo).toBe('ok');
-    expect(res.position[0]).toBeCloseTo(1.5, 3);
+    expect(res.position[0]).toBeCloseTo(1.575, 3);
   });
 
   it('detents a wall endpoint to a 1-part poort the same way it does to a muur', () => {
@@ -207,11 +262,10 @@ describe('detectWallPoleSnap', () => {
     expect(snapped).toBe(3);
   });
 
-  it('snaps a horizontal wall endpoint to a manual pole on the front edge', () => {
-    // 9m × 4m overkapping at origin, manual pole on front edge at fraction 0.4
-    // → world (3.6, 0). A horizontal wall sitting flush with the front edge
-    // (perp Z midline ≈ 0) is being resized along X; pointer near 3.55 should
-    // snap to the pole's X = 3.6.
+  it('snaps a horizontal wall endpoint to the near face of a manual pole on the front edge', () => {
+    // Manual pole at fraction 0.4 → world X = 3.6. The resize edge snaps
+    // to the pole's near long-axis face (X = 3.6 ± POST_SIZE/2), not its
+    // centre. Pointer 3.55 → nearest face is 3.525.
     const ok = makeBuilding({
       id: 'ok',
       type: 'overkapping',
@@ -220,12 +274,11 @@ describe('detectWallPoleSnap', () => {
       poles: { front: [0.4], back: [], left: [], right: [] },
     });
     const snapped = detectWallPoleSnap(3.55, 'x', 0, [ok]);
-    expect(snapped).toBeCloseTo(3.6, 3);
+    expect(snapped).toBeCloseTo(3.525, 3);
   });
 
-  it('snaps a vertical wall endpoint to a manual pole on the left edge', () => {
-    // 6m × 9m overkapping; manual pole on left edge at fraction 1/3 → world (0, 3).
-    // Vertical wall on left edge (perp X midline ≈ 0); endpoint Z near 2.95 → 3.
+  it('snaps a vertical wall endpoint to the near face of a manual pole on the left edge', () => {
+    // Manual pole at fraction 1/3 of d=9 → world Z = 3. Faces at 2.925, 3.075.
     const ok = makeBuilding({
       id: 'ok',
       type: 'overkapping',
@@ -234,13 +287,11 @@ describe('detectWallPoleSnap', () => {
       poles: { front: [], back: [], left: [1 / 3], right: [] },
     });
     const snapped = detectWallPoleSnap(2.95, 'z', 0, [ok]);
-    expect(snapped).toBeCloseTo(3, 3);
+    expect(snapped).toBeCloseTo(2.925, 3);
   });
 
-  it('snaps to an auto pole when no manual override is set', () => {
-    // 9m wide overkapping, no manual poles → autoPoleLayout puts intermediates
-    // at front fractions [1/3, 2/3] → world X = 3, 6. Wall at perp Z=0
-    // resizing toward the second auto pole at X=6.
+  it('snaps to the near face of an auto pole when no manual override is set', () => {
+    // Auto front poles at fractions [1/3, 2/3] → X = 3, 6. Faces at 5.925, 6.075.
     const ok = makeBuilding({
       id: 'ok',
       type: 'overkapping',
@@ -248,7 +299,22 @@ describe('detectWallPoleSnap', () => {
       dimensions: { width: 9, depth: 4, height: 2.6 },
     });
     const snapped = detectWallPoleSnap(5.95, 'x', 0, [ok]);
-    expect(snapped).toBeCloseTo(6, 3);
+    expect(snapped).toBeCloseTo(5.925, 3);
+  });
+
+  it('snaps to the near face of a corner post', () => {
+    // Wall sitting on the front edge (wallPerp = 0) being resized along X.
+    // The corner posts at (lx=0, tz=0) and (lx+w=9, tz=0) are now snap
+    // targets too — pointer 8.95 should snap to the right corner post's
+    // left face (X = 9 − POST_SIZE/2 = 8.925), not its centre (X = 9).
+    const ok = makeBuilding({
+      id: 'ok',
+      type: 'overkapping',
+      position: [0, 0],
+      dimensions: { width: 9, depth: 4, height: 2.6 },
+    });
+    const snapped = detectWallPoleSnap(8.95, 'x', 0, [ok]);
+    expect(snapped).toBeCloseTo(8.925, 3);
   });
 
   it('does not snap to a pole on the opposite edge of the building', () => {
@@ -266,21 +332,25 @@ describe('detectWallPoleSnap', () => {
     expect(snapped).toBe(3.55);
   });
 
-  it('ignores muur, poort, and paal entities', () => {
+  it('ignores muur and poort entities (but standalone palen are valid snap targets)', () => {
+    // muur/poort have their own end-face snap handled elsewhere — they don't
+    // contribute resize-pole candidates. Standalone palen do.
     const m = makeBuilding({ id: 'm', type: 'muur', position: [0, 0], dimensions: { width: 4, depth: 0.15, height: 2.6 } });
-    const p = makeBuilding({ id: 'p', type: 'paal', position: [3, 0], dimensions: { width: 0.15, depth: 0.15, height: 2.6 } });
-    const snapped = detectWallPoleSnap(3.55, 'x', 0, [m, p]);
+    const snapped = detectWallPoleSnap(3.55, 'x', 0, [m]);
     expect(snapped).toBe(3.55);
+
+    // Standalone paal at (3, 0): faces along X at 3.075, 2.925.
+    const p = makeBuilding({ id: 'p', type: 'paal', position: [3, 0], dimensions: { width: 0.15, depth: 0.15, height: 2.6 } });
+    // Wall on the same perp Z as the paal — paal's right face is X=3.225 (paal lx=3 + width 0.15 = 3.15; centre 3.075).
+    // Centre = 3 + 0.15/2 = 3.075. Faces at 3.0 and 3.15. Pointer 3.05 closer to 3.0.
+    const snappedToPaal = detectWallPoleSnap(3.05, 'x', 0.075, [p]);
+    expect(snappedToPaal).toBeCloseTo(3.0, 3);
   });
 });
 
 describe('detectWallResizeSnap', () => {
-  it('snaps to a manual pole even when no structural edge is in range', () => {
-    // Regression for the original failing UI scenario: the pole sits 0.05m
-    // away while the nearest structural edge is 0.95m away. detectResizeSnap
-    // returns the raw value (no snap), and a naive "closer to raw wins"
-    // composer would mistake that as a perfect match — this composer must
-    // recognize "raw === no snap" and pick the pole.
+  it('snaps to the near face of a manual pole', () => {
+    // Manual pole at X = 3.6, faces at 3.525 / 3.675. Pointer 3.55 → 3.525.
     const ok = makeBuilding({
       id: 'ok',
       type: 'overkapping',
@@ -289,33 +359,33 @@ describe('detectWallResizeSnap', () => {
       poles: { front: [0.4], back: [], left: [], right: [] },
     });
     const snapped = detectWallResizeSnap(3.55, 'x', 'right', -0.075, 0.075, 0, [ok]);
-    expect(snapped).toBeCloseTo(3.6, 3);
+    expect(snapped).toBeCloseTo(3.525, 3);
   });
 
-  it('snaps to a structural edge when no pole is in range', () => {
+  it('snaps to a building edge when no pole is in range', () => {
+    // Wall perp Z = 2 (middle of building) so no corner posts engage.
     const ok = makeBuilding({
       id: 'ok',
       type: 'overkapping',
       position: [0, 0],
       dimensions: { width: 9, depth: 4, height: 2.6 },
     });
-    // Wall right edge at 8.95, near building's right edge at 9.
-    const snapped = detectWallResizeSnap(8.95, 'x', 'right', -0.075, 0.075, 0, [ok]);
+    const snapped = detectWallResizeSnap(8.95, 'x', 'right', 1.925, 2.075, 2, [ok]);
     expect(snapped).toBeCloseTo(9, 3);
   });
 
-  it('picks the closer of pole and structural edge when both are in range', () => {
-    // Pole at fraction 8.7/9 → world X = 8.7. Structural right edge at 9.
-    // Raw 8.78 → pole dist 0.08, edge dist 0.22 → pick pole.
+  it('prefers a pole-face snap over a building-edge snap at the same coordinate', () => {
+    // The building's right edge at X = 9 coincides with the right corner
+    // post's centre, but the user wants side-to-side contact with the post,
+    // not the post's midline. Pointer 8.95 → corner post's left face at 8.925.
     const ok = makeBuilding({
       id: 'ok',
       type: 'overkapping',
       position: [0, 0],
       dimensions: { width: 9, depth: 4, height: 2.6 },
-      poles: { front: [8.7 / 9], back: [], left: [], right: [] },
     });
-    const snapped = detectWallResizeSnap(8.78, 'x', 'right', -0.075, 0.075, 0, [ok]);
-    expect(snapped).toBeCloseTo(8.7, 3);
+    const snapped = detectWallResizeSnap(8.95, 'x', 'right', -0.075, 0.075, 0, [ok]);
+    expect(snapped).toBeCloseTo(8.925, 3);
   });
 
   it('returns the raw value when nothing is in range', () => {
