@@ -10,6 +10,7 @@ import { useTenant } from '@/lib/TenantProvider';
 import { useEffectivePostSize } from '@/lib/useEffectivePostSize';
 import { useRoofTexture, useWallTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
+import { BEAM_H } from '@/domain/building';
 import type { MaterialRow } from '@/domain/catalog';
 
 const EPDM_THICKNESS = 0.02;
@@ -313,13 +314,15 @@ function FlatRoof({
       ))}
 
       {/* Middenlaag (rafters / insulation panel) — sits INSIDE the cavity
-          below the EPDM deck (top anchor = fasciaTopY), occupying the
-          cavity downward. */}
+          ABOVE the wall plate beam, BELOW the structural deck/EPDM. The
+          deck/EPDM is opaque from below, so anchoring above it hid the
+          rafters. Anchor at the top-plate-beam TOP (= wall_top + BEAM_H)
+          so rafters hang into the cavity, visible from below the eaves. */}
       {middenlaagSlug && middenlaagPricing && middenlaagPricing.kind === 'frame' && (
         <FlatFrameRafters
           width={width}
           depth={depth}
-          topY={fasciaTopY}
+          topY={height + BEAM_H}
           beamsAlongX={beamsAlongX}
           beamSpan={beamSpan}
           beamSpread={beamSpread}
