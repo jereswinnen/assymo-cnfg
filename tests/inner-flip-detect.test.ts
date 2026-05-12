@@ -59,6 +59,41 @@ describe('detectInnerFlip', () => {
     expect(detectInnerFlip(muur, [muur, farOk])).toBe(false);
   });
 
+  it('vertical muur — returns true when default-outer points toward centroid (flip needed)', () => {
+    // Vertical muur: world centre = (position.x + depth/2, position.z + width/2)
+    //   = (-1 + 0.075, 0 + 1.5) = (-0.925, 1.5).
+    // Overkapping at origin (4×4) → centroid (2, 2).
+    // Vertical default-outer = [+1, 0] (π/2 Y-rotation maps local +Z → world +X).
+    // Outer face: (-0.925 + 0.075, 1.5) = (-0.85, 1.5).
+    // dist(outer (-0.85, 1.5), centroid (2, 2)) = sqrt(2.85²+0.5²) ≈ 2.89
+    // dist(inner (-1.00, 1.5), centroid (2, 2)) = sqrt(3.00²+0.5²) ≈ 3.04
+    // Outer closer → flip needed → expect true.
+    const muur = makeBuilding({
+      id: 'm', type: 'muur', position: [-1, 0],
+      dimensions: { width: 3, depth: 0.15, height: 2.6 },
+      orientation: 'vertical',
+    });
+    const ok = makeBuilding({ id: 'ok', type: 'overkapping', position: [0, 0], dimensions: { width: 4, depth: 4, height: 2.6 } });
+    expect(detectInnerFlip(muur, [muur, ok])).toBe(true);
+  });
+
+  it('vertical muur — returns false when default-inner already points toward centroid', () => {
+    // Vertical muur: world centre = (5 + 0.075, 0 + 1.5) = (5.075, 1.5).
+    // Overkapping at origin (4×4) → centroid (2, 2).
+    // Vertical default-outer = [+1, 0].
+    // Outer face: (5.15, 1.5). Inner face: (5.0, 1.5).
+    // dist(outer (5.15, 1.5), centroid (2, 2)) = sqrt(3.15²+0.5²) ≈ 3.19
+    // dist(inner (5.00, 1.5), centroid (2, 2)) = sqrt(3.00²+0.5²) ≈ 3.04
+    // Inner closer → no flip → expect false.
+    const muur = makeBuilding({
+      id: 'm', type: 'muur', position: [5, 0],
+      dimensions: { width: 3, depth: 0.15, height: 2.6 },
+      orientation: 'vertical',
+    });
+    const ok = makeBuilding({ id: 'ok', type: 'overkapping', position: [0, 0], dimensions: { width: 4, depth: 4, height: 2.6 } });
+    expect(detectInnerFlip(muur, [muur, ok])).toBe(false);
+  });
+
   it('ignores paal / muur neighbours (only structural buildings count)', () => {
     const muur = makeBuilding({
       id: 'm', type: 'muur', position: [0, 0],
