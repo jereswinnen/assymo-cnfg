@@ -1,11 +1,11 @@
 'use client';
 
 import {
-  getWallLayerLayout,
+  getPanelLayerLayout,
   resolveOpeningPositions,
   getWallLength,
 } from '@/domain/building';
-import type { WallLayer } from '@/domain/building';
+import type { PanelLayer } from '@/domain/building';
 import { resolveDoorWidth, resolveWindowWidth } from '@/domain/openings';
 import { getAtomColor } from '@/domain/materials';
 import { useTenant } from '@/lib/TenantProvider';
@@ -185,7 +185,7 @@ function SolidWall({
   const innerFillBase = innerColor ?? '#888';
   const middenlaagFillBase = middenlaagColor ?? '#888';
 
-  const fillForRole = (role: WallLayer['role']): string => {
+  const fillForRole = (role: PanelLayer['role']): string => {
     switch (role) {
       case 'whole':
       case 'outerCladding':
@@ -197,7 +197,7 @@ function SolidWall({
     }
   };
 
-  const strips: Strip[] = getWallLayerLayout({ hasMiddenlaag, hasInner }).map(l => ({
+  const strips: Strip[] = getPanelLayerLayout({ hasMiddenlaag, hasInner }).map(l => ({
     fillBase: fillForRole(l.role),
     offsetNorm: l.offsetNorm,
     thicknessNorm: l.thicknessNorm,

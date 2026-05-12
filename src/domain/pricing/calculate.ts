@@ -340,6 +340,76 @@ function roofLineItem(
   };
 }
 
+/** Roof middenlaag + inner cladding line items.
+ *  - Panel middenlaag: footprint area × perSqm (mirrors wall panel pricing).
+ *  - Frame middenlaag: beam count × perBeam. Beam count derives from the
+ *    spread axis (perpendicular to the longer side) and the material's
+ *    `beamSpacingMm`, same formula as walls (ceil(L/spacing) + 1).
+ *  - Inner cladding (binnenbekleding): roof slope area × wall perSqm
+ *    (the wall category doubles as ceiling cladding, same as inner-wall).
+ */
+function roofPanelLineItems(
+  building: BuildingEntity,
+  roof: RoofConfig,
+  connectedSides: ConnectedSides,
+  wallCatalog: readonly { atomId: string; pricePerSqm: number }[],
+  materials: MaterialRow[],
+): LineItem[] {
+  const items: LineItem[] = [];
+  const fp = effectiveRoofFootprint(building, roof, connectedSides);
+  const roofArea = roofTotalArea(fp.width, fp.depth, roof.pitch, roof.type);
+
+  // Middenlaag
+  if (roof.middenlaagSlug) {
+    const row = materials.find((m) => m.slug === roof.middenlaagSlug) ?? null;
+    const pricing = row?.pricing.middenlaag;
+    if (pricing) {
+      if (pricing.kind === 'panel') {
+        const cost = roofArea * pricing.perSqm;
+        items.push({
+          labelKey: 'roof.middenlaag',
+          area: roofArea,
+          materialCost: cost,
+          insulationCost: 0,
+          extrasCost: 0,
+          total: cost,
+        });
+      } else {
+        // frame — beams run along the SHORTER side (perpendicular to span),
+        // distributed across the LONGER side. Count = ceil(spread / spacing) + 1.
+        const spreadM = Math.max(fp.width, fp.depth);
+        const count = Math.ceil((spreadM * 1000) / pricing.beamSpacingMm) + 1;
+        const cost = count * pricing.perBeam;
+        items.push({
+          labelKey: 'roof.middenlaag.frame',
+          labelParams: { count },
+          area: 0,
+          materialCost: cost,
+          insulationCost: 0,
+          extrasCost: 0,
+          total: cost,
+        });
+      }
+    }
+  }
+
+  // Inner cladding
+  if (roof.innerCladdingSlug) {
+    const perSqm = findPrice(wallCatalog, roof.innerCladdingSlug);
+    const cost = roofArea * perSqm;
+    items.push({
+      labelKey: 'roof.inner',
+      area: roofArea,
+      materialCost: cost,
+      insulationCost: 0,
+      extrasCost: 0,
+      total: cost,
+    });
+  }
+
+  return items;
+}
+
 function fasciaLineItem(
   building: BuildingEntity,
   roof: RoofConfig,
@@ -505,6 +575,10 @@ export function calculateBuildingQuote(
 
   const fascia = fasciaLineItem(building, roof, connectedSides, trimCatalog);
   if (fascia) lineItems.push(fascia);
+
+  for (const item of roofPanelLineItems(building, roof, connectedSides, wallCatalog, materials)) {
+    if (item.total > 0) lineItems.push(item);
+  }
 
   const total = lineItems.reduce((sum, item) => sum + item.total, 0);
   return { lineItems, total };

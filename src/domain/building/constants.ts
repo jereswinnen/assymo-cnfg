@@ -70,45 +70,52 @@ export function autoPoleLayout(width: number, depth: number): import('@/domain/b
 
 export const WALL_THICKNESS = 0.15;
 
-/** Proportions of `WALL_THICKNESS` allocated to each cladding layer when a
- *  wall has middenlaag and/or inner cladding set. Sum must equal 1.0.
- *  Outer + inner are the painted skins; middenlaag is the middle filling.
- *  These are fixed for v1; a follow-up may derive wall thickness from the
- *  chosen middenlaag's `thicknessMm` instead. */
-export const WALL_LAYER_PROPORTIONS = {
+/** Proportions of the envelope thickness allocated to each cladding layer
+ *  when a panel (wall or roof) has middenlaag and/or inner cladding set.
+ *  Sum must equal 1.0. Outer + inner are the painted skins; middenlaag is
+ *  the middle filling. These are fixed for v1; a follow-up may derive the
+ *  envelope thickness from the chosen middenlaag's `thicknessMm` instead. */
+export const PANEL_LAYER_PROPORTIONS = {
   outerCladding: 0.20,
   middenlaag:    0.60,
   innerCladding: 0.20,
 } as const;
 
-/** Describes one strip / slab of a wall cross-section.
- *  - `offsetNorm`: signed offset of the strip's CENTRE from the wall midline,
- *    as a fraction of WALL_THICKNESS. Positive = outward.
- *  - `thicknessNorm`: strip thickness as a fraction of WALL_THICKNESS.
- *  Both renderers (2D plattegrond + 3D canvas) drive their per-strip / per-slab
- *  geometry from these two numbers, so the layouts stay in lockstep. */
-export interface WallLayer {
+/** Back-compat alias — historically named for walls; same numbers. */
+export const WALL_LAYER_PROPORTIONS = PANEL_LAYER_PROPORTIONS;
+
+/** Describes one strip / slab of a panel cross-section (wall OR roof).
+ *  - `offsetNorm`: signed offset of the strip's CENTRE from the panel midline,
+ *    as a fraction of the envelope thickness. Positive = outward (away from
+ *    the room: outside for walls, up/over for roofs).
+ *  - `thicknessNorm`: strip thickness as a fraction of the envelope thickness.
+ *  All renderers (2D plattegrond, 3D walls, 3D roof) drive their per-strip /
+ *  per-slab geometry from these two numbers, so the layouts stay in lockstep. */
+export interface PanelLayer {
   role: 'whole' | 'outerCladding' | 'middenlaag' | 'innerCladding';
   offsetNorm: number;
   thicknessNorm: number;
 }
 
+/** Back-compat alias — historically named for walls; same shape. */
+export type WallLayer = PanelLayer;
+
 /** Layer layout for a given (has-middenlaag, has-inner-cladding) combo.
  *
  *  Derivations (the centre of a slab whose thickness is `t` and whose outward
- *  edge is at wall-midline offset `+0.5` sits at `+(0.5 - t/2)`):
+ *  edge is at panel-midline offset `+0.5` sits at `+(0.5 - t/2)`):
  *  - 50/50 split when only inner cladding is set → centres at ±0.25.
- *  - Outer cladding fixed at WALL_LAYER_PROPORTIONS.outerCladding when
+ *  - Outer cladding fixed at PANEL_LAYER_PROPORTIONS.outerCladding when
  *    middenlaag is involved → outer centre at +(0.5 - outerCladding/2).
  *  - Middenlaag occupies the remaining inward space.
  *  - When inner cladding is ALSO set, inner takes its declared share and the
- *    middenlaag squeezes to WALL_LAYER_PROPORTIONS.middenlaag.
+ *    middenlaag squeezes to PANEL_LAYER_PROPORTIONS.middenlaag.
  */
-export function getWallLayerLayout(opts: {
+export function getPanelLayerLayout(opts: {
   hasMiddenlaag: boolean;
   hasInner: boolean;
-}): WallLayer[] {
-  const { outerCladding, middenlaag, innerCladding } = WALL_LAYER_PROPORTIONS;
+}): PanelLayer[] {
+  const { outerCladding, middenlaag, innerCladding } = PANEL_LAYER_PROPORTIONS;
   const { hasMiddenlaag, hasInner } = opts;
 
   if (!hasMiddenlaag && !hasInner) {
@@ -137,6 +144,9 @@ export function getWallLayerLayout(opts: {
     { role: 'innerCladding', offsetNorm: -(0.5 - innerCladding / 2),  thicknessNorm: innerCladding },
   ];
 }
+
+/** Back-compat alias — keeps existing wall callsites working. */
+export const getWallLayerLayout = getPanelLayerLayout;
 
 // Timber frame geometry
 export const POST_SIZE = 0.15;

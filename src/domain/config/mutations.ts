@@ -136,6 +136,8 @@ export function makeInitialConfig(): ConfigData {
       hasSkylight: false,
       fasciaHeight: DEFAULT_FASCIA_HEIGHT,
       fasciaOverhang: DEFAULT_FASCIA_OVERHANG,
+      middenlaagSlug: null,
+      innerCladdingSlug: null,
     },
     defaultHeight: INITIAL_DEFAULT_HEIGHT,
   };

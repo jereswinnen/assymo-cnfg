@@ -112,6 +112,16 @@ export interface RoofConfig {
    *  meters. 0 = flush. Connected sides always stay flush. Pitched-roof
    *  rendering ignores it. */
   fasciaOverhang: number;
+  /** Optional middenlaag (timber framing or insulation panel) sitting
+   *  inside the roof envelope below the deck. `undefined` / `null` = no
+   *  middenlaag. References a non-archived material whose `categories`
+   *  includes `'middenlaag'`. */
+  middenlaagSlug?: string | null;
+  /** Optional inner cladding ("binnenbekleding") covering the framing
+   *  from below. `undefined` / `null` = no inner cladding. References a
+   *  non-archived material whose `categories` includes `'wall'` (the
+   *  `wall` category doubles as ceiling cladding, same as for walls). */
+  innerCladdingSlug?: string | null;
 }
 
 /** Per-side intermediate post fractions (0–1 along the edge, corners excluded).

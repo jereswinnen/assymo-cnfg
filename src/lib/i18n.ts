@@ -148,6 +148,13 @@ const nl: Record<string, string> = {
   "roof.fasciaOverhang": "Dakbak oversteek",
   "roof.fasciaLocked": "Vastgezet op {value}",
   "roof.fasciaPitchedNotice": "Dakbakopties zijn alleen beschikbaar voor platte daken.",
+  "roof.section.middenlaag": "Middenlaag",
+  "roof.section.binnenbekleding": "Binnenbekleding",
+  "roof.addMiddenlaag": "+ Middenlaag toevoegen",
+  "roof.addBinnenbekleding": "+ Binnenbekleding toevoegen",
+  "roof.middenlaag": "Middenlaag dak",
+  "roof.middenlaag.frame": "Houten dakframe",
+  "roof.inner": "Binnenbekleding dak",
 
   // Structure
   "structure.cornerBraces": "Schoren",

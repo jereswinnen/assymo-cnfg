@@ -1,6 +1,8 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
+import { useTenant } from '@/lib/TenantProvider';
 import { useTenantCatalogs } from '@/lib/useTenantCatalogs';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -20,18 +22,47 @@ export default function RoofConfigSection() {
   const updateRoof = useConfigStore((s) => s.updateRoof);
   const buildings = useConfigStore((s) => s.buildings);
   const productBuilding = buildings.find((b) => b.sourceProductId);
-  const { roofTrim, roofCover, sourceProduct } = useTenantCatalogs(
+  const { roofTrim, roofCover, wall: wallCatalog, sourceProduct } = useTenantCatalogs(
     {
       roofTrim: roof.trimMaterialId,
       roofCover: roof.coveringId,
+      wall: roof.innerCladdingSlug ?? undefined,
     },
     productBuilding?.sourceProductId,
+  );
+
+  const { catalog: { materials } } = useTenant();
+  const middenlaagCatalog = useMemo(
+    () => materials.filter((m) => m.categories.includes('middenlaag') && !m.archivedAt),
+    [materials],
   );
 
   const range = dakbakRange(sourceProduct ?? null);
   const heightLocked   = range.height.min === range.height.max;
   const overhangLocked = range.overhang.min === range.overhang.max;
   const isFlat = roof.type === 'flat';
+
+  const middenlaagSlug = roof.middenlaagSlug ?? null;
+  const innerSlug = roof.innerCladdingSlug ?? null;
+
+  const middenlaagRow = middenlaagSlug
+    ? middenlaagCatalog.find((m) => m.slug === middenlaagSlug) ?? null
+    : null;
+  const middenlaagPricing = middenlaagRow?.pricing.middenlaag ?? null;
+  const middenlaagSpec: string | null =
+    !middenlaagRow || !middenlaagPricing
+      ? null
+      : middenlaagPricing.kind === 'panel'
+        ? t('wallProperties.middenlaagPanelSpec', {
+            name: middenlaagRow.name,
+            thickness: middenlaagPricing.thicknessMm,
+          })
+        : t('wallProperties.middenlaagFrameSpec', {
+            name: middenlaagRow.name,
+            width: middenlaagPricing.beamWidthMm,
+            depth: middenlaagPricing.thicknessMm,
+            spacing: middenlaagPricing.beamSpacingMm,
+          });
 
   return (
     <div className="space-y-5">
@@ -131,6 +162,80 @@ export default function RoofConfigSection() {
           {t('roof.skylight')}
         </Label>
       </div>
+
+      {/* Middenlaag (timber framing / insulation panel inside the roof envelope) */}
+      {middenlaagSlug == null ? (
+        <button
+          type="button"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors text-left"
+          onClick={() => {
+            const seed = middenlaagCatalog[0]?.slug;
+            if (!seed) return;
+            updateRoof({ middenlaagSlug: seed });
+          }}
+        >
+          {t('roof.addMiddenlaag')}
+        </button>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <SectionLabel>{t('roof.section.middenlaag')}</SectionLabel>
+            <button
+              type="button"
+              className="text-[11px] text-muted-foreground hover:text-foreground transition-colors underline"
+              onClick={() => updateRoof({ middenlaagSlug: null })}
+            >
+              {t('wallProperties.removeMiddenlaag')}
+            </button>
+          </div>
+          <MaterialSelect
+            catalog={middenlaagCatalog.map((m) => ({ atomId: m.slug }))}
+            value={middenlaagSlug}
+            category="middenlaag"
+            onChange={(atomId) => updateRoof({ middenlaagSlug: atomId })}
+            ariaLabel={t('roof.section.middenlaag')}
+          />
+          {middenlaagSpec && (
+            <p className="text-[11px] text-muted-foreground italic">{middenlaagSpec}</p>
+          )}
+        </div>
+      )}
+
+      {/* Inner cladding ("binnenbekleding") — sloped slab below the framing */}
+      {innerSlug == null ? (
+        <button
+          type="button"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors text-left"
+          onClick={() => {
+            const seed = wallCatalog[0]?.atomId;
+            if (!seed) return;
+            updateRoof({ innerCladdingSlug: seed });
+          }}
+        >
+          {t('roof.addBinnenbekleding')}
+        </button>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <SectionLabel>{t('roof.section.binnenbekleding')}</SectionLabel>
+            <button
+              type="button"
+              className="text-[11px] text-muted-foreground hover:text-foreground transition-colors underline"
+              onClick={() => updateRoof({ innerCladdingSlug: null })}
+            >
+              {t('wallProperties.removeInner')}
+            </button>
+          </div>
+          <MaterialSelect
+            catalog={wallCatalog}
+            value={innerSlug}
+            category="wall"
+            onChange={(atomId) => updateRoof({ innerCladdingSlug: atomId })}
+            showPrice
+            ariaLabel={t('roof.section.binnenbekleding')}
+          />
+        </div>
+      )}
     </div>
   );
 }

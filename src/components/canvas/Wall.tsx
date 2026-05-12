@@ -4,7 +4,7 @@ import { useMemo, useEffect, useCallback } from 'react';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore } from "@/store/useUIStore";
-import { getWallLayerLayout, resolveOpeningPositions, getWallLength } from '@/domain/building';
+import { getPanelLayerLayout, resolveOpeningPositions, getWallLength } from '@/domain/building';
 import { getAtomColor, getEffectiveWallMaterial, getEffectiveDoorMaterial, getEffectiveInnerWallMaterial, getEffectiveMiddenlaagMaterial } from '@/domain/materials';
 import { useTenant } from '@/lib/TenantProvider';
 import { useEffectivePostSize } from '@/lib/useEffectivePostSize';
@@ -159,7 +159,7 @@ export default function Wall({ wallId }: WallProps) {
 
     const hasInner = !!innerSlug;
     const hasMiddenlaag = !!middenlaagSlug;
-    const canonical = getWallLayerLayout({ hasInner, hasMiddenlaag });
+    const canonical = getPanelLayerLayout({ hasInner, hasMiddenlaag });
     const layers: LayerSpec[] = canonical.map(l => layer(l.role, l.offsetNorm, l.thicknessNorm));
 
     return {

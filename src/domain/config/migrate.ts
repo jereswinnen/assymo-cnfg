@@ -21,8 +21,8 @@ export type LegacyBuilding =
 /** Roof shape as it may arrive from older codes — fields added by later
  *  schema revisions are optional and get backfilled. */
 export type LegacyRoof =
-  Omit<RoofConfig, 'fasciaHeight' | 'fasciaOverhang'>
-  & Partial<Pick<RoofConfig, 'fasciaHeight' | 'fasciaOverhang'>>;
+  Omit<RoofConfig, 'fasciaHeight' | 'fasciaOverhang' | 'middenlaagSlug' | 'innerCladdingSlug'>
+  & Partial<Pick<RoofConfig, 'fasciaHeight' | 'fasciaOverhang' | 'middenlaagSlug' | 'innerCladdingSlug'>>;
 
 /** Top-level shape accepted by the migrator: later fields are optional. */
 export interface LegacyConfig {
@@ -47,6 +47,8 @@ function migrateRoof(roof: LegacyRoof): RoofConfig {
     ...roof,
     fasciaHeight: roof.fasciaHeight ?? DEFAULT_FASCIA_HEIGHT,
     fasciaOverhang: roof.fasciaOverhang ?? DEFAULT_FASCIA_OVERHANG,
+    middenlaagSlug: roof.middenlaagSlug ?? null,
+    innerCladdingSlug: roof.innerCladdingSlug ?? null,
   };
 }
 
