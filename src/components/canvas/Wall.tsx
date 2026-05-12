@@ -158,7 +158,7 @@ export default function Wall({ wallId }: WallProps) {
     const layers: LayerSpec[] = canonical.map(l => layer(l.role, l.offsetNorm, l.thicknessNorm));
 
     return {
-      layout: { layers, perpAxis, outwardSign, lengthAlongWall },
+      layout: { layers, perpAxis, lengthAlongWall },
       rotation: rot,
     };
   }, [wallId, width, depth, height, isMuur, innerSlug, middenlaagSlug, wallCfg?.innerFlipped]);
