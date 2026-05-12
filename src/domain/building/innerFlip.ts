@@ -16,10 +16,13 @@ function buildingCentre(b: BuildingEntity): [number, number] {
 
 /** Default-outward direction (unit vector in the XZ plane) for a muur,
  *  derived from its `orientation`. Mirrors the `outerSign` convention used
- *  by `SchematicWalls.tsx`: a horizontal muur's `'front'` wall faces -z
- *  by default, a vertical muur's faces -x. */
+ *  by `SchematicWalls.tsx`:
+ *   - horizontal muur renders via wallId `'front'`; `outerSign = +1` places
+ *     the outer strip in the +Y direction → outward = [0, +1].
+ *   - vertical muur renders via wallId `'left'`; `outerSign = -1` places
+ *     the outer strip in the -X direction → outward = [-1, 0]. */
 function defaultOutwardDir(b: BuildingEntity): [number, number] {
-  return b.orientation === 'horizontal' ? [0, -1] : [-1, 0];
+  return b.orientation === 'horizontal' ? [0, +1] : [-1, 0];
 }
 
 function distance(a: [number, number], c: [number, number]): number {

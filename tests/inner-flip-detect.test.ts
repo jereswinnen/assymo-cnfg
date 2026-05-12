@@ -17,30 +17,32 @@ describe('detectInnerFlip', () => {
     expect(detectInnerFlip(muur, [muur])).toBe(false);
   });
 
-  it('returns false when the default-inner face already points toward the neighbour centroid', () => {
+  it('returns true when the default-outer face points toward the neighbour centroid (flip needed)', () => {
     // Horizontal muur centred at (1.5, -0.925) (position [0, -1], width 3, depth 0.15).
-    // Default outward = [0,-1] in your implementation (see fixtures + outerSign convention).
-    // Overkapping at origin, dims 4×4 → centroid at (2, 2). Default inner at +y → CLOSER to centroid → no flip.
+    // Corrected outward = [0, +1] (SchematicWalls 'front' outerSign=+1 → outer in +Y).
+    // Overkapping at origin, dims 4×4 → centroid (2, 2).
+    // Default outer = (1.5, -0.85), default inner = (1.5, -1.0).
+    // dist(outer, centroid) ≈ 2.82, dist(inner, centroid) ≈ 3.04 → outer CLOSER → flip needed.
     const muur = makeBuilding({
       id: 'm', type: 'muur', position: [0, -1],
       dimensions: { width: 3, depth: 0.15, height: 2.6 },
       orientation: 'horizontal',
     });
     const ok = makeBuilding({ id: 'ok', type: 'overkapping', position: [0, 0], dimensions: { width: 4, depth: 4, height: 2.6 } });
-    expect(detectInnerFlip(muur, [muur, ok])).toBe(false);
+    expect(detectInnerFlip(muur, [muur, ok])).toBe(true);
   });
 
-  it('returns true when the default-outer face points toward the neighbour centroid (flip needed)', () => {
-    // Mirror of the previous test: muur centred at (1.5, 5.075), overkapping at origin
-    // (centroid 2,2). Default outward = [0,-1] (per horizontal convention) — points toward -y, i.e. toward
-    // the centroid. So outer is CLOSER to centroid → flip needed.
+  it('returns false when the default-inner face already points toward the neighbour centroid', () => {
+    // Mirror of the previous test: muur centred at (1.5, 5.075), overkapping at origin (centroid 2, 2).
+    // Default outer = (1.5, 5.15), default inner = (1.5, 5.0).
+    // dist(outer, centroid) ≈ 3.19, dist(inner, centroid) ≈ 3.04 → inner CLOSER → no flip.
     const muur = makeBuilding({
       id: 'm', type: 'muur', position: [0, 5],
       dimensions: { width: 3, depth: 0.15, height: 2.6 },
       orientation: 'horizontal',
     });
     const ok = makeBuilding({ id: 'ok', type: 'overkapping', position: [0, 0], dimensions: { width: 4, depth: 4, height: 2.6 } });
-    expect(detectInnerFlip(muur, [muur, ok])).toBe(true);
+    expect(detectInnerFlip(muur, [muur, ok])).toBe(false);
   });
 
   it('ignores neighbours outside INNER_FLIP_DETECT_RADIUS', () => {
