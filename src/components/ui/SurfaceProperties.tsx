@@ -14,7 +14,6 @@ import type { WallId } from '@/domain/building';
 
 export default function SurfaceProperties() {
   const selectedElement = useUIStore((s) => s.selectedElement);
-  const selectElement = useUIStore((s) => s.selectElement);
   const buildings = useConfigStore((s) => s.buildings);
   const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
   const selectedBuilding = selectedElement?.type === 'wall'
@@ -45,7 +44,6 @@ export default function SurfaceProperties() {
   const wallCfg = building?.walls[wallId];
   if (!wallCfg) return null;
 
-  const face: 'outer' | 'inner' = selectedElement.face ?? 'outer';
   const innerSlug = wallCfg.materialIdInner ?? null;
 
   const label = t(`wall.${wallId}`);
@@ -57,11 +55,6 @@ export default function SurfaceProperties() {
     updateBuildingWall(buildingId, wallId, { [field]: value });
   }
 
-  const outerActive = innerSlug != null && face === 'outer';
-  const innerActive = innerSlug != null && face === 'inner';
-
-  const outerLabel = <SectionLabel>{t('wallProperties.outer')}</SectionLabel>;
-
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2">
@@ -69,23 +62,10 @@ export default function SurfaceProperties() {
         <span className="text-sm font-semibold text-foreground">{label}</span>
       </div>
 
-      {/* Outer cladding section */}
-      <div
-        className={[
-          'space-y-2',
-          outerActive ? 'ring-1 ring-primary rounded-md p-2 -mx-2' : '',
-        ].join(' ')}
-      >
+      {/* Outer cladding */}
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
-          {innerSlug != null ? (
-            <button
-              type="button"
-              className="text-xs text-foreground hover:underline cursor-pointer"
-              onClick={() => selectElement({ type: 'wall', id: wallId, buildingId, face: 'outer' })}
-            >
-              {outerLabel}
-            </button>
-          ) : outerLabel}
+          <SectionLabel>{t('wallProperties.outer')}</SectionLabel>
           <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer select-none">
             <Checkbox
               checked={wallCfg.materialId !== undefined}
@@ -122,7 +102,7 @@ export default function SurfaceProperties() {
         )}
       </div>
 
-      {/* Inner cladding section */}
+      {/* Inner cladding */}
       {innerSlug == null ? (
         <button
           type="button"
@@ -133,33 +113,18 @@ export default function SurfaceProperties() {
               ?? wallCatalog[0]?.atomId;
             if (!seed) return;
             updateBuildingWall(buildingId, wallId, { materialIdInner: seed });
-            selectElement({ type: 'wall', id: wallId, buildingId, face: 'inner' });
           }}
         >
           {t('wallProperties.addInner')}
         </button>
       ) : (
-        <div
-          className={[
-            'space-y-2',
-            innerActive ? 'ring-1 ring-primary rounded-md p-2 -mx-2' : '',
-          ].join(' ')}
-        >
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <button
-              type="button"
-              className="text-xs text-foreground hover:underline cursor-pointer"
-              onClick={() => selectElement({ type: 'wall', id: wallId, buildingId, face: 'inner' })}
-            >
-              <SectionLabel>{t('wallProperties.inner')}</SectionLabel>
-            </button>
+            <SectionLabel>{t('wallProperties.inner')}</SectionLabel>
             <button
               type="button"
               className="text-[11px] text-muted-foreground hover:text-foreground transition-colors underline"
-              onClick={() => {
-                updateBuildingWall(buildingId, wallId, { materialIdInner: null });
-                selectElement({ type: 'wall', id: wallId, buildingId, face: 'outer' });
-              }}
+              onClick={() => updateBuildingWall(buildingId, wallId, { materialIdInner: null })}
             >
               {t('wallProperties.removeInner')}
             </button>

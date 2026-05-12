@@ -154,6 +154,6 @@ export interface SnapConnection {
 }
 
 export type SelectedElement =
-  | { type: 'wall'; id: WallId; buildingId: string; face?: 'outer' | 'inner' }
+  | { type: 'wall'; id: WallId; buildingId: string }
   | { type: 'roof' }
   | null;

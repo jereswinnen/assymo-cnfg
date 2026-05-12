@@ -79,7 +79,7 @@ interface SchematicWallsProps {
   offsetY: number;
   /** Non-archived supplier products used for door/window width overrides. */
   supplierProducts: SupplierProductRow[];
-  onWallClick?: (wallId: WallId, buildingId: string, face?: 'outer' | 'inner') => void;
+  onWallClick?: (wallId: WallId, buildingId: string) => void;
 }
 
 export default function SchematicWalls({
@@ -106,11 +106,6 @@ export default function SchematicWalls({
           selectedElement.id === g.wallId &&
           selectedElement.buildingId === buildingId;
 
-        const selectedFace =
-          isSelected && selectedElement?.type === 'wall'
-            ? selectedElement.face
-            : undefined;
-
         return (
           <SolidWall
             key={g.wallId}
@@ -118,9 +113,8 @@ export default function SchematicWalls({
             cfg={cfg}
             primaryMaterialId={primaryMaterialId}
             isSelected={isSelected}
-            selectedFace={selectedFace}
             supplierProducts={supplierProducts}
-            onWallClick={onWallClick ? (face) => onWallClick(g.wallId, buildingId, face) : undefined}
+            onWallClick={onWallClick ? () => onWallClick(g.wallId, buildingId) : undefined}
           />
         );
       })}
@@ -133,7 +127,6 @@ function SolidWall({
   cfg,
   primaryMaterialId,
   isSelected,
-  selectedFace,
   supplierProducts,
   onWallClick,
 }: {
@@ -141,9 +134,8 @@ function SolidWall({
   cfg: WallConfig;
   primaryMaterialId: string;
   isSelected: boolean;
-  selectedFace?: 'outer' | 'inner';
   supplierProducts: SupplierProductRow[];
-  onWallClick?: (face?: 'outer' | 'inner') => void;
+  onWallClick?: () => void;
 }) {
   const { catalog: { materials } } = useTenant();
   const { cx, cy, orientation, length, flipSign } = geom;
@@ -171,21 +163,19 @@ function SolidWall({
     geom.wallId === 'left'  ? -1 :
     /* right */               +1;
 
-  // Only used in the single-strip (no-inner) render path; the two-strip path
-  // computes its own per-strip selection state below.
   const fillColor = isSelected
     ? '#3b82f6'
     : getAtomColor(materials, cfg.materialId ?? primaryMaterialId, 'wall');
   const fillOpacity = isSelected ? 0.5 : 0.35;
   const strokeColor = isSelected ? '#2563eb' : '#444';
 
-  // Pre-compute two-strip colors/opacity (depend only on selection state + materials, not per-segment).
-  const outerSelected = isSelected && (selectedFace ?? 'outer') === 'outer';
-  const innerSelected = isSelected && selectedFace === 'inner';
-  const outerStripFill = outerSelected ? '#3b82f6' : getAtomColor(materials, cfg.materialId ?? primaryMaterialId, 'wall');
-  const outerStripOpacity = outerSelected ? 0.5 : 0.35;
-  const innerStripFill = innerSelected ? '#3b82f6' : (innerColor ?? '#888');
-  const innerStripOpacity = innerSelected ? 0.5 : 0.35;
+  // Two-strip rendering colors. Selection highlights both strips together
+  // (face selection is not exposed in the UI). Inner strip shows the inner
+  // material when not selected.
+  const outerStripFill = fillColor;
+  const outerStripOpacity = fillOpacity;
+  const innerStripFill = isSelected ? '#3b82f6' : (innerColor ?? '#888');
+  const innerStripOpacity = fillOpacity;
 
   const windows = cfg.windows ?? [];
   const { doorX, windowXs } = resolveOpeningPositions(
@@ -249,7 +239,7 @@ function SolidWall({
           strokeWidth={0.02}
           cursor={onWallClick ? 'pointer' : undefined}
           pointerEvents={onWallClick ? 'auto' : 'none'}
-          onClick={(ev) => { ev.stopPropagation(); onWallClick?.('outer'); }}
+          onClick={(ev) => { ev.stopPropagation(); onWallClick?.(); }}
         />
       );
     }
@@ -276,7 +266,7 @@ function SolidWall({
           strokeWidth={0.02}
           cursor={onWallClick ? 'pointer' : undefined}
           pointerEvents={onWallClick ? 'auto' : 'none'}
-          onClick={(ev) => { ev.stopPropagation(); onWallClick?.('outer'); }}
+          onClick={(ev) => { ev.stopPropagation(); onWallClick?.(); }}
         />
         <rect
           x={innerRect.x} y={innerRect.y}
@@ -287,7 +277,7 @@ function SolidWall({
           strokeWidth={0.02}
           cursor={onWallClick ? 'pointer' : undefined}
           pointerEvents={onWallClick ? 'auto' : 'none'}
-          onClick={(ev) => { ev.stopPropagation(); onWallClick?.('inner'); }}
+          onClick={(ev) => { ev.stopPropagation(); onWallClick?.(); }}
         />
       </g>
     );
