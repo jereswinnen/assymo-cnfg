@@ -119,12 +119,16 @@ when `innerFlippedManual` is not `true`:
 1. **Wall creation** — when `addBuilding(...)` spawns a muur/poort
    (`src/domain/config/mutations.ts`). Compute against the buildings that
    already exist in the scene at that moment.
-2. **Snap-attachment change** — when the muur's `attachedTo` field updates
-   (i.e. the muur snaps onto / off a structural building). Already a
-   distinct mutation in the existing code path.
-3. **Drag end (`pointerup`)** — at the very end of a drag gesture in
-   `SchematicView.tsx::onPointerUp`, after the position has been committed.
-   NOT during the drag (would cause "wall keeps flipping" feedback).
+2. **Drag end (`pointerup`)** — at the very end of a drag gesture in
+   `SchematicView.tsx::onPointerUp`, after the muur's position has been
+   committed. In this configurator, snapping happens AT the end of a drag
+   (the new position is the snapped one), so this single trigger covers
+   both "moved without snapping" and "snapped onto a new neighbour". NOT
+   during the drag (would cause "wall keeps flipping" feedback).
+
+Note: `BuildingEntity.attachedTo` is a paal-only field for material
+inheritance; muurs don't carry it, so there's no separate
+"snap-attachment changed" event to subscribe to.
 
 `innerFlippedManual` is set by the user's explicit toggle in the wall
 properties panel; auto-detect routines respect it as a write-lock.
@@ -197,9 +201,11 @@ New / extended `tests/configStore-inner-flip.test.ts` (or similar):
 
 - `addBuilding(muur, position)` with an existing overkapping nearby writes
   `innerFlipped = true` when geometry dictates.
-- Snap-attachment change to a different building triggers re-detection.
-- Once `innerFlippedManual = true`, subsequent triggers leave both fields
-  untouched.
+- `applyInnerFlipAutoDetect(cfg, muurId)` updates the muur's flip when the
+  muur has been moved to a position where the default outer faces the
+  building centroid.
+- Once `innerFlippedManual = true`, `applyInnerFlipAutoDetect` is a no-op —
+  both fields stay untouched.
 
 Unit-test the rendering helper by extending the existing schematic / canvas
 tests if they exist; otherwise verify via typecheck + manual smoke.
@@ -213,16 +219,18 @@ Domain:
 - `src/domain/building/innerFlip.ts` (new) — `detectInnerFlip` + radius
   constant.
 - `src/domain/building/index.ts` — re-export.
-- `src/domain/config/mutations.ts` — wire `detectInnerFlip` into
-  `addBuilding` (muur / poort spawn path) and the snap-attachment mutation
-  path. Respect `innerFlippedManual`.
+- `src/domain/config/mutations.ts` — wire `detectInnerFlip` into the
+  `addBuilding` muur/poort spawn path. Also add a small mutation
+  `applyInnerFlipAutoDetect(cfg, buildingId)` that recomputes and writes
+  the flip when called, respecting `innerFlippedManual`. UI calls it on
+  drag end.
 
 UI:
 
 - `src/components/schematic/SchematicView.tsx` — on `pointerup` after a
-  building drag, re-run detection for any muur / poort whose snap
-  relationships changed (or any moved muur whose `innerFlippedManual` is
-  not true). Single helper call.
+  building drag, call `applyInnerFlipAutoDetect` for the moved muur /
+  poort (the helper internally respects `innerFlippedManual`, so the
+  caller doesn't need to check).
 - `src/components/canvas/Wall.tsx` — multiply `effectiveOuterSign` into the
   offset computation in the `layer()` helper.
 - `src/components/schematic/SchematicWalls.tsx` — same `effectiveOuterSign`
@@ -270,8 +278,8 @@ ConfigData verbatim so historical orders stay intact.
   nearest structural building changed by more than a small epsilon — or
   more simply, run unconditionally but accept that `innerFlippedManual`
   protects users who care.
-- **Snap-attachment trigger order**. The `attachedTo` mutation must
-  complete BEFORE auto-detect runs against the updated buildings list, or
-  detection runs on stale state. Mitigation: in the same mutation, write
-  `attachedTo` first, then call `detectInnerFlip` with the post-update
-  scene.
+- **Drag-end trigger order**. `applyInnerFlipAutoDetect` must run AFTER
+  the position update is committed to the store. Mitigation: in
+  `SchematicView.onPointerUp` call the position mutation first, then the
+  flip-detect mutation, against the now-current `ConfigData`. Both are
+  pure mutations; the second reads the post-update state.
