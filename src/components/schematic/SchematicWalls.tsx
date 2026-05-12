@@ -169,6 +169,8 @@ function SolidWall({
     geom.wallId === 'left'  ? -1 :
     /* right */               +1;
 
+  const effectiveOuterSign = (cfg.innerFlipped ? -1 : 1) * outerSign;
+
   const strokeColor = isSelected ? '#2563eb' : '#444';
 
   // Strip-table: describes each layer of the wall cross-section.
@@ -252,7 +254,7 @@ function SolidWall({
       <g key={i}>
         {strips.map((strip, idx) => {
           const stripT = strip.thicknessNorm * T;
-          const perpOffset = outerSign * (strip.offsetNorm * T);
+          const perpOffset = effectiveOuterSign * (strip.offsetNorm * T);
           const x = isH
             ? cx + segCenter - segLen / 2
             : cx + perpOffset - stripT / 2;
