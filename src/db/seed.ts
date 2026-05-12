@@ -75,6 +75,60 @@ const ASSYMO_GATE_MATERIALS: ReadonlyArray<{
   },
 ];
 
+/** Middenlaag (insulation/frame) materials seeded for Assymo.
+ *  Includes panel-type (rockwool, PIR) and frame-type (sawn lumber).
+ *  Pricing varies by type: panels priced per m², frames by linear beam.
+ *  No textures bundled yet — colour-only fallback renders fine in 3D. */
+const ASSYMO_MIDDENLAAG_MATERIALS: ReadonlyArray<{
+  slug: string;
+  name: string;
+  color: string;
+  categories: MaterialCategory[];
+  pricing: MaterialPricing;
+  flags: MaterialFlags;
+  textures: MaterialTextures | null;
+  tileSize: [number, number] | null;
+}> = [
+  {
+    slug: 'rockwool-100',
+    name: 'Rockwool 100mm',
+    color: '#FFCC66',
+    categories: ['middenlaag'],
+    pricing: { middenlaag: { kind: 'panel', thicknessMm: 100, perSqm: 12 } },
+    flags: {},
+    textures: null,
+    tileSize: null,
+  },
+  {
+    slug: 'pir-80',
+    name: 'PIR 80mm',
+    color: '#F1E9C6',
+    categories: ['middenlaag'],
+    pricing: { middenlaag: { kind: 'panel', thicknessMm: 80, perSqm: 18 } },
+    flags: {},
+    textures: null,
+    tileSize: null,
+  },
+  {
+    slug: 'sls-38x89-hoh600',
+    name: 'Vurenhout SLS 38×89',
+    color: '#C4955A',
+    categories: ['middenlaag'],
+    pricing: {
+      middenlaag: {
+        kind: 'frame',
+        thicknessMm: 89,
+        beamWidthMm: 38,
+        beamSpacingMm: 600,
+        perBeam: 15,
+      },
+    },
+    flags: {},
+    textures: null,
+    tileSize: null,
+  },
+];
+
 const DEMO_SUPPLIER = {
   slug: 'demo',
   name: 'Assymo Demo Leverancier',
@@ -315,6 +369,41 @@ async function main() {
 
   console.log(
     `[seed] gate materials: ${materialsInserted} inserted / ${materialsSkipped} already present (total ${ASSYMO_GATE_MATERIALS.length})`,
+  );
+
+  // 2b. Middenlaag materials — skip any (tenant, slug) that already exists.
+  let middenlaagInserted = 0;
+  let middenlaagSkipped = 0;
+  for (const m of ASSYMO_MIDDENLAAG_MATERIALS) {
+    const [existing] = await db
+      .select({ id: materials.id })
+      .from(materials)
+      .where(
+        and(
+          eq(materials.tenantId, TENANT_ID),
+          eq(materials.slug, m.slug),
+        ),
+      )
+      .limit(1);
+    if (existing) { middenlaagSkipped += 1; continue; }
+
+    await db.insert(materials).values({
+      id: randomUUID(),
+      tenantId: TENANT_ID,
+      categories: m.categories,
+      slug: m.slug,
+      name: m.name,
+      color: m.color,
+      textures: m.textures,
+      tileSize: m.tileSize,
+      pricing: m.pricing,
+      flags: m.flags,
+    });
+    middenlaagInserted += 1;
+  }
+
+  console.log(
+    `[seed] middenlaag materials: ${middenlaagInserted} inserted / ${middenlaagSkipped} already present (total ${ASSYMO_MIDDENLAAG_MATERIALS.length})`,
   );
 
   // 3. Products — skip any (tenant, slug) that already exists.
