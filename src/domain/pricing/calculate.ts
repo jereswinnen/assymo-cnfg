@@ -23,6 +23,7 @@ import {
   getEffectiveWallMaterial,
   getEffectiveDoorMaterial,
   getEffectiveInnerWallMaterial,
+  getEffectiveMiddenlaagMaterial,
 } from '@/domain/materials';
 import type { SupplierProductRow } from '@/domain/supplier';
 import {
@@ -140,6 +141,7 @@ function wallLineItem(
   wallCatalog: readonly { atomId: string; pricePerSqm: number }[],
   doorCatalog: readonly { atomId: string; surcharge: number }[],
   supplierProducts: readonly SupplierProductRow[],
+  materials: MaterialRow[],
   buildings?: BuildingEntity[],
 ): LineItem[] {
   const wallCfg = building.walls[wallId];
@@ -233,6 +235,44 @@ function wallLineItem(
       extrasCost: 0,
       total: innerCost,
     });
+  }
+
+  // Middenlaag — additive line item. Panel uses area × perSqm, frame uses
+  // per-beam count × perBeam (no area).
+  const middenlaagSlug = getEffectiveMiddenlaagMaterial(wallCfg);
+  if (middenlaagSlug) {
+    const row = materials.find(m => m.slug === middenlaagSlug) ?? null;
+    const pricing = row?.pricing.middenlaag;
+    if (pricing) {
+      if (pricing.kind === 'panel') {
+        const cost = area * pricing.perSqm;
+        lineItems.push({
+          labelKey: `${WALL_LABEL_KEY[wallId] ?? wallId}.middenlaag`,
+          area,
+          materialCost: cost,
+          insulationCost: 0,
+          extrasCost: 0,
+          total: cost,
+        });
+      } else {
+        // frame
+        const wallLengthM = getWallLength(wallId, building.dimensions);
+        const count = Math.max(
+          2,
+          Math.ceil((wallLengthM * 1000) / pricing.beamSpacingMm) + 1,
+        );
+        const cost = count * pricing.perBeam;
+        lineItems.push({
+          labelKey: `${WALL_LABEL_KEY[wallId] ?? wallId}.middenlaag.frame`,
+          labelParams: { count },
+          area: 0,
+          materialCost: cost,
+          insulationCost: 0,
+          extrasCost: 0,
+          total: cost,
+        });
+      }
+    }
   }
 
   return lineItems;
@@ -430,7 +470,7 @@ export function calculateBuildingQuote(
     const lineItems: LineItem[] = [];
     const wallIds = Object.keys(building.walls) as WallId[];
     for (const id of wallIds) {
-      const items = wallLineItem(id, building, effectiveHeight, priceBook, wallCatalog, doorCatalog, supplierProducts, buildings);
+      const items = wallLineItem(id, building, effectiveHeight, priceBook, wallCatalog, doorCatalog, supplierProducts, materials, buildings);
       for (const item of items) {
         if (shouldEmit(item)) lineItems.push(item);
       }
@@ -449,7 +489,7 @@ export function calculateBuildingQuote(
 
   const wallIds = Object.keys(building.walls) as WallId[];
   for (const id of wallIds) {
-    const items = wallLineItem(id, building, effectiveHeight, priceBook, wallCatalog, doorCatalog, supplierProducts, buildings);
+    const items = wallLineItem(id, building, effectiveHeight, priceBook, wallCatalog, doorCatalog, supplierProducts, materials, buildings);
     for (const item of items) {
       if (shouldEmit(item)) lineItems.push(item);
     }
