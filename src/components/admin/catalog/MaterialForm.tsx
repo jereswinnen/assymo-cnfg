@@ -478,7 +478,17 @@ export function MaterialForm({
                             value={field.value ?? ''}
                             onChange={(e) => {
                               const v = e.target.value;
-                              field.onChange(v === '' ? null : (v as 'panel' | 'frame'));
+                              const next = v === '' ? null : (v as 'panel' | 'frame');
+                              field.onChange(next);
+                              // Clear fields that don't belong to the newly-selected kind so they don't
+                              // leak into onSubmit or confuse a dirty check after a kind switch.
+                              if (next !== 'panel') form.setValue('middenlaagPerSqm', null);
+                              if (next !== 'frame') {
+                                form.setValue('middenlaagBeamWidthMm', null);
+                                form.setValue('middenlaagBeamSpacingMm', null);
+                                form.setValue('middenlaagPerBeam', null);
+                              }
+                              // Note: middenlaagThicknessMm is shared between both kinds — DO NOT clear it.
                             }}
                           >
                             <option value="">—</option>
