@@ -203,7 +203,15 @@ const nl: Record<string, string> = {
   "sidebar.placed": "Geplaatst",
   "sidebar.emptyState": "Selecteer een object om te configureren",
   "sidebar.section.dimensions": "Afmetingen",
-  "sidebar.section.material": "Materiaal",
+  "sidebar.section.global": "Globaal",
+  "sidebar.global.material": "Materiaal",
+  "sidebar.global.material.help":
+    "Wordt op elk object in de scène toegepast. Per-object overschrijving kan via de wand-instellingen.",
+  "sidebar.global.material.mixed":
+    "Objecten gebruiken nu verschillende materialen — kies er één om alles gelijk te trekken.",
+  "sidebar.global.postSize": "Paaldikte",
+  "sidebar.global.postSize.help":
+    "Doorsnede van de structurele balken (mm). Standaard: {{defaultMm}} mm.",
   "sidebar.section.dak": "Dak",
   "sidebar.section.structure": "Structuur",
   "material.primary": "Hoofdmateriaal",
@@ -326,6 +334,17 @@ const nl: Record<string, string> = {
   "admin.tenant.section.features": "Configurator-instellingen",
   "admin.tenant.features.wallElevationView": "Wand-aanzicht (elevation view)",
   "admin.tenant.features.wallElevationView.help": "Wanneer aan, opent de configurator een 2D-vooraanzicht van een wand wanneer de gebruiker erop klikt. Standaard uit.",
+
+  "admin.tenant.section.geometry": "Constructie",
+  "admin.tenant.geometry.postSizeMm": "Standaard paaldikte",
+  "admin.tenant.geometry.postSizeMm.help":
+    "Doorsnede van de structurele balken (mm). Wordt gebruikt als de configurator geen scène-specifieke waarde heeft.",
+  "admin.tenant.geometry.presets": "Beschikbare paaldiktes in de configurator",
+  "admin.tenant.geometry.presets.help":
+    "De configurator kan alleen uit deze lijst kiezen. Voeg of verwijder maten om de keuzes te beperken.",
+  "admin.tenant.geometry.presets.add": "Toevoegen",
+  "admin.tenant.geometry.presets.addPlaceholder": "Bv. 160",
+  "admin.tenant.geometry.presets.remove": "Verwijder {{mm}} mm preset",
 
   // Admin — users
   "admin.users.title": "Gebruikers",

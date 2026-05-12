@@ -183,13 +183,17 @@ export interface PoleSnapResult {
 export function detectPoleSnap(
   poleCenter: [number, number],
   buildings: BuildingEntity[],
+  /** Post / lumber cross-section in metres for the current tenant. Defaults
+   *  to the legacy 150 mm so domain tests keep working without threading the
+   *  value through; UI callers pass `tenant.geometry.postSizeMm / 1000`. */
+  postSize: number = POST_SIZE,
 ): PoleSnapResult {
   const [px, pz] = poleCenter;
   let bestDist = POLE_SNAP_THRESHOLD;
   let snapX = px;
   let snapZ = pz;
   let attachedTo: string | null = null;
-  const poleHalf = POST_SIZE / 2;
+  const poleHalf = postSize / 2;
 
   // Pass 1: face slide. Each building face / muur long-side emits three
   // perp candidates — paal outside, paal straddle (same extent as the
@@ -334,28 +338,28 @@ export function detectPoleSnap(
     // positions on the perpendicular edge (left or right). The three perp
     // values per anchor cover the outside/straddle/inside levels.
     for (const z of frontPerps) {
-      tryTarget(b.id, lx - POST_SIZE,     z);
-      tryTarget(b.id, lx + POST_SIZE,     z);
-      tryTarget(b.id, lx + w - POST_SIZE, z);
-      tryTarget(b.id, lx + w + POST_SIZE, z);
+      tryTarget(b.id, lx - postSize,     z);
+      tryTarget(b.id, lx + postSize,     z);
+      tryTarget(b.id, lx + w - postSize, z);
+      tryTarget(b.id, lx + w + postSize, z);
     }
     for (const z of backPerps) {
-      tryTarget(b.id, lx - POST_SIZE,     z);
-      tryTarget(b.id, lx + POST_SIZE,     z);
-      tryTarget(b.id, lx + w - POST_SIZE, z);
-      tryTarget(b.id, lx + w + POST_SIZE, z);
+      tryTarget(b.id, lx - postSize,     z);
+      tryTarget(b.id, lx + postSize,     z);
+      tryTarget(b.id, lx + w - postSize, z);
+      tryTarget(b.id, lx + w + postSize, z);
     }
     for (const x of leftPerps) {
-      tryTarget(b.id, x, tz - POST_SIZE);
-      tryTarget(b.id, x, tz + POST_SIZE);
-      tryTarget(b.id, x, tz + d - POST_SIZE);
-      tryTarget(b.id, x, tz + d + POST_SIZE);
+      tryTarget(b.id, x, tz - postSize);
+      tryTarget(b.id, x, tz + postSize);
+      tryTarget(b.id, x, tz + d - postSize);
+      tryTarget(b.id, x, tz + d + postSize);
     }
     for (const x of rightPerps) {
-      tryTarget(b.id, x, tz - POST_SIZE);
-      tryTarget(b.id, x, tz + POST_SIZE);
-      tryTarget(b.id, x, tz + d - POST_SIZE);
-      tryTarget(b.id, x, tz + d + POST_SIZE);
+      tryTarget(b.id, x, tz - postSize);
+      tryTarget(b.id, x, tz + postSize);
+      tryTarget(b.id, x, tz + d - postSize);
+      tryTarget(b.id, x, tz + d + postSize);
     }
     // Edge midpoints — paal centred on the midpoint along the edge, with
     // the three perp flush positions.
@@ -368,29 +372,29 @@ export function detectPoleSnap(
     for (const f of poles.front) {
       const px2 = lx + f * w;
       for (const z of frontPerps) {
-        tryTarget(b.id, px2 - POST_SIZE, z);
-        tryTarget(b.id, px2 + POST_SIZE, z);
+        tryTarget(b.id, px2 - postSize, z);
+        tryTarget(b.id, px2 + postSize, z);
       }
     }
     for (const f of poles.back) {
       const px2 = lx + f * w;
       for (const z of backPerps) {
-        tryTarget(b.id, px2 - POST_SIZE, z);
-        tryTarget(b.id, px2 + POST_SIZE, z);
+        tryTarget(b.id, px2 - postSize, z);
+        tryTarget(b.id, px2 + postSize, z);
       }
     }
     for (const f of poles.left) {
       const pz2 = tz + f * d;
       for (const x of leftPerps) {
-        tryTarget(b.id, x, pz2 - POST_SIZE);
-        tryTarget(b.id, x, pz2 + POST_SIZE);
+        tryTarget(b.id, x, pz2 - postSize);
+        tryTarget(b.id, x, pz2 + postSize);
       }
     }
     for (const f of poles.right) {
       const pz2 = tz + f * d;
       for (const x of rightPerps) {
-        tryTarget(b.id, x, pz2 - POST_SIZE);
-        tryTarget(b.id, x, pz2 + POST_SIZE);
+        tryTarget(b.id, x, pz2 - postSize);
+        tryTarget(b.id, x, pz2 + postSize);
       }
     }
   }
@@ -419,6 +423,9 @@ export function detectWallSnap(
   wallWidth: number,
   orientation: 'horizontal' | 'vertical',
   buildings: BuildingEntity[],
+  /** Post / lumber cross-section in metres. Wall thickness = postSize since
+   *  the wall envelope shares the post line. Defaults to the legacy 150 mm. */
+  postSize: number = POST_SIZE,
 ): WallSnapResult {
   const [wx, wz] = wallPos;
   let bestDist = SNAP_THRESHOLD;
@@ -426,7 +433,7 @@ export function detectWallSnap(
   let snapZ = wz;
   let attachedTo: string | null = null;
 
-  const halfShort = POST_SIZE / 2;
+  const halfShort = postSize / 2;
 
   // Pass 1: edge slide — wall's long edge snaps to a structural building's
   // front/back (horizontal wall) or left/right (vertical) edge, OR the
@@ -438,19 +445,15 @@ export function detectWallSnap(
     const w = b.dimensions.width;
     const d = b.dimensions.depth;
 
-    // Three perpendicular candidates per face — wall outside, wall straddle
-    // (midline on the edge, same extent as the structural posts), wall
-    // inside — plus the centerline split detent. Straddle is the most
-    // common "wall on the building line" pose; outside/inside cover the
-    // "wall adjacent to but not sharing the structure" cases.
+    // Walls always snap with their MIDLINE on the structural post line —
+    // straddle is the architecturally correct pose (wall shares the post
+    // line's perp extent) and avoids ambiguous "inside / outside flush"
+    // tie-breaks that flip with sub-cm drag movements. The building
+    // centerline stays as a separate "split-in-half" detent.
     if (orientation === 'horizontal') {
       const candidates = [
-        { snapZ: tz - 2 * halfShort,         xMin: lx, xMax: lx + w }, // front, wall outside
-        { snapZ: tz - halfShort,             xMin: lx, xMax: lx + w }, // front, wall straddle
-        { snapZ: tz,                         xMin: lx, xMax: lx + w }, // front, wall inside
-        { snapZ: tz + d - 2 * halfShort,     xMin: lx, xMax: lx + w }, // back, wall inside
-        { snapZ: tz + d - halfShort,         xMin: lx, xMax: lx + w }, // back, wall straddle
-        { snapZ: tz + d,                     xMin: lx, xMax: lx + w }, // back, wall outside
+        { snapZ: tz - halfShort,             xMin: lx, xMax: lx + w }, // front, straddle
+        { snapZ: tz + d - halfShort,         xMin: lx, xMax: lx + w }, // back, straddle
         { snapZ: tz + d / 2 - halfShort,     xMin: lx, xMax: lx + w }, // centerline split
       ];
       for (const c of candidates) {
@@ -466,12 +469,8 @@ export function detectWallSnap(
       }
     } else {
       const candidates = [
-        { snapX: lx - 2 * halfShort,         zMin: tz, zMax: tz + d }, // left, wall outside
-        { snapX: lx - halfShort,             zMin: tz, zMax: tz + d }, // left, wall straddle
-        { snapX: lx,                         zMin: tz, zMax: tz + d }, // left, wall inside
-        { snapX: lx + w - 2 * halfShort,     zMin: tz, zMax: tz + d }, // right, wall inside
-        { snapX: lx + w - halfShort,         zMin: tz, zMax: tz + d }, // right, wall straddle
-        { snapX: lx + w,                     zMin: tz, zMax: tz + d }, // right, wall outside
+        { snapX: lx - halfShort,             zMin: tz, zMax: tz + d }, // left, straddle
+        { snapX: lx + w - halfShort,         zMin: tz, zMax: tz + d }, // right, straddle
         { snapX: lx + w / 2 - halfShort,     zMin: tz, zMax: tz + d }, // centerline split
       ];
       for (const c of candidates) {
@@ -508,7 +507,7 @@ export function detectWallSnap(
   // from the wall body, so the endpoint's "near face" target on the pole
   // depends on which endpoint we're snapping. Targets that don't depend on
   // direction (edge midpoints, muur/poort endpoints) go into both sets.
-  const longHalf = POST_SIZE / 2;
+  const longHalf = postSize / 2;
   const targetsA: [number, number][] = []; // for wallEndpoints[0]
   const targetsB: [number, number][] = []; // for wallEndpoints[1]
 
@@ -562,17 +561,12 @@ export function detectWallSnap(
     const d = b.dimensions.depth;
     const cx = lx + w / 2;
     const cz = tz + d / 2;
-    // For poles on a building face, the perp candidates are the three Pass-1
-    // outputs at that face (wall outside / wall straddle / wall inside) so
-    // whichever Pass 1 picked stays the matching Pass 2 target — Pass 2
-    // only shifts the long axis to the pole's near face, never undoing the
-    // user's intended perp position.
-    const frontPerps = orientation === 'horizontal'
-      ? [tz - longHalf, tz, tz + longHalf]
-      : [lx - longHalf, lx, lx + longHalf];
-    const backPerps  = orientation === 'horizontal'
-      ? [tz + d - longHalf, tz + d, tz + d + longHalf]
-      : [lx + w - longHalf, lx + w, lx + w + longHalf];
+    // Pass 1 only emits the straddle perp position (wall midline on the
+    // structural post line). Pass 2's corner / grid-post detents emit the
+    // matching straddle endpoint coord so Pass 2 just shifts along the
+    // edge without ever undoing the perp snap.
+    const frontPerps = orientation === 'horizontal' ? [tz] : [lx];
+    const backPerps  = orientation === 'horizontal' ? [tz + d] : [lx + w];
     // Corner posts (POST_SIZE square centered on each building corner).
     if (orientation === 'horizontal') {
       addPole(lx, tz,         frontPerps);
@@ -663,10 +657,12 @@ export function detectWallPoleSnap(
   longAxis: 'x' | 'z',
   wallPerp: number,
   buildings: BuildingEntity[],
+  /** Post / lumber cross-section in metres. Defaults to the legacy 150 mm. */
+  postSize: number = POST_SIZE,
 ): number {
   let bestDist = SNAP_THRESHOLD;
   let snapped = edgeValue;
-  const halfPost = POST_SIZE / 2;
+  const halfPost = postSize / 2;
 
   for (const b of buildings) {
     if (b.type === 'muur' || b.type === 'poort') continue;
@@ -740,9 +736,11 @@ export function detectWallResizeSnap(
   perpEnd: number,
   wallPerp: number,
   buildings: BuildingEntity[],
+  /** Post / lumber cross-section in metres. Defaults to the legacy 150 mm. */
+  postSize: number = POST_SIZE,
 ): number {
   const edgeSnap = detectResizeSnap(rawValue, axis, edgeSide, perpStart, perpEnd, buildings);
-  const poleSnap = detectWallPoleSnap(rawValue, axis, wallPerp, buildings);
+  const poleSnap = detectWallPoleSnap(rawValue, axis, wallPerp, buildings, postSize);
   // Pole-face snap is preferred over building-edge snap whenever it engages:
   // a building's outer edge coincides with the corner post's CENTRE, so
   // landing on the post's near face (poleSnap) is the side-to-side meeting

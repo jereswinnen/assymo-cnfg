@@ -65,6 +65,10 @@ interface ConfigStore extends ConfigData {
     position?: [number, number],
     productDefaults?: ProductBuildingDefaults,
     materialDefaults?: MaterialDefaults,
+    /** Tenant post / lumber cross-section in metres — passed from the
+     *  React layer (which has access to the tenant context) so newly
+     *  spawned paal / muur entities inherit the tenant's geometry. */
+    postSize?: number,
   ) => string;
   /** Atomically clear the default initial scene and spawn a single product-
    *  backed building at the origin. Intended for the ?product= hydration
@@ -79,6 +83,19 @@ interface ConfigStore extends ConfigData {
   updateBuildingPosition: (id: string, pos: [number, number]) => void;
   setPoleAttachment: (id: string, attachedTo: string | null) => void;
   applyInnerFlipAutoDetect: (id: string) => void;
+  /** Resize every paal/muur entity in the current scene so its post-driven
+   *  dimensions match the supplied tenant postSize. Called from the
+   *  configurator on mount + whenever tenant.geometry.postSizeMm changes.
+   *  No-op when nothing would change. */
+  reconcilePostSize: (postSize: number) => void;
+  /** Override the scene's post-size (mm). Pass `null` to clear and fall
+   *  back to the tenant default. Triggers a reconcile so existing entities
+   *  resize in lockstep. */
+  setScenePostSizeMm: (mm: number | null) => void;
+  /** Apply a single primary material to every building in the scene. Used
+   *  by the "Globaal → Materiaal" picker so a one-click change cascades
+   *  without forcing per-building edits. */
+  setGlobalPrimaryMaterial: (materialId: string) => void;
   setBuildingName: (id: string, name: string | null) => void;
   updateBuildingWall: (id: string, wallId: WallId, patch: Partial<WallConfig>) => void;
   updateBuildingFloor: (id: string, patch: Partial<FloorConfig>) => void;
@@ -132,8 +149,8 @@ export const useConfigStore = create<ConfigStore>()(
     (set, get) => ({
       ...initialConfig,
 
-      addBuilding: (type, position, productDefaults, materialDefaults) => {
-        const { cfg, id } = mAddBuilding(get(), type, position, productDefaults, materialDefaults);
+      addBuilding: (type, position, productDefaults, materialDefaults, postSize) => {
+        const { cfg, id } = mAddBuilding(get(), type, position, productDefaults, materialDefaults, postSize);
         set(cfg);
         useUIStore.getState().selectBuilding(id);
         return id;
@@ -176,6 +193,52 @@ export const useConfigStore = create<ConfigStore>()(
       updateBuildingPosition: (id, pos) => set(mUpdateBuildingPosition(get(), id, pos)),
       setPoleAttachment: (id, attachedTo) => set(mSetPoleAttachment(get(), id, attachedTo)),
       applyInnerFlipAutoDetect: (id) => set(mApplyInnerFlipAutoDetect(get(), id)),
+      reconcilePostSize: (postSize) => {
+        const cfg = get();
+        // Resize paal entities (square cross-section) and muur entities (the
+        // wall's `dimensions.depth` is the post-driven thickness). Skip when
+        // nothing would change so React/zustand can dedupe the update.
+        let touched = false;
+        const next = cfg.buildings.map((b) => {
+          if (b.type === 'paal') {
+            if (b.dimensions.width === postSize && b.dimensions.depth === postSize) return b;
+            touched = true;
+            return { ...b, dimensions: { ...b.dimensions, width: postSize, depth: postSize } };
+          }
+          if (b.type === 'muur' || b.type === 'poort') {
+            if (b.dimensions.depth === postSize) return b;
+            touched = true;
+            return { ...b, dimensions: { ...b.dimensions, depth: postSize } };
+          }
+          return b;
+        });
+        if (touched) set({ ...cfg, buildings: next });
+      },
+      setScenePostSizeMm: (mm) => {
+        const cfg = get();
+        const cleaned = mm == null ? undefined : mm;
+        if (cfg.postSizeMm === cleaned) return;
+        const nextCfg = { ...cfg, postSizeMm: cleaned };
+        set(nextCfg);
+        // Cascade to entities — reconcile reads the just-set value back via
+        // `get()` so callers don't have to re-resolve effective postSize.
+        if (cleaned !== undefined) {
+          (get() as ConfigStore).reconcilePostSize(cleaned / 1000);
+        }
+      },
+      setGlobalPrimaryMaterial: (materialId) => {
+        const cfg = get();
+        let touched = false;
+        const next = cfg.buildings.map((b) => {
+          // Only entities that store a `primaryMaterialId` (skip poort —
+          // gates have their own material via `gateConfig.materialId`).
+          if (b.type === 'poort') return b;
+          if (b.primaryMaterialId === materialId) return b;
+          touched = true;
+          return { ...b, primaryMaterialId: materialId };
+        });
+        if (touched) set({ ...cfg, buildings: next });
+      },
       setBuildingName: (id, name) => set(mSetBuildingName(get(), id, name)),
       updateBuildingWall: (id, wallId, patch) => set(mUpdateBuildingWall(get(), id, wallId, patch)),
       updateBuildingFloor: (id, patch) => set(mUpdateBuildingFloor(get(), id, patch)),

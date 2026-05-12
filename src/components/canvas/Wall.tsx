@@ -4,9 +4,10 @@ import { useMemo, useEffect, useCallback } from 'react';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore } from "@/store/useUIStore";
-import { WALL_THICKNESS, getWallLayerLayout, resolveOpeningPositions, getWallLength } from '@/domain/building';
+import { getWallLayerLayout, resolveOpeningPositions, getWallLength } from '@/domain/building';
 import { getAtomColor, getEffectiveWallMaterial, getEffectiveDoorMaterial, getEffectiveInnerWallMaterial, getEffectiveMiddenlaagMaterial } from '@/domain/materials';
 import { useTenant } from '@/lib/TenantProvider';
+import { useEffectivePostSize } from '@/lib/useEffectivePostSize';
 import { useWallTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
 import { WIN_W_DEFAULT, WIN_H_DEFAULT, WIN_SILL_DEFAULT } from '@/domain/building';
@@ -47,6 +48,10 @@ interface WallProps {
 
 export default function Wall({ wallId }: WallProps) {
   const { catalog: { materials }, supplierCatalog } = useTenant();
+  /** Wall envelope thickness equals the effective post / lumber cross-
+   *  section so the wall sits flush with corner posts and the structure.
+   *  Reads the scene override first, falls back to tenant default. */
+  const wallThickness = useEffectivePostSize();
 
   const buildingId = useBuildingId();
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
@@ -102,7 +107,7 @@ export default function Wall({ wallId }: WallProps) {
   const isMuur = building?.type === 'muur';
 
   const { layout, rotation } = useMemo(() => {
-    const t = WALL_THICKNESS;
+    const t = wallThickness;
     const inset = isMuur ? 0 : 0.01;
     const w = width - inset * 2;
     const d = depth - inset * 2;
@@ -158,10 +163,10 @@ export default function Wall({ wallId }: WallProps) {
     const layers: LayerSpec[] = canonical.map(l => layer(l.role, l.offsetNorm, l.thicknessNorm));
 
     return {
-      layout: { layers, perpAxis, lengthAlongWall },
+      layout: { layers, perpAxis, lengthAlongWall, outwardSign: effectiveOuterSign as 1 | -1 },
       rotation: rot,
     };
-  }, [wallId, width, depth, height, isMuur, innerSlug, middenlaagSlug, wallCfg?.innerFlipped]);
+  }, [wallId, width, depth, height, isMuur, innerSlug, middenlaagSlug, wallCfg?.innerFlipped, wallThickness]);
 
   const hasOpenings = wallCfg ? wallCfg.hasDoor || (wallCfg.windows ?? []).length > 0 : false;
   const ds = wallCfg?.doorSize ?? 'enkel';
@@ -222,12 +227,12 @@ export default function Wall({ wallId }: WallProps) {
     return createWallWithOpeningsGeo(
       wallLength,
       height,
-      WALL_THICKNESS,
+      wallThickness,
       wallId,
       doorHole,
       windowHoles,
     );
-  }, [hasOpenings, wallLength, height, wallId, doorHole, windowHoles]);
+  }, [hasOpenings, wallLength, height, wallId, doorHole, windowHoles, wallThickness]);
 
   useEffect(() => {
     return () => { wallGeo?.dispose(); };
@@ -300,9 +305,11 @@ export default function Wall({ wallId }: WallProps) {
               slabPosition={layerSpec.position}
               rotation={rotation}
               perpAxis={layout.perpAxis}
-              perpThickness={layout.perpAxis === 'z' ? layerSpec.size[2] : layerSpec.size[0]}
+              layerThickness={layout.perpAxis === 'z' ? layerSpec.size[2] : layerSpec.size[0]}
+              beamDepthMm={middenlaagPricing.thicknessMm}
               beamWidthMm={middenlaagPricing.beamWidthMm}
               beamSpacingMm={middenlaagPricing.beamSpacingMm}
+              outwardSign={layout.outwardSign}
               slug={middenlaagSlug!}
               color={middenlaagColor ?? '#888'}
               texture={middenlaagTexture}
@@ -365,9 +372,22 @@ interface FramePostsProps {
   slabPosition: [number, number, number];
   rotation: [number, number, number];
   perpAxis: 'x' | 'z';
-  perpThickness: number;
+  /** Maximum perp depth available in the wall envelope (the middenlaag
+   *  layer's geometric thickness). Used as an upper bound — the beam can
+   *  never extend past the wall's outer/inner faces. */
+  layerThickness: number;
+  /** Beam dimensions from the chosen middenlaag material. `beamDepthMm` is
+   *  the beam's actual perp depth (clamped to `layerThickness`); the beam
+   *  is anchored at the wall's OUTER face — when `beamDepthMm` < the layer
+   *  thickness, the slimmer beam sits flush with the outside of the wall
+   *  and recedes inward. */
+  beamDepthMm: number;
   beamWidthMm: number;
   beamSpacingMm: number;
+  /** +1 when the wall's outer face is on the +perp side, -1 otherwise.
+   *  Drives the inward shift so the beam's outer face lands on the wall's
+   *  outer face regardless of wall orientation / inner-flip. */
+  outwardSign: 1 | -1;
   slug: string;
   color: string;
   texture: ReturnType<typeof useWallTexture>;
@@ -380,12 +400,20 @@ interface FramePostsProps {
 }
 
 function FramePosts({
-  wallLength, height, slabPosition, rotation, perpAxis, perpThickness,
-  beamWidthMm, beamSpacingMm, slug, color, texture, envMapIntensity,
+  wallLength, height, slabPosition, rotation, perpAxis, layerThickness,
+  beamDepthMm, beamWidthMm, beamSpacingMm, outwardSign, slug, color, texture, envMapIntensity,
   doorHole, windowHoles, isSelected, hovered, pointerHandlers,
 }: FramePostsProps) {
   const beamW = beamWidthMm / 1000;
   const spacing = beamSpacingMm / 1000;
+  /** Beam's perp depth — comes from the chosen middenlaag material so users
+   *  can see real-world lumber dimensions (e.g. 89 mm SLS) instead of the
+   *  beam filling the full middenlaag layer. Clamped to the layer so the
+   *  beam never extends past the wall envelope. */
+  const beamDepth = Math.min(beamDepthMm / 1000, layerThickness);
+  /** Shift the beam outward so its outer face is flush with the wall's
+   *  outer face — slimmer beams recede inward, not centred in the layer. */
+  const perpShift = outwardSign * (layerThickness - beamDepth) / 2;
 
   // Inset the outer posts by half a beam width so their outer faces sit
   // flush with the wall ends instead of protruding past them. Inner posts
@@ -414,13 +442,13 @@ function FramePosts({
       {posts.map((localX, i) => {
         const pos: [number, number, number] =
           perpAxis === 'z'
-            ? [slabPosition[0] + localX, slabPosition[1], slabPosition[2]]
-            : [slabPosition[0], slabPosition[1], slabPosition[2] + localX];
+            ? [slabPosition[0] + localX, slabPosition[1], slabPosition[2] + perpShift]
+            : [slabPosition[0] + perpShift, slabPosition[1], slabPosition[2] + localX];
 
         const meshSize: [number, number, number] =
           perpAxis === 'z'
-            ? [beamW, height, perpThickness]
-            : [perpThickness, height, beamW];
+            ? [beamW, height, beamDepth]
+            : [beamDepth, height, beamW];
 
         return (
           <mesh
@@ -461,10 +489,9 @@ interface OpeningsProps {
 
 function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg, effectiveDoorMaterial }: OpeningsProps) {
   const { supplierCatalog } = useTenant();
+  const t = useEffectivePostSize();
 
   if (!wallCfg.hasDoor && (wallCfg.windows ?? []).length === 0) return null;
-
-  const t = WALL_THICKNESS;
   const outOffset = t / 2 + 0.01;
 
   let groupPos: [number, number, number];

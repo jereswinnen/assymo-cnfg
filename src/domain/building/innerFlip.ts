@@ -1,5 +1,4 @@
 import type { BuildingEntity } from './types';
-import { WALL_THICKNESS } from './constants';
 
 /** Radius (m) within which we look for structural neighbours when deciding
  *  whether a muur's default outer/inner face assignment needs flipping.
@@ -65,7 +64,10 @@ export function detectInnerFlip(
   ];
 
   const [ox, oy] = defaultOutwardDir(building);
-  const half = WALL_THICKNESS / 2;
+  // The muur's own thickness lives on `dimensions.depth` (set at entity
+  // creation from the tenant's postSizeMm). Reading it here keeps innerFlip
+  // free of global / tenant state.
+  const half = building.dimensions.depth / 2;
   const defaultOuterFace: [number, number] = [
     muurCentre[0] + half * ox,
     muurCentre[1] + half * oy,

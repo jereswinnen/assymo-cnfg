@@ -1,7 +1,6 @@
 import { autoPoleLayout } from '@/domain/building';
+import { useEffectivePostSize } from '@/lib/useEffectivePostSize';
 import type { PolesConfig } from '@/domain/building';
-
-const POST_SIZE = 0.15;
 
 interface SchematicPostsProps {
   width: number;
@@ -12,6 +11,7 @@ interface SchematicPostsProps {
 }
 
 export default function SchematicPosts({ width, depth, offsetX = 0, offsetY = 0, poles }: SchematicPostsProps) {
+  const POST_SIZE = useEffectivePostSize();
   const layout = poles ?? autoPoleLayout(width, depth);
   const hw = width / 2;
   const hd = depth / 2;

@@ -4,6 +4,7 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { and, eq } from 'drizzle-orm';
 import { DEFAULT_PRICE_BOOK } from '../domain/pricing/priceBook.ts';
 import { DEFAULT_ASSYMO_BRANDING } from '../domain/tenant/branding.ts';
+import { DEFAULT_TENANT_GEOMETRY } from '../domain/tenant/geometry.ts';
 import { DEFAULT_ASSYMO_INVOICING } from '../domain/tenant/invoicing.ts';
 import * as schema from './schema.ts';
 import { materials, products, tenantHosts, tenants, suppliers, supplierProducts } from './schema.ts';
@@ -321,6 +322,7 @@ async function main() {
       priceBook: ASSYMO_PRICE_BOOK,
       branding: DEFAULT_ASSYMO_BRANDING,
       invoicing: DEFAULT_ASSYMO_INVOICING,
+      geometry: DEFAULT_TENANT_GEOMETRY,
     })
     .onConflictDoNothing({ target: tenants.id });
 

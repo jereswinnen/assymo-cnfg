@@ -25,6 +25,8 @@ import {
   detectInnerFlip,
   POLE_DIMENSIONS,
   WALL_DIMENSIONS,
+  poleDimensions,
+  wallDimensions,
 } from '@/domain/building';
 import type { MaterialCategory, ProductBuildingDefaults } from '@/domain/catalog';
 import { randomId } from '@/domain/random';
@@ -76,6 +78,11 @@ export function createBuilding(
   type: BuildingType,
   position: [number, number],
   materialDefaults?: MaterialDefaults,
+  /** Tenant's post / lumber cross-section in metres. New paal/muur entities
+   *  inherit it so their dimensions match the rest of the tenant's
+   *  geometry. Defaults to the legacy 150 mm so domain tests and any pure-
+   *  domain caller without tenant context behave exactly as before. */
+  postSize?: number,
 ): BuildingEntity {
   // The kind's material binding (registry-driven) decides which slug we seed
   // and where it lands on the entity. Falls back to category-agnostic
@@ -93,9 +100,9 @@ export function createBuilding(
   }
 
   const dimensions = type === 'paal'
-    ? { ...POLE_DIMENSIONS }
+    ? (postSize !== undefined ? poleDimensions(postSize) : { ...POLE_DIMENSIONS })
     : type === 'muur'
-    ? { ...WALL_DIMENSIONS }
+    ? (postSize !== undefined ? wallDimensions(postSize) : { ...WALL_DIMENSIONS })
     : { ...DEFAULT_DIMENSIONS };
 
   return {
@@ -140,6 +147,9 @@ export function addBuilding(
   position?: [number, number],
   productDefaults?: ProductBuildingDefaults,
   materialDefaults?: MaterialDefaults,
+  /** Tenant's post / lumber cross-section in metres — flows into new paal /
+   *  muur dimensions. Defaults to the legacy 150 mm. */
+  postSize?: number,
 ): { cfg: ConfigData; id: string } {
   let resolvedPos: [number, number] = position ?? [0, 0];
   if (!position && cfg.buildings.length > 0) {
@@ -159,9 +169,9 @@ export function addBuilding(
     };
   } else if (productDefaults) {
     const baseDims = type === 'paal'
-      ? { ...POLE_DIMENSIONS }
+      ? (postSize !== undefined ? poleDimensions(postSize) : { ...POLE_DIMENSIONS })
       : type === 'muur'
-      ? { ...WALL_DIMENSIONS }
+      ? (postSize !== undefined ? wallDimensions(postSize) : { ...WALL_DIMENSIONS })
       : { ...DEFAULT_DIMENSIONS };
 
     const defaultFloor: FloorConfig =
@@ -204,7 +214,7 @@ export function addBuilding(
       sourceProductId: productDefaults.sourceProductId,
     };
   } else {
-    building = createBuilding(type, resolvedPos, materialDefaults);
+    building = createBuilding(type, resolvedPos, materialDefaults, postSize);
   }
 
   // Honour product-specified height per the kind's heightSource binding.

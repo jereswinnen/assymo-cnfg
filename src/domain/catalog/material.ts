@@ -154,9 +154,15 @@ function validatePricing(
         const pb = (entry as Record<string, unknown>).perBeam;
         const expected = new Set(['kind', 'thicknessMm', 'beamWidthMm', 'beamSpacingMm', 'perBeam']);
         const extra = Object.keys(entry).some(k => !expected.has(k));
+        // `MAX_BEAM_DEPTH_MM` matches the geometry validator's
+        // `POST_SIZE_MAX_MM` ceiling — the beam can never be physically
+        // thicker than the largest post the tenant could configure. Tighter
+        // per-tenant clamping happens in the admin UI which has access to
+        // the live `geometry.postSizeMm`.
+        const MAX_BEAM_DEPTH_MM = 300;
         if (
           extra
-          || typeof t  !== 'number' || !Number.isFinite(t)  || t  <= 0
+          || typeof t  !== 'number' || !Number.isFinite(t)  || t  <= 0 || t > MAX_BEAM_DEPTH_MM
           || typeof bw !== 'number' || !Number.isFinite(bw) || bw <= 0
           || typeof bs !== 'number' || !Number.isFinite(bs) || bs <= 0
           || typeof pb !== 'number' || !Number.isFinite(pb) || pb <= 0

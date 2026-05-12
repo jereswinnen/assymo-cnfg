@@ -5,6 +5,7 @@ import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore, selectSingleBuildingId } from "@/store/useUIStore";
 import { t } from '@/lib/i18n';
 import { useTenant } from '@/lib/TenantProvider';
+import { useEffectivePostSize } from '@/lib/useEffectivePostSize';
 import { useFirstAvailableMaterials } from '@/lib/useTenantCatalogs';
 import { applyProductDefaults, type MaterialCategory } from '@/domain/catalog';
 import type { BuildingType } from '@/domain/building';
@@ -30,6 +31,10 @@ export default function ObjectsTab() {
   const { catalog } = useTenant();
   const materialDefaults = useFirstAvailableMaterials();
   const hasProducts = catalog.products.length > 0;
+  /** Effective post / lumber cross-section in metres — flows into new paal
+   *  / muur entities so their dimensions match the current scene's
+   *  Paaldikte setting (sidebar Globaal). */
+  const postSize = useEffectivePostSize();
 
   const availableCategories = useMemo<ReadonlySet<MaterialCategory>>(() => {
     const set = new Set<MaterialCategory>();
@@ -75,7 +80,7 @@ export default function ObjectsTab() {
                   onClick={() => {
                     if (!canAdd) return;
                     const defaults = applyProductDefaults(p);
-                    addBuilding(p.kind, undefined, defaults);
+                    addBuilding(p.kind, undefined, defaults, undefined, postSize);
                   }}
                   className={`rounded-lg border border-border p-2 text-left select-none transition-all ${
                     canAdd
@@ -114,7 +119,7 @@ export default function ObjectsTab() {
                 draggable={canAdd}
                 onDragStart={(e) => handleDragStart(e, type)}
                 onClick={() => {
-                  if (canAdd) addBuilding(type, undefined, undefined, materialDefaults);
+                  if (canAdd) addBuilding(type, undefined, undefined, materialDefaults, postSize);
                 }}
                 className={`flex flex-col items-center gap-1 rounded-lg border border-border p-3 select-none transition-all ${
                   canAdd
@@ -134,7 +139,7 @@ export default function ObjectsTab() {
                 draggable={canAdd}
                 onDragStart={(e) => handleDragStart(e, type)}
                 onClick={() => {
-                  if (canAdd) addBuilding(type, undefined, undefined, materialDefaults);
+                  if (canAdd) addBuilding(type, undefined, undefined, materialDefaults, postSize);
                 }}
                 className={`flex flex-col items-center gap-1 rounded-lg border border-border p-3 select-none transition-all ${
                   canAdd

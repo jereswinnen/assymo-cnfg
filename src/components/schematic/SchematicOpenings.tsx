@@ -1,16 +1,14 @@
 import {
-  WALL_THICKNESS,
   WIN_W,
   resolveOpeningPositions,
   fractionToX,
 } from '@/domain/building';
 import { resolveDoorWidth, resolveWindowWidth } from '@/domain/openings';
+import { useEffectivePostSize } from '@/lib/useEffectivePostSize';
 import type { WallConfig, DoorSwing, BuildingDimensions } from '@/domain/building';
 import type { SupplierProductRow } from '@/domain/supplier';
 import { getWallGeometries } from './SchematicWalls';
 import type { WallGeom } from './SchematicWalls';
-
-const T = WALL_THICKNESS;
 
 interface SchematicOpeningsProps {
   dimensions: BuildingDimensions;
@@ -366,7 +364,7 @@ function SupplierLabel({ geom, localX, label }: { geom: WallGeom; localX: number
 
 function WindowSymbol({ geom, localWinX, winWidth = WIN_W, previewColor }: { geom: WallGeom; localWinX: number; winWidth?: number; previewColor?: string }) {
   const halfW = winWidth / 2;
-  const halfT = T / 2;
+  const halfT = useEffectivePostSize() / 2;
   const { cx, cy, orientation } = geom;
   const strokeColor = previewColor ?? '#5BA3D9';
 

@@ -17,6 +17,7 @@ import {
   type DimLine,
 } from '@/domain/schematic';
 import { useTenant } from '@/lib/TenantProvider';
+import { useEffectivePostSize } from '@/lib/useEffectivePostSize';
 import { useFirstAvailableMaterials } from '@/lib/useTenantCatalogs';
 import { t } from '@/lib/i18n';
 import SchematicPosts from './SchematicPosts';
@@ -215,6 +216,9 @@ function ResizeHandles({
 export default function SchematicView() {
   const { catalog: { materials }, supplierCatalog, features } = useTenant();
   const wallElevationEnabled = features.wallElevationView;
+  /** Effective post / lumber cross-section in metres — scene override
+   *  (sidebar "Globaal → Paaldikte") falls through to tenant default. */
+  const postSize = useEffectivePostSize();
   const buildings = useConfigStore((s) => s.buildings);
   const connections = useConfigStore((s) => s.connections);
   const selectedElement = useUIStore((s) => s.selectedElement);
@@ -607,12 +611,12 @@ export default function SchematicView() {
       // For vertical muur or poort, top/bottom edges control width (wall length), not depth
       if (isVertWallLike) {
         if (edge === 'bottom') {
-          const candidateBottom = detectWallResizeSnap(wz, 'z', 'back', startPos[0], startPos[0] + startDims.depth, wallPerpX, others);
+          const candidateBottom = detectWallResizeSnap(wz, 'z', 'back', startPos[0], startPos[0] + startDims.depth, wallPerpX, others, postSize);
           const newLen = Math.max(constraints.width.min, Math.min(constraints.width.max, candidateBottom - startPos[1]));
           updateBuildingDimensions(buildingId, { width: newLen });
           return;
         } else if (edge === 'top') {
-          const candidateTop = detectWallResizeSnap(wz, 'z', 'front', startPos[0], startPos[0] + startDims.depth, wallPerpX, others);
+          const candidateTop = detectWallResizeSnap(wz, 'z', 'front', startPos[0], startPos[0] + startDims.depth, wallPerpX, others, postSize);
           const bottomEdge = startPos[1] + startDims.width;
           const newLen = Math.max(constraints.width.min, Math.min(constraints.width.max, bottomEdge - candidateTop));
           updateBuildingDimensions(buildingId, { width: newLen });
@@ -628,12 +632,12 @@ export default function SchematicView() {
 
       if (edge === 'right') {
         const candidateRight = isWallLike
-          ? detectWallResizeSnap(wx, 'x', 'right', startPos[1], startPos[1] + startDims.depth, wallPerpZ, others)
+          ? detectWallResizeSnap(wx, 'x', 'right', startPos[1], startPos[1] + startDims.depth, wallPerpZ, others, postSize)
           : detectResizeSnap(wx, 'x', 'right', startPos[1], startPos[1] + startDims.depth, others);
         newWidth = Math.max(constraints.width.min, Math.min(constraints.width.max, candidateRight - startPos[0]));
       } else if (edge === 'left') {
         const candidateLeft = isWallLike
-          ? detectWallResizeSnap(wx, 'x', 'left', startPos[1], startPos[1] + startDims.depth, wallPerpZ, others)
+          ? detectWallResizeSnap(wx, 'x', 'left', startPos[1], startPos[1] + startDims.depth, wallPerpZ, others, postSize)
           : detectResizeSnap(wx, 'x', 'left', startPos[1], startPos[1] + startDims.depth, others);
         const rightEdge = startPos[0] + startDims.width;
         newWidth = Math.max(constraints.width.min, Math.min(constraints.width.max, rightEdge - candidateLeft));
@@ -867,6 +871,7 @@ export default function SchematicView() {
         const snapped = detectPoleSnap(
           centerIn,
           allBuildings.filter(b => !groupDragStartPositions.current.has(b.id)),
+          postSize,
         );
         // Convert snapped center back to top-left corner for storage.
         const snappedCorner: [number, number] = [snapped.center[0] - halfW, snapped.center[1] - halfD];
@@ -879,6 +884,7 @@ export default function SchematicView() {
           building.dimensions.width,
           building.orientation,
           allBuildings.filter(b => !groupDragStartPositions.current.has(b.id)),
+          postSize,
         );
         snappedDx = snapped.position[0] - draggedStartPos[0];
         snappedDz = snapped.position[1] - draggedStartPos[1];
@@ -911,6 +917,7 @@ export default function SchematicView() {
         const snapped = detectPoleSnap(
           centerIn,
           allBuildings.filter(b => b.id !== building.id),
+          postSize,
         );
         updateBuildingPosition(building.id, [snapped.center[0] - halfW, snapped.center[1] - halfD]);
         setPoleAttachment(building.id, snapped.attachedTo);
@@ -920,6 +927,7 @@ export default function SchematicView() {
           building.dimensions.width,
           building.orientation,
           allBuildings.filter(b => b.id !== building.id),
+          postSize,
         );
         updateBuildingPosition(building.id, snapped.position);
         setPoleAttachment(building.id, snapped.attachedTo);
@@ -931,7 +939,7 @@ export default function SchematicView() {
         setConnections(newConnections);
       }
     }
-  }, [isElevationMode, updateBuildingPosition, setPoleAttachment, updateBuildingDimensions, setConnections, setDraggedBuildingId]);
+  }, [isElevationMode, updateBuildingPosition, setPoleAttachment, updateBuildingDimensions, setConnections, setDraggedBuildingId, postSize]);
 
   const onPointerUp = useCallback(() => {
     // --- Selection rectangle commit ---
@@ -1173,7 +1181,7 @@ export default function SchematicView() {
     if (!svg) return;
 
     const [wx, wz] = clientToWorld(svg, e.clientX, e.clientY);
-    const newId = addBuilding(type, [wx, wz], undefined, materialDefaults);
+    const newId = addBuilding(type, [wx, wz], undefined, materialDefaults, postSize);
 
     // Run snap detection on the newly placed building
     const allBuildings = useConfigStore.getState().buildings;
@@ -1187,6 +1195,7 @@ export default function SchematicView() {
       const snapped = detectPoleSnap(
         centerIn,
         allBuildings.filter(b => b.id !== newId),
+        postSize,
       );
       updateBuildingPosition(newId, [snapped.center[0] - halfW, snapped.center[1] - halfD]);
       setPoleAttachment(newId, snapped.attachedTo);
@@ -1196,6 +1205,7 @@ export default function SchematicView() {
         building.dimensions.width,
         building.orientation,
         allBuildings.filter(b => b.id !== newId),
+        postSize,
       );
       updateBuildingPosition(newId, snapped.position);
       setPoleAttachment(newId, snapped.attachedTo);
@@ -1207,7 +1217,7 @@ export default function SchematicView() {
     }
 
     selectBuilding(newId);
-  }, [addBuilding, materialDefaults, updateBuildingPosition, setPoleAttachment, setConnections, selectBuilding]);
+  }, [addBuilding, materialDefaults, updateBuildingPosition, setPoleAttachment, setConnections, selectBuilding, postSize]);
 
   const onWallClick = useCallback((wallId: WallId, buildingId: string) => {
     if (!wallElevationEnabled) return;

@@ -25,6 +25,7 @@ import type {
   Currency,
   Locale,
   TenantFeatures,
+  TenantGeometry,
   TenantInvoicing,
 } from '@/domain/tenant';
 import type {
@@ -61,6 +62,14 @@ export const tenants = pgTable('tenants', {
    *  `{}` so older rows resolve through `resolveTenantFeatures` against
    *  `DEFAULT_TENANT_FEATURES`. See `@/domain/tenant` → `TenantFeatures`. */
   features: jsonb('features').$type<Partial<TenantFeatures>>().notNull().default({}),
+  /** Structural geometry — post / lumber cross-section that drives every
+   *  visible structural element. See `@/domain/tenant` → `TenantGeometry`
+   *  + `validateGeometryPatch`. Defaults to `DEFAULT_TENANT_GEOMETRY` for
+   *  rows that predate the column. */
+  geometry: jsonb('geometry')
+    .$type<TenantGeometry>()
+    .notNull()
+    .default({ postSizeMm: 150, postSizePresetsMm: [120, 140, 150, 180, 200] }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });

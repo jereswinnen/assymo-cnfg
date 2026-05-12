@@ -29,7 +29,7 @@ describe('BUILDING_KIND_META', () => {
       heightSource: 'override',
       orientation: true,
     });
-    expect([...meta.sections]).toEqual(['dimensions', 'material', 'gate', 'quote']);
+    expect([...meta.sections]).toEqual(['dimensions', 'gate', 'quote']);
   });
 
   it('describes overkapping as a productable structural with wall+roof-cover+floor categories', () => {
@@ -46,7 +46,7 @@ describe('BUILDING_KIND_META', () => {
       heightSource: 'default',
       orientation: false,
     });
-    expect([...meta.sections]).toEqual(['dimensions', 'material', 'dak', 'structure', 'quote']);
+    expect([...meta.sections]).toEqual(['dimensions', 'dak', 'structure', 'quote']);
   });
 
   it('every kind declares a material descriptor + dimensions + sections', () => {

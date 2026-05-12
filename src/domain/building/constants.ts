@@ -170,19 +170,30 @@ export const WINDOW_PRESETS: WindowPreset[] = [
 export const EDGE_CLEARANCE = 0;
 export const OPENING_GAP = 0.3;
 
-// Pole dimensions (single post)
+// Pole dimensions (single post). `POLE_DIMENSIONS` keeps the legacy
+// 150 mm shape so domain tests / fallback paths don't need to thread the
+// tenant value. `poleDimensions(postSize)` is preferred for runtime
+// creation paths that have the tenant's geometry available.
 export const POLE_DIMENSIONS: BuildingDimensions = {
   width: POST_SIZE,
   depth: POST_SIZE,
   height: 2.6,
 };
 
-// Standalone wall dimensions
+export function poleDimensions(postSize: number): BuildingDimensions {
+  return { width: postSize, depth: postSize, height: 2.6 };
+}
+
+// Standalone wall dimensions. Same backward-compat pattern as POLE_DIMENSIONS.
 export const WALL_DIMENSIONS: BuildingDimensions = {
   width: POST_SPACING, // 3m
   depth: POST_SIZE,    // 0.15m
   height: 2.6,
 };
+
+export function wallDimensions(postSize: number): BuildingDimensions {
+  return { width: POST_SPACING, depth: postSize, height: 2.6 };
+}
 
 // ─── Dimension constraints per building type ────────────────────────
 export interface DimensionConstraint {
@@ -197,6 +208,14 @@ export interface DimensionConstraints {
   height: DimensionConstraint;
 }
 
+/** Post-driven dimensions (paal width/depth, muur depth, poort depth) span
+ *  the tenant geometry's `postSizeMm` range (80–300 mm). Validators accept
+ *  any value in this band; the configurator picks the tenant's actual
+ *  postSize at entity creation time. The `step: 0` marker on each
+ *  post-driven dimension keeps the resize-handle UI non-interactive for
+ *  that axis — the value is set by tenant geometry, not by user drag. */
+export const POST_DRIVEN_DIMENSION: DimensionConstraint = { min: 0.08, max: 0.30, step: 0 };
+
 export const DIMENSION_CONSTRAINTS: Record<string, DimensionConstraints> = {
   structural: {
     width:  { min: 1,    max: 40,  step: 0.1 },
@@ -205,17 +224,17 @@ export const DIMENSION_CONSTRAINTS: Record<string, DimensionConstraints> = {
   },
   muur: {
     width:  { min: 0.5,  max: 10,  step: 0.5 },
-    depth:  { min: 0.15, max: 0.15, step: 0 },
+    depth:  POST_DRIVEN_DIMENSION,
     height: { min: 2.2,  max: 3,   step: 0.1 },
   },
   paal: {
-    width:  { min: 0.15, max: 0.15, step: 0 },
-    depth:  { min: 0.15, max: 0.15, step: 0 },
+    width:  POST_DRIVEN_DIMENSION,
+    depth:  POST_DRIVEN_DIMENSION,
     height: { min: 2.2,  max: 3,   step: 0.1 },
   },
   poort: {
     width:  { min: 0.1,  max: 6,    step: 0.1 },  // permissive — picket-gate parts up to 6m total span
-    depth:  { min: 0.15, max: 0.15, step: 0 },    // gates are thin like walls
+    depth:  POST_DRIVEN_DIMENSION,                // gates are thin like walls
     height: { min: 0.1,  max: 3.5,  step: 0.1 },  // permissive — picket gates up to industrial 3.5m
   },
 };

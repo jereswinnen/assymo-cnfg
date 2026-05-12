@@ -3,6 +3,7 @@ import type { PriceBook } from '@/domain/pricing';
 import type { SupplierRow, SupplierProductRow } from '@/domain/supplier';
 import type { Branding } from './branding';
 import type { TenantFeatures } from './features';
+import type { TenantGeometry } from './geometry';
 import type { TenantInvoicing } from './invoicing';
 
 export type TenantId = string;
@@ -26,6 +27,7 @@ export interface TenantContext {
   branding: Branding;
   invoicing: TenantInvoicing;
   features: TenantFeatures;
+  geometry: TenantGeometry;
   catalog: {
     materials: MaterialRow[];
     products: ProductRow[];

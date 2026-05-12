@@ -15,4 +15,9 @@ export interface ConfigData {
   connections: SnapConnection[];
   roof: RoofConfig;
   defaultHeight: number;
+  /** Scene-level override of the tenant's post / lumber cross-section in
+   *  millimetres. When unset, the tenant's default (`tenant.geometry.
+   *  postSizeMm`) applies. Configurator's "Globaal → Paaldikte" picker
+   *  writes here; admin still owns the tenant default + the preset list. */
+  postSizeMm?: number;
 }

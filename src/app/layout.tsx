@@ -13,7 +13,7 @@ import {
 } from '@/db/resolveTenant';
 import { TenantProvider } from '@/lib/TenantProvider';
 import { ThemeProvider } from '@/lib/ThemeProvider';
-import { resolveTenantFeatures, type TenantContext } from '@/domain/tenant';
+import { resolveTenantFeatures, resolveTenantGeometry, type TenantContext } from '@/domain/tenant';
 import './globals.css';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -56,6 +56,7 @@ export default async function RootLayout({
     branding: tenantRow.branding,
     invoicing: tenantRow.invoicing,
     features: resolveTenantFeatures(tenantRow.features),
+    geometry: resolveTenantGeometry(tenantRow.geometry),
     catalog: { materials, products },
     supplierCatalog: { suppliers: supplierList, products: supplierProductList },
   };

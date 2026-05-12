@@ -5,9 +5,9 @@ import { Mesh } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore } from "@/store/useUIStore";
-import { WALL_THICKNESS } from '@/domain/building';
 import { getAtomColor } from '@/domain/materials';
 import { useTenant } from '@/lib/TenantProvider';
+import { useEffectivePostSize } from '@/lib/useEffectivePostSize';
 import { useRoofTexture, useWallTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
 
@@ -81,8 +81,8 @@ export default function Roof() {
 
 // Fascia ("dakbak") — solid board wrapping the roof edge, flush with the
 // building's outer perimeter (same plane as the top-plate beams). Thickness
-// matches WALL_THICKNESS. Height + overhang now come from RoofConfig.
-const FASCIA_THICKNESS = WALL_THICKNESS;
+// equals the tenant's post / lumber cross-section (read inside the
+// component below). Height + overhang come from RoofConfig.
 
 interface PointerHandlers {
   onPointerOver: (e: unknown) => void;
@@ -116,6 +116,9 @@ interface FasciaBoard {
 
 function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materialProps, meshRef, pointerHandlers }: FlatRoofProps) {
   const roof = useConfigStore((s) => s.roof);
+  /** Fascia thickness mirrors the effective post / lumber cross-section so
+   *  the rim sits in the same plane as the structural posts and walls. */
+  const FASCIA_THICKNESS = useEffectivePostSize();
   const hd = depth / 2;
   const hw = width / 2;
 

@@ -3,11 +3,10 @@
 import { useMemo } from 'react';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
-import { POST_SIZE, BEAM_H, DECK_T, autoPoleLayout } from '@/domain/building';
+import { BEAM_H, DECK_T, autoPoleLayout } from '@/domain/building';
 import { getEffectivePoleMaterial } from '@/domain/materials';
+import { useEffectivePostSize } from '@/lib/useEffectivePostSize';
 import { usePoleMaterial } from './poleMaterial';
-
-const BEAM_W = 0.15;
 
 export const TIMBER_ROOF_OFFSET = BEAM_H + DECK_T;
 
@@ -48,6 +47,12 @@ export default function TimberFrame() {
 
   const poleMaterialId = building ? getEffectivePoleMaterial(building, buildings) : 'wood';
   const timberMat = usePoleMaterial(poleMaterialId);
+  /** Post / lumber cross-section in metres; drives every structural box
+   *  below (corner posts, intermediate posts, top-plate beams). */
+  const POST_SIZE = useEffectivePostSize();
+  /** Top-plate beam width matches the post — the corner geometry can't be
+   *  wider than the post it sits on without overhanging. */
+  const BEAM_W = POST_SIZE;
 
   const elements = useMemo(() => {
     const hw = width / 2;
@@ -122,7 +127,7 @@ export default function TimberFrame() {
     }
 
     return boxes;
-  }, [width, depth, height, isFlat, roofPitch, hasBraces, suppressedSides, poles, roof.fasciaHeight]);
+  }, [width, depth, height, isFlat, roofPitch, hasBraces, suppressedSides, poles, roof.fasciaHeight, POST_SIZE, BEAM_W]);
 
   return (
     <group>

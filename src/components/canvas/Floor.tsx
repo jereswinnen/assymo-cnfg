@@ -5,22 +5,22 @@ import { useConfigStore } from '@/store/useConfigStore';
 import { getAtomColor } from '@/domain/materials';
 import { useTenant } from '@/lib/TenantProvider';
 import { useFloorTexture } from '@/lib/textures';
-import { POST_SIZE } from '@/domain/building';
+import { useEffectivePostSize } from '@/lib/useEffectivePostSize';
 
 export default function Floor() {
   const { catalog: { materials } } = useTenant();
   const buildingId = useBuildingId();
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
+  const postSize = useEffectivePostSize();
 
   const materialId = building?.floor.materialId ?? 'geen';
   const { width, depth } = building?.dimensions ?? { width: 8, depth: 4 };
 
   // Building dimensions measure pole-center to pole-center (and wall
-  // center-line to wall center-line). Extending by POST_SIZE so the floor
-  // reaches the outer face of corner poles / walls — otherwise the
-  // structure visibly stands "outside" the slab.
-  const floorWidth = width + POST_SIZE;
-  const floorDepth = depth + POST_SIZE;
+  // center-line to wall center-line). Extending by one post-size so the
+  // floor reaches the outer face of corner poles / walls.
+  const floorWidth = width + postSize;
+  const floorDepth = depth + postSize;
 
   const pbr = useFloorTexture(materialId, floorWidth, floorDepth);
 

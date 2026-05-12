@@ -29,7 +29,7 @@ const BuildingScene = dynamic(
  *  Extracted into its own component because useSearchParams() requires a
  *  Suspense boundary in the App Router. */
 function SceneHydration() {
-  const { catalog } = useTenant();
+  const { catalog, geometry } = useTenant();
   const params = useSearchParams();
   const productSlug = params.get('product');
   const code = params.get('code');
@@ -37,6 +37,17 @@ function SceneHydration() {
   const replaceWithProduct = useConfigStore((s) => s.replaceWithProduct);
   const resetConfig = useConfigStore((s) => s.resetConfig);
   const loadState = useConfigStore((s) => s.loadState);
+  const reconcilePostSize = useConfigStore((s) => s.reconcilePostSize);
+
+  // Keep paal/muur dimensions in sync with the effective post-size — the
+  // scene override (`postSizeMm`) when set, otherwise the tenant default.
+  // Re-runs whenever either source changes, so rehydration + tenant edits
+  // + sidebar "Paaldikte" changes all flow through one path.
+  const scenePostSizeMm = useConfigStore((s) => s.postSizeMm);
+  useEffect(() => {
+    const effective = (scenePostSizeMm ?? geometry.postSizeMm) / 1000;
+    reconcilePostSize(effective);
+  }, [scenePostSizeMm, geometry.postSizeMm, reconcilePostSize]);
 
   useEffect(() => {
     if (productSlug) {

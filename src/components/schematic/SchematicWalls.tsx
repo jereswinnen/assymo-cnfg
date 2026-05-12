@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  WALL_THICKNESS,
   getWallLayerLayout,
   resolveOpeningPositions,
   getWallLength,
@@ -10,6 +9,7 @@ import type { WallLayer } from '@/domain/building';
 import { resolveDoorWidth, resolveWindowWidth } from '@/domain/openings';
 import { getAtomColor } from '@/domain/materials';
 import { useTenant } from '@/lib/TenantProvider';
+import { useEffectivePostSize } from '@/lib/useEffectivePostSize';
 import type {
   BuildingDimensions,
   WallConfig,
@@ -17,8 +17,6 @@ import type {
   SelectedElement,
 } from '@/domain/building';
 import type { SupplierProductRow } from '@/domain/supplier';
-
-const T = WALL_THICKNESS;
 
 export interface WallGeom {
   wallId: WallId;
@@ -140,6 +138,8 @@ function SolidWall({
   onWallClick?: () => void;
 }) {
   const { catalog: { materials } } = useTenant();
+  /** Wall thickness equals the effective post / lumber cross-section. */
+  const T = useEffectivePostSize();
   const { cx, cy, orientation, length, flipSign } = geom;
   const isH = orientation === 'h';
 

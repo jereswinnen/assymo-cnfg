@@ -2,8 +2,8 @@
 
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
-import { POST_SIZE } from '@/domain/building';
 import { getEffectivePoleMaterial } from '@/domain/materials';
+import { useEffectivePostSize } from '@/lib/useEffectivePostSize';
 import { usePoleMaterial } from './poleMaterial';
 
 /** Standalone Paal (pole) building. Matches TimberFrame post geometry and
@@ -16,13 +16,14 @@ export default function Paal() {
 
   const materialId = building ? getEffectivePoleMaterial(building, buildings) : 'wood';
   const material = usePoleMaterial(materialId);
+  const postSize = useEffectivePostSize();
 
   if (!building) return null;
 
   const h = getEffectiveHeight(building, defaultHeight);
   return (
     <mesh position={[0, h / 2, 0]} material={material} castShadow>
-      <boxGeometry args={[POST_SIZE, h, POST_SIZE]} />
+      <boxGeometry args={[postSize, h, postSize]} />
     </mesh>
   );
 }

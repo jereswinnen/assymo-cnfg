@@ -141,6 +141,23 @@ describe('detectWallSnap (standalone muur)', () => {
     expect(res.position[0]).toBeCloseTo(0.075, 3);
   });
 
+  it('respects a non-default postSize parameter (tenant geometry)', () => {
+    // With postSize = 0.12 m, the corner post is 120 mm — its right face
+    // sits at x = lx + 0.06 instead of the default 0.075. Wall left endpoint
+    // near (0, -0.06) should snap to (0.06, -0.06) — flush with the smaller
+    // post and the straddle Z aligned to the smaller wall envelope.
+    const overkapping = makeBuilding({
+      id: 'ok',
+      type: 'overkapping',
+      position: [0, 0],
+      dimensions: { width: 8, depth: 4, height: 2.6 },
+    });
+    const res = detectWallSnap([0, -0.06], 3, 'horizontal', [overkapping], 0.12);
+    expect(res.attachedTo).toBe('ok');
+    expect(res.position[0]).toBeCloseTo(0.06, 3);
+    expect(res.position[1]).toBeCloseTo(-0.06, 3);
+  });
+
   it('seats a wall flush against a corner post without overlapping it', () => {
     // 7.8m × 3m overkapping at the origin has implicit POST_SIZE-square corner
     // posts at each corner. Drag a 3m horizontal wall near the front-left

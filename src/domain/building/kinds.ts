@@ -9,7 +9,6 @@ export type SnapKind = 'pole' | 'wall' | 'structural';
  *  registry uses to declare visibility per kind. */
 export type ConfigSection =
   | 'dimensions'
-  | 'material'
   | 'dak'
   | 'structure'
   | 'walls'
@@ -64,7 +63,7 @@ export const BUILDING_KIND_META = {
     requiredCategories: ['wall', 'roof-cover', 'floor'],
     material: { category: 'wall', kind: 'building' },
     dimensions: { width: true, depth: true, height: true, heightSource: 'default', orientation: false },
-    sections: ['dimensions', 'material', 'dak', 'structure', 'quote'],
+    sections: ['dimensions', 'dak', 'structure', 'quote'],
   },
   berging: {
     tray: 'structural',
@@ -73,7 +72,7 @@ export const BUILDING_KIND_META = {
     requiredCategories: ['wall', 'roof-cover', 'floor', 'door'],
     material: { category: 'wall', kind: 'building' },
     dimensions: { width: true, depth: true, height: true, heightSource: 'default', orientation: false },
-    sections: ['dimensions', 'material', 'dak', 'structure', 'walls', 'quote'],
+    sections: ['dimensions', 'dak', 'structure', 'walls', 'quote'],
   },
   paal: {
     tray: 'primitive',
@@ -82,7 +81,7 @@ export const BUILDING_KIND_META = {
     requiredCategories: ['wall'],
     material: { category: 'wall', kind: 'building' },
     dimensions: { width: false, depth: false, height: true, heightSource: 'override', orientation: false },
-    sections: ['dimensions', 'material', 'structure', 'quote'],
+    sections: ['dimensions', 'structure', 'quote'],
   },
   muur: {
     tray: 'primitive',
@@ -91,7 +90,7 @@ export const BUILDING_KIND_META = {
     requiredCategories: ['wall'],
     material: { category: 'wall', kind: 'building' },
     dimensions: { width: true, depth: false, height: true, heightSource: 'override', orientation: true },
-    sections: ['dimensions', 'material', 'structure', 'walls', 'quote'],
+    sections: ['dimensions', 'structure', 'walls', 'quote'],
   },
   poort: {
     tray: 'primitive',
@@ -100,7 +99,7 @@ export const BUILDING_KIND_META = {
     requiredCategories: ['gate'],
     material: { category: 'gate', kind: 'gate' },
     dimensions: { width: true, depth: false, height: true, heightSource: 'override', orientation: true },
-    sections: ['dimensions', 'material', 'gate', 'quote'],
+    sections: ['dimensions', 'gate', 'quote'],
   },
 } as const satisfies Record<BuildingType, BuildingKindMeta>;
 
