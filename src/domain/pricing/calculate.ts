@@ -241,6 +241,9 @@ function wallLineItem(
   // per-beam count × perBeam (no area).
   const middenlaagSlug = getEffectiveMiddenlaagMaterial(wallCfg);
   if (middenlaagSlug) {
+    // We use the raw `materials` rows here (not a wallCatalog-style projection)
+    // because middenlaag's pricing is a discriminated union (panel | frame)
+    // that doesn't flatten cleanly to `{ atomId, pricePerSqm }`.
     const row = materials.find(m => m.slug === middenlaagSlug) ?? null;
     const pricing = row?.pricing.middenlaag;
     if (pricing) {
@@ -257,10 +260,9 @@ function wallLineItem(
       } else {
         // frame
         const wallLengthM = getWallLength(wallId, building.dimensions);
-        const count = Math.max(
-          2,
-          Math.ceil((wallLengthM * 1000) / pricing.beamSpacingMm) + 1,
-        );
+        // ceil(L/spacing) + 1 is the standard "studs including both end posts"
+        // formula and is always ≥ 2 for any positive wall length.
+        const count = Math.ceil((wallLengthM * 1000) / pricing.beamSpacingMm) + 1;
         const cost = count * pricing.perBeam;
         lineItems.push({
           labelKey: `${WALL_LABEL_KEY[wallId] ?? wallId}.middenlaag.frame`,
