@@ -6,7 +6,7 @@ import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore } from "@/store/useUIStore";
 import { WALL_THICKNESS, resolveOpeningPositions, getWallLength } from '@/domain/building';
-import { getAtomColor, getEffectiveWallMaterial, getEffectiveDoorMaterial, getEffectiveInnerWallMaterial } from '@/domain/materials';
+import { getAtomColor, getEffectiveWallMaterial, getEffectiveDoorMaterial, getEffectiveInnerWallMaterial, getEffectiveMiddenlaagMaterial } from '@/domain/materials';
 import { useTenant } from '@/lib/TenantProvider';
 import { useWallTexture } from '@/lib/textures';
 import { useClickableObject } from '@/lib/useClickableObject';
@@ -34,6 +34,13 @@ const WALL_ENV_MAP_INTENSITY: Record<string, number> = {
 const WALL_TEXTURE_TINT: Record<string, string> = {
   wood: '#C4955A',
 };
+
+type LayerRole = 'whole' | 'outerCladding' | 'middenlaag' | 'innerCladding';
+interface LayerSpec {
+  role: LayerRole;
+  position: [number, number, number];
+  size: [number, number, number];
+}
 
 interface WallProps {
   wallId: WallId;
@@ -73,73 +80,108 @@ export default function Wall({ wallId }: WallProps) {
 
   const isMuur = building?.type === 'muur';
 
-  /** Wall geometry layout.
-   *
-   *  - `size` / `position`: full-thickness slab — used when no inner cladding.
-   *  - `halfSlabSize`: half-thickness slab dimensions — used when inner cladding
-   *    is set, applied to both outer + inner slabs.
-   *  - `outerPosition` / `innerPosition`: world positions of each half-slab's
-   *    centre. The outer slab sits on the wall's outward-facing half; the
-   *    inner slab on the building-interior side. Together they occupy the
-   *    same total footprint as the full-thickness slab, butting up at the
-   *    wall midline. */
-  const { size, position, rotation, halfSlabSize, outerPosition, innerPosition } = useMemo(() => {
+  // Inner cladding — resolved before the isGlass early-return so hooks run unconditionally.
+  const innerSlug = wallCfg
+    ? getEffectiveInnerWallMaterial(wallCfg)
+    : null;
+  const innerColor = innerSlug
+    ? getAtomColor(materials, innerSlug, 'wall')
+    : null;
+  // useWallTexture must be called unconditionally; feed the outer slug as
+  // placeholder when there's no inner slug (the result is unused in that case).
+  const innerTexture = useWallTexture(innerSlug ?? materialId, wallLength, height);
+
+  // Middenlaag — resolved after innerSlug, unconditional hooks.
+  const middenlaagSlug = wallCfg
+    ? getEffectiveMiddenlaagMaterial(wallCfg)
+    : null;
+  const middenlaagRow = middenlaagSlug
+    ? materials.find(m => m.slug === middenlaagSlug) ?? null
+    : null;
+  const middenlaagPricing = middenlaagRow?.pricing.middenlaag ?? null;
+  const middenlaagColor = middenlaagSlug
+    ? getAtomColor(materials, middenlaagSlug, 'middenlaag')
+    : null;
+  // Unconditional hook — placeholder slug when no middenlaag.
+  const middenlaagTexture = useWallTexture(middenlaagSlug ?? materialId, wallLength, height);
+
+  const { layout, rotation } = useMemo(() => {
     const t = WALL_THICKNESS;
-    const halfT = t / 2;
-    const halfOffset = halfT / 2;
     const inset = isMuur ? 0 : 0.01;
+    const w = width - inset * 2;
+    const d = depth - inset * 2;
     const rot: [number, number, number] = [0, 0, 0];
+
+    let perpAxis: 'x' | 'z';
+    let outwardSign: 1 | -1;
+    let centre: [number, number, number];
+    let lengthAlongWall: number;
+
     switch (wallId) {
-      case 'front': {
-        const center: [number, number, number] = [0, height / 2, isMuur ? 0 : depth / 2 - inset];
-        return {
-          size: [width - inset * 2, height, t] as [number, number, number],
-          position: center,
-          rotation: rot,
-          halfSlabSize: [width - inset * 2, height, halfT] as [number, number, number],
-          // Outward = +z for the front wall.
-          outerPosition: [center[0], center[1], center[2] + halfOffset] as [number, number, number],
-          innerPosition: [center[0], center[1], center[2] - halfOffset] as [number, number, number],
-        };
-      }
-      case 'back': {
-        const center: [number, number, number] = [0, height / 2, -depth / 2 + inset];
-        return {
-          size: [width - inset * 2, height, t] as [number, number, number],
-          position: center,
-          rotation: rot,
-          halfSlabSize: [width - inset * 2, height, halfT] as [number, number, number],
-          // Outward = -z for the back wall.
-          outerPosition: [center[0], center[1], center[2] - halfOffset] as [number, number, number],
-          innerPosition: [center[0], center[1], center[2] + halfOffset] as [number, number, number],
-        };
-      }
-      case 'left': {
-        const center: [number, number, number] = [-width / 2 + inset, height / 2, 0];
-        return {
-          size: [t, height, depth - inset * 2] as [number, number, number],
-          position: center,
-          rotation: rot,
-          halfSlabSize: [halfT, height, depth - inset * 2] as [number, number, number],
-          // Outward = -x for the left wall.
-          outerPosition: [center[0] - halfOffset, center[1], center[2]] as [number, number, number],
-          innerPosition: [center[0] + halfOffset, center[1], center[2]] as [number, number, number],
-        };
-      }
-      case 'right': {
-        const center: [number, number, number] = [width / 2 - inset, height / 2, 0];
-        return {
-          size: [t, height, depth - inset * 2] as [number, number, number],
-          position: center,
-          rotation: rot,
-          halfSlabSize: [halfT, height, depth - inset * 2] as [number, number, number],
-          // Outward = +x for the right wall.
-          outerPosition: [center[0] + halfOffset, center[1], center[2]] as [number, number, number],
-          innerPosition: [center[0] - halfOffset, center[1], center[2]] as [number, number, number],
-        };
-      }
+      case 'front':
+        perpAxis = 'z'; outwardSign = 1;
+        centre = [0, height / 2, isMuur ? 0 : depth / 2 - inset];
+        lengthAlongWall = w;
+        break;
+      case 'back':
+        perpAxis = 'z'; outwardSign = -1;
+        centre = [0, height / 2, -depth / 2 + inset];
+        lengthAlongWall = w;
+        break;
+      case 'left':
+        perpAxis = 'x'; outwardSign = -1;
+        centre = [-width / 2 + inset, height / 2, 0];
+        lengthAlongWall = d;
+        break;
+      case 'right':
+        perpAxis = 'x'; outwardSign = 1;
+        centre = [width / 2 - inset, height / 2, 0];
+        lengthAlongWall = d;
+        break;
     }
-  }, [wallId, width, depth, height, isMuur]);
+
+    function layer(role: LayerRole, offsetNorm: number, thicknessNorm: number): LayerSpec {
+      const thickness = thicknessNorm * t;
+      const offset = outwardSign * (offsetNorm * t);
+      const pos: [number, number, number] =
+        perpAxis === 'z'
+          ? [centre[0], centre[1], centre[2] + offset]
+          : [centre[0] + offset, centre[1], centre[2]];
+      const size: [number, number, number] =
+        perpAxis === 'z'
+          ? [lengthAlongWall, height, thickness]
+          : [thickness, height, lengthAlongWall];
+      return { role, position: pos, size };
+    }
+
+    const hasInner = !!innerSlug;
+    const hasMiddenlaag = !!middenlaagSlug;
+    let layers: LayerSpec[];
+    if (!hasInner && !hasMiddenlaag) {
+      layers = [layer('whole', 0, 1)];
+    } else if (hasInner && !hasMiddenlaag) {
+      layers = [
+        layer('outerCladding',  0.25, 0.50),
+        layer('innerCladding', -0.25, 0.50),
+      ];
+    } else if (!hasInner && hasMiddenlaag) {
+      layers = [
+        layer('outerCladding',  0.40, 0.20),
+        layer('middenlaag',    -0.10, 0.80),
+      ];
+    } else {
+      layers = [
+        layer('outerCladding',  0.40, 0.20),
+        layer('middenlaag',     0.00, 0.60),
+        layer('innerCladding', -0.40, 0.20),
+      ];
+    }
+
+    return {
+      layout: { layers, perpAxis, outwardSign, lengthAlongWall },
+      rotation: rot,
+    };
+  }, [wallId, width, depth, height, isMuur, innerSlug, middenlaagSlug]);
 
   const hasOpenings = wallCfg.hasDoor || (wallCfg.windows ?? []).length > 0;
   const ds = wallCfg.doorSize ?? 'enkel';
@@ -209,42 +251,31 @@ export default function Wall({ wallId }: WallProps) {
     return () => { wallGeo?.dispose(); };
   }, [wallGeo]);
 
-  // Inner cladding — resolved before the isGlass early-return so hooks run unconditionally.
-  const innerSlug = wallCfg
-    ? getEffectiveInnerWallMaterial(wallCfg)
-    : null;
-  const innerColor = innerSlug
-    ? getAtomColor(materials, innerSlug, 'wall')
-    : null;
-  // useWallTexture must be called unconditionally; feed the outer slug as
-  // placeholder when there's no inner slug (the result is unused in that case).
-  const innerTexture = useWallTexture(innerSlug ?? materialId, wallLength, height);
+  const layerGeoms = useMemo(() => {
+    if (!hasOpenings) return null;
+    const m = new Map<LayerRole, import('three').ExtrudeGeometry>();
+    for (const layerSpec of layout.layers) {
+      const perpThickness = layout.perpAxis === 'z' ? layerSpec.size[2] : layerSpec.size[0];
+      m.set(layerSpec.role, createWallWithOpeningsGeo(
+        wallLength,
+        height,
+        perpThickness,
+        wallId,
+        doorHole,
+        windowHoles,
+      ));
+    }
+    return m;
+  }, [hasOpenings, layout, wallLength, height, wallId, doorHole, windowHoles]);
 
-  // Half-thickness slab geometry used for both the outer and inner cladding
-  // meshes when inner cladding is set. The two meshes share this geometry
-  // (different positions, same shape), so disposal happens once.
-  const halfSlabGeo = useMemo(() => {
-    if (!innerSlug || !hasOpenings) return null;
-    return createWallWithOpeningsGeo(
-      wallLength,
-      height,
-      WALL_THICKNESS / 2,
-      wallId,
-      doorHole,
-      windowHoles,
-    );
-  }, [innerSlug, hasOpenings, wallLength, height, wallId, doorHole, windowHoles]);
-
-  useEffect(() => {
-    return () => { halfSlabGeo?.dispose(); };
-  }, [halfSlabGeo]);
+  useEffect(() => () => { layerGeoms?.forEach(g => g.dispose()); }, [layerGeoms]);
 
   const isGlass = materialId === 'glass';
 
   if (isGlass) {
     return (
       <GlassWallMesh
-        position={position}
+        position={layout.layers[0].position}
         rotation={rotation}
         wallLength={wallLength}
         height={height}
@@ -256,28 +287,165 @@ export default function Wall({ wallId }: WallProps) {
     );
   }
 
-  const envMapIntensity = WALL_ENV_MAP_INTENSITY[materialId] ?? 0.4;
-
   return (
     <group>
-      {innerSlug ? (
-        <>
-          {/* Outer slab — half-thickness, sits on the outward-facing half of the wall footprint. */}
+      {layout.layers.map((layerSpec, i) => {
+        const isInner = layerSpec.role === 'innerCladding';
+        const isMid   = layerSpec.role === 'middenlaag';
+
+        const slabSlug =
+          isMid && middenlaagSlug ? middenlaagSlug :
+          isInner && innerSlug    ? innerSlug      :
+          materialId;
+        const slabColor =
+          isMid && middenlaagColor ? middenlaagColor :
+          isInner && innerColor    ? innerColor      :
+          color;
+        const slabTexture =
+          isMid    ? middenlaagTexture :
+          isInner  ? innerTexture      :
+          texture;
+
+        // Frame middenlaag: render posts instead of a solid slab.
+        if (isMid && middenlaagPricing?.kind === 'frame') {
+          return (
+            <FramePosts
+              key={i}
+              wallLength={layout.lengthAlongWall}
+              height={height}
+              slabPosition={layerSpec.position}
+              rotation={rotation}
+              perpAxis={layout.perpAxis}
+              perpThickness={layout.perpAxis === 'z' ? layerSpec.size[2] : layerSpec.size[0]}
+              beamWidthMm={middenlaagPricing.beamWidthMm}
+              beamSpacingMm={middenlaagPricing.beamSpacingMm}
+              slug={middenlaagSlug!}
+              color={middenlaagColor ?? '#888'}
+              texture={middenlaagTexture}
+              envMapIntensity={WALL_ENV_MAP_INTENSITY[middenlaagSlug!] ?? 0.4}
+              doorHole={doorHole}
+              windowHoles={windowHoles}
+              isSelected={isSelected}
+              hovered={hovered}
+              pointerHandlers={pointerHandlers}
+            />
+          );
+        }
+
+        // Panel / cladding slab.
+        const geo = hasOpenings ? layerGeoms?.get(layerSpec.role) ?? null : null;
+        return (
           <mesh
-            ref={meshRef}
-            position={outerPosition}
+            key={i}
+            ref={i === 0 ? meshRef : undefined}
+            position={layerSpec.position}
             rotation={rotation}
             castShadow
             receiveShadow
             {...pointerHandlers}
           >
-            {halfSlabGeo ? (
-              <primitive object={halfSlabGeo} attach="geometry" />
+            {geo ? (
+              <primitive object={geo} attach="geometry" />
             ) : (
-              <boxGeometry args={halfSlabSize} />
+              <boxGeometry args={layerSpec.size} />
             )}
             <meshStandardMaterial
-              color={texture ? (WALL_TEXTURE_TINT[materialId] ?? '#ffffff') : color}
+              color={slabTexture?.map ? (WALL_TEXTURE_TINT[slabSlug] ?? '#ffffff') : slabColor}
+              map={slabTexture?.map ?? undefined}
+              normalMap={slabTexture?.normalMap ?? undefined}
+              roughnessMap={slabTexture?.roughnessMap ?? undefined}
+              metalness={0.1}
+              roughness={slabTexture?.roughnessMap ? 1 : 0.7}
+              envMapIntensity={WALL_ENV_MAP_INTENSITY[slabSlug] ?? 0.4}
+              emissive={isSelected ? '#3b82f6' : hovered ? '#60a5fa' : '#000000'}
+              emissiveIntensity={isSelected ? 0.35 : hovered ? 0.15 : 0}
+            />
+          </mesh>
+        );
+      })}
+
+      <WallOpenings
+        wallId={wallId}
+        wallPosition={layout.layers[0].position}
+        wallLength={wallLength}
+        height={height}
+        wallCfg={wallCfg}
+        effectiveDoorMaterial={building ? getEffectiveDoorMaterial(wallCfg, building, buildings) : 'wood'}
+      />
+    </group>
+  );
+}
+
+interface FramePostsProps {
+  wallLength: number;
+  height: number;
+  slabPosition: [number, number, number];
+  rotation: [number, number, number];
+  perpAxis: 'x' | 'z';
+  perpThickness: number;
+  beamWidthMm: number;
+  beamSpacingMm: number;
+  slug: string;
+  color: string;
+  texture: ReturnType<typeof useWallTexture>;
+  envMapIntensity: number;
+  doorHole: DoorHole | null;
+  windowHoles: WindowHole[];
+  isSelected: boolean;
+  hovered: boolean;
+  pointerHandlers: ReturnType<typeof useClickableObject>['handlers'];
+}
+
+function FramePosts({
+  wallLength, height, slabPosition, rotation, perpAxis, perpThickness,
+  beamWidthMm, beamSpacingMm, slug, color, texture, envMapIntensity,
+  doorHole, windowHoles, isSelected, hovered, pointerHandlers,
+}: FramePostsProps) {
+  const beamW = beamWidthMm / 1000;
+  const spacing = beamSpacingMm / 1000;
+
+  const rawCount = Math.ceil(wallLength / spacing) + 1;
+  const halfL = wallLength / 2;
+  const step = wallLength / (rawCount - 1);
+
+  const posts = Array.from({ length: rawCount }, (_, k) => -halfL + k * step)
+    .filter(localX => {
+      if (doorHole) {
+        const dHalf = doorHole.width / 2;
+        if (Math.abs(localX - doorHole.x) < dHalf + beamW / 2) return false;
+      }
+      for (const win of windowHoles) {
+        const wHalf = win.width / 2;
+        if (Math.abs(localX - win.x) < wHalf + beamW / 2) return false;
+      }
+      return true;
+    });
+
+  return (
+    <>
+      {posts.map((localX, i) => {
+        const pos: [number, number, number] =
+          perpAxis === 'z'
+            ? [slabPosition[0] + localX, slabPosition[1], slabPosition[2]]
+            : [slabPosition[0], slabPosition[1], slabPosition[2] + localX];
+
+        const meshSize: [number, number, number] =
+          perpAxis === 'z'
+            ? [beamW, height, perpThickness]
+            : [perpThickness, height, beamW];
+
+        return (
+          <mesh
+            key={i}
+            position={pos}
+            rotation={rotation}
+            castShadow
+            receiveShadow
+            {...pointerHandlers}
+          >
+            <boxGeometry args={meshSize} />
+            <meshStandardMaterial
+              color={texture?.map ? (WALL_TEXTURE_TINT[slug] ?? '#ffffff') : color}
               map={texture?.map ?? undefined}
               normalMap={texture?.normalMap ?? undefined}
               roughnessMap={texture?.roughnessMap ?? undefined}
@@ -288,69 +456,9 @@ export default function Wall({ wallId }: WallProps) {
               emissiveIntensity={isSelected ? 0.35 : hovered ? 0.15 : 0}
             />
           </mesh>
-          {/* Inner slab — half-thickness, sits on the building-interior half. */}
-          <mesh
-            position={innerPosition}
-            rotation={rotation}
-            castShadow
-            receiveShadow
-            {...pointerHandlers}
-          >
-            {halfSlabGeo ? (
-              <primitive object={halfSlabGeo} attach="geometry" />
-            ) : (
-              <boxGeometry args={halfSlabSize} />
-            )}
-            <meshStandardMaterial
-              color={innerTexture?.map ? (WALL_TEXTURE_TINT[innerSlug] ?? '#ffffff') : (innerColor ?? '#888')}
-              map={innerTexture?.map ?? undefined}
-              normalMap={innerTexture?.normalMap ?? undefined}
-              roughnessMap={innerTexture?.roughnessMap ?? undefined}
-              metalness={0.1}
-              roughness={innerTexture?.roughnessMap ? 1 : 0.7}
-              envMapIntensity={WALL_ENV_MAP_INTENSITY[innerSlug] ?? 0.4}
-              emissive={isSelected ? '#3b82f6' : hovered ? '#60a5fa' : '#000000'}
-              emissiveIntensity={isSelected ? 0.35 : hovered ? 0.15 : 0}
-            />
-          </mesh>
-        </>
-      ) : (
-        <mesh
-          ref={meshRef}
-          position={position}
-          rotation={rotation}
-          castShadow
-          receiveShadow
-          {...pointerHandlers}
-        >
-          {wallGeo ? (
-            <primitive object={wallGeo} attach="geometry" />
-          ) : (
-            <boxGeometry args={size} />
-          )}
-          <meshStandardMaterial
-            color={texture ? (WALL_TEXTURE_TINT[materialId] ?? '#ffffff') : color}
-            map={texture?.map ?? undefined}
-            normalMap={texture?.normalMap ?? undefined}
-            roughnessMap={texture?.roughnessMap ?? undefined}
-            metalness={0.1}
-            roughness={texture?.roughnessMap ? 1 : 0.7}
-            envMapIntensity={envMapIntensity}
-            emissive={isSelected ? '#3b82f6' : hovered ? '#60a5fa' : '#000000'}
-            emissiveIntensity={isSelected ? 0.35 : hovered ? 0.15 : 0}
-          />
-        </mesh>
-      )}
-
-      <WallOpenings
-        wallId={wallId}
-        wallPosition={position}
-        wallLength={wallLength}
-        height={height}
-        wallCfg={wallCfg}
-        effectiveDoorMaterial={building ? getEffectiveDoorMaterial(wallCfg, building, buildings) : 'wood'}
-      />
-    </group>
+        );
+      })}
+    </>
   );
 }
 
