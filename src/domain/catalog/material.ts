@@ -129,6 +129,49 @@ function validatePricing(
       out.door = { surcharge: s };
       continue;
     }
+    if (key === 'middenlaag') {
+      const kind = (entry as Record<string, unknown>).kind;
+      if (kind === 'panel') {
+        const t = (entry as Record<string, unknown>).thicknessMm;
+        const p = (entry as Record<string, unknown>).perSqm;
+        const expected = new Set(['kind', 'thicknessMm', 'perSqm']);
+        const extra = Object.keys(entry).some(k => !expected.has(k));
+        if (
+          extra
+          || typeof t !== 'number' || !Number.isFinite(t) || t <= 0
+          || typeof p !== 'number' || !Number.isFinite(p) || p <= 0
+        ) {
+          errors.push({ field: `pricing.${key}`, code: 'pricing_invalid' });
+          return undefined;
+        }
+        out.middenlaag = { kind: 'panel', thicknessMm: t, perSqm: p };
+        continue;
+      }
+      if (kind === 'frame') {
+        const t  = (entry as Record<string, unknown>).thicknessMm;
+        const bw = (entry as Record<string, unknown>).beamWidthMm;
+        const bs = (entry as Record<string, unknown>).beamSpacingMm;
+        const pb = (entry as Record<string, unknown>).perBeam;
+        const expected = new Set(['kind', 'thicknessMm', 'beamWidthMm', 'beamSpacingMm', 'perBeam']);
+        const extra = Object.keys(entry).some(k => !expected.has(k));
+        if (
+          extra
+          || typeof t  !== 'number' || !Number.isFinite(t)  || t  <= 0
+          || typeof bw !== 'number' || !Number.isFinite(bw) || bw <= 0
+          || typeof bs !== 'number' || !Number.isFinite(bs) || bs <= 0
+          || typeof pb !== 'number' || !Number.isFinite(pb) || pb <= 0
+        ) {
+          errors.push({ field: `pricing.${key}`, code: 'pricing_invalid' });
+          return undefined;
+        }
+        out.middenlaag = {
+          kind: 'frame', thicknessMm: t, beamWidthMm: bw, beamSpacingMm: bs, perBeam: pb,
+        };
+        continue;
+      }
+      errors.push({ field: `pricing.${key}`, code: 'pricing_invalid' });
+      return undefined;
+    }
     // wall / roof-cover / floor / gate: expect { perSqm: number }
     const p = (entry as Record<string, unknown>).perSqm;
     if (typeof p !== 'number' || p < 0 || !Number.isFinite(p) || entryKeys.some((k) => k !== 'perSqm')) {
