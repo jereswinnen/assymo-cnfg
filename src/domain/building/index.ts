@@ -5,3 +5,4 @@ export * from './kinds';
 export * from './defaults';
 export * from './material';
 export * from './displayName';
+export * from './innerFlip';
