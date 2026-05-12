@@ -223,19 +223,13 @@ function FlatRoof({
   // along Z so they sit BETWEEN the front/back boards — the four boards
   // share only edges, not volume, so there's no z-fighting. Texture seam
   // is corrected via offsetX so the planks line up with the wall beneath.
-  // Sub-mm outward nudge to break coplanarity with the top-plate beam
-  // (which has the same FASCIA_THICKNESS-wide outer face when overhang=0).
-  // Without it, every corner of the fascia z-fights with the beam and a
-  // sliver of beam material flickers through the trim — exactly the
-  // "piece of a pole at each corner" the user reported.
-  const FASCIA_BEAM_NUDGE = 0.002;
   const fasciaBoards = useMemo<FasciaBoard[]>(() => {
     const boards: FasciaBoard[] = [];
 
     if (hasFront) {
       const fpWidth = maxX - minX;
       boards.push({
-        pos: [(minX + maxX) / 2, fasciaCenterY, maxZ + FASCIA_BEAM_NUDGE],
+        pos: [(minX + maxX) / 2, fasciaCenterY, maxZ],
         size: [fpWidth + FASCIA_THICKNESS, roof.fasciaHeight, FASCIA_THICKNESS],
         length: fpWidth + FASCIA_THICKNESS,
         offsetX: -FASCIA_THICKNESS / 2 - 0.01 - (hasLeft ? oh : 0),
@@ -244,7 +238,7 @@ function FlatRoof({
     if (hasBack) {
       const fpWidth = maxX - minX;
       boards.push({
-        pos: [(minX + maxX) / 2, fasciaCenterY, minZ - FASCIA_BEAM_NUDGE],
+        pos: [(minX + maxX) / 2, fasciaCenterY, minZ],
         size: [fpWidth + FASCIA_THICKNESS, roof.fasciaHeight, FASCIA_THICKNESS],
         length: fpWidth + FASCIA_THICKNESS,
         offsetX: -FASCIA_THICKNESS / 2 - 0.01 - (hasLeft ? oh : 0),
@@ -260,7 +254,7 @@ function FlatRoof({
     const sideCenterZ = (minZ + maxZ) / 2;
     if (hasLeft) {
       boards.push({
-        pos: [minX - FASCIA_BEAM_NUDGE, fasciaCenterY, sideCenterZ],
+        pos: [minX, fasciaCenterY, sideCenterZ],
         size: [FASCIA_THICKNESS, roof.fasciaHeight, sideLen],
         length: sideLen,
         offsetX: 0,
@@ -268,7 +262,7 @@ function FlatRoof({
     }
     if (hasRight) {
       boards.push({
-        pos: [maxX + FASCIA_BEAM_NUDGE, fasciaCenterY, sideCenterZ],
+        pos: [maxX, fasciaCenterY, sideCenterZ],
         size: [FASCIA_THICKNESS, roof.fasciaHeight, sideLen],
         length: sideLen,
         offsetX: 0,
@@ -316,10 +310,10 @@ function FlatRoof({
           width={width}
           depth={depth}
           topY={fasciaTopY}
+          bottomY={height}
           beamsAlongX={beamsAlongX}
           beamSpan={beamSpan}
           beamSpread={beamSpread}
-          beamDepthMm={middenlaagPricing.thicknessMm}
           beamWidthMm={middenlaagPricing.beamWidthMm}
           beamSpacingMm={middenlaagPricing.beamSpacingMm}
           slug={middenlaagSlug}
@@ -365,14 +359,16 @@ function FlatRoof({
 interface FlatFrameRaftersProps {
   width: number;
   depth: number;
-  /** Y of the top of the cavity (= bottom of EPDM deck). Rafters hang
-   *  below this with their TOP face flush, so slimmer rafters recede
-   *  downward into the cavity rather than centring. */
+  /** Y of the top of the cavity (= bottom of EPDM deck). Rafters fill
+   *  the full cavity height between `bottomY` and `topY`, mirroring how
+   *  wall beams fill the full wall height — beamDepthMm only varies the
+   *  material's pricing, not the rendered geometry. */
   topY: number;
+  /** Y of the bottom of the cavity (= top of the wall plates). */
+  bottomY: number;
   beamsAlongX: boolean;
   beamSpan: number;
   beamSpread: number;
-  beamDepthMm: number;
   beamWidthMm: number;
   beamSpacingMm: number;
   slug: string;
@@ -383,17 +379,18 @@ interface FlatFrameRaftersProps {
 }
 
 function FlatFrameRafters({
-  width, depth, topY,
+  width, depth, topY, bottomY,
   beamsAlongX, beamSpan, beamSpread,
-  beamDepthMm, beamWidthMm, beamSpacingMm,
+  beamWidthMm, beamSpacingMm,
   slug, color, texture, isSelected, hovered,
 }: FlatFrameRaftersProps) {
   const beamW = beamWidthMm / 1000;
-  const beamH = beamDepthMm / 1000;
+  // Rafter Y-extent equals the cavity height — same convention as walls,
+  // where the beam fills the full vertical span (wall height) regardless
+  // of its `beamDepthMm` material value.
+  const beamH = Math.max(0.01, topY - bottomY - 0.002); // 1mm clearance each side
   const spacing = beamSpacingMm / 1000;
-
-  // Anchor at top: beam centre Y = topY - beamH/2 - small lift to avoid z-fight with EPDM.
-  const centreY = topY - beamH / 2 - 0.001;
+  const centreY = (topY + bottomY) / 2;
 
   // Distribute beams across the spread axis like wall framing: outer
   // beams inset by half a beam width so their outer faces sit flush
