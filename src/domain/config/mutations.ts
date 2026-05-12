@@ -22,6 +22,7 @@ import {
   DEFAULT_FASCIA_OVERHANG,
   DEFAULT_FLOOR,
   DEFAULT_PRIMARY_MATERIAL,
+  detectInnerFlip,
   POLE_DIMENSIONS,
   WALL_DIMENSIONS,
 } from '@/domain/building';
@@ -223,6 +224,20 @@ export function addBuilding(
     }
   }
 
+  // For a fresh muur, compute the auto-detect flip against the scene as it
+  // would be AFTER this addition. detectInnerFlip handles the self-exclusion
+  // by id when we pass the muur itself in the buildings list.
+  if (building.type === 'muur') {
+    const flip = detectInnerFlip(building, [...cfg.buildings, building]);
+    building = {
+      ...building,
+      walls: {
+        ...building.walls,
+        front: { ...building.walls.front, innerFlipped: flip },
+      },
+    };
+  }
+
   const nextCfg: ConfigData = {
     ...cfg,
     buildings: [...cfg.buildings, building],
@@ -359,6 +374,41 @@ export function setPoleAttachment(
     }
     return { ...b, attachedTo };
   });
+}
+
+/** Recompute and write `walls.front.innerFlipped` for a muur whose position
+ *  may have changed. No-op when the building isn't a muur, when it doesn't
+ *  exist in the scene, or when the wall's `innerFlippedManual` flag is set
+ *  (locked by the user). */
+export function applyInnerFlipAutoDetect(
+  cfg: ConfigData,
+  buildingId: string,
+): ConfigData {
+  const building = cfg.buildings.find(b => b.id === buildingId);
+  if (!building) return cfg;
+  if (building.type !== 'muur') return cfg;
+
+  const wallCfg = building.walls.front;
+  if (!wallCfg) return cfg;
+  if (wallCfg.innerFlippedManual === true) return cfg;
+
+  const flip = detectInnerFlip(building, cfg.buildings);
+  if (flip === (wallCfg.innerFlipped ?? false)) return cfg; // already correct
+
+  return {
+    ...cfg,
+    buildings: cfg.buildings.map(b =>
+      b.id === buildingId
+        ? {
+            ...b,
+            walls: {
+              ...b.walls,
+              front: { ...b.walls.front, innerFlipped: flip },
+            },
+          }
+        : b,
+    ),
+  };
 }
 
 /** Set or clear the user-editable display name on a building.
