@@ -4,7 +4,7 @@ import { useMemo, useEffect, useCallback } from 'react';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore } from "@/store/useUIStore";
-import { WALL_THICKNESS, resolveOpeningPositions, getWallLength } from '@/domain/building';
+import { WALL_THICKNESS, getWallLayerLayout, resolveOpeningPositions, getWallLength } from '@/domain/building';
 import { getAtomColor, getEffectiveWallMaterial, getEffectiveDoorMaterial, getEffectiveInnerWallMaterial, getEffectiveMiddenlaagMaterial } from '@/domain/materials';
 import { useTenant } from '@/lib/TenantProvider';
 import { useWallTexture } from '@/lib/textures';
@@ -152,26 +152,8 @@ export default function Wall({ wallId }: WallProps) {
 
     const hasInner = !!innerSlug;
     const hasMiddenlaag = !!middenlaagSlug;
-    let layers: LayerSpec[];
-    if (!hasInner && !hasMiddenlaag) {
-      layers = [layer('whole', 0, 1)];
-    } else if (hasInner && !hasMiddenlaag) {
-      layers = [
-        layer('outerCladding',  0.25, 0.50),
-        layer('innerCladding', -0.25, 0.50),
-      ];
-    } else if (!hasInner && hasMiddenlaag) {
-      layers = [
-        layer('outerCladding',  0.40, 0.20),
-        layer('middenlaag',    -0.10, 0.80),
-      ];
-    } else {
-      layers = [
-        layer('outerCladding',  0.40, 0.20),
-        layer('middenlaag',     0.00, 0.60),
-        layer('innerCladding', -0.40, 0.20),
-      ];
-    }
+    const canonical = getWallLayerLayout({ hasInner, hasMiddenlaag });
+    const layers: LayerSpec[] = canonical.map(l => layer(l.role, l.offsetNorm, l.thicknessNorm));
 
     return {
       layout: { layers, perpAxis, outwardSign, lengthAlongWall },

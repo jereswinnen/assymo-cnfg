@@ -2,9 +2,11 @@
 
 import {
   WALL_THICKNESS,
+  getWallLayerLayout,
   resolveOpeningPositions,
   getWallLength,
 } from '@/domain/building';
+import type { WallLayer } from '@/domain/building';
 import { resolveDoorWidth, resolveWindowWidth } from '@/domain/openings';
 import { getAtomColor } from '@/domain/materials';
 import { useTenant } from '@/lib/TenantProvider';
@@ -181,28 +183,23 @@ function SolidWall({
   const innerFillBase = innerColor ?? '#888';
   const middenlaagFillBase = middenlaagColor ?? '#888';
 
-  const strips: Strip[] = (() => {
-    if (!hasMiddenlaag && !hasInner) {
-      return [{ fillBase: outerFillBase, offsetNorm: 0, thicknessNorm: 1 }];
+  const fillForRole = (role: WallLayer['role']): string => {
+    switch (role) {
+      case 'whole':
+      case 'outerCladding':
+        return outerFillBase;
+      case 'middenlaag':
+        return middenlaagFillBase;
+      case 'innerCladding':
+        return innerFillBase;
     }
-    if (!hasMiddenlaag && hasInner) {
-      return [
-        { fillBase: outerFillBase, offsetNorm:  0.25, thicknessNorm: 0.50 },
-        { fillBase: innerFillBase, offsetNorm: -0.25, thicknessNorm: 0.50 },
-      ];
-    }
-    if (hasMiddenlaag && !hasInner) {
-      return [
-        { fillBase: outerFillBase,      offsetNorm:  0.40, thicknessNorm: 0.20 },
-        { fillBase: middenlaagFillBase, offsetNorm: -0.10, thicknessNorm: 0.80 },
-      ];
-    }
-    return [
-      { fillBase: outerFillBase,      offsetNorm:  0.40, thicknessNorm: 0.20 },
-      { fillBase: middenlaagFillBase, offsetNorm:  0.00, thicknessNorm: 0.60 },
-      { fillBase: innerFillBase,      offsetNorm: -0.40, thicknessNorm: 0.20 },
-    ];
-  })();
+  };
+
+  const strips: Strip[] = getWallLayerLayout({ hasMiddenlaag, hasInner }).map(l => ({
+    fillBase: fillForRole(l.role),
+    offsetNorm: l.offsetNorm,
+    thicknessNorm: l.thicknessNorm,
+  }));
 
   const windows = cfg.windows ?? [];
   const { doorX, windowXs } = resolveOpeningPositions(

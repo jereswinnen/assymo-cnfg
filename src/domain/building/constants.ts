@@ -81,6 +81,63 @@ export const WALL_LAYER_PROPORTIONS = {
   innerCladding: 0.20,
 } as const;
 
+/** Describes one strip / slab of a wall cross-section.
+ *  - `offsetNorm`: signed offset of the strip's CENTRE from the wall midline,
+ *    as a fraction of WALL_THICKNESS. Positive = outward.
+ *  - `thicknessNorm`: strip thickness as a fraction of WALL_THICKNESS.
+ *  Both renderers (2D plattegrond + 3D canvas) drive their per-strip / per-slab
+ *  geometry from these two numbers, so the layouts stay in lockstep. */
+export interface WallLayer {
+  role: 'whole' | 'outerCladding' | 'middenlaag' | 'innerCladding';
+  offsetNorm: number;
+  thicknessNorm: number;
+}
+
+/** Layer layout for a given (has-middenlaag, has-inner-cladding) combo.
+ *
+ *  Derivations (the centre of a slab whose thickness is `t` and whose outward
+ *  edge is at wall-midline offset `+0.5` sits at `+(0.5 - t/2)`):
+ *  - 50/50 split when only inner cladding is set → centres at ±0.25.
+ *  - Outer cladding fixed at WALL_LAYER_PROPORTIONS.outerCladding when
+ *    middenlaag is involved → outer centre at +(0.5 - outerCladding/2).
+ *  - Middenlaag occupies the remaining inward space.
+ *  - When inner cladding is ALSO set, inner takes its declared share and the
+ *    middenlaag squeezes to WALL_LAYER_PROPORTIONS.middenlaag.
+ */
+export function getWallLayerLayout(opts: {
+  hasMiddenlaag: boolean;
+  hasInner: boolean;
+}): WallLayer[] {
+  const { outerCladding, middenlaag, innerCladding } = WALL_LAYER_PROPORTIONS;
+  const { hasMiddenlaag, hasInner } = opts;
+
+  if (!hasMiddenlaag && !hasInner) {
+    return [{ role: 'whole', offsetNorm: 0, thicknessNorm: 1 }];
+  }
+  if (!hasMiddenlaag && hasInner) {
+    // 50/50 split between outer and inner cladding (independent of the
+    // three-way proportions, which only apply when middenlaag participates).
+    return [
+      { role: 'outerCladding', offsetNorm: +0.25, thicknessNorm: 0.50 },
+      { role: 'innerCladding', offsetNorm: -0.25, thicknessNorm: 0.50 },
+    ];
+  }
+  if (hasMiddenlaag && !hasInner) {
+    // Outer takes its declared share; middenlaag absorbs the inner share.
+    const midThickness = middenlaag + innerCladding;
+    return [
+      { role: 'outerCladding', offsetNorm: +(0.5 - outerCladding / 2), thicknessNorm: outerCladding },
+      { role: 'middenlaag',    offsetNorm: -(0.5 - midThickness / 2),  thicknessNorm: midThickness },
+    ];
+  }
+  // hasMiddenlaag && hasInner
+  return [
+    { role: 'outerCladding', offsetNorm: +(0.5 - outerCladding / 2),  thicknessNorm: outerCladding },
+    { role: 'middenlaag',    offsetNorm: 0,                            thicknessNorm: middenlaag },
+    { role: 'innerCladding', offsetNorm: -(0.5 - innerCladding / 2),  thicknessNorm: innerCladding },
+  ];
+}
+
 // Timber frame geometry
 export const POST_SIZE = 0.15;
 export const BEAM_H = 0.20;
