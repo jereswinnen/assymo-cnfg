@@ -8,6 +8,7 @@ import { TenantDetailsSection } from '@/components/admin/TenantDetailsSection';
 import { HostsSection } from '@/components/admin/HostsSection';
 import { BrandingSection } from '@/components/admin/BrandingSection';
 import { FeaturesSection } from '@/components/admin/FeaturesSection';
+import { GeometrySection } from '@/components/admin/GeometrySection';
 import { PriceBookSection } from '@/components/admin/PriceBookSection';
 import { PoortDialsSection } from '@/components/admin/PoortDialsSection';
 import { InvoicingSection } from '@/components/admin/InvoicingSection';
@@ -35,6 +36,7 @@ export default async function TenantDetailPage({
       <HostsSection tenantId={tenant.id} initialHosts={hosts} />
       <BrandingSection tenantId={tenant.id} initialBranding={tenant.branding} />
       <FeaturesSection tenantId={tenant.id} initialFeatures={tenant.features} />
+      <GeometrySection tenantId={tenant.id} initialGeometry={tenant.geometry} />
       <PriceBookSection tenantId={tenant.id} initialPriceBook={tenant.priceBook} />
       <PoortDialsSection
         tenantId={tenant.id}

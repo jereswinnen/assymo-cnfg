@@ -9,7 +9,7 @@ import { t } from '@/lib/i18n';
 import { ChevronDown } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import DimensionsControl from './DimensionsControl';
-import BuildingMaterialSection from './BuildingMaterialSection';
+import GlobalSection from './GlobalSection';
 import RoofConfigSection from './RoofConfigSection';
 import FloorConfigSection from './FloorConfigSection';
 import WallSelector from './WallSelector';
@@ -23,7 +23,6 @@ import { BUILDING_KIND_META, type BuildingType, type ConfigSection } from '@/dom
  *  this object only tells the UI how to render each one. */
 const SECTION_DEFS: Record<ConfigSection, { labelKey: string; icon: string }> = {
   dimensions: { labelKey: 'sidebar.section.dimensions', icon: '📐' },
-  material:   { labelKey: 'sidebar.section.material',   icon: '🎨' },
   dak:        { labelKey: 'sidebar.section.dak',        icon: '🏠' },
   structure:  { labelKey: 'sidebar.section.structure',  icon: '🏗' },
   walls:      { labelKey: 'sidebar.section.walls',      icon: '🧱' },
@@ -166,10 +165,16 @@ export default function ConfigureTab() {
     ? catalog.products.find((p) => p.id === selectedBuilding.sourceProductId) ?? null
     : null;
 
+  // Scene-level "Globaal" sits at the top regardless of selection. When
+  // no building is selected we still surface it so the user can pick a
+  // global material / paaldikte before placing anything.
   if (!selectedBuilding) {
     return (
-      <div className="flex items-center justify-center h-full text-sm text-muted-foreground p-6 text-center">
-        {t('sidebar.emptyState')}
+      <div className="p-3 space-y-2">
+        <GlobalSection />
+        <p className="text-xs text-muted-foreground p-2 text-center">
+          {t('sidebar.emptyState')}
+        </p>
       </div>
     );
   }
@@ -186,6 +191,10 @@ export default function ConfigureTab() {
 
   return (
     <div className="p-3 space-y-2">
+      {/* Globaal — scene-level material + paaldikte, always above the
+          per-building accordions. */}
+      <GlobalSection />
+
       {/* Selected object header */}
       <div className="flex items-center gap-2 rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
         <span className="text-lg">
@@ -246,7 +255,6 @@ export default function ConfigureTab() {
             {isOpen && (
               <div className="px-3 py-3 border-t border-border space-y-4">
                 {id === 'dimensions' && <DimensionsControl />}
-                {id === 'material' && <BuildingMaterialSection />}
                 {id === 'dak' && <RoofConfigSection />}
                 {id === 'structure' && (
                   <>
