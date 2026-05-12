@@ -205,6 +205,21 @@ export default function SurfaceProperties() {
         </div>
       )}
 
+      {/* Manual flip — only for muurs that have something flippable */}
+      {building?.type === 'muur'
+        && (wallCfg.materialIdInner != null || wallCfg.materialIdMiddenlaag != null) && (
+        <button
+          type="button"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors text-left"
+          onClick={() => updateBuildingWall(buildingId, wallId, {
+            innerFlipped: !(wallCfg.innerFlipped ?? false),
+            innerFlippedManual: true,
+          })}
+        >
+          {t('wallProperties.flipInnerOuter')}
+        </button>
+      )}
+
       {isGlass && (
         <p className="text-xs text-muted-foreground italic">Glaswand van zijde tot zijde</p>
       )}

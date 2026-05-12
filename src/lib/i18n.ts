@@ -69,6 +69,7 @@ const nl: Record<string, string> = {
   "wallProperties.removeMiddenlaag": "Verwijderen",
   "wallProperties.middenlaagPanelSpec": "{name} — {thickness} mm",
   "wallProperties.middenlaagFrameSpec": "{name} — {width}×{depth} mm h.o.h. {spacing} mm",
+  "wallProperties.flipInnerOuter": "Binnen-/buitenkant omdraaien",
   "wall.front.middenlaag": "Middenlaag voorgevel",
   "wall.back.middenlaag": "Middenlaag achtergevel",
   "wall.left.middenlaag": "Middenlaag linkergevel",
