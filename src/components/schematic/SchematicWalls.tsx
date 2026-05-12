@@ -146,7 +146,11 @@ function SolidWall({
   const innerColor = hasInner
     ? getAtomColor(materials, innerSlug, 'wall')
     : null;
-  const halfT = T / 2;
+
+  const middenlaagSlug = cfg.materialIdMiddenlaag ?? null;
+  const middenlaagColor = middenlaagSlug
+    ? getAtomColor(materials, middenlaagSlug, 'middenlaag')
+    : null;
 
   // outerSign chooses on which side of the wall midline the OUTER strip sits.
   // front/back walls run along X, so their offset is applied to cy (Y axis in
@@ -163,19 +167,42 @@ function SolidWall({
     geom.wallId === 'left'  ? -1 :
     /* right */               +1;
 
-  const fillColor = isSelected
-    ? '#3b82f6'
-    : getAtomColor(materials, cfg.materialId ?? primaryMaterialId, 'wall');
-  const fillOpacity = isSelected ? 0.5 : 0.35;
   const strokeColor = isSelected ? '#2563eb' : '#444';
 
-  // Two-strip rendering colors. Selection highlights both strips together
-  // (face selection is not exposed in the UI). Inner strip shows the inner
-  // material when not selected.
-  const outerStripFill = fillColor;
-  const outerStripOpacity = fillOpacity;
-  const innerStripFill = isSelected ? '#3b82f6' : (innerColor ?? '#888');
-  const innerStripOpacity = fillOpacity;
+  // Strip-table: describes each layer of the wall cross-section.
+  // offsetNorm = signed offset of strip centre from wall midline as fraction of T (positive = outward).
+  // thicknessNorm = strip thickness as fraction of T.
+  // Packing guarantee: [offset - thickness/2, offset + thickness/2] covers [-0.5, +0.5] with no gaps/overlaps.
+  type Strip = { fillBase: string; offsetNorm: number; thicknessNorm: number };
+
+  const hasMiddenlaag = !!middenlaagSlug;
+
+  const outerFillBase = getAtomColor(materials, cfg.materialId ?? primaryMaterialId, 'wall');
+  const innerFillBase = innerColor ?? '#888';
+  const middenlaagFillBase = middenlaagColor ?? '#888';
+
+  const strips: Strip[] = (() => {
+    if (!hasMiddenlaag && !hasInner) {
+      return [{ fillBase: outerFillBase, offsetNorm: 0, thicknessNorm: 1 }];
+    }
+    if (!hasMiddenlaag && hasInner) {
+      return [
+        { fillBase: outerFillBase, offsetNorm:  0.25, thicknessNorm: 0.50 },
+        { fillBase: innerFillBase, offsetNorm: -0.25, thicknessNorm: 0.50 },
+      ];
+    }
+    if (hasMiddenlaag && !hasInner) {
+      return [
+        { fillBase: outerFillBase,      offsetNorm:  0.40, thicknessNorm: 0.20 },
+        { fillBase: middenlaagFillBase, offsetNorm: -0.10, thicknessNorm: 0.80 },
+      ];
+    }
+    return [
+      { fillBase: outerFillBase,      offsetNorm:  0.40, thicknessNorm: 0.20 },
+      { fillBase: middenlaagFillBase, offsetNorm:  0.00, thicknessNorm: 0.60 },
+      { fillBase: innerFillBase,      offsetNorm: -0.40, thicknessNorm: 0.20 },
+    ];
+  })();
 
   const windows = cfg.windows ?? [];
   const { doorX, windowXs } = resolveOpeningPositions(
@@ -224,61 +251,33 @@ function SolidWall({
     if (segLen < 0.01) return null;
     const segCenter = (s + e) / 2;
 
-    if (!hasInner) {
-      const x = isH ? cx + segCenter - segLen / 2 : cx - T / 2;
-      const y = isH ? cy - T / 2 : cy + segCenter - segLen / 2;
-      const w = isH ? segLen : T;
-      const h = isH ? T : segLen;
-      return (
-        <rect
-          key={i}
-          x={x} y={y} width={w} height={h}
-          fill={fillColor}
-          fillOpacity={fillOpacity}
-          stroke={strokeColor}
-          strokeWidth={0.02}
-          cursor={onWallClick ? 'pointer' : undefined}
-          pointerEvents={onWallClick ? 'auto' : 'none'}
-          onClick={(ev) => { ev.stopPropagation(); onWallClick?.(); }}
-        />
-      );
-    }
-
-    // Two strips, each half-thickness.
-    const outerOff = (outerSign * halfT) / 2;
-    const innerOff = (-outerSign * halfT) / 2;
-
-    const outerRect = isH
-      ? { x: cx + segCenter - segLen / 2, y: cy + outerOff - halfT / 2, w: segLen, h: halfT }
-      : { x: cx + outerOff - halfT / 2, y: cy + segCenter - segLen / 2, w: halfT, h: segLen };
-    const innerRect = isH
-      ? { x: cx + segCenter - segLen / 2, y: cy + innerOff - halfT / 2, w: segLen, h: halfT }
-      : { x: cx + innerOff - halfT / 2, y: cy + segCenter - segLen / 2, w: halfT, h: segLen };
-
     return (
       <g key={i}>
-        <rect
-          x={outerRect.x} y={outerRect.y}
-          width={outerRect.w} height={outerRect.h}
-          fill={outerStripFill}
-          fillOpacity={outerStripOpacity}
-          stroke={strokeColor}
-          strokeWidth={0.02}
-          cursor={onWallClick ? 'pointer' : undefined}
-          pointerEvents={onWallClick ? 'auto' : 'none'}
-          onClick={(ev) => { ev.stopPropagation(); onWallClick?.(); }}
-        />
-        <rect
-          x={innerRect.x} y={innerRect.y}
-          width={innerRect.w} height={innerRect.h}
-          fill={innerStripFill}
-          fillOpacity={innerStripOpacity}
-          stroke={strokeColor}
-          strokeWidth={0.02}
-          cursor={onWallClick ? 'pointer' : undefined}
-          pointerEvents={onWallClick ? 'auto' : 'none'}
-          onClick={(ev) => { ev.stopPropagation(); onWallClick?.(); }}
-        />
+        {strips.map((strip, idx) => {
+          const stripT = strip.thicknessNorm * T;
+          const perpOffset = outerSign * (strip.offsetNorm * T);
+          const x = isH
+            ? cx + segCenter - segLen / 2
+            : cx + perpOffset - stripT / 2;
+          const y = isH
+            ? cy + perpOffset - stripT / 2
+            : cy + segCenter - segLen / 2;
+          const w = isH ? segLen : stripT;
+          const h = isH ? stripT : segLen;
+          return (
+            <rect
+              key={idx}
+              x={x} y={y} width={w} height={h}
+              fill={isSelected ? '#3b82f6' : strip.fillBase}
+              fillOpacity={isSelected ? 0.5 : 0.35}
+              stroke={strokeColor}
+              strokeWidth={0.02}
+              cursor={onWallClick ? 'pointer' : undefined}
+              pointerEvents={onWallClick ? 'auto' : 'none'}
+              onClick={(ev) => { ev.stopPropagation(); onWallClick?.(); }}
+            />
+          );
+        })}
       </g>
     );
   });
