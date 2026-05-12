@@ -692,6 +692,8 @@ export interface ProductBuildingDefaults {
   primaryMaterialId?: string;
   /** When set, applied to every wall's `materialIdInner` at spawn. */
   materialIdInner?: string;
+  /** When set, applied to every wall's `materialIdMiddenlaag` at spawn. */
+  materialIdMiddenlaag?: string;
   floor?: { materialId: string };
   roof?: {
     coveringId?: string;
@@ -781,6 +783,7 @@ export function applyProductDefaults(product: ProductRow): ProductBuildingDefaul
   if (mats) {
     if (mats.wallCladding) out.primaryMaterialId = mats.wallCladding;
     if (mats.wallCladdingInner) out.materialIdInner = mats.wallCladdingInner;
+    if (mats.wallMiddenlaag) out.materialIdMiddenlaag = mats.wallMiddenlaag;
     if (mats.floor) out.floor = { materialId: mats.floor };
     if (mats.roofCovering || mats.roofTrim) {
       out.roof = {};

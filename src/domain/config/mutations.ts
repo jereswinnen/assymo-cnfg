@@ -176,6 +176,12 @@ export function addBuilding(
         walls[wId].materialIdInner = inner;
       }
     }
+    if (productDefaults.materialIdMiddenlaag) {
+      const middenlaag = productDefaults.materialIdMiddenlaag;
+      for (const wId of Object.keys(walls) as WallId[]) {
+        walls[wId].materialIdMiddenlaag = middenlaag;
+      }
+    }
 
     building = {
       id: randomId(),
