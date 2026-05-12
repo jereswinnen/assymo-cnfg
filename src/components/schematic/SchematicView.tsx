@@ -1066,6 +1066,21 @@ export default function SchematicView() {
         setConnections(allConnections);
       }
 
+      // Re-run inner-flip auto-detect for muurs that just moved. The mutation
+      // short-circuits for non-muur types and for walls with innerFlippedManual
+      // set, so it's safe to call unconditionally.
+      const cfg = useConfigStore.getState();
+      if (groupDragStartPositions.current.size > 1) {
+        // Group drag — re-detect for every muur that was part of the group.
+        for (const id of groupDragStartPositions.current.keys()) {
+          const b = cfg.buildings.find(b => b.id === id);
+          if (b?.type === 'muur') cfg.applyInnerFlipAutoDetect(id);
+        }
+      } else if (dragBuildingId.current) {
+        const b = cfg.buildings.find(b => b.id === dragBuildingId.current);
+        if (b?.type === 'muur') cfg.applyInnerFlipAutoDetect(dragBuildingId.current);
+      }
+
       groupDragStartPositions.current = new Map();
     } else if (dragBuildingId.current) {
       if (shiftOnDown.current) {
