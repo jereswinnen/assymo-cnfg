@@ -74,7 +74,13 @@ export default function Roof() {
     emissiveIntensity: isSelected ? 0.35 : hovered ? 0.15 : 0,
   };
 
-  const trimMaterialId = roof.trimMaterialId;
+  // The fascia (dakbak) and the structural posts share a corner — having
+  // them on the same material avoids the visible material-transition line
+  // at every corner where post meets fascia. The building's primary
+  // material drives both: the structural posts via `getEffectivePoleMaterial`
+  // already, and now the fascia here. `roof.trimMaterialId` becomes a
+  // legacy field we no longer read at render time.
+  const trimMaterialId = building?.primaryMaterialId ?? roof.trimMaterialId;
   const middenlaagSlug = roof.middenlaagSlug ?? null;
   const innerCladdingSlug = roof.innerCladdingSlug ?? null;
 
