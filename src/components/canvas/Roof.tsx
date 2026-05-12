@@ -310,10 +310,10 @@ function FlatRoof({
           width={width}
           depth={depth}
           topY={fasciaTopY}
-          bottomY={height}
           beamsAlongX={beamsAlongX}
           beamSpan={beamSpan}
           beamSpread={beamSpread}
+          beamDepthMm={middenlaagPricing.thicknessMm}
           beamWidthMm={middenlaagPricing.beamWidthMm}
           beamSpacingMm={middenlaagPricing.beamSpacingMm}
           slug={middenlaagSlug}
@@ -359,16 +359,17 @@ function FlatRoof({
 interface FlatFrameRaftersProps {
   width: number;
   depth: number;
-  /** Y of the top of the cavity (= bottom of EPDM deck). Rafters fill
-   *  the full cavity height between `bottomY` and `topY`, mirroring how
-   *  wall beams fill the full wall height — beamDepthMm only varies the
-   *  material's pricing, not the rendered geometry. */
+  /** Y of the top of the cavity (= bottom of EPDM deck). Rafters hang
+   *  below this with their TOP face flush, so slimmer rafters recede
+   *  downward into the cavity rather than centring. */
   topY: number;
-  /** Y of the bottom of the cavity (= top of the wall plates). */
-  bottomY: number;
   beamsAlongX: boolean;
   beamSpan: number;
   beamSpread: number;
+  /** Rafter cross-section, straight from the chosen middenlaag material.
+   *  `beamDepthMm` → vertical rafter depth; `beamWidthMm` → lateral
+   *  width. Matches the wall middenlaag convention. */
+  beamDepthMm: number;
   beamWidthMm: number;
   beamSpacingMm: number;
   slug: string;
@@ -379,18 +380,17 @@ interface FlatFrameRaftersProps {
 }
 
 function FlatFrameRafters({
-  width, depth, topY, bottomY,
+  width, depth, topY,
   beamsAlongX, beamSpan, beamSpread,
-  beamWidthMm, beamSpacingMm,
+  beamDepthMm, beamWidthMm, beamSpacingMm,
   slug, color, texture, isSelected, hovered,
 }: FlatFrameRaftersProps) {
   const beamW = beamWidthMm / 1000;
-  // Rafter Y-extent equals the cavity height — same convention as walls,
-  // where the beam fills the full vertical span (wall height) regardless
-  // of its `beamDepthMm` material value.
-  const beamH = Math.max(0.01, topY - bottomY - 0.002); // 1mm clearance each side
+  const beamH = beamDepthMm / 1000;
   const spacing = beamSpacingMm / 1000;
-  const centreY = (topY + bottomY) / 2;
+  // Anchor at top — rafter TOP face sits just below the deck so slimmer
+  // beams recede downward, matching the wall middenlaag's outer-face anchor.
+  const centreY = topY - beamH / 2 - 0.001;
 
   // Distribute beams across the spread axis like wall framing: outer
   // beams inset by half a beam width so their outer faces sit flush

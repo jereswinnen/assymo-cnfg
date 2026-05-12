@@ -76,17 +76,17 @@ export default function TimberFrame() {
     if (!suppL) for (const f of poles.left)   boxes.push({ pos: [-hw, height / 2, -hd + f * depth], size: [POST_SIZE, height, POST_SIZE] });
     if (!suppR) for (const f of poles.right)  boxes.push({ pos: [ hw, height / 2, -hd + f * depth], size: [POST_SIZE, height, POST_SIZE] });
 
-    // Top plate beams (skip on suppressed sides). Beam perpendicular extent
-    // is shrunk by 4mm (2mm on each face) so the beam's outer face stops
-    // 2mm INSIDE the fascia's outer face — eliminates the coplanar z-fight
-    // that bled beam material through the trim at every corner without
-    // creating a visible gap between adjacent fascia boards.
+    // Top plate beams (skip on suppressed sides). Both the perp face AND
+    // the length-axis end face share the fascia's outer plane (BEAM_W ==
+    // FASCIA_THICKNESS == POST_SIZE), so shrink by 4mm on EACH face —
+    // the outer perp face AND both end faces — to stop the beam's
+    // material from z-fighting through the fascia at every corner.
     const BEAM_INSET = 0.004;
     const beamY = height + BEAM_H / 2;
-    if (!suppB) boxes.push({ pos: [0, beamY, hd], size: [width + BEAM_W, BEAM_H, BEAM_W - BEAM_INSET] });
-    if (!suppF) boxes.push({ pos: [0, beamY, -hd], size: [width + BEAM_W, BEAM_H, BEAM_W - BEAM_INSET] });
-    if (!suppL) boxes.push({ pos: [-hw, beamY, 0], size: [BEAM_W - BEAM_INSET, BEAM_H, depth + BEAM_W] });
-    if (!suppR) boxes.push({ pos: [hw, beamY, 0], size: [BEAM_W - BEAM_INSET, BEAM_H, depth + BEAM_W] });
+    if (!suppB) boxes.push({ pos: [0, beamY, hd], size: [width + BEAM_W - BEAM_INSET, BEAM_H, BEAM_W - BEAM_INSET] });
+    if (!suppF) boxes.push({ pos: [0, beamY, -hd], size: [width + BEAM_W - BEAM_INSET, BEAM_H, BEAM_W - BEAM_INSET] });
+    if (!suppL) boxes.push({ pos: [-hw, beamY, 0], size: [BEAM_W - BEAM_INSET, BEAM_H, depth + BEAM_W - BEAM_INSET] });
+    if (!suppR) boxes.push({ pos: [hw, beamY, 0], size: [BEAM_W - BEAM_INSET, BEAM_H, depth + BEAM_W - BEAM_INSET] });
 
     // Corner braces (skip corners on suppressed sides)
     if (hasBraces) {
