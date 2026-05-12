@@ -1,9 +1,11 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
 import { useUIStore } from "@/store/useUIStore";
 import { getEffectiveWallMaterial } from '@/domain/materials';
 import { useTenantCatalogs } from '@/lib/useTenantCatalogs';
+import { useTenant } from '@/lib/TenantProvider';
 import { t } from '@/lib/i18n';
 import { Checkbox } from '@/components/ui/checkbox';
 import SectionLabel from '@/components/ui/SectionLabel';
@@ -29,6 +31,11 @@ export default function SurfaceProperties() {
     { wall: selectedWall },
     selectedBuilding?.sourceProductId,
   );
+  const { catalog: { materials } } = useTenant();
+  const middenlaagCatalog = useMemo(
+    () => materials.filter(m => m.categories.includes('middenlaag') && !m.archivedAt),
+    [materials],
+  );
 
   if (!selectedElement || selectedElement.type !== 'wall') {
     return (
@@ -45,6 +52,24 @@ export default function SurfaceProperties() {
   if (!wallCfg) return null;
 
   const innerSlug = wallCfg.materialIdInner ?? null;
+  const middenlaagSlug = wallCfg.materialIdMiddenlaag ?? null;
+  const middenlaagRow = middenlaagSlug
+    ? middenlaagCatalog.find(m => m.slug === middenlaagSlug) ?? null
+    : null;
+  const middenlaagPricing = middenlaagRow?.pricing.middenlaag ?? null;
+  const middenlaagSpec: string | null = !middenlaagRow || !middenlaagPricing
+    ? null
+    : middenlaagPricing.kind === 'panel'
+      ? t('wallProperties.middenlaagPanelSpec', {
+          name: middenlaagRow.name,
+          thickness: middenlaagPricing.thicknessMm,
+        })
+      : t('wallProperties.middenlaagFrameSpec', {
+          name: middenlaagRow.name,
+          width: middenlaagPricing.beamWidthMm,
+          depth: middenlaagPricing.thicknessMm,
+          spacing: middenlaagPricing.beamSpacingMm,
+        });
 
   const label = t(`wall.${wallId}`);
   const effectiveMaterial = building ? getEffectiveWallMaterial(wallCfg, building, buildings) : 'wood';
@@ -101,6 +126,44 @@ export default function SurfaceProperties() {
           <p className="text-[11px] text-muted-foreground italic">{t('material.inherit')}</p>
         )}
       </div>
+
+      {/* Middenlaag */}
+      {middenlaagSlug == null ? (
+        <button
+          type="button"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors text-left"
+          onClick={() => {
+            const seed = middenlaagCatalog[0]?.slug;
+            if (!seed) return;
+            updateBuildingWall(buildingId, wallId, { materialIdMiddenlaag: seed });
+          }}
+        >
+          {t('wallProperties.addMiddenlaag')}
+        </button>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <SectionLabel>{t('wallProperties.middenlaag')}</SectionLabel>
+            <button
+              type="button"
+              className="text-[11px] text-muted-foreground hover:text-foreground transition-colors underline"
+              onClick={() => updateBuildingWall(buildingId, wallId, { materialIdMiddenlaag: null })}
+            >
+              {t('wallProperties.removeMiddenlaag')}
+            </button>
+          </div>
+          <MaterialSelect
+            catalog={middenlaagCatalog.map(m => ({ atomId: m.slug }))}
+            value={middenlaagSlug}
+            category="middenlaag"
+            onChange={(atomId) => updateBuildingWall(buildingId, wallId, { materialIdMiddenlaag: atomId })}
+            ariaLabel={t('wallProperties.middenlaag')}
+          />
+          {middenlaagSpec && (
+            <p className="text-[11px] text-muted-foreground italic">{middenlaagSpec}</p>
+          )}
+        </div>
+      )}
 
       {/* Inner cladding */}
       {innerSlug == null ? (
