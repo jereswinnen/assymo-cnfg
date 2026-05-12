@@ -8,7 +8,8 @@ export type MaterialCategory =
   | 'roof-trim'
   | 'floor'
   | 'door'
-  | 'gate';
+  | 'gate'
+  | 'middenlaag';
 
 /** Per-PBR texture set. Blob URLs on persisted rows; unknown during
  *  create-draft. All three are required when `textures` is non-null. */
@@ -41,6 +42,27 @@ export interface GatePricing {
   perSqm: number;
 }
 
+export type MiddenlaagKind = 'panel' | 'frame';
+
+export type MiddenlaagPricing =
+  | {
+      kind: 'panel';
+      /** Stored thickness (mm). v1: data + admin display only — does NOT
+       *  drive visual wall thickness. */
+      thicknessMm: number;
+      perSqm: number;
+    }
+  | {
+      kind: 'frame';
+      /** SLS beam depth (mm). Typical range 35–89 mm. */
+      thicknessMm: number;
+      /** Beam width (mm), parallel to the wall plane. Typical SLS: 38–45 mm. */
+      beamWidthMm: number;
+      /** Hart-op-hart spacing (mm). Typical 400–600 mm. */
+      beamSpacingMm: number;
+      perBeam: number;
+    };
+
 /** Per-category pricing map. Only categories the material is sold under
  *  appear — and only categories in `MaterialRow.categories` can have an
  *  entry here (enforced by `validateMaterialCreate` / `*Patch`). */
@@ -51,6 +73,7 @@ export interface MaterialPricing {
   floor?: FloorPricing;
   door?: DoorPricing;
   gate?: GatePricing;
+  middenlaag?: MiddenlaagPricing;
 }
 
 /** Behaviour flags. Each flag is category-gated: `clearsOpenings` only
@@ -139,6 +162,7 @@ export const MATERIAL_CATEGORIES: readonly MaterialCategory[] = [
   'floor',
   'door',
   'gate',
+  'middenlaag',
 ] as const;
 
 // ─────────────────────────────────────────────────────────────────────
@@ -161,6 +185,7 @@ export const PRODUCT_KINDS: readonly ProductKind[] = ['overkapping', 'berging', 
 export type ProductSlot =
   | 'wallCladding'
   | 'wallCladdingInner'
+  | 'wallMiddenlaag'
   | 'roofCovering'
   | 'roofTrim'
   | 'floor'
@@ -169,6 +194,7 @@ export type ProductSlot =
 export const PRODUCT_SLOTS: readonly ProductSlot[] = [
   'wallCladding',
   'wallCladdingInner',
+  'wallMiddenlaag',
   'roofCovering',
   'roofTrim',
   'floor',
@@ -180,6 +206,7 @@ export const PRODUCT_SLOTS: readonly ProductSlot[] = [
 export const PRODUCT_SLOT_TO_CATEGORY: Record<ProductSlot, MaterialCategory> = {
   wallCladding: 'wall',
   wallCladdingInner: 'wall',
+  wallMiddenlaag: 'middenlaag',
   roofCovering: 'roof-cover',
   roofTrim: 'roof-trim',
   floor: 'floor',

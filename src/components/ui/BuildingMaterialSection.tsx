@@ -19,6 +19,7 @@ const CATALOG_KEY = {
   floor: 'floor',
   door: 'door',
   gate: 'gate',
+  middenlaag: 'middenlaag',
 } as const satisfies Record<MaterialCategory, string>;
 
 /** Universal "Materiaal" picker — fully registry-driven. Reads
