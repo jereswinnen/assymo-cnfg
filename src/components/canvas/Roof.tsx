@@ -160,13 +160,19 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
   // along Z so they sit BETWEEN the front/back boards — the four boards
   // share only edges, not volume, so there's no z-fighting. Texture seam
   // is corrected via offsetX so the planks line up with the wall beneath.
+  // Sub-mm outward nudge to break coplanarity with the top-plate beam
+  // (which has the same FASCIA_THICKNESS-wide outer face when overhang=0).
+  // Without it, every corner of the fascia z-fights with the beam and a
+  // sliver of beam material flickers through the trim — exactly the
+  // "piece of a pole at each corner" the user reported.
+  const FASCIA_BEAM_NUDGE = 0.002;
   const fasciaBoards = useMemo<FasciaBoard[]>(() => {
     const boards: FasciaBoard[] = [];
 
     if (hasFront) {
       const fpWidth = maxX - minX;
       boards.push({
-        pos: [(minX + maxX) / 2, fasciaCenterY, maxZ],
+        pos: [(minX + maxX) / 2, fasciaCenterY, maxZ + FASCIA_BEAM_NUDGE],
         size: [fpWidth + FASCIA_THICKNESS, roof.fasciaHeight, FASCIA_THICKNESS],
         length: fpWidth + FASCIA_THICKNESS,
         offsetX: -FASCIA_THICKNESS / 2 - 0.01 - (hasLeft ? oh : 0),
@@ -175,7 +181,7 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
     if (hasBack) {
       const fpWidth = maxX - minX;
       boards.push({
-        pos: [(minX + maxX) / 2, fasciaCenterY, minZ],
+        pos: [(minX + maxX) / 2, fasciaCenterY, minZ - FASCIA_BEAM_NUDGE],
         size: [fpWidth + FASCIA_THICKNESS, roof.fasciaHeight, FASCIA_THICKNESS],
         length: fpWidth + FASCIA_THICKNESS,
         offsetX: -FASCIA_THICKNESS / 2 - 0.01 - (hasLeft ? oh : 0),
@@ -191,7 +197,7 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
     const sideCenterZ = (minZ + maxZ) / 2;
     if (hasLeft) {
       boards.push({
-        pos: [minX, fasciaCenterY, sideCenterZ],
+        pos: [minX - FASCIA_BEAM_NUDGE, fasciaCenterY, sideCenterZ],
         size: [FASCIA_THICKNESS, roof.fasciaHeight, sideLen],
         length: sideLen,
         offsetX: 0,
@@ -199,7 +205,7 @@ function FlatRoof({ width, depth, height, connectedSides, trimMaterialId, materi
     }
     if (hasRight) {
       boards.push({
-        pos: [maxX, fasciaCenterY, sideCenterZ],
+        pos: [maxX + FASCIA_BEAM_NUDGE, fasciaCenterY, sideCenterZ],
         size: [FASCIA_THICKNESS, roof.fasciaHeight, sideLen],
         length: sideLen,
         offsetX: 0,
