@@ -77,3 +77,11 @@ export function getEffectiveInnerWallMaterial(
 ): string | null {
   return wall.materialIdInner ?? null;
 }
+
+/** Effective middenlaag material slug — per-wall only, no inheritance.
+ *  Returns `null` when no middenlaag is set on this wall. */
+export function getEffectiveMiddenlaagMaterial(
+  wall: WallConfig,
+): string | null {
+  return wall.materialIdMiddenlaag ?? null;
+}
