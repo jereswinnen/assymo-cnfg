@@ -136,9 +136,11 @@ export default function Wall({ wallId }: WallProps) {
         break;
     }
 
+    const effectiveOuterSign = (wallCfg?.innerFlipped ? -1 : 1) * outwardSign;
+
     function layer(role: LayerRole, offsetNorm: number, thicknessNorm: number): LayerSpec {
       const thickness = thicknessNorm * t;
-      const offset = outwardSign * (offsetNorm * t);
+      const offset = effectiveOuterSign * (offsetNorm * t);
       const pos: [number, number, number] =
         perpAxis === 'z'
           ? [centre[0], centre[1], centre[2] + offset]
@@ -159,7 +161,7 @@ export default function Wall({ wallId }: WallProps) {
       layout: { layers, perpAxis, outwardSign, lengthAlongWall },
       rotation: rot,
     };
-  }, [wallId, width, depth, height, isMuur, innerSlug, middenlaagSlug]);
+  }, [wallId, width, depth, height, isMuur, innerSlug, middenlaagSlug, wallCfg?.innerFlipped]);
 
   const hasOpenings = wallCfg ? wallCfg.hasDoor || (wallCfg.windows ?? []).length > 0 : false;
   const ds = wallCfg?.doorSize ?? 'enkel';
