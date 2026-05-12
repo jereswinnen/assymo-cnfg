@@ -47,6 +47,15 @@ export interface WallConfig {
    *  `null` = no middenlaag on this wall. Per-wall only — no
    *  inherit-from-building fallback. */
   materialIdMiddenlaag?: string | null;
+  /** When true, the wall's outer / inner face assignment is flipped relative
+   *  to the default geometric convention. Auto-set on muur creation and on
+   *  drag-end; user can toggle it manually via the wall properties panel
+   *  (which also sets `innerFlippedManual`). */
+  innerFlipped?: boolean;
+  /** When true, the user has manually toggled `innerFlipped` — auto-detect
+   *  events MUST NOT overwrite the value. Reset only by an explicit
+   *  "reset to auto" affordance (deferred to v1.1). */
+  innerFlippedManual?: boolean;
   hasDoor: boolean;
   /** Override for the door panel. When undefined the door inherits from
    *  the building's primaryMaterialId. */
