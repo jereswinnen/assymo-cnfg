@@ -232,21 +232,24 @@ function FlatRoof({
   const fasciaBoards = useMemo<FasciaBoard[]>(() => {
     const boards: FasciaBoard[] = [];
 
+    // Front/back fascia fits BETWEEN the (extended) corner posts on each
+    // end so the corner shows only the post's vertical grain — no fascia
+    // end-cap exposing perpendicular grain at the corners.
     if (hasFront) {
-      const fpWidth = maxX - minX;
+      const fpWidth = (maxX - minX) - FASCIA_THICKNESS;
       boards.push({
         pos: [(minX + maxX) / 2, fasciaCenterY, maxZ],
-        size: [fpWidth + FASCIA_THICKNESS, roof.fasciaHeight, FASCIA_THICKNESS],
-        length: fpWidth + FASCIA_THICKNESS,
+        size: [fpWidth, roof.fasciaHeight, FASCIA_THICKNESS],
+        length: fpWidth,
         offsetX: -FASCIA_THICKNESS / 2 - 0.01 - (hasLeft ? oh : 0),
       });
     }
     if (hasBack) {
-      const fpWidth = maxX - minX;
+      const fpWidth = (maxX - minX) - FASCIA_THICKNESS;
       boards.push({
         pos: [(minX + maxX) / 2, fasciaCenterY, minZ],
-        size: [fpWidth + FASCIA_THICKNESS, roof.fasciaHeight, FASCIA_THICKNESS],
-        length: fpWidth + FASCIA_THICKNESS,
+        size: [fpWidth, roof.fasciaHeight, FASCIA_THICKNESS],
+        length: fpWidth,
         offsetX: -FASCIA_THICKNESS / 2 - 0.01 - (hasLeft ? oh : 0),
       });
     }
@@ -315,7 +318,7 @@ function FlatRoof({
         <FlatFrameRafters
           width={width}
           depth={depth}
-          topY={fasciaTopY}
+          bottomY={height}
           beamsAlongX={beamsAlongX}
           beamSpan={beamSpan}
           beamSpread={beamSpread}
@@ -365,10 +368,12 @@ function FlatRoof({
 interface FlatFrameRaftersProps {
   width: number;
   depth: number;
-  /** Y of the top of the cavity (= bottom of EPDM deck). Rafters hang
-   *  below this with their TOP face flush, so slimmer rafters recede
-   *  downward into the cavity rather than centring. */
-  topY: number;
+  /** Y of the BOTTOM of the cavity (= top of the wall plates / fascia
+   *  bottom). Rafters hang DOWN from here into the room space, exposed-
+   *  joist style, so they're visible from inside the building looking
+   *  up — the cavity itself is hidden behind the fascia from outside,
+   *  so hanging the rafters above wall_top made them invisible. */
+  bottomY: number;
   beamsAlongX: boolean;
   beamSpan: number;
   beamSpread: number;
@@ -386,7 +391,7 @@ interface FlatFrameRaftersProps {
 }
 
 function FlatFrameRafters({
-  width, depth, topY,
+  width, depth, bottomY,
   beamsAlongX, beamSpan, beamSpread,
   beamDepthMm, beamWidthMm, beamSpacingMm,
   slug, color, texture, isSelected, hovered,
@@ -394,9 +399,9 @@ function FlatFrameRafters({
   const beamW = beamWidthMm / 1000;
   const beamH = beamDepthMm / 1000;
   const spacing = beamSpacingMm / 1000;
-  // Anchor at top — rafter TOP face sits just below the deck so slimmer
-  // beams recede downward, matching the wall middenlaag's outer-face anchor.
-  const centreY = topY - beamH / 2 - 0.001;
+  // Rafter TOP face at the cavity bottom (= wall_top / fascia bottom),
+  // rafter HANGS DOWN from there into the room — exposed-joist look.
+  const centreY = bottomY - beamH / 2 - 0.001;
 
   // Distribute beams across the spread axis like wall framing: outer
   // beams inset by half a beam width so their outer faces sit flush
