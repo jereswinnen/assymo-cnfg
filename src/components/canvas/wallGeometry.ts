@@ -1,4 +1,4 @@
-import { Shape, Path, ExtrudeGeometry, ShapeGeometry } from 'three';
+import { Shape, Path, ExtrudeGeometry } from 'three';
 import { DOUBLE_DOOR_W, DOOR_W } from '@/domain/building';
 import type { WallId, DoorSize } from '@/domain/building';
 
@@ -30,8 +30,7 @@ export interface WindowHole {
 }
 
 /** Build the 2D Shape (centered at origin, length × height) used as the
- *  silhouette of a wall — including any door / window holes. Shared between
- *  the full ExtrudeGeometry and the inner-cladding ShapeGeometry overlay. */
+ *  silhouette of a wall — including any door / window holes. */
 export function buildWallShape(
   wallLength: number,
   wallHeight: number,
@@ -76,54 +75,6 @@ export function buildWallShape(
   }
 
   return shape;
-}
-
-/** Inner-cladding overlay geometry. A flat plane matching the wall's
- *  silhouette (including door / window holes) used as a thin painted layer
- *  on the inner face of a wall when `materialIdInner` is set.
- *  Built from the same `Shape` as the wall body so cutouts line up exactly. */
-export function createInnerCladdingGeo(
-  wallLength: number,
-  wallHeight: number,
-  thickness: number,
-  wallId: WallId,
-  door: DoorHole | null,
-  windowHoles: WindowHole[],
-): ShapeGeometry {
-  const shape = buildWallShape(wallLength, wallHeight, door, windowHoles);
-  const geo = new ShapeGeometry(shape);
-
-  // Normalise UVs to 0–1 (same convention as createWallWithOpeningsGeo).
-  const hw = wallLength / 2;
-  const hh = wallHeight / 2;
-  const uvAttr = geo.getAttribute('uv');
-  for (let i = 0; i < uvAttr.count; i++) {
-    const u = uvAttr.getX(i);
-    const v = uvAttr.getY(i);
-    uvAttr.setXY(i, (u + hw) / wallLength, (v + hh) / wallHeight);
-  }
-  uvAttr.needsUpdate = true;
-
-  // Position: slightly INSIDE the inner cap of the wall body (toward the
-  // building interior), so it sits flush in front of the wall's inner face
-  // instead of z-fighting with it.
-  geo.translate(0, 0, -thickness / 2 - 0.001);
-
-  // Apply the same per-wall rotation `createWallWithOpeningsGeo` uses, so
-  // the overlay's world orientation matches the wall body's.
-  switch (wallId) {
-    case 'back':
-      geo.rotateY(Math.PI);
-      break;
-    case 'left':
-      geo.rotateY(-Math.PI / 2);
-      break;
-    case 'right':
-      geo.rotateY(Math.PI / 2);
-      break;
-  }
-
-  return geo;
 }
 
 /** Create an ExtrudeGeometry with rectangular holes for doors and/or windows.
