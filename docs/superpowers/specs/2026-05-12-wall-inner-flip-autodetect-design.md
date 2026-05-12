@@ -4,7 +4,7 @@
 
 `materialIdInner` and `materialIdMiddenlaag` are persisted per wall, but which
 of the wall's two large faces gets which material is decided by a static
-geometric convention (`outerSign` per `wallId`). For `muur` (and `poort`)
+geometric convention (`outerSign` per `wallId`). For `muur`
 primitives placed freely in the scene this convention is arbitrary — the
 "inner" face can end up facing the outside world depending on the muur's
 orientation and placement, so the user sees the binnenbekleding from the
@@ -16,12 +16,12 @@ convention is correct there and needs no change.
 
 ## Goal
 
-Auto-detect the correct flip for `muur` / `poort` walls based on the
+Auto-detect the correct flip for `muur` walls based on the
 surrounding scene, with a manual user override that sticks once toggled.
 
 ## Scope
 
-In scope: `WallConfig` of any building whose `type` is `muur` or `poort`.
+In scope: `WallConfig` of any building whose `type` is `muur`.
 
 Out of scope:
 
@@ -42,7 +42,7 @@ Add two optional fields to `WallConfig`:
 export interface WallConfig {
   // …existing fields, including materialIdInner / materialIdMiddenlaag
   /** When true, the wall's outer / inner face assignment is flipped relative
-   *  to the default geometric convention. Auto-set on muur / poort creation
+   *  to the default geometric convention. Auto-set on muur creation
    *  and on snap-attachment changes; user can toggle it manually via the
    *  wall properties panel. */
   innerFlipped?: boolean;
@@ -72,7 +72,7 @@ export const INNER_FLIP_DETECT_RADIUS = 5;
  *  buildings.
  *
  *  Returns `false` (no flip needed) when:
- *  - The building isn't a muur or poort (other kinds use the geometric
+ *  - The building isn't a muur (other kinds use the geometric
  *    convention as-is).
  *  - No structural neighbours sit within `INNER_FLIP_DETECT_RADIUS`.
  *  - The default-inner face is already closer to the neighbour centroid.
@@ -87,7 +87,7 @@ export function detectInnerFlip(
 
 ### Algorithm
 
-1. If `building.type !== 'muur' && building.type !== 'poort'` → return `false`.
+1. If `building.type !== 'muur'` → return `false`.
 2. Compute the muur's centre: `position[0] + dimensions.width / 2`,
    `position[1] + dimensions.depth / 2`.
 3. Filter `buildings` to entries whose `type` is `'overkapping'` or
@@ -106,17 +106,18 @@ export function detectInnerFlip(
    outer is actually closer to the building centroid (i.e. the geometric
    convention picked the wrong side).
 
-`muur` and `poort` each have one logical wall; for these primitives the
-helper operates on the building as a whole. For `WallConfig` of a structural
-building, callers don't invoke this helper at all (covered by `if
-(building.type === ...)` short-circuit).
+A `muur` has exactly one wall key (`'front'` per `wallsForType`); the
+helper operates on the building as a whole, and the caller writes the
+resulting flip into `wallCfg.innerFlipped` on that single key. For
+`WallConfig` of a structural building, callers don't invoke this helper at
+all (covered by the muur-only short-circuit above).
 
 ## Trigger events
 
 `innerFlipped` is recomputed and written ONLY at these moments, and ONLY
 when `innerFlippedManual` is not `true`:
 
-1. **Wall creation** — when `addBuilding(...)` spawns a muur/poort
+1. **Wall creation** — when `addBuilding(...)` spawns a muur
    (`src/domain/config/mutations.ts`). Compute against the buildings that
    already exist in the scene at that moment.
 2. **Drag end (`pointerup`)** — at the very end of a drag gesture in
@@ -136,7 +137,7 @@ properties panel; auto-detect routines respect it as a write-lock.
 ## Manual override
 
 Wall properties panel (`src/components/ui/SurfaceProperties.tsx`) gets a
-small button shown when (a) the building's `type` is `muur` or `poort`
+small button shown when (a) the building's `type` is `muur`
 AND (b) at least one of `materialIdInner` / `materialIdMiddenlaag` is set
 on the selected wall (no flip is meaningful when only the outer cladding
 is set):
@@ -187,7 +188,7 @@ total m² of each material remains the same.
 
 New `tests/inner-flip-detect.test.ts`:
 
-- Non-muur/poort building → `detectInnerFlip` returns `false`.
+- Non-muur building → `detectInnerFlip` returns `false`.
 - Muur with no structural neighbours → `false`.
 - Muur snapped to an overkapping such that default outer faces the
   overkapping centroid → `true` (flip needed).
@@ -220,7 +221,7 @@ Domain:
   constant.
 - `src/domain/building/index.ts` — re-export.
 - `src/domain/config/mutations.ts` — wire `detectInnerFlip` into the
-  `addBuilding` muur/poort spawn path. Also add a small mutation
+  `addBuilding` muur spawn path. Also add a small mutation
   `applyInnerFlipAutoDetect(cfg, buildingId)` that recomputes and writes
   the flip when called, respecting `innerFlippedManual`. UI calls it on
   drag end.
@@ -228,15 +229,15 @@ Domain:
 UI:
 
 - `src/components/schematic/SchematicView.tsx` — on `pointerup` after a
-  building drag, call `applyInnerFlipAutoDetect` for the moved muur /
-  poort (the helper internally respects `innerFlippedManual`, so the
-  caller doesn't need to check).
+  building drag, call `applyInnerFlipAutoDetect` for the moved muur (the
+  helper internally respects `innerFlippedManual`, so the caller doesn't
+  need to check).
 - `src/components/canvas/Wall.tsx` — multiply `effectiveOuterSign` into the
   offset computation in the `layer()` helper.
 - `src/components/schematic/SchematicWalls.tsx` — same `effectiveOuterSign`
   wrap.
 - `src/components/ui/SurfaceProperties.tsx` — render the manual flip button
-  when the wall belongs to a muur/poort AND has middenlaag or inner set.
+  when the wall belongs to a muur AND has middenlaag or inner set.
 
 Glue:
 
