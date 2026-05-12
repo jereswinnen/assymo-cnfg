@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useMemo, useEffect, useCallback } from 'react';
-import { Mesh } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore } from "@/store/useUIStore";
@@ -48,7 +47,6 @@ interface WallProps {
 
 export default function Wall({ wallId }: WallProps) {
   const { catalog: { materials }, supplierCatalog } = useTenant();
-  const meshRef = useRef<Mesh>(null);
 
   const buildingId = useBuildingId();
   const building = useConfigStore((s) => s.buildings.find(b => b.id === buildingId));
@@ -72,13 +70,6 @@ export default function Wall({ wallId }: WallProps) {
 
   const wallLength = getWallLength(wallId, dimensions);
   const texture = useWallTexture(materialId, wallLength, height);
-
-  if (!wallCfg) return null;
-
-  const isSelected =
-    selectedElement?.type === 'wall' && selectedElement.id === wallId && selectedElement.buildingId === buildingId;
-
-  const isMuur = building?.type === 'muur';
 
   // Inner cladding — resolved before the isGlass early-return so hooks run unconditionally.
   const innerSlug = wallCfg
@@ -104,6 +95,11 @@ export default function Wall({ wallId }: WallProps) {
     : null;
   // Unconditional hook — placeholder slug when no middenlaag.
   const middenlaagTexture = useWallTexture(middenlaagSlug ?? materialId, wallLength, height);
+
+  const isSelected =
+    selectedElement?.type === 'wall' && selectedElement.id === wallId && selectedElement.buildingId === buildingId;
+
+  const isMuur = building?.type === 'muur';
 
   const { layout, rotation } = useMemo(() => {
     const t = WALL_THICKNESS;
@@ -183,20 +179,22 @@ export default function Wall({ wallId }: WallProps) {
     };
   }, [wallId, width, depth, height, isMuur, innerSlug, middenlaagSlug]);
 
-  const hasOpenings = wallCfg.hasDoor || (wallCfg.windows ?? []).length > 0;
-  const ds = wallCfg.doorSize ?? 'enkel';
+  const hasOpenings = wallCfg ? wallCfg.hasDoor || (wallCfg.windows ?? []).length > 0 : false;
+  const ds = wallCfg?.doorSize ?? 'enkel';
   const { doorX: computedDoorX, windowXs: computedWindowXs } = useMemo(
-    () =>
-      resolveOpeningPositions(
+    () => {
+      if (!wallCfg) return { doorX: null, windowXs: [] };
+      return resolveOpeningPositions(
         wallLength,
         wallCfg.hasDoor ? (wallCfg.doorPosition ?? 0.5) : null,
         wallCfg.windows ?? [],
-      ),
-    [wallLength, wallCfg.hasDoor, wallCfg.doorPosition, wallCfg.windows],
+      );
+    },
+    [wallLength, wallCfg?.hasDoor, wallCfg?.doorPosition, wallCfg?.windows],
   );
 
   const doorHole: DoorHole | null = useMemo(() => {
-    if (!wallCfg.hasDoor || computedDoorX === null) return null;
+    if (!wallCfg || !wallCfg.hasDoor || computedDoorX === null) return null;
     const supplier = wallCfg.doorSupplierProductId
       ? supplierCatalog.products.find(p => p.id === wallCfg.doorSupplierProductId)
       : null;
@@ -208,12 +206,12 @@ export default function Wall({ wallId }: WallProps) {
       };
     }
     return { x: computedDoorX, width: doorWidth(ds), height: DOOR_H };
-  }, [wallCfg.hasDoor, wallCfg.doorSupplierProductId, computedDoorX, ds, supplierCatalog.products]);
+  }, [wallCfg, wallCfg?.doorSupplierProductId, computedDoorX, ds, supplierCatalog.products]);
 
   const windowHoles: WindowHole[] = useMemo(
     () =>
       computedWindowXs.map((wx, i) => {
-        const win = (wallCfg.windows ?? [])[i];
+        const win = (wallCfg?.windows ?? [])[i];
         const supplier = win?.supplierProductId
           ? supplierCatalog.products.find(p => p.id === win.supplierProductId)
           : null;
@@ -232,7 +230,7 @@ export default function Wall({ wallId }: WallProps) {
           sillHeight: win?.sillHeight ?? WIN_SILL_DEFAULT,
         };
       }),
-    [computedWindowXs, wallCfg.windows, supplierCatalog.products],
+    [computedWindowXs, wallCfg?.windows, supplierCatalog.products],
   );
 
   const wallGeo = useMemo(() => {
@@ -269,6 +267,8 @@ export default function Wall({ wallId }: WallProps) {
   }, [hasOpenings, layout, wallLength, height, wallId, doorHole, windowHoles]);
 
   useEffect(() => () => { layerGeoms?.forEach(g => g.dispose()); }, [layerGeoms]);
+
+  if (!wallCfg) return null;
 
   const isGlass = materialId === 'glass';
 
@@ -337,7 +337,6 @@ export default function Wall({ wallId }: WallProps) {
         return (
           <mesh
             key={i}
-            ref={i === 0 ? meshRef : undefined}
             position={layerSpec.position}
             rotation={rotation}
             castShadow
