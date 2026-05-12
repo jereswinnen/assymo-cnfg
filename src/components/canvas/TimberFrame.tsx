@@ -65,16 +65,10 @@ export default function TimberFrame() {
     const suppB = suppressedSides.has('back');
 
     // Corner posts (always present unless the adjacent sides are suppressed).
-    // For flat roofs the corner post extends UP through the entire fascia
-    // zone so the corner column has a single vertical-grain texture from
-    // floor to deck — without this, the front/back fascia end-caps show
-    // perpendicular grain at every corner.
-    const cornerPostH = isFlat ? height + roof.fasciaHeight : height;
-    const cornerPostCY = cornerPostH / 2;
-    if (!suppB && !suppL) boxes.push({ pos: [-hw, cornerPostCY, hd], size: [POST_SIZE, cornerPostH, POST_SIZE] });
-    if (!suppB && !suppR) boxes.push({ pos: [hw, cornerPostCY, hd], size: [POST_SIZE, cornerPostH, POST_SIZE] });
-    if (!suppF && !suppL) boxes.push({ pos: [-hw, cornerPostCY, -hd], size: [POST_SIZE, cornerPostH, POST_SIZE] });
-    if (!suppF && !suppR) boxes.push({ pos: [hw, cornerPostCY, -hd], size: [POST_SIZE, cornerPostH, POST_SIZE] });
+    if (!suppB && !suppL) boxes.push({ pos: [-hw, height / 2, hd], size: [POST_SIZE, height, POST_SIZE] });
+    if (!suppB && !suppR) boxes.push({ pos: [hw, height / 2, hd], size: [POST_SIZE, height, POST_SIZE] });
+    if (!suppF && !suppL) boxes.push({ pos: [-hw, height / 2, -hd], size: [POST_SIZE, height, POST_SIZE] });
+    if (!suppF && !suppR) boxes.push({ pos: [hw, height / 2, -hd], size: [POST_SIZE, height, POST_SIZE] });
 
     // Intermediate posts from the building's (possibly user-edited) pole layout
     if (!suppB) for (const f of poles.back)   boxes.push({ pos: [-hw + f * width, height / 2,  hd], size: [POST_SIZE, height, POST_SIZE] });
