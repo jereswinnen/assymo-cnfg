@@ -351,12 +351,16 @@ function FlatRoof({
       )}
 
       {/* Inner cladding ("binnenbekleding") — flat slab below the framing.
-          On a flat roof, slope = 0, so it's simply a slab at the cavity bottom. */}
+          Anchored at the top-plate-beam TOP (= wall_top + BEAM_H) to mirror
+          the rafter anchor: cladding hangs JUST BELOW the rafters (or just
+          below the deck when no middenlaag). Anchoring at fasciaTopY put
+          the cladding inside the rafter zone — embedded in the deck when
+          fasciaHeight was tall, hidden behind rafters when it was short. */}
       {innerCladdingSlug && (
         <FlatInnerCladding
           width={width}
           depth={depth}
-          topY={fasciaTopY}
+          topY={height + BEAM_H}
           middenlaagPricing={middenlaagPricing}
           slug={innerCladdingSlug}
           color={innerColor ?? '#888'}
