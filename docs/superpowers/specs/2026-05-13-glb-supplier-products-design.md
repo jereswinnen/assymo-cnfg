@@ -67,8 +67,9 @@ Customer opens /configurator
     VariantPickers + MaterialSlotPickers when meta.glb is present
                 ↓
 ConfigData (Zustand + zundo)
-  WallConfig.door.glbVariants?:  Record<groupId, optionId>
-  WallConfig.door.glbMaterials?: Record<slotId, materialSlug>
+  WallConfig.doorGlbVariants?:  Record<groupId, optionId>
+  WallConfig.doorGlbMaterials?: Record<slotId, materialSlug>
+  WallWindow.glbVariants?  / .glbMaterials?  (per window)
                 ↓
 Order submit
   buildQuoteSnapshot freezes the full supplier_product row
@@ -109,17 +110,17 @@ type VariantOption = {
   id: string;                   // "vlakke"
   label: string;                // "Vlakke deur"
   childPath: string;            // child of parentPath to show
-  priceDeltaEur: number;        // ≥ 0
+  priceDeltaCents: number;      // ≥ 0; codebase convention is cents-everywhere
 };
 
 type MaterialSlot = {
   id: string;                   // "frame"
   label: string;                // "Kader"
-  nodePaths: string[];
+  nodePaths: string[];          // ≥ 1 entry
   category: MaterialCategory;
   defaultMaterialSlug: string;
-  allowedMaterialSlugs: string[];
-  priceDeltasEur: Record<string, number>; // per-slug, ≥ 0
+  allowedMaterialSlugs: string[]; // ≥ 1 entry; default must be a member
+  priceDeltasCents: Record<string, number>; // per-slug, ≥ 0
 };
 ```
 
@@ -129,16 +130,27 @@ the DEUR.glb fixture and for the typical supplier export.
 
 ### `ConfigData` additions
 
-`WallConfig.door` and `WallConfig.window` each gain:
+`WallConfig` (which holds the door fields as flat properties, not under
+a nested `door` object) gains:
 
 ```ts
-glbVariants?:  Record<string, string>;   // groupId → optionId
-glbMaterials?: Record<string, string>;   // slotId  → materialSlug
+doorGlbVariants?:  Record<string, string>;  // groupId → optionId
+doorGlbMaterials?: Record<string, string>;  // slotId  → materialSlug
 ```
 
-Both optional. Missing fields default to the binding's defaults at
-render time. `CONFIG_VERSION` bumps; `migrateConfig` from v8→v9
-adds empty objects, purely additive.
+`WallWindow` gains the same pair:
+
+```ts
+glbVariants?:  Record<string, string>;
+glbMaterials?: Record<string, string>;
+```
+
+All optional. Missing fields default to the binding's defaults at
+render time. **No `CONFIG_VERSION` bump and no migrator changes
+needed** — the existing migrator's pattern is "tolerate missing
+fields by leaving them undefined" (see `migrateBuilding` / `migrateRoof`
+in `src/domain/config/migrate.ts`), which already handles purely
+additive optional fields.
 
 ### DB
 
@@ -148,18 +160,32 @@ recursive sub-validator for `meta.glb`.
 
 ### Validator error codes
 
-`validateDoorMeta` / `validateWindowMeta` reject with stable codes:
+A new umbrella code `glbInvalid` is added to `SUPPLIER_ERROR_CODES`,
+following the existing pattern of one top-level code per nested object
+(see `segmentsInvalid`, `schuifraamInvalid`). The validator pushes
+colon-namespaced sub-paths for specific failures, matching the
+`meta_invalid:swingDirection` style:
 
-- `glb_unit_scale_invalid`
-- `glb_natural_size_invalid`
-- `glb_variant_group_id_duplicate`
-- `glb_variant_option_id_duplicate`
-- `glb_variant_default_missing`
-- `glb_material_slot_id_duplicate`
-- `glb_material_slot_allowed_empty` (allow-list is required, ≥ 1 entry)
-- `glb_material_slot_default_not_allowed` (default not in allow-list)
-- `glb_material_slot_category_invalid`
-- `glb_price_delta_invalid` (non-finite or negative)
+- `glb_invalid` — shape is not an object
+- `glb_invalid:url`
+- `glb_invalid:unitScale`
+- `glb_invalid:naturalSize`
+- `glb_invalid:hidden`
+- `glb_invalid:variantGroups[i].id` — missing or duplicate
+- `glb_invalid:variantGroups[i].defaultOptionId` — not in options
+- `glb_invalid:variantGroups[i].options[j].id` — duplicate within group
+- `glb_invalid:variantGroups[i].options[j].priceDeltaCents`
+- `glb_invalid:materialSlots[i].id` — missing or duplicate
+- `glb_invalid:materialSlots[i].nodePaths` — empty
+- `glb_invalid:materialSlots[i].category` — not a `MaterialCategory`
+- `glb_invalid:materialSlots[i].allowedMaterialSlugs` — empty
+- `glb_invalid:materialSlots[i].defaultMaterialSlug` — not in allowed
+- `glb_invalid:materialSlots[i].priceDeltasCents` — bad shape or value
+
+The new `validateGlbBinding(meta.glb)` is exported standalone and
+called from both `validateDoorMeta` and `validateWindowMeta` (Create
+path) and from `validateSupplierProductPatch` (PATCH path, when
+`'glb' in meta`).
 
 ## API
 
@@ -331,12 +357,12 @@ the same point as the existing window rendering pipeline.
 `src/components/canvas/GlbDoorMesh.tsx`:
 
 ```tsx
-function GlbDoorMesh({ supplierProduct, door, materials, position, rotation }) {
+function GlbDoorMesh({ supplierProduct, wall, materials, position, rotation }) {
   const binding = supplierProduct.meta.glb;
   const cloned  = useClonedGlbScene(binding.url);
 
-  const variantPicks  = door.glbVariants  ?? defaultsFor(binding.variantGroups);
-  const materialPicks = door.glbMaterials ?? defaultsFor(binding.materialSlots);
+  const variantPicks  = wall.doorGlbVariants  ?? defaultsFor(binding.variantGroups);
+  const materialPicks = wall.doorGlbMaterials ?? defaultsFor(binding.materialSlots);
 
   useEffect(() => {
     applyHidden(cloned, binding.hidden);
@@ -409,12 +435,13 @@ The window sidebar gets the same treatment.
 ### Mutations
 
 In `useConfigStore` (delegating to pure functions in
-`@/domain/config/mutations.ts`):
+`@/domain/config/mutations.ts`). Signatures follow the existing
+`setWallDoorSupplierProduct(state, buildingId, wallSide, ...)` shape:
 
-- `setDoorGlbVariant(buildingId, wallId, groupId, optionId)`
-- `setDoorGlbMaterial(buildingId, wallId, slotId, materialSlug)`
-- `setWindowGlbVariant(...)`
-- `setWindowGlbMaterial(...)`
+- `setWallDoorGlbVariant(state, buildingId, wallSide, groupId, optionId)`
+- `setWallDoorGlbMaterial(state, buildingId, wallSide, slotId, materialSlug)`
+- `setWallWindowGlbVariant(state, buildingId, wallSide, windowId, groupId, optionId)`
+- `setWallWindowGlbMaterial(state, buildingId, wallSide, windowId, slotId, materialSlug)`
 
 All undoable through `temporal` middleware. Mutations validate that
 `optionId` exists in the group and `materialSlug` exists in the
@@ -426,13 +453,13 @@ mutation discipline).
 `calculateTotalQuote` per GLB-backed line item:
 
 ```
-basePrice = supplier.priceEur
-  + Σ variantGroups: option.priceDeltaEur for the picked option
-  + Σ materialSlots: slot.priceDeltasEur[picked slug] ?? 0
+basePriceCents = supplier.priceCents
+  + Σ variantGroups: option.priceDeltaCents for the picked option
+  + Σ materialSlots: slot.priceDeltasCents[picked slug] ?? 0
 ```
 
 Defaults are always 0-delta, so picking the cheapest path equals
-`priceEur`.
+`priceCents`.
 
 Extra structured line items per non-default pick:
 
@@ -454,11 +481,12 @@ Order PDF renders these without PDF-side changes.
 `buildQuoteSnapshot` already freezes the full `SupplierProductRow`,
 so `meta.glb` travels with the priced quote. `buildConfigSnapshot`
 already freezes the full `ConfigData`, so customer picks
-(`glbVariants` + `glbMaterials`) travel with the saved scene.
+(`doorGlbVariants` + `doorGlbMaterials` on walls, and per-window
+`glbVariants` + `glbMaterials`) travel with the saved scene.
 
 Years-later replay reads `quoteSnapshot.items[].supplierProduct.meta.glb`
-and `configSnapshot.buildings[].walls[].door.glbVariants` and
-renders deterministically.
+and `configSnapshot.buildings[].walls[*].doorGlbVariants` and renders
+deterministically.
 
 ## Saved-scene hydration
 
@@ -483,7 +511,9 @@ Each phase ends with passing tests and a buildable repo.
    yet — admin can save tags but only sees them on the configurator.
 4. **Configurator render.** Add `useClonedGlbScene`, `applyBinding.ts`
    helpers, `GlbDoorMesh`, `GlbWindowMesh`. Branch in `DoorMesh.tsx`.
-   ConfigData v8→v9 migration. Sidebar pickers. Mutations.
+   Add new optional fields to `WallConfig` + `WallWindow` (no
+   migrator changes needed — optional fields default to undefined).
+   Sidebar pickers. Mutations.
 5. **Pricing line items.** Wire variant/material deltas into
    `calculateTotalQuote`. Add i18n keys.
 6. **Preview canvas in admin form.** Reuse `GlbDoorMesh` inside the
@@ -533,8 +563,11 @@ Browser (manual + integration where feasible):
 
 ## Migration
 
-- `CONFIG_VERSION` 8 → 9, additive only.
-- No DB migration. TypeScript union widens, validators widen.
+- No `CONFIG_VERSION` bump. The new wall/window fields are optional;
+  the existing migrator tolerates missing fields by leaving them
+  undefined. Renderers fall back to binding defaults when undefined.
+- No DB migration. `supplier_products.meta` is open jsonb; the
+  TypeScript type union widens and validators widen.
 - Existing supplier products with no `meta.glb` continue to render
   via `SupplierDoorMesh` (hero image) or `StandardDoorMesh`
   (procedural) — same behaviour as today.
