@@ -34,8 +34,22 @@ export interface LegacyConfig {
 }
 
 export function migrateBuilding(b: LegacyBuilding): BuildingEntity {
+  // Legacy walls may carry doorSwing='dicht' (the "closed" enum option,
+  // removed in favour of a separate isOpen toggle). Re-map to a real
+  // direction; the schematic already substituted 'naar_binnen' for
+  // 'dicht' when rendering its arc, so keep the same default.
+  const walls = Object.fromEntries(
+    Object.entries(b.walls).map(([id, w]) => {
+      if (w && (w.doorSwing as string) === 'dicht') {
+        return [id, { ...w, doorSwing: 'naar_binnen' as const }];
+      }
+      return [id, w];
+    }),
+  ) as BuildingEntity['walls'];
+
   return {
     ...b,
+    walls,
     primaryMaterialId: b.primaryMaterialId ?? DEFAULT_PRIMARY_MATERIAL,
     orientation: b.orientation ?? ('horizontal' satisfies Orientation),
     heightOverride: b.heightOverride ?? null,

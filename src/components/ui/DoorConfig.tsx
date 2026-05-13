@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useConfigStore } from '@/store/useConfigStore';
+import { useUIStore } from '@/store/useUIStore';
 import { clampOpeningPosition, DOOR_W, DOUBLE_DOOR_W, getWallLength, WIN_W } from '@/domain/building';
 import { getEffectiveDoorMaterial } from '@/domain/materials';
 import { useTenantCatalogs } from '@/lib/useTenantCatalogs';
@@ -31,6 +32,10 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
   const buildings = useConfigStore((s) => s.buildings);
   const updateBuildingWall = useConfigStore((s) => s.updateBuildingWall);
   const setDoorSupplierProduct = useConfigStore((s) => s.setDoorSupplierProduct);
+  const doorAnimations = useUIStore((s) => s.doorAnimations);
+  const toggleDoorOpen = useUIStore((s) => s.toggleDoorOpen);
+  const doorKey = `${buildingId}:${wallId}`;
+  const isDoorOpen = doorAnimations[doorKey]?.open ?? false;
   const [expanded, setExpanded] = useState(false);
   const effectiveDoor = wallCfg && building
     ? getEffectiveDoorMaterial(wallCfg, building, buildings)
@@ -252,14 +257,30 @@ export default function DoorConfig({ wallId, buildingId }: DoorConfigProps) {
                       variant="outline"
                       size="sm"
                     >
-                      <ToggleGroupItem value="dicht" className="flex-1 text-xs">
-                        {t('surface.doorSwing.dicht')}
-                      </ToggleGroupItem>
                       <ToggleGroupItem value="naar_binnen" className="flex-1 text-xs">
                         {t('surface.doorSwing.naar_binnen')}
                       </ToggleGroupItem>
                       <ToggleGroupItem value="naar_buiten" className="flex-1 text-xs">
                         {t('surface.doorSwing.naar_buiten')}
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                    <ToggleGroup
+                      type="single"
+                      value={isDoorOpen ? 'open' : 'closed'}
+                      onValueChange={(v) => {
+                        if (!v) return;
+                        const nextOpen = v === 'open';
+                        if (nextOpen !== isDoorOpen) toggleDoorOpen(doorKey);
+                      }}
+                      className="w-full"
+                      variant="outline"
+                      size="sm"
+                    >
+                      <ToggleGroupItem value="closed" className="flex-1 text-xs">
+                        {t('surface.doorClosed')}
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="open" className="flex-1 text-xs">
+                        {t('surface.doorOpen')}
                       </ToggleGroupItem>
                     </ToggleGroup>
                     <label

@@ -106,7 +106,7 @@ export default function SchematicOpenings({
                       localDoorX={localDoorX}
                       doorWidth={dw}
                       isDouble={ds === 'dubbel' && !doorSupplierProduct}
-                      swing={cfg.doorSwing ?? 'dicht'}
+                      swing={cfg.doorSwing}
                       mirror={cfg.doorMirror ?? false}
                     />
                     {/* Supplier SKU label */}
@@ -127,7 +127,7 @@ export default function SchematicOpenings({
                         localDoorX={fractionToX(g.length, wallPreview!.fraction) * g.flipSign}
                         doorWidth={dw}
                         isDouble={ds === 'dubbel' && !doorSupplierProduct}
-                        swing={cfg.doorSwing ?? 'dicht'}
+                        swing={cfg.doorSwing}
                         mirror={cfg.doorMirror ?? false}
                       />
                     </g>
@@ -217,8 +217,7 @@ function DoorSymbol({
   const { cx, cy, orientation, inward, hingeEnd } = geom;
   const isH = orientation === 'h';
 
-  const effectiveSwing = swing === 'dicht' ? 'naar_binnen' : swing;
-  const swingSign = effectiveSwing === 'naar_binnen' ? 1 : -1;
+  const swingSign = swing === 'naar_binnen' ? 1 : -1;
 
   if (isDouble) {
     return (

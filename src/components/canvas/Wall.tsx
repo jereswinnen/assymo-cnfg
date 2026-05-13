@@ -490,6 +490,8 @@ interface OpeningsProps {
 function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg, effectiveDoorMaterial }: OpeningsProps) {
   const { supplierCatalog } = useTenant();
   const t = useEffectivePostSize();
+  const buildingId = useBuildingId();
+  const doorOpen = useUIStore((s) => s.doorAnimations[`${buildingId}:${wallId}`]?.open ?? false);
 
   if (!wallCfg.hasDoor && (wallCfg.windows ?? []).length === 0) return null;
   const outOffset = t / 2 + 0.01;
@@ -533,7 +535,8 @@ function WallOpenings({ wallId, wallPosition, wallLength, height, wallCfg, effec
         <DoorMesh
           x={doorX!}
           height={height}
-          swing={wallCfg.doorSwing ?? 'dicht'}
+          swing={wallCfg.doorSwing}
+          isOpen={doorOpen}
           doorSize={ds}
           doorHasWindow={wallCfg.doorHasWindow ?? false}
           doorMaterialId={effectiveDoorMaterial}

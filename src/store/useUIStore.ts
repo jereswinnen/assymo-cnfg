@@ -26,6 +26,12 @@ interface UIState {
   windowAnimations: Record<string, { open: boolean }>;
   toggleWindowOpen: (windowId: string) => void;
   clearWindowAnimation: (windowId: string) => void;
+  /** Ephemeral door open/close state. Keyed by `${buildingId}:${wallId}`
+   *  because the wallId enum is reused across buildings. Not persisted,
+   *  not undoable. */
+  doorAnimations: Record<string, { open: boolean }>;
+  toggleDoorOpen: (doorKey: string) => void;
+  clearDoorAnimation: (doorKey: string) => void;
 
   selectBuilding: (id: string | null) => void;
   selectBuildings: (ids: string[]) => void;
@@ -59,7 +65,8 @@ const INITIAL_UI: Omit<UIState, keyof Pick<UIState,
   'selectElement' | 'clearSelection' | 'clearCameraTarget' | 'setDraggedBuildingId' |
   'setSidebarTab' | 'setSidebarCollapsed' | 'setActiveConfigSection' |
   'setViewMode' | 'setQualityTier' | 'copySelection' | 'pasteClipboard' | 'resetUI' |
-  'toggleWindowOpen' | 'clearWindowAnimation'
+  'toggleWindowOpen' | 'clearWindowAnimation' |
+  'toggleDoorOpen' | 'clearDoorAnimation'
 >> = {
   selectedBuildingIds: [],
   selectedElement: null,
@@ -72,6 +79,7 @@ const INITIAL_UI: Omit<UIState, keyof Pick<UIState,
   qualityTier: 'high',
   clipboard: null,
   windowAnimations: {},
+  doorAnimations: {},
 };
 
 export const useUIStore = create<UIState>()((set, get) => ({
@@ -157,6 +165,20 @@ export const useUIStore = create<UIState>()((set, get) => ({
     set((state) => {
       const { [windowId]: _drop, ...rest } = state.windowAnimations;
       return { windowAnimations: rest };
+    }),
+
+  toggleDoorOpen: (doorKey) =>
+    set((state) => ({
+      doorAnimations: {
+        ...state.doorAnimations,
+        [doorKey]: { open: !(state.doorAnimations[doorKey]?.open ?? false) },
+      },
+    })),
+
+  clearDoorAnimation: (doorKey) =>
+    set((state) => {
+      const { [doorKey]: _drop, ...rest } = state.doorAnimations;
+      return { doorAnimations: rest };
     }),
 
   resetUI: (initialSelectedId = null) =>

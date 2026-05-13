@@ -72,6 +72,8 @@ interface DoorMeshProps {
   x: number;
   height: number;
   swing: DoorSwing;
+  /** When true the door animates to its open angle; otherwise it sits at 0. */
+  isOpen: boolean;
   doorSize: DoorSize;
   doorHasWindow: boolean;
   doorMaterialId: string;
@@ -105,14 +107,14 @@ function SupplierDoorPanel({ w, h, heroUrl }: { w: number; h: number; heroUrl: s
 }
 
 /** Renders a supplier door using its fixed width × height and optional hero image. */
-function SupplierDoorMesh({ x, supplierProduct, swing }: { x: number; supplierProduct: SupplierProductRow; swing: DoorSwing }) {
+function SupplierDoorMesh({ x, supplierProduct, swing, isOpen }: { x: number; supplierProduct: SupplierProductRow; swing: DoorSwing; isOpen: boolean }) {
   const w = supplierProduct.widthMm / 1000;
   const h = supplierProduct.heightMm / 1000;
   const doorY = h / 2;
 
-  let targetAngle = 0;
-  if (swing === 'naar_binnen') targetAngle = Math.PI / 3;
-  else if (swing === 'naar_buiten') targetAngle = -Math.PI / 3;
+  const targetAngle = isOpen
+    ? (swing === 'naar_binnen' ? Math.PI / 3 : -Math.PI / 3)
+    : 0;
 
   const hingeRef = useRef<Group>(null);
   useFrame((_, delta) => {
@@ -161,12 +163,12 @@ function SupplierDoorMesh({ x, supplierProduct, swing }: { x: number; supplierPr
  *  variant keeps its own stable hook ordering (no conditional hook calls). */
 export default function DoorMesh(props: DoorMeshProps) {
   if (props.supplierProduct) {
-    return <SupplierDoorMesh x={props.x} supplierProduct={props.supplierProduct} swing={props.swing} />;
+    return <SupplierDoorMesh x={props.x} supplierProduct={props.supplierProduct} swing={props.swing} isOpen={props.isOpen} />;
   }
   return <StandardDoorMesh {...props} />;
 }
 
-function StandardDoorMesh({ x, height, swing, doorSize, doorHasWindow, doorMaterialId, doorMirror = false }: DoorMeshProps) {
+function StandardDoorMesh({ x, height, swing, isOpen, doorSize, doorHasWindow, doorMaterialId, doorMirror = false }: DoorMeshProps) {
   const { catalog: { materials } } = useTenant();
   const doorY = DOOR_H / 2;
   const dh = Math.min(DOOR_H, height - 0.1);
@@ -180,15 +182,12 @@ function StandardDoorMesh({ x, height, swing, doorSize, doorHasWindow, doorMater
   // Mirror only applies to single doors (dubbel is already symmetric)
   const mirror = doorMirror && doorSize !== 'dubbel' ? -1 : 1;
 
-  // Target angle: dicht=0, naar_binnen=+60deg, naar_buiten=-60deg.
-  // Flipping the hinge to the opposite edge also flips the swing direction so
-  // "naar_buiten" still opens outward.
-  let targetAngle = 0;
-  if (swing === 'naar_binnen') {
-    targetAngle = Math.PI / 3;
-  } else if (swing === 'naar_buiten') {
-    targetAngle = -Math.PI / 3;
-  }
+  // Closed = 0; open = ±60deg depending on swing. Flipping the hinge to
+  // the opposite edge also flips the swing direction so "naar_buiten" still
+  // opens outward.
+  const targetAngle = isOpen
+    ? (swing === 'naar_binnen' ? Math.PI / 3 : -Math.PI / 3)
+    : 0;
   const singleAngle = mirror * targetAngle;
 
   // Animated hinge refs

@@ -14,7 +14,7 @@ export type WallSide = 'left' | 'right' | 'front' | 'back';
 
 export type DoorMaterialId = 'wood' | 'aluminium' | 'pvc' | 'staal';
 export type DoorSize = 'enkel' | 'dubbel';
-export type DoorSwing = 'dicht' | 'naar_binnen' | 'naar_buiten';
+export type DoorSwing = 'naar_binnen' | 'naar_buiten';
 
 export interface WallWindow {
   id: string;
