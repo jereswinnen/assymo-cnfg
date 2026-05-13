@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useMemo, useCallback } from 'react';
-import { Mesh } from 'three';
+import { useEffect, useRef, useMemo, useCallback } from 'react';
+import { BoxGeometry, Mesh } from 'three';
 import { useBuildingId } from '@/lib/BuildingContext';
 import { useConfigStore, getEffectiveHeight } from '@/store/useConfigStore';
 import { useUIStore } from "@/store/useUIStore";
@@ -536,9 +536,47 @@ function FasciaBoardMesh({
   const isGlass = materialId === 'glass';
   const tint = FASCIA_TEXTURE_TINT[materialId] ?? '#ffffff';
 
+  // BoxGeometry assigns 0..1 UVs to every face, so `texture.repeat` —
+  // which is calibrated to the LONG face's metres — over-samples the
+  // end-cap faces (width = FASCIA_THICKNESS) by length/thickness, giving
+  // a stripey "perpendicular grain" patch at the corners. Rescale each
+  // face's UVs by (face physical width) / (calibration width) so every
+  // face samples the texture at the same per-metre rate as the long
+  // face. Calibration axis = whichever of sx/sz is the long one.
+  const geometry = useMemo(() => {
+    const [sx, sy, sz] = board.size;
+    const geom = new BoxGeometry(sx, sy, sz);
+    const calibU = Math.max(sx, sz);
+    const calibV = sy;
+    // BoxGeometry face order: +X, -X, +Y, -Y, +Z, -Z (4 verts each).
+    // U/V meters per face:
+    //   ±X: U=sz, V=sy
+    //   ±Y: U=sx, V=sz
+    //   ±Z: U=sx, V=sy
+    const scales: Array<[number, number]> = [
+      [sz / calibU, sy / calibV],
+      [sz / calibU, sy / calibV],
+      [sx / calibU, sz / calibV],
+      [sx / calibU, sz / calibV],
+      [sx / calibU, sy / calibV],
+      [sx / calibU, sy / calibV],
+    ];
+    const uv = geom.attributes.uv;
+    for (let f = 0; f < 6; f++) {
+      const [us, vs] = scales[f];
+      for (let i = 0; i < 4; i++) {
+        const idx = f * 4 + i;
+        uv.setXY(idx, uv.getX(idx) * us, uv.getY(idx) * vs);
+      }
+    }
+    uv.needsUpdate = true;
+    return geom;
+  }, [board.size[0], board.size[1], board.size[2]]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
   return (
-    <mesh position={board.pos} castShadow receiveShadow>
-      <boxGeometry args={board.size} />
+    <mesh position={board.pos} geometry={geometry} castShadow receiveShadow>
       <meshStandardMaterial
         key={texture ? 'textured' : 'flat'}
         color={texture ? tint : getAtomColor(materials, materialId, 'wall')}
