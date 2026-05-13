@@ -150,13 +150,20 @@ function CameraAnimator() {
 
 export default function BuildingScene() {
   const clearSelection = useUIStore((s) => s.clearSelection);
+  const selectBuilding = useUIStore((s) => s.selectBuilding);
   const buildings = useConfigStore((s) => s.buildings);
 
   return (
     <Canvas
       shadows
       camera={{ position: [15, 8, 12], fov: 45 }}
-      onPointerMissed={() => clearSelection()}
+      onPointerMissed={() => {
+        // Match the 2D plan's empty-click behaviour: drop both the
+        // building selection AND any wall/roof sub-element selection,
+        // so deselecting in 3D mirrors in 2D.
+        selectBuilding(null);
+        clearSelection();
+      }}
       style={{ background: '#6a9fd8' }}
     >
       <RendererConfig />
